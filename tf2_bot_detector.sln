@@ -5,6 +5,15 @@ VisualStudioVersion = 16.0.29911.84
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tf2_bot_detector", "tf2_bot_detector\tf2_bot_detector.vcxproj", "{4EE2133D-EF1D-4497-84EF-301AC190BEF9}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "imgui_desktop\repo\imgui\imgui.vcxproj", "{317F1E7C-F059-41B8-A244-55D4B6AEC08C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui_desktop", "imgui_desktop\repo\imgui_desktop\imgui_desktop.vcxproj", "{331F564C-1CA1-4C0C-9352-A2E51C7A9603}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3C183BB9-CF15-423C-A343-607E84016DCB}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +30,22 @@ Global
 		{4EE2133D-EF1D-4497-84EF-301AC190BEF9}.Release|x64.Build.0 = Release|x64
 		{4EE2133D-EF1D-4497-84EF-301AC190BEF9}.Release|x86.ActiveCfg = Release|Win32
 		{4EE2133D-EF1D-4497-84EF-301AC190BEF9}.Release|x86.Build.0 = Release|Win32
+		{317F1E7C-F059-41B8-A244-55D4B6AEC08C}.Debug|x64.ActiveCfg = Debug|x64
+		{317F1E7C-F059-41B8-A244-55D4B6AEC08C}.Debug|x64.Build.0 = Debug|x64
+		{317F1E7C-F059-41B8-A244-55D4B6AEC08C}.Debug|x86.ActiveCfg = Debug|Win32
+		{317F1E7C-F059-41B8-A244-55D4B6AEC08C}.Debug|x86.Build.0 = Debug|Win32
+		{317F1E7C-F059-41B8-A244-55D4B6AEC08C}.Release|x64.ActiveCfg = Release|x64
+		{317F1E7C-F059-41B8-A244-55D4B6AEC08C}.Release|x64.Build.0 = Release|x64
+		{317F1E7C-F059-41B8-A244-55D4B6AEC08C}.Release|x86.ActiveCfg = Release|Win32
+		{317F1E7C-F059-41B8-A244-55D4B6AEC08C}.Release|x86.Build.0 = Release|Win32
+		{331F564C-1CA1-4C0C-9352-A2E51C7A9603}.Debug|x64.ActiveCfg = Debug|x64
+		{331F564C-1CA1-4C0C-9352-A2E51C7A9603}.Debug|x64.Build.0 = Debug|x64
+		{331F564C-1CA1-4C0C-9352-A2E51C7A9603}.Debug|x86.ActiveCfg = Debug|Win32
+		{331F564C-1CA1-4C0C-9352-A2E51C7A9603}.Debug|x86.Build.0 = Debug|Win32
+		{331F564C-1CA1-4C0C-9352-A2E51C7A9603}.Release|x64.ActiveCfg = Release|x64
+		{331F564C-1CA1-4C0C-9352-A2E51C7A9603}.Release|x64.Build.0 = Release|x64
+		{331F564C-1CA1-4C0C-9352-A2E51C7A9603}.Release|x86.ActiveCfg = Release|Win32
+		{331F564C-1CA1-4C0C-9352-A2E51C7A9603}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
