@@ -8,7 +8,8 @@
 
 namespace tf2_bot_detector
 {
-	inline std::string_view to_string_view(const std::ssub_match& match)
+	template<typename TIter>
+	inline std::string_view to_string_view(const std::sub_match<TIter>& match)
 	{
 		return std::string_view(&*match.first, match.length());
 	}

@@ -17,7 +17,7 @@ MainWindow::MainWindow() :
 	m_OpenTime = std::chrono::steady_clock::now();
 }
 
-tf2_bot_detector::MainWindow::~MainWindow()
+MainWindow::~MainWindow()
 {
 }
 
@@ -69,9 +69,9 @@ void MainWindow::OnDraw()
 
 				ImGui::Selectable(buf, false, ImGuiSelectableFlags_SpanAllColumns); ImGui::NextColumn();
 
-				ImGui::NextColumn(); // TODO: player names
+				ImGui::TextUnformatted(player.m_Name.c_str()); ImGui::NextColumn(); // TODO: player names
 
-				ImGui::TextUnformatted(player.m_SteamID.c_str()); ImGui::NextColumn();
+				ImGui::TextUnformatted(player.m_SteamID.str().c_str()); ImGui::NextColumn();
 			}
 
 			ImGui::EndChildFrame();
@@ -137,11 +137,28 @@ void MainWindow::OnUpdate()
 							case ConsoleLineType::LobbyMember:
 							{
 								auto memberLine = static_cast<const LobbyMemberLine*>(parsed.get());
-								const auto& member = memberLine->GetLobbyMember();
+								auto member = memberLine->GetLobbyMember();
 								if (member.m_Index < m_CurrentLobbyMembers.size())
+								{
+									if (std::is_eq(m_CurrentLobbyMembers[member.m_Index].m_SteamID <=> member.m_SteamID))
+										member.m_Name = m_CurrentLobbyMembers[member.m_Index].m_Name;
+
 									m_CurrentLobbyMembers[member.m_Index] = member;
+								}
 
 								break;
+							}
+							case ConsoleLineType::PlayerStatus:
+							{
+								auto statusLine = static_cast<const ServerStatusPlayerLine*>(parsed.get());
+								const auto& status = statusLine->GetPlayerStatus();
+
+								for (auto& lobbyMember : m_CurrentLobbyMembers)
+								{
+									// std::is_eq workaround for incomplete MSVC implementation
+									if (std::is_eq(lobbyMember.m_SteamID <=> status.m_SteamID))
+										lobbyMember.m_Name = status.m_Name;
+								}
 							}
 							}
 
@@ -205,7 +222,7 @@ void MainWindow::UpdatePrintingLines()
 	m_PrintingLineCount = 0;
 	for (auto it = m_ConsoleLines.rbegin(); it != m_ConsoleLines.rend(); ++it)
 	{
-		if (it->get()->GetType() != ConsoleLineType::Generic)
+		if (it->get()->ShouldPrint())
 		{
 			m_PrintingLines[m_PrintingLineCount++] = it->get();
 			if (m_PrintingLineCount >= 512)

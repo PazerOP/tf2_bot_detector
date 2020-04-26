@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SteamID.h"
+
 #include <cstdint>
 #include <string>
 
@@ -18,7 +20,7 @@ namespace tf2_bot_detector
 
 	struct LobbyMember
 	{
-		std::string m_SteamID;
+		SteamID m_SteamID;
 		std::string m_Name;
 		unsigned m_Index;
 		LobbyMemberTeam m_Team;

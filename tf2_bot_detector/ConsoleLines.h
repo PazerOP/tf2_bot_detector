@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LobbyMember.h"
+#include "PlayerStatus.h"
 
 #include <memory>
 #include <string_view>
@@ -13,6 +14,7 @@ namespace tf2_bot_detector
 		Chat,
 		LobbyHeader,
 		LobbyMember,
+		PlayerStatus,
 	};
 
 	class IConsoleLine
@@ -21,6 +23,7 @@ namespace tf2_bot_detector
 		virtual ~IConsoleLine() = default;
 
 		virtual ConsoleLineType GetType() const = 0;
+		virtual bool ShouldPrint() const { return true; }
 		virtual void Print() const = 0;
 
 		static std::unique_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text);
@@ -32,6 +35,7 @@ namespace tf2_bot_detector
 		GenericConsoleLine(std::string&& text);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Generic; }
+		bool ShouldPrint() const override { return false; }
 		void Print() const override;
 
 	private:
@@ -62,6 +66,7 @@ namespace tf2_bot_detector
 		auto GetPendingCount() const { return m_PendingCount; }
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyHeader; }
+		bool ShouldPrint() const override { return false; }
 		void Print() const override;
 
 	private:
@@ -72,15 +77,30 @@ namespace tf2_bot_detector
 	class LobbyMemberLine final : public IConsoleLine
 	{
 	public:
-
 		LobbyMemberLine(const LobbyMember& lobbyMember);
 
 		const LobbyMember& GetLobbyMember() const { return m_LobbyMember; }
 
-		ConsoleLineType GetType() const { return ConsoleLineType::LobbyMember; }
+		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyMember; }
+		bool ShouldPrint() const override { return false; }
 		void Print() const override;
 
 	private:
 		LobbyMember m_LobbyMember;
+	};
+
+	class ServerStatusPlayerLine final : public IConsoleLine
+	{
+	public:
+		ServerStatusPlayerLine(const PlayerStatus& playerStatus);
+
+		const PlayerStatus& GetPlayerStatus() const { return m_PlayerStatus; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatus; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+	private:
+		PlayerStatus m_PlayerStatus;
 	};
 }

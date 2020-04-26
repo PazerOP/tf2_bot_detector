@@ -146,12 +146,15 @@
     <ClCompile Include="ConsoleLines.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="SteamID.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleLines.h" />
     <ClInclude Include="LobbyMember.h" />
     <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="PlayerStatus.h" />
     <ClInclude Include="RegexCharConv.h" />
+    <ClInclude Include="SteamID.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

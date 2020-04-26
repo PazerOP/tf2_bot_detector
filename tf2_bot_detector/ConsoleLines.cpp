@@ -1,12 +1,15 @@
 #include "ConsoleLines.h"
+#include "RegexCharConv.h"
 
 #include <mh/text/charconv_helper.hpp>
+#include <mh/text/string_insertion.hpp>
 #include <imgui.h>
 
 #include <regex>
 #include <stdexcept>
 
 using namespace tf2_bot_detector;
+using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 GenericConsoleLine::GenericConsoleLine(std::string&& text) :
@@ -87,8 +90,9 @@ void LobbyMemberLine::Print() const
 	assert(m_LobbyMember.m_Type == LobbyMemberType::Player);
 	const char* type = "MATCH_PLAYER";
 
-	ImGui::TextColored(ImVec4(0.8f, 0.0f, 0.8f, 1.0f), "  Member[%u] %s  team = %s  type = %s",
-		m_LobbyMember.m_Index, m_LobbyMember.m_SteamID.c_str(), team, type);
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.0f, 0.8f, 1.0f));
+	ImGui::TextUnformatted(("  Member["s << m_LobbyMember.m_Index << ' ' << m_LobbyMember.m_SteamID << "  team = " << team << "  type = " << type).c_str());
+	ImGui::PopStyleColor();
 }
 
 using svmatch = std::match_results<std::string_view::const_iterator>;
@@ -96,7 +100,7 @@ static std::regex s_ChatRegex(R"regex((\*DEAD\*\s+)?(\(TEAM\)\s+)?(.{1,32}) :  (
 static std::regex s_LobbyHeaderRegex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
 static std::regex s_LobbyMemberRegex(R"regex(\s+Member\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
 static std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
-static std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+((?:\d+:)?\d+:\d+)\s+(\d+)\s+(\d+)\s+(\w+))regex", std::regex::optimize);
+static std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+))regex", std::regex::optimize);
 std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text)
 {
 	svmatch result;
@@ -121,7 +125,7 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		if (!mh::from_chars(std::string_view(&*result[1].first, result[1].length()), member.m_Index))
 			throw std::runtime_error("Failed to parse lobby member regex");
 
-		member.m_SteamID = result[2].str();
+		member.m_SteamID = SteamID(std::string_view(&*result[2].first, result[2].length()));
 
 		std::string_view teamStr(&*result[3].first, result[3].length());
 
@@ -142,9 +146,43 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 	}
 	else if (std::regex_match(text.begin(), text.end(), result, s_StatusMessageRegex))
 	{
+		PlayerStatus status{};
 
+		from_chars_throw(result[1], status.m_UserID);
+		status.m_Name = result[2].str();
+		status.m_SteamID = std::string_view(&*result[3].first, result[3].length());
+
+		// Connected time
+		{
+			uint32_t connectedHours = 0;
+			uint32_t connectedMins;
+			uint32_t connectedSecs;
+
+			if (result[4].matched)
+				from_chars_throw(result[4], connectedHours);
+
+			from_chars_throw(result[5], connectedMins);
+			from_chars_throw(result[6], connectedSecs);
+
+			status.m_ConnectedTime = (connectedHours * 60 * 60) + (connectedMins * 60) + connectedSecs;
+		}
+
+		from_chars_throw(result[7], status.m_Ping);
+		from_chars_throw(result[8], status.m_Loss);
+
+		return std::make_unique<ServerStatusPlayerLine>(status);
 	}
 
 	//return nullptr;
 	return std::make_unique<GenericConsoleLine>(std::string(text));
+}
+
+ServerStatusPlayerLine::ServerStatusPlayerLine(const PlayerStatus& playerStatus) :
+	m_PlayerStatus(playerStatus)
+{
+}
+
+void ServerStatusPlayerLine::Print() const
+{
+	// Don't print anything for this particular message
 }
