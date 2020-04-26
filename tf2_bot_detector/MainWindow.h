@@ -1,9 +1,12 @@
 #pragma once
 
+#include "LobbyMember.h"
+
 #include <imgui_desktop/Window.h>
 
-#include <string>
+#include <chrono>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace tf2_bot_detector
@@ -14,6 +17,7 @@ namespace tf2_bot_detector
 	{
 	public:
 		MainWindow();
+		~MainWindow();
 
 	private:
 		void OnDraw() override;
@@ -31,5 +35,8 @@ namespace tf2_bot_detector
 		size_t m_PrintingLineCount = 0;
 		IConsoleLine* m_PrintingLines[512]{};
 		void UpdatePrintingLines();
+
+		std::vector<LobbyMember> m_CurrentLobbyMembers;
+		std::chrono::steady_clock::time_point m_OpenTime;
 	};
 }

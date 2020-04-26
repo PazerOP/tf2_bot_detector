@@ -151,6 +151,7 @@
     <ClInclude Include="ConsoleLines.h" />
     <ClInclude Include="LobbyMember.h" />
     <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="RegexCharConv.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
