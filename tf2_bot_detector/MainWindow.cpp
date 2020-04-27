@@ -52,10 +52,12 @@ static float GetRemainingColumnWidth(float contentRegionWidth, int column_index 
 
 void MainWindow::OnDraw()
 {
+#if 0
 	ImGui::Text("Current application time: %1.2f", std::chrono::duration<float>(std::chrono::steady_clock::now() - m_OpenTime).count());
 	ImGui::NewLine();
 	if (ImGui::Button("Quit"))
 		SetShouldClose(true);
+#endif
 
 	ImGui::Columns(2, "MainWindowSplit");
 	//ImGui::InputTextMultiline("##fileContents", const_cast<char*>(m_FileText.data()), m_FileText.size(), { -1, -1 }, ImGuiInputTextFlags_ReadOnly);

@@ -3,7 +3,7 @@
 #include "SteamID.h"
 
 #include <filesystem>
-#include <unordered_set>
+#include <set>
 
 namespace tf2_bot_detector
 {
@@ -20,6 +20,6 @@ namespace tf2_bot_detector
 		bool IsPlayerIncluded(const SteamID& id) const;
 
 	private:
-		std::unordered_set<SteamID> m_Players;
+		std::set<SteamID> m_Players;
 	};
 }
