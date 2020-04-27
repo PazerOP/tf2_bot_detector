@@ -27,5 +27,6 @@ namespace tf2_bot_detector
 		unsigned m_Index;
 		LobbyMemberTeam m_Team;
 		LobbyMemberType m_Type;
+		bool m_Pending;
 	};
 }

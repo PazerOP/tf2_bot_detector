@@ -72,6 +72,7 @@ namespace tf2_bot_detector
 		};
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
+		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
 		using clock_t = std::chrono::steady_clock;
 		clock_t::time_point m_OpenTime;

@@ -103,7 +103,7 @@ IConsoleLine::IConsoleLine(std::time_t timestamp) :
 using svmatch = std::match_results<std::string_view::const_iterator>;
 static std::regex s_ChatRegex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,32}) :  (.*))regex", std::regex::optimize);
 static std::regex s_LobbyHeaderRegex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
-static std::regex s_LobbyMemberRegex(R"regex(\s+Member\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
+static std::regex s_LobbyMemberRegex(R"regex(\s+(?:(?:Member)|(Pending))\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
 static std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
 static std::regex s_KillNotificationRegex(R"regex((.*) killed (.*) with (.*)\.( \(crit\))?)regex", std::regex::optimize);
 static std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+))regex", std::regex::optimize);
@@ -133,12 +133,14 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 	else if (std::regex_match(text.begin(), text.end(), result, s_LobbyMemberRegex))
 	{
 		LobbyMember member{};
-		if (!mh::from_chars(std::string_view(&*result[1].first, result[1].length()), member.m_Index))
+		member.m_Pending = result[1].matched;
+
+		if (!mh::from_chars(std::string_view(&*result[2].first, result[2].length()), member.m_Index))
 			throw std::runtime_error("Failed to parse lobby member regex");
 
-		member.m_SteamID = SteamID(std::string_view(&*result[2].first, result[2].length()));
+		member.m_SteamID = SteamID(std::string_view(&*result[3].first, result[3].length()));
 
-		std::string_view teamStr(&*result[3].first, result[3].length());
+		std::string_view teamStr(&*result[4].first, result[4].length());
 
 		if (teamStr == "TF_GC_TEAM_DEFENDERS"sv)
 			member.m_Team = LobbyMemberTeam::Defenders;
@@ -147,7 +149,7 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		else
 			throw std::runtime_error("Unknown lobby member team");
 
-		std::string_view typeStr(&*result[4].first, result[4].length());
+		std::string_view typeStr(&*result[5].first, result[5].length());
 		if (typeStr == "MATCH_PLAYER"sv)
 			member.m_Type = LobbyMemberType::Player;
 		else

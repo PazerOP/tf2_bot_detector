@@ -362,8 +362,8 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)
 	case ConsoleLineType::LobbyHeader:
 	{
 		auto headerLine = static_cast<const LobbyHeaderLine*>(parsed);
-		const auto count = headerLine->GetMemberCount() + headerLine->GetPendingCount();
-		m_CurrentLobbyMembers.resize(count);
+		m_CurrentLobbyMembers.resize(headerLine->GetMemberCount());
+		m_PendingLobbyMembers.resize(headerLine->GetPendingCount());
 		break;
 	}
 	case ConsoleLineType::LobbyDestroyed:
@@ -371,6 +371,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)
 	{
 		// Reset current lobby members/player statuses
 		m_CurrentLobbyMembers.clear();
+		m_PendingLobbyMembers.clear();
 		m_CurrentPlayerData.clear();
 		break;
 	}
@@ -379,8 +380,9 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)
 	{
 		auto memberLine = static_cast<const LobbyMemberLine*>(parsed);
 		const auto& member = memberLine->GetLobbyMember();
-		if (member.m_Index < m_CurrentLobbyMembers.size())
-			m_CurrentLobbyMembers[member.m_Index] = member;
+		auto& vec = member.m_Pending ? m_PendingLobbyMembers : m_CurrentLobbyMembers;
+		if (member.m_Index < vec.size())
+			vec[member.m_Index] = member;
 
 		const TFTeam tfTeam = member.m_Team == LobbyMemberTeam::Defenders ? TFTeam::Red : TFTeam::Blue;
 		m_CurrentPlayerData[member.m_SteamID].m_Team = tfTeam;
@@ -425,13 +427,19 @@ void MainWindow::UpdatePrintingLines()
 size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const
 {
 	assert(begin <= end);
-	assert(static_cast<size_t>(end - begin) >= m_CurrentLobbyMembers.size());
+	const size_t totalLobbyMembersCount = m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
+	assert(static_cast<size_t>(end - begin) >= totalLobbyMembersCount);
 
 	std::fill(begin, end, PlayerPrintData{});
 
 	{
 		PlayerPrintData* current = begin;
 		for (const auto& lobbyMember : m_CurrentLobbyMembers)
+		{
+			current->m_SteamID = lobbyMember.m_SteamID;
+			current++;
+		}
+		for (const auto& lobbyMember : m_PendingLobbyMembers)
 		{
 			current->m_SteamID = lobbyMember.m_SteamID;
 			current++;
