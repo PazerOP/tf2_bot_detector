@@ -5,6 +5,7 @@
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
+#include <mh/math/interpolation.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -13,10 +14,13 @@
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
 
+static const std::filesystem::path s_CheaterListFile("cheaters.txt");
+
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector")
 {
 	m_OpenTime = std::chrono::steady_clock::now();
+	m_CheaterList.LoadFile(s_CheaterListFile);
 }
 
 MainWindow::~MainWindow()
@@ -149,7 +153,9 @@ void MainWindow::OnDraw()
 			for (size_t i = 0; i < playerPrintDataCount; i++)
 			{
 				const auto& player = printData[i];
-				ImGuiDesktop::ScopeGuards::ID idScope((int)player.m_SteamID.ID);
+				ImGuiDesktop::ScopeGuards::ID idScope((int)player.m_SteamID.Lower32);
+				ImGuiDesktop::ScopeGuards::ID idScope2((int)player.m_SteamID.Upper32);
+
 				char buf[32];
 				if (auto result = mh::to_chars(buf, player.m_UserID))
 					*result.ptr = '\0';
@@ -168,6 +174,9 @@ void MainWindow::OnDraw()
 						}
 					}();
 
+					if (m_CheaterList.IsCheater(player.m_SteamID))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 0, 1, 1));
+
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 
 					bgColor.w = 0.8f;
@@ -182,6 +191,13 @@ void MainWindow::OnDraw()
 				{
 					if (ImGui::Selectable("Copy SteamID"))
 						ImGui::SetClipboardText(player.m_SteamID.str().c_str());
+
+					const bool existingIsCheater = m_CheaterList.IsCheater(player.m_SteamID);
+					if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
+					{
+						m_CheaterList.SetIsCheater(player.m_SteamID, !existingIsCheater);
+						m_CheaterList.SaveFile(s_CheaterListFile);
+					}
 
 					ImGui::EndPopup();
 				}
@@ -294,6 +310,19 @@ void MainWindow::OnUpdate()
 		if (consoleLinesUpdated)
 			UpdatePrintingLines();
 	}
+}
+
+bool MainWindow::IsTimeEven() const
+{
+	const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(clock_t::now() - m_OpenTime);
+	return !(seconds.count() % 2);
+}
+
+float MainWindow::TimeSine(float interval, float min, float max) const
+{
+	const auto elapsed = (clock_t::now() - m_OpenTime) % std::chrono::duration_cast<clock_t::duration>(std::chrono::duration<float>(interval));
+	const auto progress = std::chrono::duration<float>(elapsed).count() / interval;
+	return mh::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
 }
 
 void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)

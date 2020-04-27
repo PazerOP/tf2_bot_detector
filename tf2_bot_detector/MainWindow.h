@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CheaterList.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
 #include "TFConstants.h"
@@ -31,6 +32,9 @@ namespace tf2_bot_detector
 	private:
 		void OnDraw() override;
 		void OnUpdate() override;
+
+		bool IsTimeEven() const;
+		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
 
 		void OnConsoleLineParsed(IConsoleLine* line);
 
@@ -69,6 +73,8 @@ namespace tf2_bot_detector
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
-		std::chrono::steady_clock::time_point m_OpenTime;
+		using clock_t = std::chrono::steady_clock;
+		clock_t::time_point m_OpenTime;
+		CheaterList m_CheaterList;
 	};
 }

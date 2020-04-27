@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <compare>
+#include <functional>
 #include <iosfwd>
 #include <string_view>
 
@@ -35,7 +36,7 @@ namespace tf2_bot_detector
 	{
 	public:
 		constexpr SteamID() = default;
-		SteamID(const std::string_view& str);
+		explicit SteamID(const std::string_view& str);
 		SteamID(uint32_t id, uint32_t instance, SteamAccountType type, SteamAccountUniverse universe);
 
 		std::strong_ordering operator<=>(const SteamID& other) const { return ID64 <=> other.ID64; }
@@ -57,6 +58,11 @@ namespace tf2_bot_detector
 				uint64_t Instance : 20;
 				SteamAccountType Type : 4;
 				SteamAccountUniverse Universe : 8;
+			};
+			struct
+			{
+				uint32_t Lower32;
+				uint32_t Upper32;
 			};
 		};
 	};

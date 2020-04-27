@@ -161,7 +161,7 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 
 		from_chars_throw(result[1], status.m_UserID);
 		status.m_Name = result[2].str();
-		status.m_SteamID = std::string_view(&*result[3].first, result[3].length());
+		status.m_SteamID = SteamID(std::string_view(&*result[3].first, result[3].length()));
 
 		// Connected time
 		{
