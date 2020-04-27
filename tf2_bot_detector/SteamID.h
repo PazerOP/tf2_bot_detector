@@ -40,6 +40,12 @@ namespace tf2_bot_detector
 
 		std::strong_ordering operator<=>(const SteamID& other) const { return ID64 <=> other.ID64; }
 
+#if _MSC_VER == 1925
+		// Workaround for broken spaceship operator==/!=
+		bool operator==(const SteamID& other) const { return std::is_eq(*this <=> other); }
+		bool operator!=(const SteamID& other) const { return std::is_neq(*this <=> other); }
+#endif
+
 		std::string str() const;
 
 		union
@@ -55,6 +61,18 @@ namespace tf2_bot_detector
 		};
 	};
 	static_assert(sizeof(SteamID) == sizeof(uint64_t));
+}
+
+namespace std
+{
+	template<>
+	struct hash<tf2_bot_detector::SteamID>
+	{
+		inline size_t operator()(const tf2_bot_detector::SteamID& id) const
+		{
+			return std::hash<uint64_t>{}(id.ID64);
+		}
+	};
 }
 
 template<typename CharT, typename Traits>

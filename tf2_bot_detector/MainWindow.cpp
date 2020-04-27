@@ -2,6 +2,8 @@
 #include "ConsoleLines.h"
 #include "RegexCharConv.h"
 
+#include <imgui_desktop/ScopeGuards.h>
+#include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
 
 #include <cassert>
@@ -21,18 +23,35 @@ MainWindow::~MainWindow()
 {
 }
 
+static float GetRemainingColumnWidth(float contentRegionWidth, int column_index = -1)
+{
+	const auto origContentWidth = contentRegionWidth;
+
+	if (column_index == -1)
+		column_index = ImGui::GetColumnIndex();
+
+	assert(column_index >= 0);
+
+	const auto columnCount = ImGui::GetColumnsCount();
+	for (int i = 0; i < columnCount; i++)
+	{
+		if (i != column_index)
+			contentRegionWidth -= ImGui::GetColumnWidth(i);
+	}
+
+	return contentRegionWidth - 3;//ImGui::GetStyle().ItemSpacing.x;
+}
+
 void MainWindow::OnDraw()
 {
-	ImGui::Text("Here's some window bruh");
-
-	ImGui::NewLine();
 	ImGui::Text("Current application time: %1.2f", std::chrono::duration<float>(std::chrono::steady_clock::now() - m_OpenTime).count());
 	ImGui::NewLine();
 	if (ImGui::Button("Quit"))
 		SetShouldClose(true);
 
+	ImGui::Columns(2, "MainWindowSplit");
 	//ImGui::InputTextMultiline("##fileContents", const_cast<char*>(m_FileText.data()), m_FileText.size(), { -1, -1 }, ImGuiInputTextFlags_ReadOnly);
-	if (ImGui::BeginChild("##fileContents", { ImGui::GetWindowContentRegionWidth() * 0.5f, -1 }, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+	if (ImGui::BeginChild("##fileContents", { 0, 0 }, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
 	{
 		ImGui::PushTextWrapPos();
 
@@ -47,29 +66,143 @@ void MainWindow::OnDraw()
 		ImGui::EndChild();
 	}
 
-	ImGui::SameLine();
+	ImGui::NextColumn();
 
-	if (ImGui::BeginChild("Test", { -1, -1 }, true))
+	if (ImGui::BeginChild("Scoreboard", { 0, 0 }, true))
 	{
-		if (ImGui::BeginChildFrame(ImGui::GetID("TestSDFSDF"), { -1, -1 }))
+		static ImVec2 s_LastFrameSize;
+		const bool scoreboardResized = [&]()
 		{
-			ImGui::Columns(3, "PlayersColumns");
-			//ImGui::SetColumnWidth(0, 32);
-			ImGui::TextUnformatted("#"); ImGui::NextColumn();
-			ImGui::TextUnformatted("Name"); ImGui::NextColumn();
-			ImGui::TextUnformatted("Steam ID"); ImGui::NextColumn();
-			ImGui::Separator();
-			for (const auto& player : m_CurrentLobbyMembers)
+			const auto thisFrameSize = ImGui::GetWindowSize();
+			const bool changed = s_LastFrameSize != thisFrameSize;
+			s_LastFrameSize = thisFrameSize;
+			return changed;
+		}();
+
+		//if (ImGui::BeginChildFrame(ImGui::GetID("ScoreboardFrame"), { 0, 0 }))
+		{
+			const auto frameWidth = ImGui::GetItemRectSize().x;
+			PlayerPrintData printData[33]{};
+			const size_t playerPrintDataCount = GeneratePlayerPrintData(std::begin(printData), std::end(printData));
+
+			ImGui::Columns(5, "PlayersColumns");
+
+			// Columns setup
 			{
+				float nameColumnWidth = frameWidth;
+				// UserID header and column setup
+				{
+					ImGui::TextUnformatted("#");
+					if (scoreboardResized)
+					{
+						const float width = 35;
+						nameColumnWidth -= width;
+						ImGui::SetColumnWidth(-1, width);
+					}
+
+					ImGui::NextColumn();
+				}
+
+				// Name header and column setup
+				ImGui::TextUnformatted("Name"); ImGui::NextColumn();
+
+				// Kills header and column setup
+				{
+					ImGui::TextUnformatted("Kills");
+					if (scoreboardResized)
+					{
+						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
+						nameColumnWidth -= width;
+						ImGui::SetColumnWidth(-1, width);
+					}
+
+					ImGui::NextColumn();
+				}
+
+				// Deaths header and column setup
+				{
+					ImGui::TextUnformatted("Deaths");
+					if (scoreboardResized)
+					{
+						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
+						nameColumnWidth -= width;
+						ImGui::SetColumnWidth(-1, width);
+					}
+
+					ImGui::NextColumn();
+				}
+
+				// SteamID header and column setup
+				{
+					ImGui::TextUnformatted("Steam ID");
+					if (scoreboardResized)
+					{
+						nameColumnWidth -= 125;// +ImGui::GetStyle().ItemSpacing.x * 2;
+						ImGui::SetColumnWidth(1, nameColumnWidth - ImGui::GetStyle().ItemSpacing.x * 2);
+					}
+
+					ImGui::NextColumn();
+				}
+				ImGui::Separator();
+			}
+
+			for (size_t i = 0; i < playerPrintDataCount; i++)
+			{
+				const auto& player = printData[i];
+				ImGuiDesktop::ScopeGuards::ID idScope((int)player.m_SteamID.ID);
 				char buf[32];
-				if (auto result = mh::to_chars(buf, player.m_Index))
+				if (auto result = mh::to_chars(buf, player.m_UserID))
 					*result.ptr = '\0';
 				else
 					continue;
 
-				ImGui::Selectable(buf, false, ImGuiSelectableFlags_SpanAllColumns); ImGui::NextColumn();
+				// Selectable
+				{
+					ImVec4 bgColor = [&]()
+					{
+						switch (player.m_Team)
+						{
+						case TFTeam::Red: return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
+						case TFTeam::Blue: return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
+						default: return ImVec4(0, 0, 0, 0);
+						}
+					}();
 
-				ImGui::TextUnformatted(player.m_Name.c_str()); ImGui::NextColumn(); // TODO: player names
+					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
+
+					bgColor.w = 0.8f;
+					ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeHovered(ImGuiCol_HeaderHovered, bgColor);
+
+					bgColor.w = 1.0f;
+					ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
+					ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns); ImGui::NextColumn();
+				}
+
+				if (ImGui::BeginPopupContextItem("PlayerContextMenu"))
+				{
+					if (ImGui::Selectable("Copy SteamID"))
+						ImGui::SetClipboardText(player.m_SteamID.str().c_str());
+
+					ImGui::EndPopup();
+				}
+
+				// player names column
+				{
+					if (player.m_Name.empty())
+					{
+						ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
+						ImGui::TextUnformatted("<Unknown>");
+					}
+					else
+					{
+						ImGui::TextUnformatted(player.m_Name.c_str());
+					}
+
+					ImGui::NextColumn();
+				}
+
+				ImGui::Text("%u", player.m_Scores.m_Kills); ImGui::NextColumn();
+				ImGui::Text("%u", player.m_Scores.m_Deaths); ImGui::NextColumn();
 
 				ImGui::TextUnformatted(player.m_SteamID.str().c_str()); ImGui::NextColumn();
 			}
@@ -87,10 +220,8 @@ void MainWindow::OnUpdate()
 	if (!m_File)
 	{
 		{
-			FILE* temp;
-			const auto error = fopen_s(&temp, "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf\\console.log", "r");
+			FILE* temp = _fsopen("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf\\console.log", "r", _SH_DENYNO);
 			m_File.reset(temp);
-			assert(error == 0);
 		}
 
 		if (m_File)
@@ -117,51 +248,17 @@ void MainWindow::OnUpdate()
 				{
 					if (m_CurrentTimestamp)
 					{
+						const auto timestamp = std::mktime(&m_CurrentTimestamp.value());
+						assert(timestamp >= 0);
+
 						const auto prefix = match.prefix();
-						const auto suffix = match.suffix();
+						//const auto suffix = match.suffix();
 						auto parsed = IConsoleLine::ParseConsoleLine(
-							std::string_view(&*prefix.first, prefix.length()));
+							std::string_view(&*prefix.first, prefix.length()), timestamp);
 
 						if (parsed)
 						{
-							switch (parsed->GetType())
-							{
-							case ConsoleLineType::LobbyHeader:
-							{
-								auto headerLine = static_cast<const LobbyHeaderLine*>(parsed.get());
-								const auto count = headerLine->GetMemberCount() + headerLine->GetPendingCount();
-								m_CurrentLobbyMembers.resize(count);
-								break;
-							}
-
-							case ConsoleLineType::LobbyMember:
-							{
-								auto memberLine = static_cast<const LobbyMemberLine*>(parsed.get());
-								auto member = memberLine->GetLobbyMember();
-								if (member.m_Index < m_CurrentLobbyMembers.size())
-								{
-									if (std::is_eq(m_CurrentLobbyMembers[member.m_Index].m_SteamID <=> member.m_SteamID))
-										member.m_Name = m_CurrentLobbyMembers[member.m_Index].m_Name;
-
-									m_CurrentLobbyMembers[member.m_Index] = member;
-								}
-
-								break;
-							}
-							case ConsoleLineType::PlayerStatus:
-							{
-								auto statusLine = static_cast<const ServerStatusPlayerLine*>(parsed.get());
-								const auto& status = statusLine->GetPlayerStatus();
-
-								for (auto& lobbyMember : m_CurrentLobbyMembers)
-								{
-									// std::is_eq workaround for incomplete MSVC implementation
-									if (std::is_eq(lobbyMember.m_SteamID <=> status.m_SteamID))
-										lobbyMember.m_Name = status.m_Name;
-								}
-							}
-							}
-
+							OnConsoleLineParsed(parsed.get());
 							m_ConsoleLines.push_back(std::move(parsed));
 							consoleLinesUpdated = true;
 						}
@@ -184,25 +281,7 @@ void MainWindow::OnUpdate()
 				}
 
 				m_FileLineBuf.erase(m_FileLineBuf.begin(), regexBegin);
-#if 0
-				size_t startPos = 0;
-				size_t newlinePos = 0;
-				while ((newlinePos = m_FileLineBuf.find('\n', startPos)) != m_FileLineBuf.npos)
-				{
-					auto parsed = IConsoleLine::ParseConsoleLine(
-						std::string_view(m_FileLineBuf).substr(startPos, newlinePos - startPos));
-
-
-
-					startPos = newlinePos + 1;
-				}
-
-				m_FileLineBuf.erase(0, startPos);
-#endif
 			}
-
-			//if (m_ConsoleLines.size() > 512)
-			//	m_ConsoleLines.erase(m_ConsoleLines.begin(), m_ConsoleLines.begin() + (m_ConsoleLines.size() - 512));
 
 			if (auto elapsed = clock::now() - startTime; elapsed > 10ms)
 				break;
@@ -214,6 +293,57 @@ void MainWindow::OnUpdate()
 
 		if (consoleLinesUpdated)
 			UpdatePrintingLines();
+	}
+}
+
+void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)
+{
+	switch (parsed->GetType())
+	{
+	case ConsoleLineType::LobbyHeader:
+	{
+		auto headerLine = static_cast<const LobbyHeaderLine*>(parsed);
+		const auto count = headerLine->GetMemberCount() + headerLine->GetPendingCount();
+		m_CurrentLobbyMembers.resize(count);
+		break;
+	}
+	case ConsoleLineType::ClientReachedServerSpawn:
+	{
+		// Reset current lobby members/player statuses
+		m_CurrentPlayerData.clear();
+		break;
+	}
+
+	case ConsoleLineType::LobbyMember:
+	{
+		auto memberLine = static_cast<const LobbyMemberLine*>(parsed);
+		const auto& member = memberLine->GetLobbyMember();
+		if (member.m_Index < m_CurrentLobbyMembers.size())
+			m_CurrentLobbyMembers[member.m_Index] = member;
+
+		const TFTeam tfTeam = member.m_Team == LobbyMemberTeam::Defenders ? TFTeam::Red : TFTeam::Blue;
+		m_CurrentPlayerData[member.m_SteamID].m_Team = tfTeam;
+
+		break;
+	}
+	case ConsoleLineType::PlayerStatus:
+	{
+		auto statusLine = static_cast<const ServerStatusPlayerLine*>(parsed);
+		const auto& status = statusLine->GetPlayerStatus();
+		m_CurrentPlayerData[status.m_SteamID].m_Status = status;
+		break;
+	}
+	case ConsoleLineType::KillNotification:
+	{
+		auto killLine = static_cast<const KillNotificationLine*>(parsed);
+
+		if (const auto attackerSteamID = FindSteamIDForName(killLine->GetAttackerName()))
+			m_CurrentPlayerData[*attackerSteamID].m_Scores.m_Kills++;
+		if (const auto victimSteamID = FindSteamIDForName(killLine->GetVictimName()))
+			m_CurrentPlayerData[*victimSteamID].m_Scores.m_Deaths++;
+
+		break;
+	}
 	}
 }
 
@@ -229,6 +359,55 @@ void MainWindow::UpdatePrintingLines()
 				break;
 		}
 	}
+}
+
+size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const
+{
+	assert(begin <= end);
+	assert(static_cast<size_t>(end - begin) >= m_CurrentLobbyMembers.size());
+
+	std::fill(begin, end, PlayerPrintData{});
+
+	{
+		PlayerPrintData* current = begin;
+		for (const auto& lobbyMember : m_CurrentLobbyMembers)
+		{
+			current->m_SteamID = lobbyMember.m_SteamID;
+			current++;
+		}
+		end = current;
+	}
+
+	for (auto it = begin; it != end; ++it)
+	{
+		if (auto found = m_CurrentPlayerData.find(it->m_SteamID); found != m_CurrentPlayerData.end())
+		{
+			it->m_UserID = found->second.m_Status.m_UserID;
+			it->m_Name = found->second.m_Status.m_Name;
+			it->m_Ping = found->second.m_Status.m_Ping;
+			it->m_Scores = found->second.m_Scores;
+			it->m_Team = found->second.m_Team;
+		}
+	}
+
+	std::sort(begin, end, [](const PlayerPrintData& lhs, const PlayerPrintData& rhs)
+		{
+			// Intentionally reversed, we want descending kill order
+			return (rhs.m_Scores.m_Kills < lhs.m_Scores.m_Kills);
+		});
+
+	return static_cast<size_t>(end - begin);
+}
+
+std::optional<SteamID> MainWindow::FindSteamIDForName(const std::string_view& playerName) const
+{
+	for (const auto& data : m_CurrentPlayerData)
+	{
+		if (data.second.m_Status.m_Name == playerName)
+			return data.first;
+	}
+
+	return std::nullopt;
 }
 
 void MainWindow::CustomDeleters::operator()(FILE* f) const

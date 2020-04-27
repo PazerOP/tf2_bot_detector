@@ -18,10 +18,12 @@ namespace tf2_bot_detector
 		Player
 	};
 
+	/// <summary>
+	/// Represents a player managed by the GC, as reported by tf_lobby_debug.
+	/// </summary>
 	struct LobbyMember
 	{
 		SteamID m_SteamID;
-		std::string m_Name;
 		unsigned m_Index;
 		LobbyMemberTeam m_Team;
 		LobbyMemberType m_Type;

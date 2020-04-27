@@ -12,8 +12,8 @@ using namespace tf2_bot_detector;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-GenericConsoleLine::GenericConsoleLine(std::string&& text) :
-	m_Text(std::move(text))
+GenericConsoleLine::GenericConsoleLine(std::time_t timestamp, std::string&& text) :
+	IConsoleLine(timestamp), m_Text(std::move(text))
 {
 	m_Text.shrink_to_fit();
 }
@@ -23,8 +23,8 @@ void GenericConsoleLine::Print() const
 	ImGui::TextUnformatted(m_Text.data(), m_Text.data() + m_Text.size());
 }
 
-ChatConsoleLine::ChatConsoleLine(std::string&& playerName, std::string&& message, bool isDead, bool isTeam) :
-	m_PlayerName(std::move(playerName)), m_Message(std::move(message)), m_IsDead(isDead), m_IsTeam(isTeam)
+ChatConsoleLine::ChatConsoleLine(std::time_t timestamp, std::string&& playerName, std::string&& message, bool isDead, bool isTeam) :
+	IConsoleLine(timestamp), m_PlayerName(std::move(playerName)), m_Message(std::move(message)), m_IsDead(isDead), m_IsTeam(isTeam)
 {
 	m_PlayerName.shrink_to_fit();
 	m_Message.shrink_to_fit();
@@ -61,8 +61,8 @@ void ChatConsoleLine::Print() const
 	ImGui::PopStyleColor(3);
 }
 
-LobbyHeaderLine::LobbyHeaderLine(unsigned memberCount, unsigned pendingCount) :
-	m_MemberCount(memberCount), m_PendingCount(pendingCount)
+LobbyHeaderLine::LobbyHeaderLine(std::time_t timestamp, unsigned memberCount, unsigned pendingCount) :
+	IConsoleLine(timestamp), m_MemberCount(memberCount), m_PendingCount(pendingCount)
 {
 }
 
@@ -72,8 +72,8 @@ void LobbyHeaderLine::Print() const
 		m_MemberCount, m_PendingCount);
 }
 
-LobbyMemberLine::LobbyMemberLine(const LobbyMember& lobbyMember) :
-	m_LobbyMember(lobbyMember)
+LobbyMemberLine::LobbyMemberLine(std::time_t timestamp, const LobbyMember& lobbyMember) :
+	IConsoleLine(timestamp), m_LobbyMember(lobbyMember)
 {
 }
 
@@ -95,18 +95,29 @@ void LobbyMemberLine::Print() const
 	ImGui::PopStyleColor();
 }
 
+IConsoleLine::IConsoleLine(std::time_t timestamp) :
+	m_Timestamp(timestamp)
+{
+}
+
 using svmatch = std::match_results<std::string_view::const_iterator>;
-static std::regex s_ChatRegex(R"regex((\*DEAD\*\s+)?(\(TEAM\)\s+)?(.{1,32}) :  (.*))regex", std::regex::optimize);
+static std::regex s_ChatRegex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,32}) :  (.*))regex", std::regex::optimize);
 static std::regex s_LobbyHeaderRegex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
 static std::regex s_LobbyMemberRegex(R"regex(\s+Member\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
 static std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
+static std::regex s_KillNotificationRegex(R"regex((.*) killed (.*) with (.*)\.( \(crit\))?)regex", std::regex::optimize);
 static std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+))regex", std::regex::optimize);
-std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text)
+std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, std::time_t timestamp)
 {
 	svmatch result;
-	if (std::regex_match(text.begin(), text.end(), result, s_ChatRegex))
+	if (std::regex_match(text.begin(), text.end(), result, s_KillNotificationRegex))
 	{
-		return std::make_unique<ChatConsoleLine>(result[3].str(), result[4].str(),
+		return std::make_unique<KillNotificationLine>(timestamp, result[1].str(),
+			result[2].str(), result[3].str(), result[4].matched);
+	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_ChatRegex))
+	{
+		return std::make_unique<ChatConsoleLine>(timestamp, result[3].str(), result[4].str(),
 			result[1].matched, result[2].matched);
 	}
 	else if (std::regex_match(text.begin(), text.end(), result, s_LobbyHeaderRegex))
@@ -117,7 +128,7 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		if (!mh::from_chars(std::string_view(&*result[3].first, result[3].length()), pendingCount))
 			throw std::runtime_error("Failed to parse lobby pending member count");
 
-		return std::make_unique<LobbyHeaderLine>(memberCount, pendingCount);
+		return std::make_unique<LobbyHeaderLine>(timestamp, memberCount, pendingCount);
 	}
 	else if (std::regex_match(text.begin(), text.end(), result, s_LobbyMemberRegex))
 	{
@@ -142,7 +153,7 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		else
 			throw std::runtime_error("Unknown lobby member type");
 
-		return std::make_unique<LobbyMemberLine>(member);
+		return std::make_unique<LobbyMemberLine>(timestamp, member);
 	}
 	else if (std::regex_match(text.begin(), text.end(), result, s_StatusMessageRegex))
 	{
@@ -170,19 +181,41 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		from_chars_throw(result[7], status.m_Ping);
 		from_chars_throw(result[8], status.m_Loss);
 
-		return std::make_unique<ServerStatusPlayerLine>(status);
+		return std::make_unique<ServerStatusPlayerLine>(timestamp, status);
+	}
+	else if (text == "Client reached server_spawn."sv)
+	{
+		return std::make_unique<ClientReachedServerSpawnLine>(timestamp);
 	}
 
-	//return nullptr;
-	return std::make_unique<GenericConsoleLine>(std::string(text));
+	return nullptr;
+	//return std::make_unique<GenericConsoleLine>(timestamp, std::string(text));
 }
 
-ServerStatusPlayerLine::ServerStatusPlayerLine(const PlayerStatus& playerStatus) :
-	m_PlayerStatus(playerStatus)
+ServerStatusPlayerLine::ServerStatusPlayerLine(std::time_t timestamp, const PlayerStatus& playerStatus) :
+	IConsoleLine(timestamp), m_PlayerStatus(playerStatus)
 {
 }
 
 void ServerStatusPlayerLine::Print() const
 {
 	// Don't print anything for this particular message
+}
+
+void ClientReachedServerSpawnLine::Print() const
+{
+	ImGui::TextUnformatted("Client reached server_spawn.");
+}
+
+KillNotificationLine::KillNotificationLine(std::time_t timestamp, std::string attackerName,
+	std::string victimName, std::string weaponName, bool wasCrit) :
+	IConsoleLine(timestamp), m_AttackerName(std::move(attackerName)), m_VictimName(std::move(victimName)),
+	m_WeaponName(std::move(weaponName)), m_WasCrit(wasCrit)
+{
+}
+
+void KillNotificationLine::Print() const
+{
+	ImGui::Text("%s killed %s with %s.%s", m_AttackerName.c_str(),
+		m_VictimName.c_str(), m_WeaponName.c_str(), m_WasCrit ? " (crit)" : "");
 }
