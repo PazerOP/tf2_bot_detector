@@ -1,4 +1,4 @@
-#include "CheaterList.h"
+#include "PlayerList.h"
 #include "SteamID.h"
 
 #include <fstream>
@@ -7,16 +7,16 @@
 using namespace tf2_bot_detector;
 namespace fs = std::filesystem;
 
-CheaterList::CheaterList(const fs::path& filename)
+PlayerList::PlayerList(const fs::path& filename)
 {
 	LoadFile(filename);
 }
 
-void CheaterList::LoadFile(const fs::path& filename)
+void PlayerList::LoadFile(const fs::path& filename)
 {
 	std::ifstream file(filename);
 
-	m_Cheaters.clear();
+	m_Players.clear();
 
 	std::string line;
 	while (std::getline(file, line))
@@ -24,11 +24,11 @@ void CheaterList::LoadFile(const fs::path& filename)
 		if (line.empty())
 			continue;
 
-		SetIsCheater(SteamID(line));
+		IncludePlayer(SteamID(line));
 	}
 }
 
-void CheaterList::SaveFile(const fs::path& filename)
+void PlayerList::SaveFile(const fs::path& filename)
 {
 	struct FileDeleter
 	{
@@ -42,7 +42,7 @@ void CheaterList::SaveFile(const fs::path& filename)
 	{
 		std::ofstream tmpFile(tmpFileName);
 
-		for (const auto& cheater : m_Cheaters)
+		for (const auto& cheater : m_Players)
 			tmpFile << cheater << '\n';
 	}
 
@@ -51,15 +51,15 @@ void CheaterList::SaveFile(const fs::path& filename)
 	fs::remove(tmpFileName);
 }
 
-void CheaterList::SetIsCheater(const SteamID& id, bool isCheater)
+void PlayerList::IncludePlayer(const SteamID& id, bool included)
 {
-	if (isCheater)
-		m_Cheaters.insert(id);
+	if (included)
+		m_Players.insert(id);
 	else
-		m_Cheaters.erase(id);
+		m_Players.erase(id);
 }
 
-bool CheaterList::IsCheater(const SteamID& id) const
+bool PlayerList::IsPlayerIncluded(const SteamID& id) const
 {
-	return m_Cheaters.find(id) != m_Cheaters.end();
+	return m_Players.find(id) != m_Players.end();
 }

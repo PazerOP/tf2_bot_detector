@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CheaterList.h"
+#include "PlayerList.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
 #include "TFConstants.h"
@@ -75,6 +75,8 @@ namespace tf2_bot_detector
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
 		using clock_t = std::chrono::steady_clock;
 		clock_t::time_point m_OpenTime;
-		CheaterList m_CheaterList;
+		PlayerList m_CheaterList;
+		PlayerList m_SuspiciousList;
+		PlayerList m_ExploiterList;
 	};
 }

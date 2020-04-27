@@ -187,6 +187,10 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 	{
 		return std::make_unique<ClientReachedServerSpawnLine>(timestamp);
 	}
+	else if (text == "Lobby destroyed"sv)
+	{
+		return std::make_unique<LobbyDestroyedLine>(timestamp);
+	}
 
 	return nullptr;
 	//return std::make_unique<GenericConsoleLine>(timestamp, std::string(text));
@@ -218,4 +222,10 @@ void KillNotificationLine::Print() const
 {
 	ImGui::Text("%s killed %s with %s.%s", m_AttackerName.c_str(),
 		m_VictimName.c_str(), m_WeaponName.c_str(), m_WasCrit ? " (crit)" : "");
+}
+
+void LobbyDestroyedLine::Print() const
+{
+	//ImGui::TextUnformatted("Lobby destroyed.");
+	ImGui::Separator();
 }

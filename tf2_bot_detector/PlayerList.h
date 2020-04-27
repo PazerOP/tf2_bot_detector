@@ -7,19 +7,19 @@
 
 namespace tf2_bot_detector
 {
-	class CheaterList
+	class PlayerList
 	{
 	public:
-		CheaterList() = default;
-		CheaterList(const std::filesystem::path& filename);
+		PlayerList() = default;
+		PlayerList(const std::filesystem::path& filename);
 
 		void LoadFile(const std::filesystem::path& filename);
 		void SaveFile(const std::filesystem::path& filename);
 
-		void SetIsCheater(const SteamID& id, bool isCheater = true);
-		bool IsCheater(const SteamID& id) const;
+		void IncludePlayer(const SteamID& id, bool included = true);
+		bool IsPlayerIncluded(const SteamID& id) const;
 
 	private:
-		std::unordered_set<SteamID> m_Cheaters;
+		std::unordered_set<SteamID> m_Players;
 	};
 }

@@ -13,6 +13,7 @@ namespace tf2_bot_detector
 	{
 		Generic,
 		Chat,
+		LobbyDestroyed,
 		LobbyHeader,
 		LobbyMember,
 		PlayerStatus,
@@ -96,6 +97,16 @@ namespace tf2_bot_detector
 
 	private:
 		LobbyMember m_LobbyMember;
+	};
+
+	class LobbyDestroyedLine final : public IConsoleLine
+	{
+	public:
+		using IConsoleLine::IConsoleLine;
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyDestroyed; }
+		bool ShouldPrint() const override { return true; }
+		void Print() const override;
 	};
 
 	class ServerStatusPlayerLine final : public IConsoleLine

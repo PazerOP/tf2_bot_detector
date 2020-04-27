@@ -139,14 +139,14 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CheaterList.cpp" />
+    <ClCompile Include="PlayerList.cpp" />
     <ClCompile Include="ConsoleLines.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="SteamID.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CheaterList.h" />
+    <ClInclude Include="PlayerList.h" />
     <ClInclude Include="ConsoleLines.h" />
     <ClInclude Include="LobbyMember.h" />
     <ClInclude Include="MainWindow.h" />

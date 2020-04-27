@@ -14,13 +14,17 @@
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
 
-static const std::filesystem::path s_CheaterListFile("cheaters.txt");
+static const std::filesystem::path s_CheaterListFile("playerlist_cheaters.txt");
+static const std::filesystem::path s_SuspiciousListFile("playerlist_suspicious.txt");
+static const std::filesystem::path s_ExploiterListFile("playerlist_exploiters.txt");
 
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector")
 {
 	m_OpenTime = std::chrono::steady_clock::now();
 	m_CheaterList.LoadFile(s_CheaterListFile);
+	m_SuspiciousList.LoadFile(s_SuspiciousListFile);
+	m_ExploiterList.LoadFile(s_ExploiterListFile);
 }
 
 MainWindow::~MainWindow()
@@ -96,10 +100,10 @@ void MainWindow::OnDraw()
 				float nameColumnWidth = frameWidth;
 				// UserID header and column setup
 				{
-					ImGui::TextUnformatted("#");
+					ImGui::TextUnformatted("User ID");
 					if (scoreboardResized)
 					{
-						const float width = 35;
+						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
 						nameColumnWidth -= width;
 						ImGui::SetColumnWidth(-1, width);
 					}
@@ -174,8 +178,12 @@ void MainWindow::OnDraw()
 						}
 					}();
 
-					if (m_CheaterList.IsCheater(player.m_SteamID))
+					if (m_CheaterList.IsPlayerIncluded(player.m_SteamID))
 						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 0, 1, 1));
+					else if (m_SuspiciousList.IsPlayerIncluded(player.m_SteamID))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 1, 0, 1));
+					else if (m_ExploiterList.IsPlayerIncluded(player.m_SteamID))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(0, 1, 1, 1));
 
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 
@@ -192,11 +200,31 @@ void MainWindow::OnDraw()
 					if (ImGui::Selectable("Copy SteamID"))
 						ImGui::SetClipboardText(player.m_SteamID.str().c_str());
 
-					const bool existingIsCheater = m_CheaterList.IsCheater(player.m_SteamID);
-					if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
 					{
-						m_CheaterList.SetIsCheater(player.m_SteamID, !existingIsCheater);
-						m_CheaterList.SaveFile(s_CheaterListFile);
+						const bool existingIsCheater = m_CheaterList.IsPlayerIncluded(player.m_SteamID);
+						if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
+						{
+							m_CheaterList.IncludePlayer(player.m_SteamID, !existingIsCheater);
+							m_CheaterList.SaveFile(s_CheaterListFile);
+						}
+					}
+
+					{
+						const bool existingIsSuspicious = m_SuspiciousList.IsPlayerIncluded(player.m_SteamID);
+						if (ImGui::MenuItem("Mark as suspicious", nullptr, existingIsSuspicious))
+						{
+							m_SuspiciousList.IncludePlayer(player.m_SteamID, !existingIsSuspicious);
+							m_SuspiciousList.SaveFile(s_SuspiciousListFile);
+						}
+					}
+
+					{
+						const bool existingIsExploiter = m_ExploiterList.IsPlayerIncluded(player.m_SteamID);
+						if (ImGui::MenuItem("Mark as exploiter", nullptr, existingIsExploiter))
+						{
+							m_ExploiterList.IncludePlayer(player.m_SteamID, !existingIsExploiter);
+							m_ExploiterList.SaveFile(s_ExploiterListFile);
+						}
 					}
 
 					ImGui::EndPopup();
@@ -336,9 +364,11 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)
 		m_CurrentLobbyMembers.resize(count);
 		break;
 	}
+	case ConsoleLineType::LobbyDestroyed:
 	case ConsoleLineType::ClientReachedServerSpawn:
 	{
 		// Reset current lobby members/player statuses
+		m_CurrentLobbyMembers.clear();
 		m_CurrentPlayerData.clear();
 		break;
 	}
