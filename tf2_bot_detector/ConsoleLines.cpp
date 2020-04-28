@@ -101,7 +101,7 @@ IConsoleLine::IConsoleLine(std::time_t timestamp) :
 }
 
 using svmatch = std::match_results<std::string_view::const_iterator>;
-static std::regex s_ChatRegex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,32}) :  (.*))regex", std::regex::optimize);
+static std::regex s_ChatRegex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,32}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
 static std::regex s_LobbyHeaderRegex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
 static std::regex s_LobbyMemberRegex(R"regex(\s+(?:(?:Member)|(Pending))\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
 static std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
@@ -110,27 +110,7 @@ static std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(
 std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, std::time_t timestamp)
 {
 	svmatch result;
-	if (std::regex_match(text.begin(), text.end(), result, s_KillNotificationRegex))
-	{
-		return std::make_unique<KillNotificationLine>(timestamp, result[1].str(),
-			result[2].str(), result[3].str(), result[4].matched);
-	}
-	else if (std::regex_match(text.begin(), text.end(), result, s_ChatRegex))
-	{
-		return std::make_unique<ChatConsoleLine>(timestamp, result[3].str(), result[4].str(),
-			result[1].matched, result[2].matched);
-	}
-	else if (std::regex_match(text.begin(), text.end(), result, s_LobbyHeaderRegex))
-	{
-		unsigned memberCount, pendingCount;
-		if (!mh::from_chars(std::string_view(&*result[2].first, result[2].length()), memberCount))
-			throw std::runtime_error("Failed to parse lobby member count");
-		if (!mh::from_chars(std::string_view(&*result[3].first, result[3].length()), pendingCount))
-			throw std::runtime_error("Failed to parse lobby pending member count");
-
-		return std::make_unique<LobbyHeaderLine>(timestamp, memberCount, pendingCount);
-	}
-	else if (std::regex_match(text.begin(), text.end(), result, s_LobbyMemberRegex))
+	if (std::regex_match(text.begin(), text.end(), result, s_LobbyMemberRegex))
 	{
 		LobbyMember member{};
 		member.m_Pending = result[1].matched;
@@ -184,6 +164,26 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		from_chars_throw(result[8], status.m_Loss);
 
 		return std::make_unique<ServerStatusPlayerLine>(timestamp, status);
+	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_LobbyHeaderRegex))
+	{
+		unsigned memberCount, pendingCount;
+		if (!mh::from_chars(std::string_view(&*result[2].first, result[2].length()), memberCount))
+			throw std::runtime_error("Failed to parse lobby member count");
+		if (!mh::from_chars(std::string_view(&*result[3].first, result[3].length()), pendingCount))
+			throw std::runtime_error("Failed to parse lobby pending member count");
+
+		return std::make_unique<LobbyHeaderLine>(timestamp, memberCount, pendingCount);
+	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_KillNotificationRegex))
+	{
+		return std::make_unique<KillNotificationLine>(timestamp, result[1].str(),
+			result[2].str(), result[3].str(), result[4].matched);
+	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_ChatRegex))
+	{
+		return std::make_unique<ChatConsoleLine>(timestamp, result[3].str(), result[4].str(),
+			result[1].matched, result[2].matched);
 	}
 	else if (text == "Client reached server_spawn."sv)
 	{

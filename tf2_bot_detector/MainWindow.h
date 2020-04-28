@@ -35,6 +35,7 @@ namespace tf2_bot_detector
 		void OnDrawChat();
 
 		void OnUpdate() override;
+		size_t m_ParsedLineCount = 0;
 
 		bool IsTimeEven() const;
 		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
