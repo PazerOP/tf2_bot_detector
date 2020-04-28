@@ -31,6 +31,9 @@ namespace tf2_bot_detector
 
 	private:
 		void OnDraw() override;
+		void OnDrawScoreboard();
+		void OnDrawChat();
+
 		void OnUpdate() override;
 
 		bool IsTimeEven() const;

@@ -50,34 +50,8 @@ static float GetRemainingColumnWidth(float contentRegionWidth, int column_index 
 	return contentRegionWidth - 3;//ImGui::GetStyle().ItemSpacing.x;
 }
 
-void MainWindow::OnDraw()
+void MainWindow::OnDrawScoreboard()
 {
-#if 0
-	ImGui::Text("Current application time: %1.2f", std::chrono::duration<float>(std::chrono::steady_clock::now() - m_OpenTime).count());
-	ImGui::NewLine();
-	if (ImGui::Button("Quit"))
-		SetShouldClose(true);
-#endif
-
-	ImGui::Columns(2, "MainWindowSplit");
-	//ImGui::InputTextMultiline("##fileContents", const_cast<char*>(m_FileText.data()), m_FileText.size(), { -1, -1 }, ImGuiInputTextFlags_ReadOnly);
-	if (ImGui::BeginChild("##fileContents", { 0, 0 }, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
-	{
-		ImGui::PushTextWrapPos();
-
-		for (auto it = &m_PrintingLines[m_PrintingLineCount - 1]; it != &m_PrintingLines[-1]; --it)
-		{
-			assert(*it);
-			(*it)->Print();
-		}
-
-		ImGui::PopTextWrapPos();
-		ImGui::SetScrollHereY(1.0f);
-		ImGui::EndChild();
-	}
-
-	ImGui::NextColumn();
-
 	if (ImGui::BeginChild("Scoreboard", { 0, 0 }, true))
 	{
 		static ImVec2 s_LastFrameSize;
@@ -258,6 +232,40 @@ void MainWindow::OnDraw()
 
 		ImGui::EndChild();
 	}
+}
+
+void MainWindow::OnDrawChat()
+{
+	if (ImGui::BeginChild("##fileContents", { 0, 0 }, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+	{
+		ImGui::PushTextWrapPos();
+
+		for (auto it = &m_PrintingLines[m_PrintingLineCount - 1]; it != &m_PrintingLines[-1]; --it)
+		{
+			assert(*it);
+			(*it)->Print();
+		}
+
+		ImGui::PopTextWrapPos();
+		ImGui::SetScrollHereY(1.0f);
+		ImGui::EndChild();
+		}
+}
+
+void MainWindow::OnDraw()
+{
+#if 0
+	ImGui::Text("Current application time: %1.2f", std::chrono::duration<float>(std::chrono::steady_clock::now() - m_OpenTime).count());
+	ImGui::NewLine();
+	if (ImGui::Button("Quit"))
+		SetShouldClose(true);
+#endif
+
+	ImGui::Columns(2, "MainWindowSplit");
+
+	OnDrawChat(); ImGui::NextColumn();
+
+	OnDrawScoreboard(); ImGui::NextColumn();
 }
 
 static std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
