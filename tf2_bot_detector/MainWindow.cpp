@@ -9,26 +9,44 @@
 
 #include <cassert>
 #include <chrono>
+#include <string>
 #include <regex>
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
+using namespace std::string_literals;
+using namespace std::string_view_literals;
 
 static const std::filesystem::path s_CheaterListFile("playerlist_cheaters.txt");
 static const std::filesystem::path s_SuspiciousListFile("playerlist_suspicious.txt");
 static const std::filesystem::path s_ExploiterListFile("playerlist_exploiters.txt");
 
+static constexpr SteamID s_PazerSID(76561198003911389ull);
+
 MainWindow::MainWindow() :
-	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector")
+	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
+	m_CheaterList("playerlist_cheaters.txt"),
+	m_SuspiciousList("playerlist_suspicious.txt"),
+	m_ExploiterList("playerlist_exploiters.txt")
 {
 	m_OpenTime = std::chrono::steady_clock::now();
-	m_CheaterList.LoadFile(s_CheaterListFile);
-	m_SuspiciousList.LoadFile(s_SuspiciousListFile);
-	m_ExploiterList.LoadFile(s_ExploiterListFile);
+	AddConsoleLineListener(this);
+	AddConsoleLineListener(&m_ActionManager);
 }
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::AddConsoleLineListener(IConsoleLineListener* listener)
+{
+	if (listener)
+		m_ConsoleLineListeners.insert(listener);
+}
+
+bool MainWindow::RemoveConsoleLineListener(IConsoleLineListener* listener)
+{
+	return m_ConsoleLineListeners.erase(listener) > 0;
 }
 
 static float GetRemainingColumnWidth(float contentRegionWidth, int column_index = -1)
@@ -52,7 +70,7 @@ static float GetRemainingColumnWidth(float contentRegionWidth, int column_index 
 
 void MainWindow::OnDrawScoreboard()
 {
-	if (ImGui::BeginChild("Scoreboard", { 0, 0 }, true))
+	if (ImGui::BeginChild("Scoreboard", { 0, ImGui::GetContentRegionAvail().y / 2 }, true))
 	{
 		static ImVec2 s_LastFrameSize;
 		const bool scoreboardResized = [&]()
@@ -179,7 +197,7 @@ void MainWindow::OnDrawScoreboard()
 					if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
 					{
 						m_CheaterList.IncludePlayer(player.m_SteamID, !existingIsCheater);
-						m_CheaterList.SaveFile(s_CheaterListFile);
+						LogAction("Manually marked "s << player.m_SteamID << " as" << (existingIsCheater ? " NOT" : "") << " a cheater.");
 					}
 				}
 
@@ -188,7 +206,7 @@ void MainWindow::OnDrawScoreboard()
 					if (ImGui::MenuItem("Mark as suspicious", nullptr, existingIsSuspicious))
 					{
 						m_SuspiciousList.IncludePlayer(player.m_SteamID, !existingIsSuspicious);
-						m_SuspiciousList.SaveFile(s_SuspiciousListFile);
+						LogAction("Manually marked "s << player.m_SteamID << " as" << (existingIsSuspicious ? " NOT" : "") << " suspicious.");
 					}
 				}
 
@@ -197,7 +215,7 @@ void MainWindow::OnDrawScoreboard()
 					if (ImGui::MenuItem("Mark as exploiter", nullptr, existingIsExploiter))
 					{
 						m_ExploiterList.IncludePlayer(player.m_SteamID, !existingIsExploiter);
-						m_ExploiterList.SaveFile(s_ExploiterListFile);
+						LogAction("Manually marked "s << player.m_SteamID << " as" << (existingIsExploiter ? " NOT" : "") << " an exploiter.");
 					}
 				}
 
@@ -243,8 +261,22 @@ void MainWindow::OnDrawChat()
 
 		ImGui::PopTextWrapPos();
 		ImGui::SetScrollHereY(1.0f);
-		ImGui::EndChild();
 	}
+
+	ImGui::EndChild();
+}
+
+void MainWindow::OnDrawAppLog()
+{
+	if (ImGui::BeginChild("AppLog", { 0, 0 }, true))
+	{
+		for (const auto& msg : m_LogMessages)
+		{
+			ImGui::TextUnformatted(msg.data(), msg.data() + msg.size());
+		}
+	}
+
+	ImGui::EndChild();
 }
 
 void MainWindow::OnDraw()
@@ -262,12 +294,16 @@ void MainWindow::OnDraw()
 
 	OnDrawChat(); ImGui::NextColumn();
 
-	OnDrawScoreboard(); ImGui::NextColumn();
+	OnDrawScoreboard();
+	OnDrawAppLog();
+	ImGui::NextColumn();
 }
 
 static std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
 void MainWindow::OnUpdate()
 {
+	m_ActionManager.Update();
+
 	if (!m_File)
 	{
 		{
@@ -299,19 +335,25 @@ void MainWindow::OnUpdate()
 				{
 					if (m_CurrentTimestamp)
 					{
-						const auto timestamp = std::mktime(&m_CurrentTimestamp.value());
-						assert(timestamp >= 0);
+						assert(*m_CurrentTimestamp >= 0);
 
 						const auto prefix = match.prefix();
 						//const auto suffix = match.suffix();
 						const std::string_view lineStr(&*prefix.first, prefix.length());
-						auto parsed = IConsoleLine::ParseConsoleLine(lineStr, timestamp);
+						auto parsed = IConsoleLine::ParseConsoleLine(lineStr, *m_CurrentTimestamp);
 
 						if (parsed)
 						{
-							OnConsoleLineParsed(parsed.get());
+							for (auto listener : m_ConsoleLineListeners)
+								listener->OnConsoleLineParsed(*parsed);
+
 							m_ConsoleLines.push_back(std::move(parsed));
 							consoleLinesUpdated = true;
+						}
+						else
+						{
+							for (auto listener : m_ConsoleLineListeners)
+								listener->OnConsoleLineUnparsed(*m_CurrentTimestamp, lineStr);
 						}
 					}
 
@@ -327,7 +369,7 @@ void MainWindow::OnUpdate()
 					from_chars_throw(match[5], time.tm_min);
 					from_chars_throw(match[6], time.tm_sec);
 
-					m_CurrentTimestamp = time;
+					m_CurrentTimestamp = std::mktime(&time);
 					regexBegin = match[0].second;
 				}
 
@@ -361,15 +403,15 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 	return mh::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
 }
 
-void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)
+void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 {
-	switch (parsed->GetType())
+	switch (parsed.GetType())
 	{
 	case ConsoleLineType::LobbyHeader:
 	{
-		auto headerLine = static_cast<const LobbyHeaderLine*>(parsed);
-		m_CurrentLobbyMembers.resize(headerLine->GetMemberCount());
-		m_PendingLobbyMembers.resize(headerLine->GetPendingCount());
+		auto headerLine = static_cast<const LobbyHeaderLine&>(parsed);
+		m_CurrentLobbyMembers.resize(headerLine.GetMemberCount());
+		m_PendingLobbyMembers.resize(headerLine.GetPendingCount());
 		break;
 	}
 	case ConsoleLineType::LobbyDestroyed:
@@ -382,10 +424,37 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)
 		break;
 	}
 
+	case ConsoleLineType::Chat:
+	{
+		auto chatLine = static_cast<const ChatConsoleLine&>(parsed);
+		if (auto count = std::count(chatLine.GetMessage().begin(), chatLine.GetMessage().end(), '\n'); count > 2)
+		{
+			// Cheater is clearing the chat
+			if (auto steamID = FindSteamIDForName(chatLine.GetPlayerName()))
+			{
+				if (m_CheaterList.IncludePlayer(*steamID))
+					LogAction("Marked "s << *steamID << " as cheater (" << count << " newlines in chat message");
+			}
+			else
+			{
+				DelayedChatBan ban{};
+				ban.m_Timestamp = chatLine.GetTimestamp();
+				ban.m_PlayerName = chatLine.GetPlayerName();
+				m_DelayedBans.push_back(ban);
+
+				LogAction("Unable to find steamid for player with name "s << std::quoted(chatLine.GetPlayerName()));
+			}
+		}
+
+		// TODO: autokick for racism
+
+		break;
+	}
+
 	case ConsoleLineType::LobbyMember:
 	{
-		auto memberLine = static_cast<const LobbyMemberLine*>(parsed);
-		const auto& member = memberLine->GetLobbyMember();
+		auto memberLine = static_cast<const LobbyMemberLine&>(parsed);
+		const auto& member = memberLine.GetLobbyMember();
 		auto& vec = member.m_Pending ? m_PendingLobbyMembers : m_CurrentLobbyMembers;
 		if (member.m_Index < vec.size())
 			vec[member.m_Index] = member;
@@ -397,23 +466,53 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine* parsed)
 	}
 	case ConsoleLineType::PlayerStatus:
 	{
-		auto statusLine = static_cast<const ServerStatusPlayerLine*>(parsed);
-		const auto& status = statusLine->GetPlayerStatus();
-		m_CurrentPlayerData[status.m_SteamID].m_Status = status;
+		auto statusLine = static_cast<const ServerStatusPlayerLine&>(parsed);
+		const auto& status = statusLine.GetPlayerStatus();
+		auto& playerData = m_CurrentPlayerData[status.m_SteamID];
+		playerData.m_Status = status;
+		ProcessDelayedBans(statusLine.GetTimestamp(), status);
+
+		if (status.m_Name.ends_with("\xE2\x80\x8F"sv))
+		{
+			if (MarkPlayer(status.m_SteamID, PlayerMarkType::Suspicious))
+				LogAction("Marked "s << status.m_SteamID << " as suspicious due to name ending in common name-stealing characters");
+		}
+
+		if (IsPlayerMarked(status.m_SteamID, PlayerMarkType::Cheater) &&
+			FindLobbyMemberTeam(s_PazerSID) == FindLobbyMemberTeam(status.m_SteamID))
+		{
+			InitiateVotekick(status.m_SteamID, KickReason::Cheating);
+		}
+
+		break;
+	}
+	case ConsoleLineType::PlayerStatusShort:
+	{
+		auto statusLine = static_cast<const ServerStatusShortPlayerLine&>(parsed);
+		const auto& status = statusLine.GetPlayerStatus();
+		if (auto steamID = FindSteamIDForName(status.m_Name))
+			m_CurrentPlayerData[*steamID].m_ClientIndex = status.m_ClientIndex;
+
 		break;
 	}
 	case ConsoleLineType::KillNotification:
 	{
-		auto killLine = static_cast<const KillNotificationLine*>(parsed);
+		auto killLine = static_cast<const KillNotificationLine&>(parsed);
 
-		if (const auto attackerSteamID = FindSteamIDForName(killLine->GetAttackerName()))
+		if (const auto attackerSteamID = FindSteamIDForName(killLine.GetAttackerName()))
 			m_CurrentPlayerData[*attackerSteamID].m_Scores.m_Kills++;
-		if (const auto victimSteamID = FindSteamIDForName(killLine->GetVictimName()))
+		if (const auto victimSteamID = FindSteamIDForName(killLine.GetVictimName()))
 			m_CurrentPlayerData[*victimSteamID].m_Scores.m_Deaths++;
 
 		break;
 	}
 	}
+}
+
+void MainWindow::LogAction(std::string msg)
+{
+	// I'll do something with this information eventually...
+	m_LogMessages.push_back(std::move(msg));
 }
 
 void MainWindow::UpdatePrintingLines()
@@ -483,6 +582,123 @@ std::optional<SteamID> MainWindow::FindSteamIDForName(const std::string_view& pl
 	}
 
 	return std::nullopt;
+}
+
+std::optional<LobbyMemberTeam> MainWindow::FindLobbyMemberTeam(const SteamID& id) const
+{
+	for (const auto& member : m_CurrentLobbyMembers)
+	{
+		if (member.m_SteamID == id)
+			return member.m_Team;
+	}
+
+	for (const auto& member : m_PendingLobbyMembers)
+	{
+		if (member.m_SteamID == id)
+			return member.m_Team;
+	}
+
+	return std::nullopt;
+}
+
+std::optional<uint16_t> MainWindow::FindUserID(const SteamID& id) const
+{
+	for (const auto& player : m_CurrentPlayerData)
+	{
+		if (player.second.m_Status.m_SteamID == id)
+			return player.second.m_Status.m_UserID;
+	}
+
+	return std::nullopt;
+}
+
+void MainWindow::ProcessDelayedBans(std::time_t timestamp, const PlayerStatus& updatedStatus)
+{
+	for (size_t i = 0; i < m_DelayedBans.size(); i++)
+	{
+		const auto& ban = m_DelayedBans[i];
+		const double timeSince = std::difftime(timestamp, ban.m_Timestamp);
+
+		const auto RemoveBan = [&]()
+		{
+			m_DelayedBans.erase(m_DelayedBans.begin() + i);
+			i--;
+		};
+
+		if (timeSince > 10)
+		{
+			RemoveBan();
+			LogAction("Expiring delayed ban for user with name "s << std::quoted(ban.m_PlayerName)
+				<< " (" << timeSince << " second delay)");
+			continue;
+		}
+
+		if (ban.m_PlayerName == updatedStatus.m_Name)
+		{
+			if (m_CheaterList.IncludePlayer(updatedStatus.m_SteamID))
+			{
+				LogAction("Applying delayed ban ("s << timeSince << " second delay) to player "
+					<< updatedStatus.m_SteamID);
+			}
+
+			RemoveBan();
+			break;
+		}
+	}
+}
+
+bool MainWindow::MarkPlayer(const SteamID& id, PlayerMarkType markType)
+{
+	switch (markType)
+	{
+	case PlayerMarkType::Cheater:
+	{
+		const bool retVal = m_CheaterList.IncludePlayer(id);
+		m_SuspiciousList.IncludePlayer(id, false);
+		return retVal;
+	}
+
+	case PlayerMarkType::Suspicious:
+		if (!m_CheaterList.IsPlayerIncluded(id))
+			return m_SuspiciousList.IncludePlayer(id);
+
+		return false;
+
+	case PlayerMarkType::Exploiter:
+		return m_ExploiterList.IncludePlayer(id);
+		break;
+
+	default:
+		throw std::runtime_error("Unexpected/invalid PlayerMarkType");
+	}
+}
+
+bool MainWindow::IsPlayerMarked(const SteamID& id, PlayerMarkType markType)
+{
+	switch (markType)
+	{
+	case PlayerMarkType::Cheater:    return m_CheaterList.IsPlayerIncluded(id);
+	case PlayerMarkType::Exploiter:  return m_ExploiterList.IsPlayerIncluded(id);
+	case PlayerMarkType::Suspicious: return m_SuspiciousList.IsPlayerIncluded(id);
+
+	default:
+		throw std::runtime_error("Invalid PlayerMarkType");
+	}
+}
+
+void MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
+{
+	LogAction("InitiateVotekick on "s << id << ": " << reason);
+
+	const auto userID = FindUserID(id);
+	if (!userID)
+	{
+		LogAction("Wanted to kick "s << id << ", but could not find userid");
+		return;
+	}
+
+	auto action = std::make_unique<KickAction>(userID.value(), reason);
+	m_ActionManager.QueueAction(std::move(action));
 }
 
 void MainWindow::CustomDeleters::operator()(FILE* f) const

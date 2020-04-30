@@ -10,16 +10,17 @@ namespace tf2_bot_detector
 	class PlayerList
 	{
 	public:
-		PlayerList() = default;
-		PlayerList(const std::filesystem::path& filename);
+		PlayerList(std::filesystem::path filename);
 
-		void LoadFile(const std::filesystem::path& filename);
-		void SaveFile(const std::filesystem::path& filename);
+		void LoadFile();
+		void SaveFile();
 
-		void IncludePlayer(const SteamID& id, bool included = true);
+		// Returns true if the include state was changed
+		bool IncludePlayer(const SteamID& id, bool included = true, bool saveFile = true);
 		bool IsPlayerIncluded(const SteamID& id) const;
 
 	private:
 		std::set<SteamID> m_Players;
+		std::filesystem::path m_Filename;
 	};
 }

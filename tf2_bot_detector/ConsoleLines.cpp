@@ -3,7 +3,7 @@
 
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/string_insertion.hpp>
-#include <imgui.h>
+#include "ImGui_TF2BotDetector.h"
 
 #include <regex>
 #include <stdexcept>
@@ -34,31 +34,44 @@ void ChatConsoleLine::Print() const
 {
 	if (m_IsDead)
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-		ImGui::TextUnformatted("*DEAD*");
-		ImGui::PopStyleColor();
+		ImGui::TextColoredUnformatted(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "*DEAD*");
 		ImGui::SameLine();
 	}
 
 	if (m_IsTeam)
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 1.0f, 0.5f, 1.0f));
-		ImGui::TextUnformatted("(TEAM)");
-		ImGui::PopStyleColor();
+		ImGui::TextColoredUnformatted(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(TEAM)");
 		ImGui::SameLine();
 	}
 
-	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 1.0f, 1.0f));
-	ImGui::TextUnformatted(m_PlayerName.data(), m_PlayerName.data() + m_PlayerName.size());
+	ImGui::TextColoredUnformatted(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), m_PlayerName);
 	ImGui::SameLine();
 
-	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
-	ImGui::TextUnformatted(": ");
+	ImGui::TextColoredUnformatted(ImVec4(1, 1, 1, 1), ": ");
 	ImGui::SameLine();
 
-	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
-	ImGui::TextUnformatted(m_Message.data(), m_Message.data() + m_Message.size());
-	ImGui::PopStyleColor(3);
+	const ImVec4 msgColor(0.8f, 0.8f, 0.8f, 1.0f);
+	if (m_Message.find('\n') == m_Message.npos)
+	{
+		ImGui::TextColoredUnformatted(msgColor, m_Message);
+	}
+	else
+	{
+		// collapse groups of newlines in the message into red "(\n x <count>)" text
+		ImGui::NewLine();
+		for (size_t i = 0; i < m_Message.size(); )
+		{
+			size_t nonNewlineEnd = std::min(m_Message.find('\n', i), m_Message.size());
+			ImGui::SameLine();
+			ImGui::TextUnformatted(m_Message.data() + i, m_Message.data() + nonNewlineEnd);
+
+			size_t newlineEnd = std::min(m_Message.find_first_not_of('\n', nonNewlineEnd), m_Message.size());
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(1, 0.5f, 0.5f, 1.0f), "(\\n x %i)", (newlineEnd - i));
+
+			i = newlineEnd;
+		}
+	}
 }
 
 LobbyHeaderLine::LobbyHeaderLine(std::time_t timestamp, unsigned memberCount, unsigned pendingCount) :
@@ -101,12 +114,14 @@ IConsoleLine::IConsoleLine(std::time_t timestamp) :
 }
 
 using svmatch = std::match_results<std::string_view::const_iterator>;
-static std::regex s_ChatRegex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,32}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
-static std::regex s_LobbyHeaderRegex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
-static std::regex s_LobbyMemberRegex(R"regex(\s+(?:(?:Member)|(Pending))\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
-static std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
-static std::regex s_KillNotificationRegex(R"regex((.*) killed (.*) with (.*)\.( \(crit\))?)regex", std::regex::optimize);
-static std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+))regex", std::regex::optimize);
+static const std::regex s_ChatRegex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,32}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
+static const std::regex s_LobbyHeaderRegex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
+static const std::regex s_LobbyMemberRegex(R"regex(\s+(?:(?:Member)|(Pending))\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
+static const std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
+static const std::regex s_KillNotificationRegex(R"regex((.*) killed (.*) with (.*)\.( \(crit\))?)regex", std::regex::optimize);
+static const std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+)(?:\s+(\S+))?)regex", std::regex::optimize);
+static const std::regex s_StatusShortRegex(R"regex(#(\d+) - (.+))regex", std::regex::optimize);
+static const std::regex s_CvarlistValueRegex(R"regex((\S+)\s+:\s+([-\d.]+)\s+:\s+(.+)?\s+:[\t ]+(.+)?)regex", std::regex::optimize);
 std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, std::time_t timestamp)
 {
 	svmatch result;
@@ -132,6 +147,8 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		std::string_view typeStr(&*result[5].first, result[5].length());
 		if (typeStr == "MATCH_PLAYER"sv)
 			member.m_Type = LobbyMemberType::Player;
+		else if (typeStr == "INVALID_PLAYER"sv)
+			member.m_Type = LobbyMemberType::InvalidPlayer;
 		else
 			throw std::runtime_error("Unknown lobby member type");
 
@@ -163,7 +180,21 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		from_chars_throw(result[7], status.m_Ping);
 		from_chars_throw(result[8], status.m_Loss);
 
-		return std::make_unique<ServerStatusPlayerLine>(timestamp, status);
+		status.m_State = result[9].str();
+		status.m_Address = result[10].str();
+
+		return std::make_unique<ServerStatusPlayerLine>(timestamp, std::move(status));
+	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_StatusShortRegex))
+	{
+		PlayerStatusShort status{};
+
+		from_chars_throw(result[1], status.m_ClientIndex);
+		assert(status.m_ClientIndex >= 1);
+		status.m_ClientIndex -= 1;
+		status.m_Name = result[2].str();
+
+		return std::make_unique<ServerStatusShortPlayerLine>(timestamp, std::move(status));
 	}
 	else if (std::regex_match(text.begin(), text.end(), result, s_LobbyHeaderRegex))
 	{
@@ -193,13 +224,19 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 	{
 		return std::make_unique<LobbyDestroyedLine>(timestamp);
 	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_CvarlistValueRegex))
+	{
+		float value;
+		from_chars_throw(result[2], value);
+		return std::make_unique<CvarlistConvarLine>(timestamp, result[1].str(), value, result[3].str(), result[4].str());
+	}
 
 	return nullptr;
 	//return std::make_unique<GenericConsoleLine>(timestamp, std::string(text));
 }
 
-ServerStatusPlayerLine::ServerStatusPlayerLine(std::time_t timestamp, const PlayerStatus& playerStatus) :
-	IConsoleLine(timestamp), m_PlayerStatus(playerStatus)
+ServerStatusPlayerLine::ServerStatusPlayerLine(std::time_t timestamp, PlayerStatus playerStatus) :
+	IConsoleLine(timestamp), m_PlayerStatus(std::move(playerStatus))
 {
 }
 
@@ -230,4 +267,27 @@ void LobbyDestroyedLine::Print() const
 {
 	//ImGui::TextUnformatted("Lobby destroyed.");
 	ImGui::Separator();
+}
+
+CvarlistConvarLine::CvarlistConvarLine(std::time_t timestamp, std::string name, float value,
+	std::string flagsList, std::string helpText) :
+	IConsoleLine(timestamp), m_Name(std::move(name)), m_Value(value),
+	m_FlagsList(std::move(flagsList)), m_HelpText(std::move(helpText))
+{
+}
+
+void CvarlistConvarLine::Print() const
+{
+	// TODO
+	//ImGui::Text("\"%s\" = \"%s\"", m_Name.c_str(), m_ConvarValue.c_str());
+}
+
+ServerStatusShortPlayerLine::ServerStatusShortPlayerLine(std::time_t timestamp, PlayerStatusShort playerStatus) :
+	IConsoleLine(timestamp), m_PlayerStatus(std::move(playerStatus))
+{
+}
+
+void ServerStatusShortPlayerLine::Print() const
+{
+	ImGui::Text("#%u - %s", m_PlayerStatus.m_ClientIndex, m_PlayerStatus.m_Name.c_str());
 }

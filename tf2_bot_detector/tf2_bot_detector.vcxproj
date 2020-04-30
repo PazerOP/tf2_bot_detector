@@ -139,6 +139,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ActionManager.cpp" />
+    <ClCompile Include="Actions.cpp" />
+    <ClCompile Include="ImGui_TF2BotDetector.cpp" />
     <ClCompile Include="PlayerList.cpp" />
     <ClCompile Include="ConsoleLines.cpp" />
     <ClCompile Include="main.cpp" />
@@ -146,6 +149,11 @@
     <ClCompile Include="SteamID.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ActionManager.h" />
+    <ClInclude Include="Actions.h" />
+    <ClInclude Include="Clock.h" />
+    <ClInclude Include="IConsoleLineListener.h" />
+    <ClInclude Include="ImGui_TF2BotDetector.h" />
     <ClInclude Include="PlayerList.h" />
     <ClInclude Include="ConsoleLines.h" />
     <ClInclude Include="LobbyMember.h" />

@@ -56,14 +56,6 @@ SteamID::SteamID(const std::string_view& str)
 	throw std::invalid_argument("SteamID string does not match any known formats");
 }
 
-SteamID::SteamID(uint32_t id, uint32_t instance, SteamAccountType type, SteamAccountUniverse universe) :
-	ID(id),
-	Instance(instance),
-	Type(type),
-	Universe(universe)
-{
-}
-
 std::string SteamID::str() const
 {
 	std::string retVal;

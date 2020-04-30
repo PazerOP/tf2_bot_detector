@@ -15,7 +15,8 @@ namespace tf2_bot_detector
 
 	enum class LobbyMemberType : uint8_t
 	{
-		Player
+		Player,
+		InvalidPlayer,
 	};
 
 	/// <summary>

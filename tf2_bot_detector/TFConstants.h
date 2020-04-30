@@ -10,4 +10,6 @@ namespace tf2_bot_detector
 		Red,
 		Blue,
 	};
+
+	using UserID_t = uint16_t;
 }

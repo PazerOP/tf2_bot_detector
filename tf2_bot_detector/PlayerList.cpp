@@ -7,14 +7,15 @@
 using namespace tf2_bot_detector;
 namespace fs = std::filesystem;
 
-PlayerList::PlayerList(const fs::path& filename)
+PlayerList::PlayerList(fs::path filename) :
+	m_Filename(std::move(filename))
 {
-	LoadFile(filename);
+	LoadFile();
 }
 
-void PlayerList::LoadFile(const fs::path& filename)
+void PlayerList::LoadFile()
 {
-	std::ifstream file(filename);
+	std::ifstream file(m_Filename);
 
 	m_Players.clear();
 
@@ -28,7 +29,7 @@ void PlayerList::LoadFile(const fs::path& filename)
 	}
 }
 
-void PlayerList::SaveFile(const fs::path& filename)
+void PlayerList::SaveFile()
 {
 	struct FileDeleter
 	{
@@ -46,17 +47,23 @@ void PlayerList::SaveFile(const fs::path& filename)
 			tmpFile << cheater << '\n';
 	}
 
-	fs::copy(tmpFileName, filename, fs::copy_options::overwrite_existing);
+	fs::copy(tmpFileName, m_Filename, fs::copy_options::overwrite_existing);
 
 	fs::remove(tmpFileName);
 }
 
-void PlayerList::IncludePlayer(const SteamID& id, bool included)
+bool PlayerList::IncludePlayer(const SteamID& id, bool included, bool saveFile)
 {
+	bool modified;
 	if (included)
-		m_Players.insert(id);
+		modified = m_Players.insert(id).second;
 	else
-		m_Players.erase(id);
+		modified = m_Players.erase(id) > 0;
+
+	if (saveFile && modified)
+		SaveFile();
+
+	return modified;
 }
 
 bool PlayerList::IsPlayerIncluded(const SteamID& id) const

@@ -37,7 +37,11 @@ namespace tf2_bot_detector
 	public:
 		constexpr SteamID() = default;
 		explicit SteamID(const std::string_view& str);
-		SteamID(uint32_t id, uint32_t instance, SteamAccountType type, SteamAccountUniverse universe);
+		explicit constexpr SteamID(uint64_t id64) : ID64(id64) {}
+		explicit constexpr SteamID(uint32_t id, uint32_t instance, SteamAccountType type, SteamAccountUniverse universe) :
+			ID(id), Instance(instance), Type(type), Universe(universe)
+		{
+		}
 
 		std::strong_ordering operator<=>(const SteamID& other) const { return ID64 <=> other.ID64; }
 

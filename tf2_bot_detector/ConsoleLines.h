@@ -17,8 +17,10 @@ namespace tf2_bot_detector
 		LobbyHeader,
 		LobbyMember,
 		PlayerStatus,
+		PlayerStatusShort,
 		ClientReachedServerSpawn,
 		KillNotification,
+		CvarlistConvar,
 	};
 
 	class IConsoleLine
@@ -59,6 +61,11 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Chat; }
 		void Print() const override;
+
+		const std::string& GetPlayerName() const { return m_PlayerName; }
+		const std::string& GetMessage() const { return m_Message; }
+		bool IsDead() const { return m_IsDead; }
+		bool IsTeam() const { return m_IsTeam; }
 
 	private:
 		std::string m_PlayerName;
@@ -112,7 +119,7 @@ namespace tf2_bot_detector
 	class ServerStatusPlayerLine final : public IConsoleLine
 	{
 	public:
-		ServerStatusPlayerLine(std::time_t timestamp, const PlayerStatus& playerStatus);
+		ServerStatusPlayerLine(std::time_t timestamp, PlayerStatus playerStatus);
 
 		const PlayerStatus& GetPlayerStatus() const { return m_PlayerStatus; }
 
@@ -122,6 +129,21 @@ namespace tf2_bot_detector
 
 	private:
 		PlayerStatus m_PlayerStatus;
+	};
+
+	class ServerStatusShortPlayerLine final : public IConsoleLine
+	{
+	public:
+		ServerStatusShortPlayerLine(std::time_t timestamp, PlayerStatusShort playerStatus);
+
+		const PlayerStatusShort& GetPlayerStatus() const { return m_PlayerStatus; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusShort; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+	private:
+		PlayerStatusShort m_PlayerStatus;
 	};
 
 	class ClientReachedServerSpawnLine final : public IConsoleLine
@@ -154,5 +176,26 @@ namespace tf2_bot_detector
 		std::string m_VictimName;
 		std::string m_WeaponName;
 		bool m_WasCrit;
+	};
+
+	class CvarlistConvarLine final : public IConsoleLine
+	{
+	public:
+		CvarlistConvarLine(std::time_t timestamp, std::string name, float value, std::string flagsList, std::string helpText);
+
+		const std::string& GetConvarName() const { return m_Name; }
+		float GetConvarValue() const { return m_Value; }
+		const std::string& GetFlagsListString() const { return m_FlagsList; }
+		const std::string& GetHelpText() const { return m_HelpText; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::CvarlistConvar; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+	private:
+		std::string m_Name;
+		float m_Value;
+		std::string m_FlagsList;
+		std::string m_HelpText;
 	};
 }
