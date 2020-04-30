@@ -29,7 +29,7 @@ MainWindow::MainWindow() :
 	m_SuspiciousList("playerlist_suspicious.txt"),
 	m_ExploiterList("playerlist_exploiters.txt")
 {
-	m_OpenTime = std::chrono::steady_clock::now();
+	m_OpenTime = clock_t::now();
 	AddConsoleLineListener(this);
 	AddConsoleLineListener(&m_ActionManager);
 }
@@ -369,7 +369,7 @@ void MainWindow::OnUpdate()
 					from_chars_throw(match[5], time.tm_min);
 					from_chars_throw(match[6], time.tm_sec);
 
-					m_CurrentTimestamp = std::mktime(&time);
+					m_CurrentTimestamp = clock_t::from_time_t(std::mktime(&time));
 					regexBegin = match[0].second;
 				}
 
@@ -612,12 +612,12 @@ std::optional<uint16_t> MainWindow::FindUserID(const SteamID& id) const
 	return std::nullopt;
 }
 
-void MainWindow::ProcessDelayedBans(std::time_t timestamp, const PlayerStatus& updatedStatus)
+void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& updatedStatus)
 {
 	for (size_t i = 0; i < m_DelayedBans.size(); i++)
 	{
 		const auto& ban = m_DelayedBans[i];
-		const double timeSince = std::difftime(timestamp, ban.m_Timestamp);
+		const auto timeSince = timestamp - ban.m_Timestamp;
 
 		const auto RemoveBan = [&]()
 		{
@@ -625,11 +625,11 @@ void MainWindow::ProcessDelayedBans(std::time_t timestamp, const PlayerStatus& u
 			i--;
 		};
 
-		if (timeSince > 10)
+		if (timeSince > 10s)
 		{
 			RemoveBan();
 			LogAction("Expiring delayed ban for user with name "s << std::quoted(ban.m_PlayerName)
-				<< " (" << timeSince << " second delay)");
+				<< " (" << to_seconds(timeSince) << " second delay)");
 			continue;
 		}
 
@@ -637,7 +637,7 @@ void MainWindow::ProcessDelayedBans(std::time_t timestamp, const PlayerStatus& u
 		{
 			if (m_CheaterList.IncludePlayer(updatedStatus.m_SteamID))
 			{
-				LogAction("Applying delayed ban ("s << timeSince << " second delay) to player "
+				LogAction("Applying delayed ban ("s << to_seconds(timeSince) << " second delay) to player "
 					<< updatedStatus.m_SteamID);
 			}
 

@@ -65,7 +65,7 @@ namespace tf2_bot_detector
 		};
 		std::unique_ptr<FILE, CustomDeleters> m_File;
 		std::string m_FileLineBuf;
-		std::optional<std::time_t> m_CurrentTimestamp;
+		std::optional<time_point_t> m_CurrentTimestamp;
 		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
 
 		size_t m_PrintingLineCount = 0;
@@ -100,17 +100,16 @@ namespace tf2_bot_detector
 
 		struct DelayedChatBan
 		{
-			std::time_t m_Timestamp;
+			time_point_t m_Timestamp;
 			std::string m_PlayerName;
 		};
 		std::vector<DelayedChatBan> m_DelayedBans;
-		void ProcessDelayedBans(std::time_t timestamp, const PlayerStatus& updatedStatus);
+		void ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& updatedStatus);
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
-		using clock_t = std::chrono::steady_clock;
-		clock_t::time_point m_OpenTime;
+		time_point_t m_OpenTime;
 		PlayerList m_CheaterList;
 		PlayerList m_SuspiciousList;
 		PlayerList m_ExploiterList;

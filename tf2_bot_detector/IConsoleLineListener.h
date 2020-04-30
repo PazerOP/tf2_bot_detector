@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ctime>
+#include "Clock.h"
+
 #include <memory>
 #include <string_view>
 
@@ -14,6 +15,6 @@ namespace tf2_bot_detector
 		virtual ~IConsoleLineListener() = default;
 
 		virtual void OnConsoleLineParsed(IConsoleLine& line) {}
-		virtual void OnConsoleLineUnparsed(std::time_t timestamp, const std::string_view& text) {}
+		virtual void OnConsoleLineUnparsed(time_point_t timestamp, const std::string_view& text) {}
 	};
 }

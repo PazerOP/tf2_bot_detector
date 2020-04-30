@@ -12,7 +12,7 @@ using namespace tf2_bot_detector;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-GenericConsoleLine::GenericConsoleLine(std::time_t timestamp, std::string&& text) :
+GenericConsoleLine::GenericConsoleLine(time_point_t timestamp, std::string&& text) :
 	IConsoleLine(timestamp), m_Text(std::move(text))
 {
 	m_Text.shrink_to_fit();
@@ -23,7 +23,7 @@ void GenericConsoleLine::Print() const
 	ImGui::TextUnformatted(m_Text.data(), m_Text.data() + m_Text.size());
 }
 
-ChatConsoleLine::ChatConsoleLine(std::time_t timestamp, std::string&& playerName, std::string&& message, bool isDead, bool isTeam) :
+ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string&& playerName, std::string&& message, bool isDead, bool isTeam) :
 	IConsoleLine(timestamp), m_PlayerName(std::move(playerName)), m_Message(std::move(message)), m_IsDead(isDead), m_IsTeam(isTeam)
 {
 	m_PlayerName.shrink_to_fit();
@@ -74,7 +74,7 @@ void ChatConsoleLine::Print() const
 	}
 }
 
-LobbyHeaderLine::LobbyHeaderLine(std::time_t timestamp, unsigned memberCount, unsigned pendingCount) :
+LobbyHeaderLine::LobbyHeaderLine(time_point_t timestamp, unsigned memberCount, unsigned pendingCount) :
 	IConsoleLine(timestamp), m_MemberCount(memberCount), m_PendingCount(pendingCount)
 {
 }
@@ -85,7 +85,7 @@ void LobbyHeaderLine::Print() const
 		m_MemberCount, m_PendingCount);
 }
 
-LobbyMemberLine::LobbyMemberLine(std::time_t timestamp, const LobbyMember& lobbyMember) :
+LobbyMemberLine::LobbyMemberLine(time_point_t timestamp, const LobbyMember& lobbyMember) :
 	IConsoleLine(timestamp), m_LobbyMember(lobbyMember)
 {
 }
@@ -108,7 +108,7 @@ void LobbyMemberLine::Print() const
 	ImGui::PopStyleColor();
 }
 
-IConsoleLine::IConsoleLine(std::time_t timestamp) :
+IConsoleLine::IConsoleLine(time_point_t timestamp) :
 	m_Timestamp(timestamp)
 {
 }
@@ -122,7 +122,7 @@ static const std::regex s_KillNotificationRegex(R"regex((.*) killed (.*) with (.
 static const std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+)(?:\s+(\S+))?)regex", std::regex::optimize);
 static const std::regex s_StatusShortRegex(R"regex(#(\d+) - (.+))regex", std::regex::optimize);
 static const std::regex s_CvarlistValueRegex(R"regex((\S+)\s+:\s+([-\d.]+)\s+:\s+(.+)?\s+:[\t ]+(.+)?)regex", std::regex::optimize);
-std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, std::time_t timestamp)
+std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, time_point_t timestamp)
 {
 	svmatch result;
 	if (std::regex_match(text.begin(), text.end(), result, s_LobbyMemberRegex))
@@ -235,7 +235,7 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 	//return std::make_unique<GenericConsoleLine>(timestamp, std::string(text));
 }
 
-ServerStatusPlayerLine::ServerStatusPlayerLine(std::time_t timestamp, PlayerStatus playerStatus) :
+ServerStatusPlayerLine::ServerStatusPlayerLine(time_point_t timestamp, PlayerStatus playerStatus) :
 	IConsoleLine(timestamp), m_PlayerStatus(std::move(playerStatus))
 {
 }
@@ -250,7 +250,7 @@ void ClientReachedServerSpawnLine::Print() const
 	ImGui::TextUnformatted("Client reached server_spawn.");
 }
 
-KillNotificationLine::KillNotificationLine(std::time_t timestamp, std::string attackerName,
+KillNotificationLine::KillNotificationLine(time_point_t timestamp, std::string attackerName,
 	std::string victimName, std::string weaponName, bool wasCrit) :
 	IConsoleLine(timestamp), m_AttackerName(std::move(attackerName)), m_VictimName(std::move(victimName)),
 	m_WeaponName(std::move(weaponName)), m_WasCrit(wasCrit)
@@ -269,7 +269,7 @@ void LobbyDestroyedLine::Print() const
 	ImGui::Separator();
 }
 
-CvarlistConvarLine::CvarlistConvarLine(std::time_t timestamp, std::string name, float value,
+CvarlistConvarLine::CvarlistConvarLine(time_point_t timestamp, std::string name, float value,
 	std::string flagsList, std::string helpText) :
 	IConsoleLine(timestamp), m_Name(std::move(name)), m_Value(value),
 	m_FlagsList(std::move(flagsList)), m_HelpText(std::move(helpText))
@@ -282,7 +282,7 @@ void CvarlistConvarLine::Print() const
 	//ImGui::Text("\"%s\" = \"%s\"", m_Name.c_str(), m_ConvarValue.c_str());
 }
 
-ServerStatusShortPlayerLine::ServerStatusShortPlayerLine(std::time_t timestamp, PlayerStatusShort playerStatus) :
+ServerStatusShortPlayerLine::ServerStatusShortPlayerLine(time_point_t timestamp, PlayerStatusShort playerStatus) :
 	IConsoleLine(timestamp), m_PlayerStatus(std::move(playerStatus))
 {
 }

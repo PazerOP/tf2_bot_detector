@@ -1,9 +1,9 @@
 #pragma once
 
+#include "Clock.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
 
-#include <ctime>
 #include <memory>
 #include <string_view>
 
@@ -26,25 +26,25 @@ namespace tf2_bot_detector
 	class IConsoleLine
 	{
 	public:
-		IConsoleLine(std::time_t timestamp);
+		IConsoleLine(time_point_t timestamp);
 		virtual ~IConsoleLine() = default;
 
 		virtual ConsoleLineType GetType() const = 0;
 		virtual bool ShouldPrint() const { return true; }
 		virtual void Print() const = 0;
 
-		static std::unique_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text, std::time_t timestamp);
+		static std::unique_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text, time_point_t timestamp);
 
-		std::time_t GetTimestamp() const { return m_Timestamp; }
+		time_point_t GetTimestamp() const { return m_Timestamp; }
 
 	private:
-		std::time_t m_Timestamp;
+		time_point_t m_Timestamp;
 	};
 
 	class GenericConsoleLine final : public IConsoleLine
 	{
 	public:
-		GenericConsoleLine(std::time_t timestamp, std::string&& text);
+		GenericConsoleLine(time_point_t timestamp, std::string&& text);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Generic; }
 		bool ShouldPrint() const override { return false; }
@@ -57,7 +57,7 @@ namespace tf2_bot_detector
 	class ChatConsoleLine final : public IConsoleLine
 	{
 	public:
-		ChatConsoleLine(std::time_t timestamp, std::string&& playerName, std::string&& message, bool isDead, bool isTeam);
+		ChatConsoleLine(time_point_t timestamp, std::string&& playerName, std::string&& message, bool isDead, bool isTeam);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Chat; }
 		void Print() const override;
@@ -77,7 +77,7 @@ namespace tf2_bot_detector
 	class LobbyHeaderLine final : public IConsoleLine
 	{
 	public:
-		LobbyHeaderLine(std::time_t timestamp, unsigned memberCount, unsigned pendingCount);
+		LobbyHeaderLine(time_point_t timestamp, unsigned memberCount, unsigned pendingCount);
 
 		auto GetMemberCount() const { return m_MemberCount; }
 		auto GetPendingCount() const { return m_PendingCount; }
@@ -94,7 +94,7 @@ namespace tf2_bot_detector
 	class LobbyMemberLine final : public IConsoleLine
 	{
 	public:
-		LobbyMemberLine(std::time_t timestamp, const LobbyMember& lobbyMember);
+		LobbyMemberLine(time_point_t timestamp, const LobbyMember& lobbyMember);
 
 		const LobbyMember& GetLobbyMember() const { return m_LobbyMember; }
 
@@ -119,7 +119,7 @@ namespace tf2_bot_detector
 	class ServerStatusPlayerLine final : public IConsoleLine
 	{
 	public:
-		ServerStatusPlayerLine(std::time_t timestamp, PlayerStatus playerStatus);
+		ServerStatusPlayerLine(time_point_t timestamp, PlayerStatus playerStatus);
 
 		const PlayerStatus& GetPlayerStatus() const { return m_PlayerStatus; }
 
@@ -134,7 +134,7 @@ namespace tf2_bot_detector
 	class ServerStatusShortPlayerLine final : public IConsoleLine
 	{
 	public:
-		ServerStatusShortPlayerLine(std::time_t timestamp, PlayerStatusShort playerStatus);
+		ServerStatusShortPlayerLine(time_point_t timestamp, PlayerStatusShort playerStatus);
 
 		const PlayerStatusShort& GetPlayerStatus() const { return m_PlayerStatus; }
 
@@ -159,7 +159,7 @@ namespace tf2_bot_detector
 	class KillNotificationLine final : public IConsoleLine
 	{
 	public:
-		KillNotificationLine(std::time_t timestamp, std::string attackerName,
+		KillNotificationLine(time_point_t timestamp, std::string attackerName,
 			std::string victimName, std::string weaponName, bool wasCrit);
 
 		const std::string& GetVictimName() const { return m_VictimName; }
@@ -181,7 +181,7 @@ namespace tf2_bot_detector
 	class CvarlistConvarLine final : public IConsoleLine
 	{
 	public:
-		CvarlistConvarLine(std::time_t timestamp, std::string name, float value, std::string flagsList, std::string helpText);
+		CvarlistConvarLine(time_point_t timestamp, std::string name, float value, std::string flagsList, std::string helpText);
 
 		const std::string& GetConvarName() const { return m_Name; }
 		float GetConvarValue() const { return m_Value; }
