@@ -48,6 +48,7 @@ namespace tf2_bot_detector
 	private:
 		void OnDraw() override;
 		void OnDrawScoreboard();
+		void OnDrawScoreboardContextMenu(const SteamID& steamID);
 		void OnDrawChat();
 		void OnDrawAppLog();
 
@@ -67,6 +68,7 @@ namespace tf2_bot_detector
 		std::string m_FileLineBuf;
 		std::optional<time_point_t> m_CurrentTimestamp;
 		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
+		bool m_Paused = false;
 
 		size_t m_PrintingLineCount = 0;
 		IConsoleLine* m_PrintingLines[512]{};
@@ -80,6 +82,7 @@ namespace tf2_bot_detector
 			SteamID m_SteamID;
 			std::string m_Name;
 			PlayerScores m_Scores;
+			uint32_t m_ConnectedTime;
 			uint16_t m_UserID;
 			uint16_t m_Ping;
 			TFTeam m_Team;

@@ -48,21 +48,16 @@ namespace tf2_bot_detector
 		Scamming,
 	};
 
-	class KickAction final : public IAction
+	class KickAction final : public GenericCommandAction
 	{
 	public:
 		KickAction(uint16_t userID, KickReason reason);
 
 		duration_t GetMinInterval() const override;
 		ActionType GetType() const override { return ActionType::Kick; }
-		void WriteCommands(std::ostream& os) const override;
-
-		uint16_t GetUserID() const { return m_UserID; }
-		KickReason GetReason() const { return m_Reason; }
 
 	private:
-		uint16_t m_UserID;
-		KickReason m_Reason;
+		static std::string MakeCommand(uint16_t userID, KickReason reason);
 	};
 
 	class ChatMessageAction final : public GenericCommandAction

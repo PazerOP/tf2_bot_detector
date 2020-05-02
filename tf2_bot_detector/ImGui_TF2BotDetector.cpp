@@ -1,5 +1,7 @@
 #include "ImGui_TF2BotDetector.h"
 
+#include <cstdarg>
+#include <memory>
 #include <stdexcept>
 
 void ImGui::TextUnformatted(const std::string_view& text)
@@ -17,6 +19,35 @@ void ImGui::TextColoredUnformatted(const ImVec4& col, const char* text, const ch
 void ImGui::TextColoredUnformatted(const ImVec4& col, const std::string_view& text)
 {
 	ImGui::TextColoredUnformatted(col, text.data(), text.data() + text.size());
+}
+
+void ImGui::TextRightAligned(const std::string_view& text, float offsetX)
+{
+	const auto textSize = ImGui::CalcTextSize(text.data(), text.data() + text.size());
+
+	float cursorPosX = ImGui::GetCursorPosX();
+	cursorPosX += ImGui::GetColumnWidth();// ImGui::GetContentRegionAvail().x;
+	cursorPosX -= textSize.x;
+	cursorPosX -= 2 * ImGui::GetStyle().ItemSpacing.x;
+	cursorPosX -= offsetX;
+
+	ImGui::SetCursorPosX(cursorPosX);
+	ImGui::TextUnformatted(text);
+}
+
+void ImGui::TextRightAlignedF(const char* fmt, ...)
+{
+	std::va_list ap, ap2;
+	va_start(ap, fmt);
+	va_copy(ap2, ap);
+	const int count = vsnprintf(nullptr, 0, fmt, ap);
+	va_end(ap);
+
+	auto buf = std::make_unique<char[]>(count + 1);
+	vsnprintf(buf.get(), count + 1, fmt, ap2);
+	va_end(ap2);
+
+	ImGui::TextRightAligned(std::string_view(buf.get(), count));
 }
 
 void ImGui::AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* userData), void* userData)

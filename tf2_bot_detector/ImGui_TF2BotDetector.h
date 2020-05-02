@@ -25,4 +25,7 @@ namespace ImGui
 				(*reinterpret_cast<const TFunc*>(userData))();
 			}, reinterpret_cast<const void*>(&func));
 	}
+
+	void TextRightAligned(const std::string_view& text, float offsetX = -1);
+	void TextRightAlignedF(const char* fmt, ...) IM_FMTARGS(1);
 }

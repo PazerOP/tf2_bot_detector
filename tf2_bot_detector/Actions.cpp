@@ -1,6 +1,7 @@
 #include "Actions.h"
 
 #include <mh/text/string_insertion.hpp>
+#include <mh/text/stringops.hpp>
 
 #include <iomanip>
 #include <ostream>
@@ -8,9 +9,10 @@
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
 using namespace std::string_literals;
+using namespace std::string_view_literals;
 
 KickAction::KickAction(uint16_t userID, KickReason reason) :
-	m_UserID(userID), m_Reason(reason)
+	GenericCommandAction(MakeCommand(userID, reason))
 {
 }
 
@@ -19,11 +21,11 @@ duration_t KickAction::GetMinInterval() const
 	return 30s;
 }
 
-void KickAction::WriteCommands(std::ostream& os) const
+std::string KickAction::MakeCommand(uint16_t userID, KickReason reason)
 {
 	const char* reasonString = [&]()
 	{
-		switch (m_Reason)
+		switch (reason)
 		{
 		case KickReason::Other:     return "other";
 		case KickReason::Cheating:  return "cheating";
@@ -33,7 +35,7 @@ void KickAction::WriteCommands(std::ostream& os) const
 		}
 	}();
 
-	os << "callvote kick \"" << m_UserID << ' ' << reasonString << "\"\n";
+	return "callvote kick \""s << userID << ' ' << reasonString << '"';
 }
 
 GenericCommandAction::GenericCommandAction(std::string cmd) :
@@ -43,12 +45,12 @@ GenericCommandAction::GenericCommandAction(std::string cmd) :
 
 void GenericCommandAction::WriteCommands(std::ostream& os) const
 {
-	os << m_Command << '\n';
+	auto cleaned = mh::find_and_replace(m_Command, "\"", "'");
+	os << "echo "s << std::quoted("[TFBD_DEBUG_CMD] "s << cleaned) << '\n';
 }
 
 ChatMessageAction::ChatMessageAction(const std::string_view& message) :
-	//GenericCommandAction("say "s << std::quoted(message))
-	GenericCommandAction("echo "s << std::quoted("[TFBD_DEBUG_CHAT_MSG] "s << message))
+	GenericCommandAction("say "s << std::quoted(message))
 {
 }
 

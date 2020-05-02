@@ -69,180 +69,224 @@ static float GetRemainingColumnWidth(float contentRegionWidth, int column_index 
 	return contentRegionWidth - 3;//ImGui::GetStyle().ItemSpacing.x;
 }
 
+void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
+{
+	if (ImGui::BeginPopupContextItem("PlayerContextMenu"))
+	{
+		if (ImGui::Selectable("Copy SteamID"))
+			ImGui::SetClipboardText(steamID.str().c_str());
+
+		{
+			const bool existingIsCheater = m_CheaterList.IsPlayerIncluded(steamID);
+			if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
+			{
+				m_CheaterList.IncludePlayer(steamID, !existingIsCheater);
+				LogAction("Manually marked "s << steamID << " as" << (existingIsCheater ? " NOT" : "") << " a cheater.");
+			}
+		}
+
+		{
+			const bool existingIsSuspicious = m_SuspiciousList.IsPlayerIncluded(steamID);
+			if (ImGui::MenuItem("Mark as suspicious", nullptr, existingIsSuspicious))
+			{
+				m_SuspiciousList.IncludePlayer(steamID, !existingIsSuspicious);
+				LogAction("Manually marked "s << steamID << " as" << (existingIsSuspicious ? " NOT" : "") << " suspicious.");
+			}
+		}
+
+		{
+			const bool existingIsExploiter = m_ExploiterList.IsPlayerIncluded(steamID);
+			if (ImGui::MenuItem("Mark as exploiter", nullptr, existingIsExploiter))
+			{
+				m_ExploiterList.IncludePlayer(steamID, !existingIsExploiter);
+				LogAction("Manually marked "s << steamID << " as" << (existingIsExploiter ? " NOT" : "") << " an exploiter.");
+			}
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
 void MainWindow::OnDrawScoreboard()
 {
-	if (ImGui::BeginChild("Scoreboard", { 0, ImGui::GetContentRegionAvail().y / 2 }, true))
+	static float frameWidth, contentWidth, windowContentWidth, windowWidth;
+	bool forceRecalc = false;
+
+	ImGui::Value("Work rect width", frameWidth);
+	ImGui::Value("Content width", contentWidth);
+	ImGui::Value("Window content width", windowContentWidth);
+	ImGui::Value("Window width", windowWidth);
+
+	static float contentWidthMin = 500;
+	forceRecalc |= ImGui::DragFloat("Content width min", &contentWidthMin);
+
+	static float extraWidth;
+	forceRecalc |= ImGui::DragFloat("Extra width", &extraWidth, 0.5f);
+
+	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
+	//ImGui::SetNextWindowContentSize(ImVec2(500, 0));
+	if (ImGui::BeginChild("Scoreboard", { 0, ImGui::GetContentRegionAvail().y / 2 }, true, ImGuiWindowFlags_HorizontalScrollbar))
 	{
-		static ImVec2 s_LastFrameSize;
-		const bool scoreboardResized = [&]()
+		//ImGui::SetNextWindowSizeConstraints(ImVec2(500, -1), ImVec2(INFINITY, -1));
+		//if (ImGui::BeginChild("ScoreboardScrollRegion", { 0, 0 }, false, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			const auto thisFrameSize = ImGui::GetWindowSize();
-			const bool changed = s_LastFrameSize != thisFrameSize;
-			s_LastFrameSize = thisFrameSize;
-			return changed;
-		}();
-
-		const auto frameWidth = ImGui::GetItemRectSize().x;
-		PlayerPrintData printData[33]{};
-		const size_t playerPrintDataCount = GeneratePlayerPrintData(std::begin(printData), std::end(printData));
-
-		ImGui::Columns(5, "PlayersColumns");
-
-		// Columns setup
-		{
-			float nameColumnWidth = frameWidth;
-			// UserID header and column setup
+			static ImVec2 s_LastFrameSize;
+			const bool scoreboardResized = [&]()
 			{
-				ImGui::TextUnformatted("User ID");
-				if (scoreboardResized)
-				{
-					const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
-					nameColumnWidth -= width;
-					ImGui::SetColumnWidth(-1, width);
-				}
+				const auto thisFrameSize = ImGui::GetWindowSize();
+				const bool changed = s_LastFrameSize != thisFrameSize;
+				s_LastFrameSize = thisFrameSize;
+				return changed || forceRecalc;
+			}();
 
-				ImGui::NextColumn();
-			}
+			/*const auto*/ frameWidth = std::max(contentWidthMin, windowContentWidth);// ImGui::GetWorkRectSize().x;
+			PlayerPrintData printData[33]{};
+			const size_t playerPrintDataCount = GeneratePlayerPrintData(std::begin(printData), std::end(printData));
 
-			// Name header and column setup
-			ImGui::TextUnformatted("Name"); ImGui::NextColumn();
+			/*const auto*/ contentWidth = ImGui::GetContentRegionMax().x;
+			/*const auto*/ windowContentWidth = ImGui::GetWindowContentRegionWidth();
+			/*const auto*/ windowWidth = ImGui::GetWindowWidth();
+			ImGui::Columns(6, "PlayersColumns");
 
-			// Kills header and column setup
+			// Columns setup
 			{
-				ImGui::TextUnformatted("Kills");
-				if (scoreboardResized)
+				float nameColumnWidth = frameWidth;
+				// UserID header and column setup
 				{
-					const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
-					nameColumnWidth -= width;
-					ImGui::SetColumnWidth(-1, width);
-				}
-
-				ImGui::NextColumn();
-			}
-
-			// Deaths header and column setup
-			{
-				ImGui::TextUnformatted("Deaths");
-				if (scoreboardResized)
-				{
-					const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
-					nameColumnWidth -= width;
-					ImGui::SetColumnWidth(-1, width);
-				}
-
-				ImGui::NextColumn();
-			}
-
-			// SteamID header and column setup
-			{
-				ImGui::TextUnformatted("Steam ID");
-				if (scoreboardResized)
-				{
-					nameColumnWidth -= 125;// +ImGui::GetStyle().ItemSpacing.x * 2;
-					ImGui::SetColumnWidth(1, nameColumnWidth - ImGui::GetStyle().ItemSpacing.x * 2);
-				}
-
-				ImGui::NextColumn();
-			}
-			ImGui::Separator();
-		}
-
-		for (size_t i = 0; i < playerPrintDataCount; i++)
-		{
-			const auto& player = printData[i];
-			ImGuiDesktop::ScopeGuards::ID idScope((int)player.m_SteamID.Lower32);
-			ImGuiDesktop::ScopeGuards::ID idScope2((int)player.m_SteamID.Upper32);
-
-			char buf[32];
-			if (auto result = mh::to_chars(buf, player.m_UserID))
-				*result.ptr = '\0';
-			else
-				continue;
-
-			// Selectable
-			{
-				ImVec4 bgColor = [&]()
-				{
-					switch (player.m_Team)
+					ImGui::TextUnformatted("User ID");
+					if (scoreboardResized)
 					{
-					case TFTeam::Red: return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
-					case TFTeam::Blue: return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
-					default: return ImVec4(0, 0, 0, 0);
+						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
+						nameColumnWidth -= width;
+						ImGui::SetColumnWidth(-1, width);
 					}
-				}();
 
-				if (m_CheaterList.IsPlayerIncluded(player.m_SteamID))
-					bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 0, 1, 1));
-				else if (m_SuspiciousList.IsPlayerIncluded(player.m_SteamID))
-					bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 1, 0, 1));
-				else if (m_ExploiterList.IsPlayerIncluded(player.m_SteamID))
-					bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(0, 1, 1, 1));
+					ImGui::NextColumn();
+				}
 
-				ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
+				// Name header and column setup
+				ImGui::TextUnformatted("Name"); ImGui::NextColumn();
 
-				bgColor.w = 0.8f;
-				ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeHovered(ImGuiCol_HeaderHovered, bgColor);
+				// Kills header and column setup
+				{
+					ImGui::TextUnformatted("Kills");
+					if (scoreboardResized)
+					{
+						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
+						nameColumnWidth -= width;
+						ImGui::SetColumnWidth(-1, width);
+					}
 
-				bgColor.w = 1.0f;
-				ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
-				ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns); ImGui::NextColumn();
+					ImGui::NextColumn();
+				}
+
+				// Deaths header and column setup
+				{
+					ImGui::TextUnformatted("Deaths");
+					if (scoreboardResized)
+					{
+						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
+						nameColumnWidth -= width;
+						ImGui::SetColumnWidth(-1, width);
+					}
+
+					ImGui::NextColumn();
+				}
+
+				// Connection time header and column setup
+				{
+					ImGui::TextUnformatted("Time");
+					if (scoreboardResized)
+					{
+						const float width = 60;
+						nameColumnWidth -= width;
+						ImGui::SetColumnWidth(-1, width);
+					}
+
+					ImGui::NextColumn();
+				}
+
+				// SteamID header and column setup
+				{
+					ImGui::TextUnformatted("Steam ID");
+					if (scoreboardResized)
+					{
+						nameColumnWidth -= 100;// +ImGui::GetStyle().ItemSpacing.x * 2;
+						ImGui::SetColumnWidth(1, std::max(10.0f, nameColumnWidth - ImGui::GetStyle().ItemSpacing.x * 2 + extraWidth));
+					}
+
+					ImGui::NextColumn();
+				}
+				ImGui::Separator();
 			}
 
-			if (ImGui::BeginPopupContextItem("PlayerContextMenu"))
+			for (size_t i = 0; i < playerPrintDataCount; i++)
 			{
-				if (ImGui::Selectable("Copy SteamID"))
-					ImGui::SetClipboardText(player.m_SteamID.str().c_str());
+				const auto& player = printData[i];
+				ImGuiDesktop::ScopeGuards::ID idScope((int)player.m_SteamID.Lower32);
+				ImGuiDesktop::ScopeGuards::ID idScope2((int)player.m_SteamID.Upper32);
 
-				{
-					const bool existingIsCheater = m_CheaterList.IsPlayerIncluded(player.m_SteamID);
-					if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
-					{
-						m_CheaterList.IncludePlayer(player.m_SteamID, !existingIsCheater);
-						LogAction("Manually marked "s << player.m_SteamID << " as" << (existingIsCheater ? " NOT" : "") << " a cheater.");
-					}
-				}
-
-				{
-					const bool existingIsSuspicious = m_SuspiciousList.IsPlayerIncluded(player.m_SteamID);
-					if (ImGui::MenuItem("Mark as suspicious", nullptr, existingIsSuspicious))
-					{
-						m_SuspiciousList.IncludePlayer(player.m_SteamID, !existingIsSuspicious);
-						LogAction("Manually marked "s << player.m_SteamID << " as" << (existingIsSuspicious ? " NOT" : "") << " suspicious.");
-					}
-				}
-
-				{
-					const bool existingIsExploiter = m_ExploiterList.IsPlayerIncluded(player.m_SteamID);
-					if (ImGui::MenuItem("Mark as exploiter", nullptr, existingIsExploiter))
-					{
-						m_ExploiterList.IncludePlayer(player.m_SteamID, !existingIsExploiter);
-						LogAction("Manually marked "s << player.m_SteamID << " as" << (existingIsExploiter ? " NOT" : "") << " an exploiter.");
-					}
-				}
-
-				ImGui::EndPopup();
-			}
-
-			// player names column
-			{
-				if (player.m_Name.empty())
-				{
-					ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
-					ImGui::TextUnformatted("<Unknown>");
-				}
+				char buf[32];
+				if (auto result = mh::to_chars(buf, player.m_UserID))
+					*result.ptr = '\0';
 				else
+					continue;
+
+				// Selectable
 				{
-					ImGui::TextUnformatted(player.m_Name.c_str());
+					ImVec4 bgColor = [&]()
+					{
+						switch (player.m_Team)
+						{
+						case TFTeam::Red: return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
+						case TFTeam::Blue: return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
+						default: return ImVec4(0, 0, 0, 0);
+						}
+					}();
+
+					if (m_CheaterList.IsPlayerIncluded(player.m_SteamID))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 0, 1, 1));
+					else if (m_SuspiciousList.IsPlayerIncluded(player.m_SteamID))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 1, 0, 1));
+					else if (m_ExploiterList.IsPlayerIncluded(player.m_SteamID))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(0, 1, 1, 1));
+
+					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
+
+					bgColor.w = 0.8f;
+					ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeHovered(ImGuiCol_HeaderHovered, bgColor);
+
+					bgColor.w = 1.0f;
+					ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
+					ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
+					ImGui::NextColumn();
 				}
 
-				ImGui::NextColumn();
+				OnDrawScoreboardContextMenu(player.m_SteamID);
+
+				// player names column
+				{
+					if (player.m_Name.empty())
+					{
+						ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
+						ImGui::TextUnformatted("<Unknown>");
+					}
+					else
+					{
+						ImGui::TextUnformatted(player.m_Name.c_str());
+					}
+
+					ImGui::NextColumn();
+				}
+
+				ImGui::TextRightAlignedF("%u", player.m_Scores.m_Kills); ImGui::NextColumn();
+				ImGui::TextRightAlignedF("%u", player.m_Scores.m_Deaths); ImGui::NextColumn();
+				ImGui::TextRightAlignedF("%u:%02u", player.m_ConnectedTime / 60, player.m_ConnectedTime % 60); ImGui::NextColumn();
+
+				ImGui::TextUnformatted(player.m_SteamID.str().c_str()); ImGui::NextColumn();
 			}
-
-			ImGui::Text("%u", player.m_Scores.m_Kills); ImGui::NextColumn();
-			ImGui::Text("%u", player.m_Scores.m_Deaths); ImGui::NextColumn();
-
-			ImGui::TextUnformatted(player.m_SteamID.str().c_str()); ImGui::NextColumn();
 		}
+		//ImGui::EndChild();
 	}
 
 	ImGui::EndChild();
@@ -286,6 +330,8 @@ void MainWindow::OnDraw()
 		SetShouldClose(true);
 #endif
 
+	ImGui::Checkbox("Pause", &m_Paused);
+
 	ImGui::Text("Parsed line count: %zu", m_ParsedLineCount);
 
 	ImGui::Columns(2, "MainWindowSplit");
@@ -297,9 +343,12 @@ void MainWindow::OnDraw()
 	ImGui::NextColumn();
 }
 
-static std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
+static std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
 void MainWindow::OnUpdate()
 {
+	if (m_Paused)
+		return;
+
 	m_ActionManager.Update();
 
 	if (!m_File)
@@ -487,7 +536,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 				LogAction("Telling other team about cheater named "s << std::quoted(status.m_Name) << "... (" << status.m_SteamID << ')');
 				m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(
 					"Attention! There is a cheater on the other team with the name "s <<
-						std::quoted(status.m_Name) << ". Please kick them!"));
+						std::quoted(status.m_Name, '\'') << ". Please kick them!"));
 			}
 		}
 
@@ -568,6 +617,7 @@ size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintDa
 			it->m_Ping = found->second.m_Status.m_Ping;
 			it->m_Scores = found->second.m_Scores;
 			it->m_Team = found->second.m_Team;
+			it->m_ConnectedTime = found->second.m_Status.m_ConnectedTime;
 		}
 	}
 
