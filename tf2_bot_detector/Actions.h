@@ -13,6 +13,9 @@ namespace tf2_bot_detector
 	{
 		GenericCommand,
 		Kick,
+		ChatMessage,
+
+		COUNT,
 	};
 
 	class IAction
@@ -60,6 +63,15 @@ namespace tf2_bot_detector
 	private:
 		uint16_t m_UserID;
 		KickReason m_Reason;
+	};
+
+	class ChatMessageAction final : public GenericCommandAction
+	{
+	public:
+		ChatMessageAction(const std::string_view& message);
+
+		duration_t GetMinInterval() const override;
+		ActionType GetType() const override { return ActionType::ChatMessage; }
 	};
 }
 

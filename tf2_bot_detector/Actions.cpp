@@ -1,9 +1,13 @@
 #include "Actions.h"
 
+#include <mh/text/string_insertion.hpp>
+
+#include <iomanip>
 #include <ostream>
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
+using namespace std::string_literals;
 
 KickAction::KickAction(uint16_t userID, KickReason reason) :
 	m_UserID(userID), m_Reason(reason)
@@ -40,4 +44,15 @@ GenericCommandAction::GenericCommandAction(std::string cmd) :
 void GenericCommandAction::WriteCommands(std::ostream& os) const
 {
 	os << m_Command << '\n';
+}
+
+ChatMessageAction::ChatMessageAction(const std::string_view& message) :
+	//GenericCommandAction("say "s << std::quoted(message))
+	GenericCommandAction("echo "s << std::quoted("[TFBD_DEBUG_CHAT_MSG] "s << message))
+{
+}
+
+duration_t ChatMessageAction::GetMinInterval() const
+{
+	return 5s;
 }

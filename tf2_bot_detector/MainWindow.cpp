@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "ConsoleLines.h"
 #include "RegexCharConv.h"
+#include "ImGui_TF2BotDetector.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -249,34 +250,31 @@ void MainWindow::OnDrawScoreboard()
 
 void MainWindow::OnDrawChat()
 {
-	if (ImGui::BeginChild("##fileContents", { 0, 0 }, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
-	{
-		ImGui::PushTextWrapPos();
-
-		for (auto it = &m_PrintingLines[m_PrintingLineCount - 1]; it != &m_PrintingLines[-1]; --it)
+	ImGui::AutoScrollBox("##fileContents", { 0, 0 }, [&]()
 		{
-			assert(*it);
-			(*it)->Print();
-		}
+			ImGui::PushTextWrapPos();
 
-		ImGui::PopTextWrapPos();
-		ImGui::SetScrollHereY(1.0f);
-	}
+			for (auto it = &m_PrintingLines[m_PrintingLineCount - 1]; it != &m_PrintingLines[-1]; --it)
+			{
+				assert(*it);
+				(*it)->Print();
+			}
 
-	ImGui::EndChild();
+			ImGui::PopTextWrapPos();
+		});
 }
 
 void MainWindow::OnDrawAppLog()
 {
-	if (ImGui::BeginChild("AppLog", { 0, 0 }, true))
-	{
-		for (const auto& msg : m_LogMessages)
+	ImGui::AutoScrollBox("AppLog", { 0, 0 }, [&]()
 		{
-			ImGui::TextUnformatted(msg.data(), msg.data() + msg.size());
-		}
-	}
+			ImGui::PushTextWrapPos();
 
-	ImGui::EndChild();
+			for (const auto& msg : m_LogMessages)
+				ImGui::TextUnformatted(msg.data(), msg.data() + msg.size());
+
+			ImGui::PopTextWrapPos();
+		});
 }
 
 void MainWindow::OnDraw()
@@ -335,7 +333,7 @@ void MainWindow::OnUpdate()
 				{
 					if (m_CurrentTimestamp)
 					{
-						assert(*m_CurrentTimestamp >= 0);
+						assert(*m_CurrentTimestamp >= time_point_t{});
 
 						const auto prefix = match.prefix();
 						//const auto suffix = match.suffix();
@@ -478,10 +476,19 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 				LogAction("Marked "s << status.m_SteamID << " as suspicious due to name ending in common name-stealing characters");
 		}
 
-		if (IsPlayerMarked(status.m_SteamID, PlayerMarkType::Cheater) &&
-			FindLobbyMemberTeam(s_PazerSID) == FindLobbyMemberTeam(status.m_SteamID))
+		if (IsPlayerMarked(status.m_SteamID, PlayerMarkType::Cheater))
 		{
-			InitiateVotekick(status.m_SteamID, KickReason::Cheating);
+			if (FindLobbyMemberTeam(s_PazerSID) == FindLobbyMemberTeam(status.m_SteamID))
+			{
+				InitiateVotekick(status.m_SteamID, KickReason::Cheating);
+			}
+			else
+			{
+				LogAction("Telling other team about cheater named "s << std::quoted(status.m_Name) << "... (" << status.m_SteamID << ')');
+				m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(
+					"Attention! There is a cheater on the other team with the name "s <<
+						std::quoted(status.m_Name) << ". Please kick them!"));
+			}
 		}
 
 		break;
