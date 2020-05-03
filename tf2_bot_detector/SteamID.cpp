@@ -8,7 +8,7 @@
 
 using namespace tf2_bot_detector;
 
-static std::regex s_SteamID3Regex(R"regex(\[([a-zA-Z]):(\d):(\d+)\])regex", std::regex::optimize);
+static std::regex s_SteamID3Regex(R"regex(\[([a-zA-Z]):(\d):(\d+)(:\d+)?\])regex", std::regex::optimize);
 SteamID::SteamID(const std::string_view& str)
 {
 	ID64 = 0;
@@ -48,6 +48,17 @@ SteamID::SteamID(const std::string_view& str)
 			uint32_t id;
 			from_chars_throw(result[3], id);
 			ID = id;
+		}
+
+		if (result[4].matched)
+		{
+			uint32_t instance;
+			from_chars_throw(result[4], instance);
+			Instance = static_cast<SteamAccountInstance>(instance);
+		}
+		else
+		{
+			Instance = SteamAccountInstance::Desktop;
 		}
 
 		return;

@@ -13,7 +13,7 @@ namespace tf2_bot_detector
 	{
 		Generic,
 		Chat,
-		LobbyDestroyed,
+		LobbyChanged,
 		LobbyHeader,
 		LobbyMember,
 		PlayerStatus,
@@ -106,14 +106,25 @@ namespace tf2_bot_detector
 		LobbyMember m_LobbyMember;
 	};
 
-	class LobbyDestroyedLine final : public IConsoleLine
+	enum class LobbyChangeType
+	{
+		Created,
+		Updated,
+		Destroyed,
+	};
+
+	class LobbyChangedLine final : public IConsoleLine
 	{
 	public:
-		using IConsoleLine::IConsoleLine;
+		LobbyChangedLine(time_point_t timestamp, LobbyChangeType type);
 
-		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyDestroyed; }
+		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyChanged; }
+		LobbyChangeType GetChangeType() const { return m_ChangeType; }
 		bool ShouldPrint() const override { return true; }
 		void Print() const override;
+
+	private:
+		LobbyChangeType m_ChangeType;
 	};
 
 	class ServerStatusPlayerLine final : public IConsoleLine

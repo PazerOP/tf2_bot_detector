@@ -32,13 +32,21 @@ namespace tf2_bot_detector
 		Dev = 4,
 	};
 
+	enum class SteamAccountInstance : uint64_t
+	{
+		All = 0,
+		Desktop = (1 << 0),
+		Console = (1 << 1),
+		Web = (1 << 2),
+	};
+
 	class SteamID final
 	{
 	public:
 		constexpr SteamID() = default;
 		explicit SteamID(const std::string_view& str);
 		explicit constexpr SteamID(uint64_t id64) : ID64(id64) {}
-		explicit constexpr SteamID(uint32_t id, uint32_t instance, SteamAccountType type, SteamAccountUniverse universe) :
+		explicit constexpr SteamID(uint32_t id, SteamAccountInstance instance, SteamAccountType type, SteamAccountUniverse universe) :
 			ID(id), Instance(instance), Type(type), Universe(universe)
 		{
 		}
@@ -59,7 +67,7 @@ namespace tf2_bot_detector
 			struct
 			{
 				uint64_t ID : 32;
-				uint64_t Instance : 20;
+				SteamAccountInstance Instance : 20;
 				SteamAccountType Type : 4;
 				SteamAccountUniverse Universe : 8;
 			};

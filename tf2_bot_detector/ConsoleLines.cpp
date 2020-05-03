@@ -220,9 +220,17 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 	{
 		return std::make_unique<ClientReachedServerSpawnLine>(timestamp);
 	}
+	else if (text == "Lobby created"sv)
+	{
+		return std::make_unique<LobbyChangedLine>(timestamp, LobbyChangeType::Created);
+	}
+	else if (text == "Lobby updated"sv)
+	{
+		return std::make_unique<LobbyChangedLine>(timestamp, LobbyChangeType::Updated);
+	}
 	else if (text == "Lobby destroyed"sv)
 	{
-		return std::make_unique<LobbyDestroyedLine>(timestamp);
+		return std::make_unique<LobbyChangedLine>(timestamp, LobbyChangeType::Destroyed);
 	}
 	else if (std::regex_match(text.begin(), text.end(), result, s_CvarlistValueRegex))
 	{
@@ -263,10 +271,15 @@ void KillNotificationLine::Print() const
 		m_VictimName.c_str(), m_WeaponName.c_str(), m_WasCrit ? " (crit)" : "");
 }
 
-void LobbyDestroyedLine::Print() const
+LobbyChangedLine::LobbyChangedLine(time_point_t timestamp, LobbyChangeType type) :
+	IConsoleLine(timestamp), m_ChangeType(type)
 {
-	//ImGui::TextUnformatted("Lobby destroyed.");
-	ImGui::Separator();
+}
+
+void LobbyChangedLine::Print() const
+{
+	if (GetChangeType() == LobbyChangeType::Created)
+		ImGui::Separator();
 }
 
 CvarlistConvarLine::CvarlistConvarLine(time_point_t timestamp, std::string name, float value,

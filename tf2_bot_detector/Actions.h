@@ -14,6 +14,7 @@ namespace tf2_bot_detector
 		GenericCommand,
 		Kick,
 		ChatMessage,
+		LobbyUpdate,
 
 		COUNT,
 	};
@@ -25,6 +26,7 @@ namespace tf2_bot_detector
 
 		virtual duration_t GetMinInterval() const { return {}; }
 		virtual ActionType GetType() const = 0;
+		virtual size_t GetMaxQueuedCount() const { return size_t(-1); }
 		virtual void WriteCommands(std::ostream& os) const {}
 	};
 
@@ -38,6 +40,15 @@ namespace tf2_bot_detector
 
 	private:
 		std::string m_Command;
+	};
+
+	class LobbyUpdateAction : public IAction
+	{
+	public:
+		ActionType GetType() const override { return ActionType::LobbyUpdate; }
+		duration_t GetMinInterval() const override;
+		size_t GetMaxQueuedCount() const { return 1; }
+		void WriteCommands(std::ostream& os) const override;
 	};
 
 	enum class KickReason

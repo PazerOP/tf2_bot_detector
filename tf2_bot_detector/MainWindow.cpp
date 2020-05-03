@@ -2,6 +2,7 @@
 #include "ConsoleLines.h"
 #include "RegexCharConv.h"
 #include "ImGui_TF2BotDetector.h"
+#include "Log.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -81,7 +82,7 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 			if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
 			{
 				m_CheaterList.IncludePlayer(steamID, !existingIsCheater);
-				LogAction("Manually marked "s << steamID << " as" << (existingIsCheater ? " NOT" : "") << " a cheater.");
+				Log("Manually marked "s << steamID << " as" << (existingIsCheater ? " NOT" : "") << " a cheater.");
 			}
 		}
 
@@ -90,7 +91,7 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 			if (ImGui::MenuItem("Mark as suspicious", nullptr, existingIsSuspicious))
 			{
 				m_SuspiciousList.IncludePlayer(steamID, !existingIsSuspicious);
-				LogAction("Manually marked "s << steamID << " as" << (existingIsSuspicious ? " NOT" : "") << " suspicious.");
+				Log("Manually marked "s << steamID << " as" << (existingIsSuspicious ? " NOT" : "") << " suspicious.");
 			}
 		}
 
@@ -99,7 +100,7 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 			if (ImGui::MenuItem("Mark as exploiter", nullptr, existingIsExploiter))
 			{
 				m_ExploiterList.IncludePlayer(steamID, !existingIsExploiter);
-				LogAction("Manually marked "s << steamID << " as" << (existingIsExploiter ? " NOT" : "") << " an exploiter.");
+				Log("Manually marked "s << steamID << " as" << (existingIsExploiter ? " NOT" : "") << " an exploiter.");
 			}
 		}
 
@@ -112,16 +113,18 @@ void MainWindow::OnDrawScoreboard()
 	static float frameWidth, contentWidth, windowContentWidth, windowWidth;
 	bool forceRecalc = false;
 
+	static float contentWidthMin = 500;
+	static float extraWidth;
+#if 0
 	ImGui::Value("Work rect width", frameWidth);
 	ImGui::Value("Content width", contentWidth);
 	ImGui::Value("Window content width", windowContentWidth);
 	ImGui::Value("Window width", windowWidth);
 
-	static float contentWidthMin = 500;
 	forceRecalc |= ImGui::DragFloat("Content width min", &contentWidthMin);
 
-	static float extraWidth;
 	forceRecalc |= ImGui::DragFloat("Extra width", &extraWidth, 0.5f);
+#endif
 
 	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
 	//ImGui::SetNextWindowContentSize(ImVec2(500, 0));
@@ -314,8 +317,11 @@ void MainWindow::OnDrawAppLog()
 		{
 			ImGui::PushTextWrapPos();
 
-			for (const auto& msg : m_LogMessages)
-				ImGui::TextUnformatted(msg.data(), msg.data() + msg.size());
+			ForEachLogMsg([&](const LogMessage& msg)
+				{
+					ImGui::TextColoredUnformatted({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a },
+						msg.m_Text.data(), msg.m_Text.data() + msg.m_Text.size());
+				});
 
 			ImGui::PopTextWrapPos();
 		});
@@ -452,35 +458,51 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 
 void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 {
+	const auto ClearLobbyState = [&]
+	{
+		m_CurrentLobbyMembers.clear();
+		m_PendingLobbyMembers.clear();
+		m_CurrentPlayerData.clear();
+	};
+
 	switch (parsed.GetType())
 	{
 	case ConsoleLineType::LobbyHeader:
 	{
-		auto headerLine = static_cast<const LobbyHeaderLine&>(parsed);
+		auto& headerLine = static_cast<const LobbyHeaderLine&>(parsed);
 		m_CurrentLobbyMembers.resize(headerLine.GetMemberCount());
 		m_PendingLobbyMembers.resize(headerLine.GetPendingCount());
 		break;
 	}
-	case ConsoleLineType::LobbyDestroyed:
+	case ConsoleLineType::LobbyChanged:
+	{
+		auto& lobbyChangedLine = static_cast<const LobbyChangedLine&>(parsed);
+		switch (lobbyChangedLine.GetChangeType())
+		{
+		case LobbyChangeType::Created:
+			ClearLobbyState();
+		case LobbyChangeType::Updated:
+			m_ActionManager.QueueAction(std::make_unique<LobbyUpdateAction>());
+			break;
+		}
+	}
 	case ConsoleLineType::ClientReachedServerSpawn:
 	{
 		// Reset current lobby members/player statuses
-		m_CurrentLobbyMembers.clear();
-		m_PendingLobbyMembers.clear();
-		m_CurrentPlayerData.clear();
+		//ClearLobbyState();
 		break;
 	}
 
 	case ConsoleLineType::Chat:
 	{
-		auto chatLine = static_cast<const ChatConsoleLine&>(parsed);
+		auto& chatLine = static_cast<const ChatConsoleLine&>(parsed);
 		if (auto count = std::count(chatLine.GetMessage().begin(), chatLine.GetMessage().end(), '\n'); count > 2)
 		{
 			// Cheater is clearing the chat
 			if (auto steamID = FindSteamIDForName(chatLine.GetPlayerName()))
 			{
 				if (m_CheaterList.IncludePlayer(*steamID))
-					LogAction("Marked "s << *steamID << " as cheater (" << count << " newlines in chat message");
+					Log("Marked "s << *steamID << " as cheater (" << count << " newlines in chat message");
 			}
 			else
 			{
@@ -489,7 +511,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 				ban.m_PlayerName = chatLine.GetPlayerName();
 				m_DelayedBans.push_back(ban);
 
-				LogAction("Unable to find steamid for player with name "s << std::quoted(chatLine.GetPlayerName()));
+				Log("Unable to find steamid for player with name "s << std::quoted(chatLine.GetPlayerName()));
 			}
 		}
 
@@ -500,7 +522,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 
 	case ConsoleLineType::LobbyMember:
 	{
-		auto memberLine = static_cast<const LobbyMemberLine&>(parsed);
+		auto& memberLine = static_cast<const LobbyMemberLine&>(parsed);
 		const auto& member = memberLine.GetLobbyMember();
 		auto& vec = member.m_Pending ? m_PendingLobbyMembers : m_CurrentLobbyMembers;
 		if (member.m_Index < vec.size())
@@ -513,7 +535,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 	}
 	case ConsoleLineType::PlayerStatus:
 	{
-		auto statusLine = static_cast<const ServerStatusPlayerLine&>(parsed);
+		auto& statusLine = static_cast<const ServerStatusPlayerLine&>(parsed);
 		const auto& status = statusLine.GetPlayerStatus();
 		auto& playerData = m_CurrentPlayerData[status.m_SteamID];
 		playerData.m_Status = status;
@@ -522,18 +544,24 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		if (status.m_Name.ends_with("\xE2\x80\x8F"sv))
 		{
 			if (MarkPlayer(status.m_SteamID, PlayerMarkType::Suspicious))
-				LogAction("Marked "s << status.m_SteamID << " as suspicious due to name ending in common name-stealing characters");
+				Log("Marked "s << status.m_SteamID << " as suspicious due to name ending in common name-stealing characters");
 		}
 
 		if (IsPlayerMarked(status.m_SteamID, PlayerMarkType::Cheater))
 		{
-			if (FindLobbyMemberTeam(s_PazerSID) == FindLobbyMemberTeam(status.m_SteamID))
+			const auto pazerTeam = FindLobbyMemberTeam(s_PazerSID);
+			if (!pazerTeam.has_value())
+			{
+				Log("Cheater found ("s << std::quoted(status.m_Name) << "), but can't find pazer's steam ID in the lobby");
+			}
+			else if (pazerTeam == FindLobbyMemberTeam(status.m_SteamID))
 			{
 				InitiateVotekick(status.m_SteamID, KickReason::Cheating);
+				Log("Cheater on YOUR team: "s << std::quoted(status.m_Name), { 1, 1, 0, 1 });
 			}
 			else
 			{
-				LogAction("Telling other team about cheater named "s << std::quoted(status.m_Name) << "... (" << status.m_SteamID << ')');
+				Log("Telling other team about cheater named "s << std::quoted(status.m_Name) << "... (" << status.m_SteamID << ')', { 1, 0, 0, 1 });
 				m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(
 					"Attention! There is a cheater on the other team with the name "s <<
 						std::quoted(status.m_Name, '\'') << ". Please kick them!"));
@@ -544,7 +572,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 	}
 	case ConsoleLineType::PlayerStatusShort:
 	{
-		auto statusLine = static_cast<const ServerStatusShortPlayerLine&>(parsed);
+		auto& statusLine = static_cast<const ServerStatusShortPlayerLine&>(parsed);
 		const auto& status = statusLine.GetPlayerStatus();
 		if (auto steamID = FindSteamIDForName(status.m_Name))
 			m_CurrentPlayerData[*steamID].m_ClientIndex = status.m_ClientIndex;
@@ -553,7 +581,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 	}
 	case ConsoleLineType::KillNotification:
 	{
-		auto killLine = static_cast<const KillNotificationLine&>(parsed);
+		auto& killLine = static_cast<const KillNotificationLine&>(parsed);
 
 		if (const auto attackerSteamID = FindSteamIDForName(killLine.GetAttackerName()))
 			m_CurrentPlayerData[*attackerSteamID].m_Scores.m_Kills++;
@@ -563,12 +591,6 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		break;
 	}
 	}
-}
-
-void MainWindow::LogAction(std::string msg)
-{
-	// I'll do something with this information eventually...
-	m_LogMessages.push_back(std::move(msg));
 }
 
 void MainWindow::UpdatePrintingLines()
@@ -685,7 +707,7 @@ void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& 
 		if (timeSince > 10s)
 		{
 			RemoveBan();
-			LogAction("Expiring delayed ban for user with name "s << std::quoted(ban.m_PlayerName)
+			Log("Expiring delayed ban for user with name "s << std::quoted(ban.m_PlayerName)
 				<< " (" << to_seconds(timeSince) << " second delay)");
 			continue;
 		}
@@ -694,7 +716,7 @@ void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& 
 		{
 			if (m_CheaterList.IncludePlayer(updatedStatus.m_SteamID))
 			{
-				LogAction("Applying delayed ban ("s << to_seconds(timeSince) << " second delay) to player "
+				Log("Applying delayed ban ("s << to_seconds(timeSince) << " second delay) to player "
 					<< updatedStatus.m_SteamID);
 			}
 
@@ -745,12 +767,12 @@ bool MainWindow::IsPlayerMarked(const SteamID& id, PlayerMarkType markType)
 
 void MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
 {
-	LogAction("InitiateVotekick on "s << id << ": " << reason);
+	Log("InitiateVotekick on "s << id << ": " << reason);
 
 	const auto userID = FindUserID(id);
 	if (!userID)
 	{
-		LogAction("Wanted to kick "s << id << ", but could not find userid");
+		Log("Wanted to kick "s << id << ", but could not find userid");
 		return;
 	}
 

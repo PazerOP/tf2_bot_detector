@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include <vector>
 
+struct ImVec4;
+
 namespace tf2_bot_detector
 {
 	class IConsoleLine;
@@ -74,9 +76,6 @@ namespace tf2_bot_detector
 		IConsoleLine* m_PrintingLines[512]{};
 		void UpdatePrintingLines();
 
-		void LogAction(std::string msg);
-		std::vector<std::string> m_LogMessages;
-
 		struct PlayerPrintData final
 		{
 			SteamID m_SteamID;
@@ -121,6 +120,7 @@ namespace tf2_bot_detector
 		bool IsPlayerMarked(const SteamID& id, PlayerMarkType markType);
 
 		void InitiateVotekick(const SteamID& id, KickReason reason);
+		void RefreshLobby();
 
 		ActionManager m_ActionManager;
 		std::set<IConsoleLineListener*> m_ConsoleLineListeners;

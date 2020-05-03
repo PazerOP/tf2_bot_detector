@@ -45,6 +45,12 @@ GenericCommandAction::GenericCommandAction(std::string cmd) :
 
 void GenericCommandAction::WriteCommands(std::ostream& os) const
 {
+	if (m_Command == "tf_lobby_debug"sv)
+	{
+		os << m_Command << '\n';
+		return;
+	}
+
 	auto cleaned = mh::find_and_replace(m_Command, "\"", "'");
 	os << "echo "s << std::quoted("[TFBD_DEBUG_CMD] "s << cleaned) << '\n';
 }
@@ -57,4 +63,14 @@ ChatMessageAction::ChatMessageAction(const std::string_view& message) :
 duration_t ChatMessageAction::GetMinInterval() const
 {
 	return 5s;
+}
+
+duration_t LobbyUpdateAction::GetMinInterval() const
+{
+	return 100ms;
+}
+
+void LobbyUpdateAction::WriteCommands(std::ostream& os) const
+{
+	os << "tf_lobby_debug\n";
 }
