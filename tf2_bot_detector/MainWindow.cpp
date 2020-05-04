@@ -77,6 +77,23 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 		if (ImGui::Selectable("Copy SteamID"))
 			ImGui::SetClipboardText(steamID.str().c_str());
 
+		const auto pazerTeam = FindLobbyMemberTeam(s_PazerSID);
+		if (ImGui::BeginMenu("Votekick", pazerTeam && FindLobbyMemberTeam(steamID) == pazerTeam))
+		{
+			if (ImGui::MenuItem("Cheating"))
+				InitiateVotekick(steamID, KickReason::Cheating);
+			if (ImGui::MenuItem("Idle"))
+				InitiateVotekick(steamID, KickReason::Idle);
+			if (ImGui::MenuItem("Other"))
+				InitiateVotekick(steamID, KickReason::Other);
+			if (ImGui::MenuItem("Scamming"))
+				InitiateVotekick(steamID, KickReason::Scamming);
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::Separator();
+
 		{
 			const bool existingIsCheater = m_CheaterList.IsPlayerIncluded(steamID);
 			if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
@@ -477,19 +494,48 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 	case ConsoleLineType::LobbyChanged:
 	{
 		auto& lobbyChangedLine = static_cast<const LobbyChangedLine&>(parsed);
-		switch (lobbyChangedLine.GetChangeType())
+		const LobbyChangeType changeType = lobbyChangedLine.GetChangeType();
+
+		if (changeType == LobbyChangeType::Created)
 		{
-		case LobbyChangeType::Created:
 			ClearLobbyState();
-		case LobbyChangeType::Updated:
-			m_ActionManager.QueueAction(std::make_unique<LobbyUpdateAction>());
-			break;
 		}
+
+		if (changeType == LobbyChangeType::Created || changeType == LobbyChangeType::Updated)
+		{
+			m_ActionManager.QueueAction(std::make_unique<LobbyUpdateAction>());
+			// We can't trust the existing client indices
+			for (auto& player : m_CurrentPlayerData)
+			{
+				player.second.m_ClientIndex = 0;
+			}
+		}
+		break;
 	}
 	case ConsoleLineType::ClientReachedServerSpawn:
 	{
 		// Reset current lobby members/player statuses
 		//ClearLobbyState();
+		break;
+	}
+
+	case ConsoleLineType::VoiceReceive:
+	{
+		auto& voiceReceiveLine = static_cast<const VoiceReceiveLine&>(parsed);
+		for (auto& player : m_CurrentPlayerData)
+		{
+			if (player.second.m_ClientIndex == (voiceReceiveLine.GetEntIndex() + 1))
+			{
+				auto& voice = player.second.m_Voice;
+				if (voice.m_LastTransmission != parsed.GetTimestamp())
+				{
+					voice.m_TotalTransmissions += 1s; // This is fine because we know the resolution of our timestamps is 1 second
+					voice.m_LastTransmission = parsed.GetTimestamp();
+				}
+
+				break;
+			}
+		}
 		break;
 	}
 

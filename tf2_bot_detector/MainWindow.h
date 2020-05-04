@@ -98,6 +98,12 @@ namespace tf2_bot_detector
 			PlayerScores m_Scores{};
 			TFTeam m_Team{};
 			uint8_t m_ClientIndex{};
+
+			struct
+			{
+				time_point_t m_LastTransmission{};
+				duration_t m_TotalTransmissions{};
+			} m_Voice;
 		};
 
 		struct DelayedChatBan

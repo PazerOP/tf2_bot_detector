@@ -21,6 +21,7 @@ namespace tf2_bot_detector
 		ClientReachedServerSpawn,
 		KillNotification,
 		CvarlistConvar,
+		VoiceReceive,
 	};
 
 	class IConsoleLine
@@ -208,5 +209,22 @@ namespace tf2_bot_detector
 		float m_Value;
 		std::string m_FlagsList;
 		std::string m_HelpText;
+	};
+
+	class VoiceReceiveLine final : public IConsoleLine
+	{
+	public:
+		VoiceReceiveLine(time_point_t timestamp, uint8_t channel, uint8_t entindex, uint16_t bufSize);
+
+		uint8_t GetEntIndex() const { return m_Entindex; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::VoiceReceive; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+	private:
+		uint8_t m_Channel;
+		uint8_t m_Entindex;
+		uint16_t m_BufSize;
 	};
 }

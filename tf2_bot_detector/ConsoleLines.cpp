@@ -122,10 +122,24 @@ static const std::regex s_KillNotificationRegex(R"regex((.*) killed (.*) with (.
 static const std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+)(?:\s+(\S+))?)regex", std::regex::optimize);
 static const std::regex s_StatusShortRegex(R"regex(#(\d+) - (.+))regex", std::regex::optimize);
 static const std::regex s_CvarlistValueRegex(R"regex((\S+)\s+:\s+([-\d.]+)\s+:\s+(.+)?\s+:[\t ]+(.+)?)regex", std::regex::optimize);
+static const std::regex s_VoiceReceiveRegex(R"regex(Voice - chan (\d+), ent (\d+), bufsize: (\d+))regex", std::regex::optimize);
 std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, time_point_t timestamp)
 {
 	svmatch result;
-	if (std::regex_match(text.begin(), text.end(), result, s_LobbyMemberRegex))
+	if (std::regex_match(text.begin(), text.end(), result, s_VoiceReceiveRegex))
+	{
+		uint8_t channel;
+		from_chars_throw(result[1], channel);
+
+		uint8_t entindex;
+		from_chars_throw(result[2], entindex);
+
+		uint16_t bufSize;
+		from_chars_throw(result[3], bufSize);
+
+		return std::make_unique<VoiceReceiveLine>(timestamp, channel, entindex, bufSize);
+	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_LobbyMemberRegex))
 	{
 		LobbyMember member{};
 		member.m_Pending = result[1].matched;
@@ -191,7 +205,6 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 
 		from_chars_throw(result[1], status.m_ClientIndex);
 		assert(status.m_ClientIndex >= 1);
-		status.m_ClientIndex -= 1;
 		status.m_Name = result[2].str();
 
 		return std::make_unique<ServerStatusShortPlayerLine>(timestamp, std::move(status));
@@ -303,4 +316,15 @@ ServerStatusShortPlayerLine::ServerStatusShortPlayerLine(time_point_t timestamp,
 void ServerStatusShortPlayerLine::Print() const
 {
 	ImGui::Text("#%u - %s", m_PlayerStatus.m_ClientIndex, m_PlayerStatus.m_Name.c_str());
+}
+
+VoiceReceiveLine::VoiceReceiveLine(time_point_t timestamp, uint8_t channel,
+	uint8_t entindex, uint16_t bufSize) :
+	IConsoleLine(timestamp), m_Channel(channel), m_Entindex(entindex), m_BufSize(bufSize)
+{
+}
+
+void VoiceReceiveLine::Print() const
+{
+	ImGui::Text("Voice - chan %u, ent %u, bufsize: %u", m_Channel, m_Entindex, m_BufSize);
 }

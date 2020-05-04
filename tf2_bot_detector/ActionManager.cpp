@@ -248,7 +248,7 @@ void ActionManager::SendCommandToGame(const std::string_view& cmd)
 		throw std::runtime_error(msg);
 	}
 
-	WaitForSingleObject(pi.hProcess, INFINITE);
+	//WaitForSingleObject(pi.hProcess, INFINITE);
 
 	// We will never need these, close them now
 	if (!CloseHandle(pi.hProcess))
