@@ -59,14 +59,32 @@ void GenericCommandAction::WriteCommands(std::ostream& os) const
 #endif
 }
 
-ChatMessageAction::ChatMessageAction(const std::string_view& message) :
-	GenericCommandAction("say "s << std::quoted(message))
+ChatMessageAction::ChatMessageAction(const std::string_view& message, ChatMessageType type) :
+	GenericCommandAction(std::string(GetCommand(type)) << " " << ScrubMessage(message))
 {
 }
 
 duration_t ChatMessageAction::GetMinInterval() const
 {
-	return 5s;
+	return 2500ms; // Actual cooldown is 0.66 seconds
+}
+
+std::string_view ChatMessageAction::GetCommand(ChatMessageType type)
+{
+	switch (type)
+	{
+	case ChatMessageType::Public:  return "say"sv;
+	case ChatMessageType::Team:    return "say_team"sv;
+	case ChatMessageType::Party:   return "say_party"sv;
+
+	default:
+		throw std::invalid_argument("Unhandled/invalid ChatMessageType");
+	}
+}
+
+std::string ChatMessageAction::ScrubMessage(const std::string_view& msg)
+{
+	return "\""s << mh::find_and_replace(msg, "\""sv, "'"sv) << '"';
 }
 
 duration_t LobbyUpdateAction::GetMinInterval() const

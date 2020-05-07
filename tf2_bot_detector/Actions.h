@@ -71,13 +71,24 @@ namespace tf2_bot_detector
 		static std::string MakeCommand(uint16_t userID, KickReason reason);
 	};
 
+	enum class ChatMessageType
+	{
+		Public,
+		Team,
+		Party,
+	};
+
 	class ChatMessageAction final : public GenericCommandAction
 	{
 	public:
-		ChatMessageAction(const std::string_view& message);
+		ChatMessageAction(const std::string_view& message, ChatMessageType type = ChatMessageType::Public);
 
 		duration_t GetMinInterval() const override;
 		ActionType GetType() const override { return ActionType::ChatMessage; }
+
+	private:
+		static std::string_view GetCommand(ChatMessageType type);
+		static std::string ScrubMessage(const std::string_view& msg);
 	};
 }
 

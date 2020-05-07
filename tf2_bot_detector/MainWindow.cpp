@@ -23,8 +23,6 @@ static const std::filesystem::path s_CheaterListFile("playerlist_cheaters.txt");
 static const std::filesystem::path s_SuspiciousListFile("playerlist_suspicious.txt");
 static const std::filesystem::path s_ExploiterListFile("playerlist_exploiters.txt");
 
-static constexpr SteamID s_PazerSID(76561198003911389ull);
-
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
 	m_CheaterList("playerlist_cheaters.txt"),
@@ -79,8 +77,7 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 		if (ImGui::MenuItem("Copy SteamID", nullptr, false, steamID.IsValid()))
 			ImGui::SetClipboardText(steamID.str().c_str());
 
-		const auto pazerTeam = FindLobbyMemberTeam(s_PazerSID);
-		if (ImGui::BeginMenu("Votekick", pazerTeam && FindLobbyMemberTeam(steamID) == pazerTeam && FindUserID(steamID)))
+		if (ImGui::BeginMenu("Votekick", (GetTeamShareResult(steamID) == TeamShareResult::SameTeams) && FindUserID(steamID)))
 		{
 			if (ImGui::MenuItem("Cheating"))
 				InitiateVotekick(steamID, KickReason::Cheating);
@@ -402,8 +399,6 @@ void MainWindow::OnUpdate()
 	if (m_Paused)
 		return;
 
-	m_ActionManager.Update();
-
 	if (!m_File)
 	{
 		{
@@ -488,6 +483,9 @@ void MainWindow::OnUpdate()
 		if (consoleLinesUpdated)
 			UpdatePrintingLines();
 	}
+
+	ProcessPlayerActions();
+	m_ActionManager.Update();
 }
 
 bool MainWindow::IsTimeEven() const
@@ -615,12 +613,18 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		playerData.m_Status = status;
 		ProcessDelayedBans(statusLine.GetTimestamp(), status);
 
+		if (status.m_Name.find("MYG)T"sv) != status.m_Name.npos)
+		{
+			if (MarkPlayer(status.m_SteamID, PlayerMarkType::Cheater))
+				Log("Marked "s << status.m_SteamID << " as a cheater due to name (mygot advertisement)");
+		}
 		if (status.m_Name.ends_with("\xE2\x80\x8F"sv))
 		{
 			if (MarkPlayer(status.m_SteamID, PlayerMarkType::Suspicious))
 				Log("Marked "s << status.m_SteamID << " as suspicious due to name ending in common name-stealing characters");
 		}
 
+#if 0
 		if (IsPlayerMarked(status.m_SteamID, PlayerMarkType::Cheater))
 		{
 			if (const auto curtime = clock_t::now(); (curtime - statusLine.GetTimestamp()) > 10s)
@@ -629,25 +633,28 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 			}
 			else
 			{
-				const auto pazerTeam = FindLobbyMemberTeam(s_PazerSID);
-				if (!pazerTeam.has_value())
+				switch (GetTeamShareResult(status.m_SteamID))
 				{
-					Log("Cheater found ("s << std::quoted(status.m_Name) << "), but can't find pazer's steam ID in the lobby");
-				}
-				else if (pazerTeam == FindLobbyMemberTeam(status.m_SteamID))
-				{
+				case TeamShareResult::SameTeams:
 					Log("Cheater on YOUR team: "s << std::quoted(status.m_Name), { 1, 1, 0, 1 });
 					InitiateVotekick(status.m_SteamID, KickReason::Cheating);
-				}
-				else
-				{
+					break;
+				case TeamShareResult::OppositeTeams:
 					Log("Telling other team about cheater named "s << std::quoted(status.m_Name) << "... (" << status.m_SteamID << ')', { 1, 0, 0, 1 });
 					m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(
 						"Attention! There is a cheater on the other team with the name "s <<
 						std::quoted(status.m_Name, '\'') << ". Please kick them!"));
+					break;
+				case TeamShareResult::Neither:
+					Log("Cheater found ("s << std::quoted(status.m_Name) << "), but can't find your steam ID in the lobby");
+					break;
+
+				default:
+					throw std::runtime_error("Unhandled TeamShareResult");
 				}
 			}
 		}
+#endif
 
 		break;
 	}
@@ -672,6 +679,161 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		break;
 	}
 	}
+}
+
+void MainWindow::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<SteamID>& friendlyCheaters)
+{
+	if (friendlyCheaters.empty())
+		return; // Nothing to do
+
+	if ((friendlyPlayerCount / 2) <= friendlyCheaters.size())
+	{
+		Log("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
+			<< " friendly cheaters, but we're trying anyway :/", { 1, 0.5f, 0 });
+	}
+
+	// Votekick the first one
+	InitiateVotekick(friendlyCheaters[0], KickReason::Cheating);
+}
+
+void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
+	const std::vector<SteamID>& enemyCheaters, const std::vector<PlayerExtraData*>& connectingEnemyCheaters)
+{
+	if (const auto cheaterCount = (enemyCheaters.size() + connectingEnemyCheaters.size()); (enemyPlayerCount / 2) <= cheaterCount)
+	{
+		Log("Impossible to pass a successful votekick against "s << cheaterCount << " enemy cheaters. Skipping all warnings.");
+		return;
+	}
+
+	if (!enemyCheaters.empty())
+	{
+		// There are enough people on the other team to votekick the cheater(s)
+		std::string logMsg;
+		logMsg << "Telling the other team about " << enemyCheaters.size() << " cheater(s) named ";
+
+		std::string chatMsg;
+		chatMsg << "Attention! There ";
+		if (enemyCheaters.size() == 1)
+			chatMsg << "is a cheater ";
+		else
+			chatMsg << "are " << enemyCheaters.size() << " cheaters ";
+
+		chatMsg << "on the other team named ";
+		for (size_t i = 0; i < enemyCheaters.size(); i++)
+		{
+			const auto& cheaterData = m_CurrentPlayerData[enemyCheaters[i]];
+			if (cheaterData.m_Status.m_Name.empty())
+				continue; // Theoretically this should never happen, but don't embarass ourselves
+
+			if (i != 0)
+			{
+				chatMsg << ", ";
+				logMsg << ", ";
+			}
+
+			chatMsg << std::quoted(cheaterData.m_Status.m_Name);
+			logMsg << std::quoted(cheaterData.m_Status.m_Name) << " (" << enemyCheaters[i] << ')';
+		}
+
+		chatMsg << ". Please kick them!";
+
+		Log(logMsg, { 1, 0, 0, 1 });
+		m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg));
+	}
+	else if (!connectingEnemyCheaters.empty())
+	{
+		bool needsWarning = false;
+		for (PlayerExtraData* cheaterData : connectingEnemyCheaters)
+		{
+			if (!cheaterData->m_WarnedOtherTeam)
+			{
+				needsWarning = true;
+				break;
+			}
+		}
+
+		if (needsWarning)
+		{
+			std::string chatMsg;
+			chatMsg << "Heads up! There ";
+			if (connectingEnemyCheaters.size() == 1)
+				chatMsg << "is a known cheater ";
+			else
+				chatMsg << "are " << connectingEnemyCheaters.size() << " known cheaters ";
+
+			chatMsg << "joining the other team! Name";
+			if (connectingEnemyCheaters.size() > 1)
+				chatMsg << 's';
+
+			chatMsg << " unknown until they fully join.";
+
+			Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
+			if (m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg)))
+			{
+				for (PlayerExtraData* cheaterData : connectingEnemyCheaters)
+					cheaterData->m_WarnedOtherTeam = true;
+			}
+		}
+	}
+}
+
+void MainWindow::ProcessPlayerActions()
+{
+	const auto now = clock_t::now();
+	if ((now - m_LastPlayerActionsUpdate) < 1s)
+	{
+		return;
+	}
+	else
+	{
+		m_LastPlayerActionsUpdate = now;
+	}
+
+	// Don't process actions if we're way out of date
+	if ((now - m_CurrentTimestamp.value_or(time_point_t{})) > 15s)
+		return;
+
+	const auto myTeam = TryGetMyTeam();
+	if (!myTeam)
+		return; // We don't know what team we're on, so we can't really take any actions.
+
+	uint8_t totalEnemyPlayers = 0;
+	uint8_t totalFriendlyPlayers = 0;
+	std::vector<SteamID> enemyCheaters;
+	std::vector<SteamID> friendlyCheaters;
+	std::vector<PlayerExtraData*> connectingEnemyCheaters;
+
+	for (const auto& player : m_CurrentLobbyMembers)
+	{
+		const auto teamShareResult = GetTeamShareResult(*myTeam, player.m_SteamID);
+		switch (teamShareResult)
+		{
+		case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
+		case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
+		}
+
+		auto& playerExtraData = m_CurrentPlayerData[player.m_SteamID];
+
+		if (IsPlayerMarked(player.m_SteamID, PlayerMarkType::Cheater))
+		{
+			switch (teamShareResult)
+			{
+			case TeamShareResult::SameTeams:
+				friendlyCheaters.push_back(player.m_SteamID);
+				break;
+			case TeamShareResult::OppositeTeams:
+				if (playerExtraData.m_Status.m_Name.empty())
+					connectingEnemyCheaters.push_back(&playerExtraData);
+				else
+					enemyCheaters.push_back(player.m_SteamID);
+
+				break;
+			}
+		}
+	}
+
+	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
+	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
 }
 
 void MainWindow::UpdatePrintingLines()
@@ -778,6 +940,38 @@ std::optional<uint16_t> MainWindow::FindUserID(const SteamID& id) const
 	return std::nullopt;
 }
 
+auto MainWindow::GetTeamShareResult(const SteamID& id) const -> TeamShareResult
+{
+	return GetTeamShareResult(TryGetMyTeam(), id);
+}
+
+auto MainWindow::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
+	const SteamID& id1) const -> TeamShareResult
+{
+	return GetTeamShareResult(team0, FindLobbyMemberTeam(id1));
+}
+
+auto MainWindow::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
+	const std::optional<LobbyMemberTeam>& team1) -> TeamShareResult
+{
+	if (!team0)
+		return TeamShareResult::Neither;
+	if (!team1)
+		return TeamShareResult::Neither;
+
+	if (*team0 == *team1)
+		return TeamShareResult::SameTeams;
+	else if (*team0 == OppositeTeam(*team1))
+		return TeamShareResult::OppositeTeams;
+	else
+		throw std::runtime_error("Unexpected team value(s)");
+}
+
+auto MainWindow::GetTeamShareResult(const SteamID& id0, const SteamID& id1) const -> TeamShareResult
+{
+	return GetTeamShareResult(FindLobbyMemberTeam(id0), FindLobbyMemberTeam(id1));
+}
+
 void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& updatedStatus)
 {
 	for (size_t i = 0; i < m_DelayedBans.size(); i++)
@@ -839,7 +1033,7 @@ bool MainWindow::MarkPlayer(const SteamID& id, PlayerMarkType markType)
 	}
 }
 
-bool MainWindow::IsPlayerMarked(const SteamID& id, PlayerMarkType markType)
+bool MainWindow::IsPlayerMarked(const SteamID& id, PlayerMarkType markType) const
 {
 	switch (markType)
 	{
@@ -850,6 +1044,12 @@ bool MainWindow::IsPlayerMarked(const SteamID& id, PlayerMarkType markType)
 	default:
 		throw std::runtime_error("Invalid PlayerMarkType");
 	}
+}
+
+std::optional<LobbyMemberTeam> MainWindow::TryGetMyTeam() const
+{
+	static constexpr SteamID s_PazerSID(76561198003911389ull);
+	return FindLobbyMemberTeam(s_PazerSID);
 }
 
 void MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)

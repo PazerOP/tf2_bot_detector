@@ -31,6 +31,13 @@ namespace tf2_bot_detector
 		uint16_t m_Deaths = 0;
 	};
 
+	enum class PlayerMarkType
+	{
+		Cheater,
+		Suspicious,
+		Exploiter,
+	};
+
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener
 	{
 	public:
@@ -46,13 +53,6 @@ namespace tf2_bot_detector
 		void OnDrawScoreboardContextMenu(const SteamID& steamID);
 		void OnDrawChat();
 		void OnDrawAppLog();
-
-		enum class PlayerMarkType
-		{
-			Cheater,
-			Suspicious,
-			Exploiter,
-		};
 
 		void OnUpdate() override;
 		size_t m_ParsedLineCount = 0;
@@ -88,9 +88,22 @@ namespace tf2_bot_detector
 		};
 		size_t GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const;
 
+		enum class TeamShareResult
+		{
+			SameTeams,
+			OppositeTeams,
+			Neither,
+		};
+
 		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const;
 		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const;
 		std::optional<uint16_t> FindUserID(const SteamID& id) const;
+		TeamShareResult GetTeamShareResult(const SteamID& id) const;
+		TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const;
+		TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const;
+		static TeamShareResult GetTeamShareResult(
+			const std::optional<LobbyMemberTeam>& team0, const std::optional<LobbyMemberTeam>& team1);
+		std::optional<LobbyMemberTeam> TryGetMyTeam() const;
 
 		struct PlayerExtraData
 		{
@@ -98,6 +111,10 @@ namespace tf2_bot_detector
 			PlayerScores m_Scores{};
 			TFTeam m_Team{};
 			uint8_t m_ClientIndex{};
+
+			// If this is a known cheater, warn them ahead of time that the player is connecting, but only once
+			// (we don't know the cheater's name yet, so don't spam if they can't do anything about it yet)
+			bool m_WarnedOtherTeam = false;
 
 			struct
 			{
@@ -114,6 +131,12 @@ namespace tf2_bot_detector
 		std::vector<DelayedChatBan> m_DelayedBans;
 		void ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& updatedStatus);
 
+		time_point_t m_LastPlayerActionsUpdate{};
+		void ProcessPlayerActions();
+		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<SteamID>& friendlyCheaters);
+		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<SteamID>& enemyCheaters,
+			const std::vector<PlayerExtraData*>& connectingEnemyCheaters);
+
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
@@ -123,10 +146,9 @@ namespace tf2_bot_detector
 		PlayerList m_ExploiterList;
 
 		bool MarkPlayer(const SteamID& id, PlayerMarkType markType);
-		bool IsPlayerMarked(const SteamID& id, PlayerMarkType markType);
+		bool IsPlayerMarked(const SteamID& id, PlayerMarkType markType) const;
 
 		void InitiateVotekick(const SteamID& id, KickReason reason);
-		void RefreshLobby();
 
 		ActionManager m_ActionManager;
 		std::set<IConsoleLineListener*> m_ConsoleLineListeners;

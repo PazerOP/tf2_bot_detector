@@ -3,6 +3,7 @@
 #include "SteamID.h"
 
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 
 namespace tf2_bot_detector
@@ -12,6 +13,16 @@ namespace tf2_bot_detector
 		Invaders,
 		Defenders,
 	};
+
+	inline constexpr LobbyMemberTeam OppositeTeam(LobbyMemberTeam team)
+	{
+		if (team == LobbyMemberTeam::Invaders)
+			return LobbyMemberTeam::Defenders;
+		else if (team == LobbyMemberTeam::Defenders)
+			return LobbyMemberTeam::Invaders;
+		else
+			throw std::runtime_error(__FUNCTION__ ": Invalid LobbyMemberTeam");
+	}
 
 	enum class LobbyMemberType : uint8_t
 	{
