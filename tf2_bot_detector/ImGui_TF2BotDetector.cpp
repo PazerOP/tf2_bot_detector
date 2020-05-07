@@ -61,6 +61,7 @@ void ImGui::AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* u
 		const auto maxScrollY = ImGui::GetScrollMaxY();
 		contentsFn(userData);
 
+#if 0
 		auto storage = ImGui::GetStateStorage();
 		static struct {} s_LastScrollPercentage; // Unique pointer
 		const auto lastScrollPercentageID = ImGui::GetID(&s_LastScrollPercentage);
@@ -85,6 +86,10 @@ void ImGui::AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* u
 			storage->SetFloat(lastScrollPercentageID, curScrollPercentage);
 			storage->SetFloat(lastScrollMaxYID, max);
 		}
+#else
+		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+			ImGui::SetScrollHereY(1);
+#endif
 
 #if 0
 		ImGui::Text("Last scroll percentage: %f", storage->GetFloat(lastScrollPercentageID, NAN));

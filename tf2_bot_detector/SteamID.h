@@ -59,6 +59,7 @@ namespace tf2_bot_detector
 		bool operator!=(const SteamID& other) const { return std::is_neq(*this <=> other); }
 #endif
 
+		constexpr bool IsValid() const { return Type != SteamAccountType::Invalid && Universe != SteamAccountUniverse::Invalid; }
 		std::string str() const;
 
 		union

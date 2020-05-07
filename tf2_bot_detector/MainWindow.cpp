@@ -72,13 +72,15 @@ static float GetRemainingColumnWidth(float contentRegionWidth, int column_index 
 
 void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 {
-	if (ImGui::BeginPopupContextItem("PlayerContextMenu"))
+	if (auto popupScope = ImGui::BeginPopupContextItemScope("PlayerContextMenu"))
 	{
-		if (ImGui::Selectable("Copy SteamID"))
+		ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
+
+		if (ImGui::MenuItem("Copy SteamID", nullptr, false, steamID.IsValid()))
 			ImGui::SetClipboardText(steamID.str().c_str());
 
 		const auto pazerTeam = FindLobbyMemberTeam(s_PazerSID);
-		if (ImGui::BeginMenu("Votekick", pazerTeam && FindLobbyMemberTeam(steamID) == pazerTeam))
+		if (ImGui::BeginMenu("Votekick", pazerTeam && FindLobbyMemberTeam(steamID) == pazerTeam && FindUserID(steamID)))
 		{
 			if (ImGui::MenuItem("Cheating"))
 				InitiateVotekick(steamID, KickReason::Cheating);
@@ -94,34 +96,26 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 
 		ImGui::Separator();
 
+		if (const bool existingIsCheater = m_CheaterList.IsPlayerIncluded(steamID);
+			ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
 		{
-			const bool existingIsCheater = m_CheaterList.IsPlayerIncluded(steamID);
-			if (ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
-			{
-				m_CheaterList.IncludePlayer(steamID, !existingIsCheater);
-				Log("Manually marked "s << steamID << " as" << (existingIsCheater ? " NOT" : "") << " a cheater.");
-			}
+			m_CheaterList.IncludePlayer(steamID, !existingIsCheater);
+			Log("Manually marked "s << steamID << " as" << (existingIsCheater ? " NOT" : "") << " a cheater.");
 		}
 
+		if (const bool existingIsSuspicious = m_SuspiciousList.IsPlayerIncluded(steamID);
+			ImGui::MenuItem("Mark as suspicious", nullptr, existingIsSuspicious))
 		{
-			const bool existingIsSuspicious = m_SuspiciousList.IsPlayerIncluded(steamID);
-			if (ImGui::MenuItem("Mark as suspicious", nullptr, existingIsSuspicious))
-			{
-				m_SuspiciousList.IncludePlayer(steamID, !existingIsSuspicious);
-				Log("Manually marked "s << steamID << " as" << (existingIsSuspicious ? " NOT" : "") << " suspicious.");
-			}
+			m_SuspiciousList.IncludePlayer(steamID, !existingIsSuspicious);
+			Log("Manually marked "s << steamID << " as" << (existingIsSuspicious ? " NOT" : "") << " suspicious.");
 		}
 
+		if (const bool existingIsExploiter = m_ExploiterList.IsPlayerIncluded(steamID);
+			ImGui::MenuItem("Mark as exploiter", nullptr, existingIsExploiter))
 		{
-			const bool existingIsExploiter = m_ExploiterList.IsPlayerIncluded(steamID);
-			if (ImGui::MenuItem("Mark as exploiter", nullptr, existingIsExploiter))
-			{
-				m_ExploiterList.IncludePlayer(steamID, !existingIsExploiter);
-				Log("Manually marked "s << steamID << " as" << (existingIsExploiter ? " NOT" : "") << " an exploiter.");
-			}
+			m_ExploiterList.IncludePlayer(steamID, !existingIsExploiter);
+			Log("Manually marked "s << steamID << " as" << (existingIsExploiter ? " NOT" : "") << " an exploiter.");
 		}
-
-		ImGui::EndPopup();
 	}
 }
 
@@ -246,8 +240,17 @@ void MainWindow::OnDrawScoreboard()
 				ImGuiDesktop::ScopeGuards::ID idScope((int)player.m_SteamID.Lower32);
 				ImGuiDesktop::ScopeGuards::ID idScope2((int)player.m_SteamID.Upper32);
 
+				std::optional<ImGuiDesktop::ScopeGuards::StyleColor> disabledCol;
+				if (player.m_Name.empty())
+					disabledCol.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
+
 				char buf[32];
-				if (auto result = mh::to_chars(buf, player.m_UserID))
+				if (player.m_UserID == 0)
+				{
+					buf[0] = '?';
+					buf[1] = '\0';
+				}
+				else if (auto result = mh::to_chars(buf, player.m_UserID))
 					*result.ptr = '\0';
 				else
 					continue;
@@ -287,23 +290,51 @@ void MainWindow::OnDrawScoreboard()
 				// player names column
 				{
 					if (player.m_Name.empty())
-					{
-						ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
 						ImGui::TextUnformatted("<Unknown>");
-					}
 					else
-					{
-						ImGui::TextUnformatted(player.m_Name.c_str());
-					}
+						ImGui::TextUnformatted(player.m_Name);
 
 					ImGui::NextColumn();
 				}
 
-				ImGui::TextRightAlignedF("%u", player.m_Scores.m_Kills); ImGui::NextColumn();
-				ImGui::TextRightAlignedF("%u", player.m_Scores.m_Deaths); ImGui::NextColumn();
-				ImGui::TextRightAlignedF("%u:%02u", player.m_ConnectedTime / 60, player.m_ConnectedTime % 60); ImGui::NextColumn();
+				// Kills column
+				{
+					if (player.m_Name.empty())
+						ImGui::TextRightAligned("?");
+					else
+						ImGui::TextRightAlignedF("%u", player.m_Scores.m_Kills);
 
-				ImGui::TextUnformatted(player.m_SteamID.str().c_str()); ImGui::NextColumn();
+					ImGui::NextColumn();
+				}
+
+				// Deaths column
+				{
+					if (player.m_Name.empty())
+						ImGui::TextRightAligned("?");
+					else
+						ImGui::TextRightAlignedF("%u", player.m_Scores.m_Deaths);
+
+					ImGui::NextColumn();
+				}
+
+				// Connected time column
+				{
+					if (player.m_Name.empty())
+						ImGui::TextRightAligned("?");
+					else
+						ImGui::TextRightAlignedF("%u:%02u", player.m_ConnectedTime / 60, player.m_ConnectedTime % 60);
+
+					ImGui::NextColumn();
+				}
+
+				// Steam ID column
+				{
+					if (player.m_SteamID.Type != SteamAccountType::Invalid)
+						disabledCol.reset(); // Draw steamid in normal color
+
+					ImGui::TextUnformatted(player.m_SteamID.str());
+					ImGui::NextColumn();
+				}
 			}
 		}
 		//ImGui::EndChild();
@@ -336,8 +367,7 @@ void MainWindow::OnDrawAppLog()
 
 			ForEachLogMsg([&](const LogMessage& msg)
 				{
-					ImGui::TextColoredUnformatted({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a },
-						msg.m_Text.data(), msg.m_Text.data() + msg.m_Text.size());
+					ImGui::TextColoredUnformatted({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a }, msg.m_Text);
 				});
 
 			ImGui::PopTextWrapPos();
@@ -506,9 +536,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 			m_ActionManager.QueueAction(std::make_unique<LobbyUpdateAction>());
 			// We can't trust the existing client indices
 			for (auto& player : m_CurrentPlayerData)
-			{
 				player.second.m_ClientIndex = 0;
-			}
 		}
 		break;
 	}
@@ -595,22 +623,29 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 
 		if (IsPlayerMarked(status.m_SteamID, PlayerMarkType::Cheater))
 		{
-			const auto pazerTeam = FindLobbyMemberTeam(s_PazerSID);
-			if (!pazerTeam.has_value())
+			if (const auto curtime = clock_t::now(); (curtime - statusLine.GetTimestamp()) > 10s)
 			{
-				Log("Cheater found ("s << std::quoted(status.m_Name) << "), but can't find pazer's steam ID in the lobby");
-			}
-			else if (pazerTeam == FindLobbyMemberTeam(status.m_SteamID))
-			{
-				InitiateVotekick(status.m_SteamID, KickReason::Cheating);
-				Log("Cheater on YOUR team: "s << std::quoted(status.m_Name), { 1, 1, 0, 1 });
+				Log("Cheater detected, but is "s << to_seconds<float>(curtime - statusLine.GetTimestamp()) << " old, ignoring.");
 			}
 			else
 			{
-				Log("Telling other team about cheater named "s << std::quoted(status.m_Name) << "... (" << status.m_SteamID << ')', { 1, 0, 0, 1 });
-				m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(
-					"Attention! There is a cheater on the other team with the name "s <<
+				const auto pazerTeam = FindLobbyMemberTeam(s_PazerSID);
+				if (!pazerTeam.has_value())
+				{
+					Log("Cheater found ("s << std::quoted(status.m_Name) << "), but can't find pazer's steam ID in the lobby");
+				}
+				else if (pazerTeam == FindLobbyMemberTeam(status.m_SteamID))
+				{
+					Log("Cheater on YOUR team: "s << std::quoted(status.m_Name), { 1, 1, 0, 1 });
+					InitiateVotekick(status.m_SteamID, KickReason::Cheating);
+				}
+				else
+				{
+					Log("Telling other team about cheater named "s << std::quoted(status.m_Name) << "... (" << status.m_SteamID << ')', { 1, 0, 0, 1 });
+					m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(
+						"Attention! There is a cheater on the other team with the name "s <<
 						std::quoted(status.m_Name, '\'') << ". Please kick them!"));
+				}
 			}
 		}
 
@@ -692,7 +727,13 @@ size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintDa
 	std::sort(begin, end, [](const PlayerPrintData& lhs, const PlayerPrintData& rhs)
 		{
 			// Intentionally reversed, we want descending kill order
-			return (rhs.m_Scores.m_Kills < lhs.m_Scores.m_Kills);
+			auto killsResult = rhs.m_Scores.m_Kills <=> lhs.m_Scores.m_Kills;
+			if (std::is_lt(killsResult))
+				return true;
+			else if (std::is_gt(killsResult))
+				return false;
+
+			return lhs.m_Scores.m_Deaths < rhs.m_Scores.m_Deaths;
 		});
 
 	return static_cast<size_t>(end - begin);

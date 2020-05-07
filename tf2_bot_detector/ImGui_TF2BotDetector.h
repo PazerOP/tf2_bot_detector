@@ -28,4 +28,29 @@ namespace ImGui
 
 	void TextRightAligned(const std::string_view& text, float offsetX = -1);
 	void TextRightAlignedF(const char* fmt, ...) IM_FMTARGS(1);
+
+	namespace detail
+	{
+		struct DisableCopyMove
+		{
+			DisableCopyMove() = default;
+			DisableCopyMove(const DisableCopyMove&) = delete;
+			DisableCopyMove(DisableCopyMove&&) = delete;
+			DisableCopyMove& operator=(const DisableCopyMove&) = delete;
+			DisableCopyMove& operator=(DisableCopyMove&&) = delete;
+		};
+
+		struct [[nodiscard]] PopupScope final : DisableCopyMove
+		{
+			constexpr explicit PopupScope(bool enabled) : m_Enabled(enabled) {}
+			~PopupScope() { if (m_Enabled) { ImGui::EndPopup(); } }
+			constexpr operator bool() const { return m_Enabled; }
+			bool m_Enabled;
+		};
+	}
+
+	inline detail::PopupScope BeginPopupContextItemScope(const char* str_id = nullptr, ImGuiMouseButton mouse_button = 1)
+	{
+		return detail::PopupScope(BeginPopupContextItem(str_id, mouse_button));
+	}
 }

@@ -31,13 +31,6 @@ namespace tf2_bot_detector
 		uint16_t m_Deaths = 0;
 	};
 
-	enum class PlayerMarkType
-	{
-		Cheater,
-		Suspicious,
-		Exploiter,
-	};
-
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener
 	{
 	public:
@@ -53,6 +46,13 @@ namespace tf2_bot_detector
 		void OnDrawScoreboardContextMenu(const SteamID& steamID);
 		void OnDrawChat();
 		void OnDrawAppLog();
+
+		enum class PlayerMarkType
+		{
+			Cheater,
+			Suspicious,
+			Exploiter,
+		};
 
 		void OnUpdate() override;
 		size_t m_ParsedLineCount = 0;

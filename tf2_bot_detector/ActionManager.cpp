@@ -7,12 +7,15 @@
 
 #include <filesystem>
 #include <fstream>
+#include <regex>
 
 #define WIN32_LEAN_AND_MEAN 1
 #include <Windows.h>
 
 #undef min
 #undef max
+
+static const std::regex s_SingleCommandRegex(R"regex(([a-zA-Z_]+)(?:\n)?)regex", std::regex::optimize);
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
@@ -139,42 +142,53 @@ void ActionManager::Update()
 	{
 		bool actionTypes[(int)ActionType::COUNT]{};
 
-		const std::string cfgFilename = ""s << ++m_LastUpdateIndex << ".cfg";
-		auto globalPath = tfbd_paths::absolute::cfg_temp();
-		std::filesystem::create_directories(globalPath); // TODO: this is not ok for release
-		globalPath /= cfgFilename;
+		std::string fileContents;
+		mh::strwrapperstream fileContentsStream(fileContents);
 
+		for (auto it = m_Actions.begin(); it != m_Actions.end(); )
 		{
-			std::ofstream file(globalPath, std::ios_base::trunc);
-			assert(file.good());
-
-			for (auto it = m_Actions.begin(); it != m_Actions.end(); )
+			const IAction* action = it->get();
+			const ActionType type = action->GetType();
 			{
-				const IAction* action = it->get();
-				const ActionType type = action->GetType();
+				auto& previousMsg = actionTypes[(int)type];
+				const auto minInterval = action->GetMinInterval();
+				if (previousMsg && minInterval.count() > 0 && (m_CurrentTime - m_LastTriggerTime[type]) < action->GetMinInterval())
 				{
-					auto& previousMsg = actionTypes[(int)type];
-					const auto minInterval = action->GetMinInterval();
-					if (previousMsg && minInterval.count() > 0 && (m_CurrentTime - m_LastTriggerTime[type]) < action->GetMinInterval())
-					{
-						++it;
-						continue;
-					}
-					else
-					{
-						previousMsg = true;
-					}
+					++it;
+					continue;
 				}
-
-				action->WriteCommands(file);
-				it = m_Actions.erase(it);
-				m_LastTriggerTime[type] = m_CurrentTime;
+				else
+				{
+					previousMsg = true;
+				}
 			}
 
-			assert(file.good());
+			action->WriteCommands(fileContentsStream);
+			it = m_Actions.erase(it);
+			m_LastTriggerTime[type] = m_CurrentTime;
 		}
 
-		SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
+		if (std::smatch match; std::regex_match(fileContents, match, s_SingleCommandRegex))
+		{
+			// A simple command, we can pass this directly to the engine
+			SendCommandToGame("+"s << match[1]);
+		}
+		else
+		{
+			// More complicated, write out a file and exec it
+			const std::string cfgFilename = ""s << ++m_LastUpdateIndex << ".cfg";
+			auto globalPath = tfbd_paths::absolute::cfg_temp();
+			std::filesystem::create_directories(globalPath); // TODO: this is not ok for release
+			globalPath /= cfgFilename;
+			{
+				std::ofstream file(globalPath, std::ios_base::trunc);
+				assert(file.good());
+				file << fileContents;
+				assert(file.good());
+			}
+
+			SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
+		}
 	}
 #endif
 
