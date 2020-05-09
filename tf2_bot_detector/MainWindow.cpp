@@ -364,6 +364,14 @@ void MainWindow::OnDrawAppLog()
 
 			ForEachLogMsg([&](const LogMessage& msg)
 				{
+					const auto timestampRaw = clock_t::to_time_t(msg.m_Timestamp);
+					std::tm timestamp{};
+					localtime_s(&timestamp, &timestampRaw);
+
+					ImGui::TextColored({ 0.25f, 1.0f, 0.25f, 0.25f }, "[%02i:%02i:%02i]",
+						timestamp.tm_hour, timestamp.tm_min, timestamp.tm_sec);
+
+					ImGui::SameLine();
 					ImGui::TextColoredUnformatted({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a }, msg.m_Text);
 				});
 
@@ -431,6 +439,7 @@ void MainWindow::OnUpdate()
 					if (m_CurrentTimestamp)
 					{
 						assert(*m_CurrentTimestamp >= time_point_t{});
+						SetLogTimestamp(m_CurrentTimestamp.value());
 
 						const auto prefix = match.prefix();
 						//const auto suffix = match.suffix();
@@ -574,7 +583,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 			if (auto steamID = FindSteamIDForName(chatLine.GetPlayerName()))
 			{
 				if (m_CheaterList.IncludePlayer(*steamID))
-					Log("Marked "s << *steamID << " as cheater (" << count << " newlines in chat message");
+					Log("Marked "s << *steamID << " as cheater (" << count << " newlines in chat message)");
 			}
 			else
 			{
@@ -737,15 +746,21 @@ void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 		chatMsg << ". Please kick them!";
 
-		Log(logMsg, { 1, 0, 0, 1 });
-		m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg));
+		if (const auto now = m_CurrentTimestamp.value(); (now - m_LastCheaterWarningTime) > 10s)
+		{
+			if (m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg)))
+			{
+				Log(logMsg, { 1, 0, 0, 1 });
+				m_LastCheaterWarningTime = now;
+			}
+		}
 	}
 	else if (!connectingEnemyCheaters.empty())
 	{
 		bool needsWarning = false;
 		for (PlayerExtraData* cheaterData : connectingEnemyCheaters)
 		{
-			if (!cheaterData->m_WarnedOtherTeam)
+			if (!cheaterData->m_PreWarnedOtherTeam)
 			{
 				needsWarning = true;
 				break;
@@ -771,7 +786,7 @@ void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 			if (m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg)))
 			{
 				for (PlayerExtraData* cheaterData : connectingEnemyCheaters)
-					cheaterData->m_WarnedOtherTeam = true;
+					cheaterData->m_PreWarnedOtherTeam = true;
 			}
 		}
 	}
@@ -779,7 +794,7 @@ void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 void MainWindow::ProcessPlayerActions()
 {
-	const auto now = clock_t::now();
+	const auto now = m_CurrentTimestamp.value();
 	if ((now - m_LastPlayerActionsUpdate) < 1s)
 	{
 		return;

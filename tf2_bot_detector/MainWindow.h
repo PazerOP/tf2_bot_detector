@@ -111,10 +111,11 @@ namespace tf2_bot_detector
 			PlayerScores m_Scores{};
 			TFTeam m_Team{};
 			uint8_t m_ClientIndex{};
+			time_point_t m_LastUpdateTime{};
 
 			// If this is a known cheater, warn them ahead of time that the player is connecting, but only once
 			// (we don't know the cheater's name yet, so don't spam if they can't do anything about it yet)
-			bool m_WarnedOtherTeam = false;
+			bool m_PreWarnedOtherTeam = false;
 
 			struct
 			{
@@ -144,6 +145,7 @@ namespace tf2_bot_detector
 		PlayerList m_CheaterList;
 		PlayerList m_SuspiciousList;
 		PlayerList m_ExploiterList;
+		time_point_t m_LastCheaterWarningTime{};
 
 		bool MarkPlayer(const SteamID& id, PlayerMarkType markType);
 		bool IsPlayerMarked(const SteamID& id, PlayerMarkType markType) const;

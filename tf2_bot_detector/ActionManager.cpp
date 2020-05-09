@@ -152,7 +152,7 @@ void ActionManager::Update()
 			{
 				auto& previousMsg = actionTypes[(int)type];
 				const auto minInterval = action->GetMinInterval();
-				if (previousMsg && minInterval.count() > 0 && (m_CurrentTime - m_LastTriggerTime[type]) < action->GetMinInterval())
+				if (previousMsg || (minInterval.count() > 0 && (m_CurrentTime - m_LastTriggerTime[type]) < action->GetMinInterval()))
 				{
 					++it;
 					continue;

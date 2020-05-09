@@ -66,7 +66,7 @@ ChatMessageAction::ChatMessageAction(const std::string_view& message, ChatMessag
 
 duration_t ChatMessageAction::GetMinInterval() const
 {
-	return 2500ms; // Actual cooldown is 0.66 seconds
+	return 1s; // Actual cooldown is 0.66 seconds
 }
 
 std::string_view ChatMessageAction::GetCommand(ChatMessageType type)
