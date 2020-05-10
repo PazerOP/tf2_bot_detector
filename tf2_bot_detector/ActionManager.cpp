@@ -92,58 +92,37 @@ bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 	return true;
 }
 
-void ActionManager::Update()
+void ActionManager::Update(time_point_t curTime)
 {
-	const auto now = clock_t::now();
-	if (now < (m_LastUpdateTime + UPDATE_INTERVAL))
-		return;
-
-#if 0
-	struct FileDeleter
-	{
-		void operator()(FILE* f) const { fclose(f); }
-	};
-
-	std::unique_ptr<FILE, FileDeleter> file(_wfsopen(s_UpdateCFGPath.c_str(), L"w", _SH_DENYRW));
-	if (!file)
+	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
 		return;
 
 	if (!m_Actions.empty())
 	{
-		std::string fileContents;
-		mh::strwrapperstream stream(fileContents);
-
 		bool actionTypes[(int)ActionType::COUNT]{};
 
-		for (const auto& action : m_Actions)
+		struct Writer final : IActionCommandWriter
 		{
+			void Write(std::string cmd, std::string args) override
 			{
-				const ActionType type = action.second->GetType();
-				auto& previousMsg = actionTypes[(int)type];
-				const auto minInterval = action.second->GetMinInterval();
-				if (previousMsg && minInterval.count() > 0 && (m_CurrentTime - m_LastTriggerTime[type]) >= action.second->GetMinInterval())
-					continue;
-				else
-					previousMsg = true;
+				assert(!cmd.empty());
+
+				if (cmd.empty() && !args.empty())
+					throw std::runtime_error("Empty command with non-empty args");
+
+				if (!std::all_of(cmd.begin(), cmd.end(), [](char c) { return c == '_' || isalpha(c) || isdigit(c); }))
+					throw std::runtime_error("Command contains invalid characters");
+
+				if (!m_ComplexCommands && !std::all_of(args.begin(), args.end(), [](char c) { return isalpha(c) || isdigit(c) || isspace(c); }))
+					m_ComplexCommands = true;
+
+				m_Commands.push_back({ std::move(cmd), std::move(args) });
 			}
 
-			action.second->WriteCommands(stream);
-			stream << "tfbd_update_count " << action.first << '\n';
-			stream << "cvarlist tfbd_update_count\n";
-		}
+			std::vector<std::pair<std::string, std::string>> m_Commands;
+			bool m_ComplexCommands = false;
 
-		const auto count = fwrite(fileContents.data(), fileContents.size(), 1, file.get());
-		assert(count == 1);
-		if (count != 1)
-			throw std::runtime_error("Failed to write update.cfg, even though we should have already guarenteed exclusive access");
-	}
-#else
-	if (!m_Actions.empty())
-	{
-		bool actionTypes[(int)ActionType::COUNT]{};
-
-		std::string fileContents;
-		mh::strwrapperstream fileContentsStream(fileContents);
+		} writer;
 
 		for (auto it = m_Actions.begin(); it != m_Actions.end(); )
 		{
@@ -153,7 +132,7 @@ void ActionManager::Update()
 				auto& previousMsg = actionTypes[(int)type];
 				const auto minInterval = action->GetMinInterval();
 
-				if (minInterval.count() > 0 && (previousMsg || (m_CurrentTime - m_LastTriggerTime[type]) < minInterval))
+				if (minInterval.count() > 0 && (previousMsg || (curTime - m_LastTriggerTime[type]) < minInterval))
 				{
 					++it;
 					continue;
@@ -162,16 +141,25 @@ void ActionManager::Update()
 				previousMsg = true;
 			}
 
-			action->WriteCommands(fileContentsStream);
-			assert(!fileContents.empty());
+			action->WriteCommands(writer);
 			it = m_Actions.erase(it);
-			m_LastTriggerTime[type] = m_CurrentTime;
+			m_LastTriggerTime[type] = curTime;
 		}
 
-		if (std::smatch match; std::regex_match(fileContents, match, s_SingleCommandRegex))
+		if (!writer.m_ComplexCommands)
 		{
+			std::string cmdLine;
+
+			for (const auto& cmd : writer.m_Commands)
+			{
+				cmdLine << '+' << cmd.first << ' ';
+
+				if (!cmd.second.empty())
+					cmdLine << '"' << cmd.second << "\" ";
+			}
+
 			// A simple command, we can pass this directly to the engine
-			SendCommandToGame("+"s << match[1]);
+			SendCommandToGame(cmdLine);
 		}
 		else
 		{
@@ -183,48 +171,25 @@ void ActionManager::Update()
 			{
 				std::ofstream file(globalPath, std::ios_base::trunc);
 				assert(file.good());
-				file << fileContents;
+
+				for (const auto& cmd : writer.m_Commands)
+					file << cmd.first << ' ' << cmd.second << '\n';
+
 				assert(file.good());
 			}
 
 			SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
 		}
 	}
-#endif
 
-	m_LastUpdateTime = now;
-}
-
-void ActionManager::OnConsoleLineParsed(IConsoleLine& line)
-{
-	m_CurrentTime = line.GetTimestamp();
-
-#if 0
-	if (line.GetType() == ConsoleLineType::CvarlistConvar)
-	{
-		const auto& cvar = static_cast<const CvarlistConvarLine&>(line);
-		if (cvar.GetConvarName() == "tfbd_update_count"sv)
-		{
-			const auto value = static_cast<uint32_t>(cvar.GetConvarValue());
-			m_LastUpdateIndex = std::max(m_LastUpdateIndex, value);
-			const auto upperBound = m_Actions.upper_bound(value);
-
-			for (auto it = m_Actions.begin(); it != upperBound; ++it)
-				m_LastTriggerTime[it->second->GetType()] = m_CurrentTime;
-
-			m_Actions.erase(m_Actions.begin(), upperBound);
-		}
-	}
-#endif
-}
-
-void ActionManager::OnConsoleLineUnparsed(time_point_t timestamp, const std::string_view& text)
-{
-	m_CurrentTime = timestamp;
+	m_LastUpdateTime = curTime;
 }
 
 void ActionManager::SendCommandToGame(const std::string_view& cmd)
 {
+	if (cmd.empty())
+		return;
+
 	if (!FindWindowA("Valve001", nullptr))
 	{
 		Log("Attempted to send command \""s << cmd << "\" to game, but game is not running", { 1, 1, 0.8f });

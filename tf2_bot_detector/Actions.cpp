@@ -12,7 +12,7 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 KickAction::KickAction(uint16_t userID, KickReason reason) :
-	GenericCommandAction(MakeCommand(userID, reason))
+	GenericCommandAction("callvote", MakeArgs(userID, reason))
 {
 }
 
@@ -21,7 +21,7 @@ duration_t KickAction::GetMinInterval() const
 	return 30s;
 }
 
-std::string KickAction::MakeCommand(uint16_t userID, KickReason reason)
+std::string KickAction::MakeArgs(uint16_t userID, KickReason reason)
 {
 	const char* reasonString = [&]()
 	{
@@ -35,15 +35,15 @@ std::string KickAction::MakeCommand(uint16_t userID, KickReason reason)
 		}
 	}();
 
-	return "callvote kick \""s << userID << ' ' << reasonString << '"';
+	return "kick \""s << userID << ' ' << reasonString << '"';
 }
 
-GenericCommandAction::GenericCommandAction(std::string cmd) :
-	m_Command(std::move(cmd))
+GenericCommandAction::GenericCommandAction(std::string cmd, std::string args) :
+	m_Command(std::move(cmd)), m_Args(std::move(args))
 {
 }
 
-void GenericCommandAction::WriteCommands(std::ostream& os) const
+void GenericCommandAction::WriteCommands(IActionCommandWriter& writer) const
 {
 #if 0
 	if (m_Command == "tf_lobby_debug"sv)
@@ -55,12 +55,12 @@ void GenericCommandAction::WriteCommands(std::ostream& os) const
 	auto cleaned = mh::find_and_replace(m_Command, "\"", "'");
 	os << "echo "s << std::quoted("[TFBD_DEBUG_CMD] "s << cleaned) << '\n';
 #else
-	os << m_Command << '\n';
+	writer.Write(m_Command, m_Args);
 #endif
 }
 
 ChatMessageAction::ChatMessageAction(const std::string_view& message, ChatMessageType type) :
-	GenericCommandAction(std::string(GetCommand(type)) << " " << ScrubMessage(message))
+	GenericCommandAction(std::string(GetCommand(type)), ScrubMessage(message))
 {
 }
 
@@ -92,7 +92,7 @@ duration_t LobbyUpdateAction::GetMinInterval() const
 	return 100ms;
 }
 
-void LobbyUpdateAction::WriteCommands(std::ostream& os) const
+void LobbyUpdateAction::WriteCommands(IActionCommandWriter& writer) const
 {
-	os << "tf_lobby_debug\n";
+	writer.Write("tf_lobby_debug");
 }

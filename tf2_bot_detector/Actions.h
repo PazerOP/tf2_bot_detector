@@ -20,6 +20,15 @@ namespace tf2_bot_detector
 		COUNT,
 	};
 
+	class IActionCommandWriter
+	{
+	public:
+		virtual ~IActionCommandWriter() = default;
+
+		virtual void Write(std::string cmd, std::string args) = 0;
+		virtual void Write(std::string cmd) { return Write(cmd, {}); }
+	};
+
 	class IAction
 	{
 	public:
@@ -28,19 +37,20 @@ namespace tf2_bot_detector
 		virtual duration_t GetMinInterval() const { return {}; }
 		virtual ActionType GetType() const = 0;
 		virtual size_t GetMaxQueuedCount() const { return size_t(-1); }
-		virtual void WriteCommands(std::ostream& os) const {}
+		virtual void WriteCommands(IActionCommandWriter& writer) const {}
 	};
 
 	class GenericCommandAction : public IAction
 	{
 	public:
-		GenericCommandAction(std::string cmd);
+		explicit GenericCommandAction(std::string cmd, std::string args = std::string());
 
 		ActionType GetType() const override { return ActionType::GenericCommand; }
-		void WriteCommands(std::ostream& os) const;
+		void WriteCommands(IActionCommandWriter& writer) const;
 
 	private:
 		std::string m_Command;
+		std::string m_Args;
 	};
 
 	class LobbyUpdateAction : public IAction
@@ -49,7 +59,7 @@ namespace tf2_bot_detector
 		ActionType GetType() const override { return ActionType::LobbyUpdate; }
 		duration_t GetMinInterval() const override;
 		size_t GetMaxQueuedCount() const { return 1; }
-		void WriteCommands(std::ostream& os) const override;
+		void WriteCommands(IActionCommandWriter& writer) const override;
 	};
 
 	enum class KickReason
@@ -67,9 +77,10 @@ namespace tf2_bot_detector
 
 		duration_t GetMinInterval() const override;
 		ActionType GetType() const override { return ActionType::Kick; }
+		size_t GetMaxQueuedCount() const override { return 1; }
 
 	private:
-		static std::string MakeCommand(uint16_t userID, KickReason reason);
+		static std::string MakeArgs(uint16_t userID, KickReason reason);
 	};
 
 	enum class ChatMessageType
@@ -86,6 +97,7 @@ namespace tf2_bot_detector
 
 		duration_t GetMinInterval() const override;
 		ActionType GetType() const override { return ActionType::ChatMessage; }
+		size_t GetMaxQueuedCount() const override { return 2; }
 
 	private:
 		static std::string_view GetCommand(ChatMessageType type);

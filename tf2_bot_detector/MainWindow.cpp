@@ -33,7 +33,6 @@ MainWindow::MainWindow() :
 {
 	m_OpenTime = m_CurrentTimestampRT = clock_t::now();
 	AddConsoleLineListener(this);
-	AddConsoleLineListener(&m_ActionManager);
 
 	m_PeriodicActionManager.Add(std::make_unique<StatusUpdateAction>());
 }
@@ -466,6 +465,7 @@ void MainWindow::OnUpdate()
 					}
 
 					std::tm time{};
+					time.tm_isdst = -1;
 					from_chars_throw(match[1], time.tm_mon);
 					time.tm_mon -= 1;
 
@@ -498,11 +498,12 @@ void MainWindow::OnUpdate()
 			UpdatePrintingLines();
 	}
 
-	SetLogTimestamp(GetCurrentTimestampCompensated());
+	const auto curTime = GetCurrentTimestampCompensated();
+	SetLogTimestamp(curTime);
 
 	ProcessPlayerActions();
-	m_PeriodicActionManager.Update(GetCurrentTimestampCompensated());
-	m_ActionManager.Update();
+	m_PeriodicActionManager.Update(curTime);
+	m_ActionManager.Update(curTime);
 }
 
 bool MainWindow::IsTimeEven() const
@@ -637,8 +638,8 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		}
 		if (status.m_Name.ends_with("\xE2\x80\x8F"sv))
 		{
-			if (MarkPlayer(status.m_SteamID, PlayerMarkType::Suspicious))
-				Log("Marked "s << status.m_SteamID << " as suspicious due to name ending in common name-stealing characters");
+			if (MarkPlayer(status.m_SteamID, PlayerMarkType::Cheater))
+				Log("Marked "s << status.m_SteamID << " as cheater due to name ending in common name-stealing characters");
 		}
 
 #if 0
@@ -716,6 +717,9 @@ void MainWindow::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::
 void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 	const std::vector<SteamID>& enemyCheaters, const std::vector<PlayerExtraData*>& connectingEnemyCheaters)
 {
+	if (enemyCheaters.empty() && connectingEnemyCheaters.empty())
+		return;
+
 	if (const auto cheaterCount = (enemyCheaters.size() + connectingEnemyCheaters.size()); (enemyPlayerCount / 2) <= cheaterCount)
 	{
 		Log("Impossible to pass a successful votekick against "s << cheaterCount << " enemy cheaters. Skipping all warnings.");
@@ -756,6 +760,7 @@ void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 		if (const auto now = GetCurrentTimestampCompensated(); (now - m_LastCheaterWarningTime) > 10s)
 		{
+			GetCurrentTimestampCompensated();
 			if (m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg)))
 			{
 				Log(logMsg, { 1, 0, 0, 1 });
@@ -791,6 +796,7 @@ void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 			chatMsg << " unknown until they fully join.";
 
 			Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
+			GetCurrentTimestampCompensated();
 			if (m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg)))
 			{
 				for (PlayerExtraData* cheaterData : connectingEnemyCheaters)
@@ -813,7 +819,8 @@ void MainWindow::ProcessPlayerActions()
 	}
 
 	// Don't process actions if we're way out of date
-	if ((now - GetCurrentTimestampCompensated()) > 15s)
+	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(clock_t::now() - now);
+	if ((clock_t::now() - now) > 15s)
 		return;
 
 	const auto myTeam = TryGetMyTeam();
@@ -862,9 +869,20 @@ void MainWindow::ProcessPlayerActions()
 time_point_t MainWindow::GetCurrentTimestampCompensated() const
 {
 	if (m_CurrentTimestamp)
-		return *m_CurrentTimestamp + (clock_t::now() - m_CurrentTimestampRT);
-	else
-		return {};
+	{
+		const auto now = clock_t::now();
+		const auto extra = now - m_CurrentTimestampRT;
+		[[maybe_unused]] const auto extraSeconds = to_seconds(extra);
+		const auto adjustedTS = *m_CurrentTimestamp + extra;
+
+		const auto error = adjustedTS - now;
+		const auto errorSeconds = to_seconds(extra);
+		assert(error <= 1s);
+
+		return std::min(adjustedTS, now);
+	}
+
+	return {};
 }
 
 void MainWindow::UpdatePrintingLines()

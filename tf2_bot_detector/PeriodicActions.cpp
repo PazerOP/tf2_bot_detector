@@ -7,14 +7,12 @@ using namespace std::chrono_literals;
 
 duration_t StatusUpdateAction::GetInterval() const
 {
-	return 5500ms;
+	return 6000ms;
 }
 
 bool StatusUpdateAction::Execute(ActionManager& manager)
 {
-	const char* cmd = m_NextShort ? "status short" : "status";
-
-	const bool success = manager.QueueAction(std::make_unique<GenericCommandAction>(cmd));
+	const bool success = manager.QueueAction(std::make_unique<GenericCommandAction>("status", m_NextShort ? "short" : ""));
 	if (success)
 		m_NextShort = !m_NextShort;
 
