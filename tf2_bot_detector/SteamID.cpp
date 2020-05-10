@@ -13,8 +13,9 @@ SteamID::SteamID(const std::string_view& str)
 {
 	ID64 = 0;
 
-	std::match_results<std::string_view::const_iterator> result;
-	if (std::regex_match(str.begin(), str.end(), result, s_SteamID3Regex))
+	// Steam3
+	if (std::match_results<std::string_view::const_iterator> result;
+		std::regex_match(str.begin(), str.end(), result, s_SteamID3Regex))
 	{
 		const char firstChar = *result[1].first;
 		switch (firstChar)
@@ -61,6 +62,13 @@ SteamID::SteamID(const std::string_view& str)
 			Instance = SteamAccountInstance::Desktop;
 		}
 
+		return;
+	}
+
+	// Steam64
+	if (uint64_t result; std::from_chars(str.data(), str.data() + str.size(), result).ec == std::errc{})
+	{
+		ID64 = result;
 		return;
 	}
 

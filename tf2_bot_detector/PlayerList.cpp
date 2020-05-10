@@ -25,8 +25,10 @@ void PlayerList::LoadFile()
 		if (line.empty())
 			continue;
 
-		IncludePlayer(SteamID(line));
+		m_Players.insert(SteamID(line));
 	}
+
+	SaveFile(); // Immediately resave so everything is always in the "proper" format
 }
 
 void PlayerList::SaveFile()

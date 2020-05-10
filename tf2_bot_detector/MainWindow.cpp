@@ -9,6 +9,7 @@
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
 #include <mh/math/interpolation.hpp>
+#include <mh/text/case_insensitive_string.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -20,16 +21,16 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-static const std::filesystem::path s_CheaterListFile("playerlist_cheaters.txt");
-static const std::filesystem::path s_SuspiciousListFile("playerlist_suspicious.txt");
-static const std::filesystem::path s_ExploiterListFile("playerlist_exploiters.txt");
-
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
-	m_CheaterList("playerlist_cheaters.txt"),
-	m_SuspiciousList("playerlist_suspicious.txt"),
-	m_ExploiterList("playerlist_exploiters.txt"),
-	m_PeriodicActionManager(m_ActionManager)
+	m_PeriodicActionManager(m_ActionManager),
+
+	m_PlayerLists{
+		PlayerList("playerlist_cheaters.txt"),
+		PlayerList("playerlist_suspicious.txt"),
+		PlayerList("playerlist_exploiters.txt"),
+		PlayerList("playerlist_racism.txt"),
+	}
 {
 	m_OpenTime = m_CurrentTimestampRT = clock_t::now();
 	AddConsoleLineListener(this);
@@ -96,25 +97,22 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 
 		ImGui::Separator();
 
-		if (const bool existingIsCheater = m_CheaterList.IsPlayerIncluded(steamID);
-			ImGui::MenuItem("Mark as cheater", nullptr, existingIsCheater))
+		if (ImGui::BeginMenu("Mark"))
 		{
-			m_CheaterList.IncludePlayer(steamID, !existingIsCheater);
-			Log("Manually marked "s << steamID << " as" << (existingIsCheater ? " NOT" : "") << " a cheater.");
-		}
+			for (int i = 0; i < (int)PlayerMarkType::COUNT; i++)
+			{
+				const bool existingMarked = m_PlayerLists[i].IsPlayerIncluded(steamID);
 
-		if (const bool existingIsSuspicious = m_SuspiciousList.IsPlayerIncluded(steamID);
-			ImGui::MenuItem("Mark as suspicious", nullptr, existingIsSuspicious))
-		{
-			m_SuspiciousList.IncludePlayer(steamID, !existingIsSuspicious);
-			Log("Manually marked "s << steamID << " as" << (existingIsSuspicious ? " NOT" : "") << " suspicious.");
-		}
+				std::string name;
+				name << PlayerMarkType(i);
+				if (ImGui::MenuItem(name.c_str(), nullptr, existingMarked))
+				{
+					if (MarkPlayer(steamID, PlayerMarkType(i), !existingMarked))
+						Log("Manually marked "s << steamID << (existingMarked ? "NOT " : "") << PlayerMarkType(i));
+				}
+			}
 
-		if (const bool existingIsExploiter = m_ExploiterList.IsPlayerIncluded(steamID);
-			ImGui::MenuItem("Mark as exploiter", nullptr, existingIsExploiter))
-		{
-			m_ExploiterList.IncludePlayer(steamID, !existingIsExploiter);
-			Log("Manually marked "s << steamID << " as" << (existingIsExploiter ? " NOT" : "") << " an exploiter.");
+			ImGui::EndMenu();
 		}
 	}
 }
@@ -267,12 +265,14 @@ void MainWindow::OnDrawScoreboard()
 						}
 					}();
 
-					if (m_CheaterList.IsPlayerIncluded(player.m_SteamID))
+					if (IsPlayerMarked(player.m_SteamID, PlayerMarkType::Cheater))
 						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 0, 1, 1));
-					else if (m_SuspiciousList.IsPlayerIncluded(player.m_SteamID))
+					else if (IsPlayerMarked(player.m_SteamID, PlayerMarkType::Suspicious))
 						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 1, 0, 1));
-					else if (m_ExploiterList.IsPlayerIncluded(player.m_SteamID))
+					else if (IsPlayerMarked(player.m_SteamID, PlayerMarkType::Exploiter))
 						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(0, 1, 1, 1));
+					else if (IsPlayerMarked(player.m_SteamID, PlayerMarkType::Racist))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 1, 1, 1));
 
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 
@@ -519,6 +519,7 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 	return mh::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
 }
 
+static const std::regex s_WordRegex(R"regex((\w+))regex", std::regex::optimize);
 void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 {
 	const auto ClearLobbyState = [&]
@@ -591,7 +592,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 			// Cheater is clearing the chat
 			if (auto steamID = FindSteamIDForName(chatLine.GetPlayerName()))
 			{
-				if (m_CheaterList.IncludePlayer(*steamID))
+				if (MarkPlayer(*steamID, PlayerMarkType::Cheater))
 					Log("Marked "s << *steamID << " as cheater (" << count << " newlines in chat message)");
 			}
 			else
@@ -605,7 +606,30 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 			}
 		}
 
-		// TODO: autokick for racism
+		// Kick for racism
+		{
+			auto begin = std::sregex_iterator(chatLine.GetMessage().begin(), chatLine.GetMessage().end(), s_WordRegex);
+			auto end = std::sregex_iterator();
+
+			for (auto it = begin; it != end; ++it)
+			{
+				const std::ssub_match& wordMatch = it->operator[](1);
+				const std::string_view word(&*wordMatch.first, wordMatch.length());
+				if (mh::case_insensitive_compare(word, "nigger"sv) || mh::case_insensitive_compare(word, "niggers"sv))
+				{
+					Log("Detected Bad Word in chat: "s << word);
+					if (auto found = FindSteamIDForName(chatLine.GetPlayerName()))
+					{
+						if (MarkPlayer(*found, PlayerMarkType::Racist))
+							Log("Marked "s << *found << "as racist (" << std::quoted(word) << " in chat message)");
+					}
+					else
+					{
+						Log("Cannot mark "s << std::quoted(chatLine.GetPlayerName()) << " as racist: can't find SteamID for name");
+					}
+				}
+			}
+		}
 
 		break;
 	}
@@ -1044,7 +1068,7 @@ void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& 
 
 		if (ban.m_PlayerName == updatedStatus.m_Name)
 		{
-			if (m_CheaterList.IncludePlayer(updatedStatus.m_SteamID))
+			if (MarkPlayer(updatedStatus.m_SteamID, PlayerMarkType::Cheater))
 			{
 				Log("Applying delayed ban ("s << to_seconds(timeSince) << " second delay) to player "
 					<< updatedStatus.m_SteamID);
@@ -1056,25 +1080,41 @@ void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& 
 	}
 }
 
-bool MainWindow::MarkPlayer(const SteamID& id, PlayerMarkType markType)
+PlayerList& MainWindow::GetPlayerList(PlayerMarkType type)
+{
+	return const_cast<PlayerList&>(std::as_const(*this).GetPlayerList(type));
+}
+
+const PlayerList& MainWindow::GetPlayerList(PlayerMarkType type) const
+{
+	return m_PlayerLists[std::underlying_type_t<PlayerMarkType>(type)];
+}
+
+bool MainWindow::MarkPlayer(const SteamID& id, PlayerMarkType markType, bool marked)
 {
 	switch (markType)
 	{
 	case PlayerMarkType::Cheater:
 	{
-		const bool retVal = m_CheaterList.IncludePlayer(id);
-		m_SuspiciousList.IncludePlayer(id, false);
+		const bool retVal = GetPlayerList(PlayerMarkType::Cheater).IncludePlayer(id, marked);
+		if (marked)
+			GetPlayerList(PlayerMarkType::Suspicious).IncludePlayer(id, false);
+
 		return retVal;
 	}
 
 	case PlayerMarkType::Suspicious:
-		if (!m_CheaterList.IsPlayerIncluded(id))
-			return m_SuspiciousList.IncludePlayer(id);
-
-		return false;
+		if (!marked || !GetPlayerList(PlayerMarkType::Cheater).IsPlayerIncluded(id))
+			return GetPlayerList(PlayerMarkType::Suspicious).IncludePlayer(id);
+		else
+			return false;
 
 	case PlayerMarkType::Exploiter:
-		return m_ExploiterList.IncludePlayer(id);
+		return GetPlayerList(PlayerMarkType::Exploiter).IncludePlayer(id, marked);
+		break;
+
+	case PlayerMarkType::Racist:
+		return GetPlayerList(PlayerMarkType::Racist).IncludePlayer(id, marked);
 		break;
 
 	default:
@@ -1084,15 +1124,7 @@ bool MainWindow::MarkPlayer(const SteamID& id, PlayerMarkType markType)
 
 bool MainWindow::IsPlayerMarked(const SteamID& id, PlayerMarkType markType) const
 {
-	switch (markType)
-	{
-	case PlayerMarkType::Cheater:    return m_CheaterList.IsPlayerIncluded(id);
-	case PlayerMarkType::Exploiter:  return m_ExploiterList.IsPlayerIncluded(id);
-	case PlayerMarkType::Suspicious: return m_SuspiciousList.IsPlayerIncluded(id);
-
-	default:
-		throw std::runtime_error("Invalid PlayerMarkType");
-	}
+	return GetPlayerList(markType).IsPlayerIncluded(id);
 }
 
 std::optional<LobbyMemberTeam> MainWindow::TryGetMyTeam() const

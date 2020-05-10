@@ -34,9 +34,13 @@ namespace tf2_bot_detector
 
 	enum class PlayerMarkType
 	{
+		// Make sure this order matches the one in MainWindow::MainWindow()
 		Cheater,
 		Suspicious,
 		Exploiter,
+		Racist,
+
+		COUNT,
 	};
 
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener
@@ -147,12 +151,12 @@ namespace tf2_bot_detector
 		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
 		time_point_t m_OpenTime;
-		PlayerList m_CheaterList;
-		PlayerList m_SuspiciousList;
-		PlayerList m_ExploiterList;
+		PlayerList m_PlayerLists[(int)PlayerMarkType::COUNT];
 		time_point_t m_LastCheaterWarningTime{};
+		PlayerList& GetPlayerList(PlayerMarkType type);
+		const PlayerList& GetPlayerList(PlayerMarkType type) const;
 
-		bool MarkPlayer(const SteamID& id, PlayerMarkType markType);
+		bool MarkPlayer(const SteamID& id, PlayerMarkType markType, bool marked = true);
 		bool IsPlayerMarked(const SteamID& id, PlayerMarkType markType) const;
 
 		void InitiateVotekick(const SteamID& id, KickReason reason);
@@ -161,4 +165,22 @@ namespace tf2_bot_detector
 		PeriodicActionManager m_PeriodicActionManager;
 		std::set<IConsoleLineListener*> m_ConsoleLineListeners;
 	};
+}
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::PlayerMarkType type)
+{
+	using tf2_bot_detector::PlayerMarkType;
+
+	switch (type)
+	{
+	case PlayerMarkType::Cheater:     return os << "PlayerMarkType::Cheater";
+	case PlayerMarkType::Exploiter:   return os << "PlayerMarkType::Exploiter";
+	case PlayerMarkType::Racist:      return os << "PlayerMarkType::Racist";
+	case PlayerMarkType::Suspicious:  return os << "PlayerMarkType::Suspicious";
+
+	default:
+		assert(!"Unknown PlayerMarkType");
+		return os << "<UNKNOWN>";
+	}
 }
