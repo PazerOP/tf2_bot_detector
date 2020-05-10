@@ -15,7 +15,7 @@
 #undef min
 #undef max
 
-static const std::regex s_SingleCommandRegex(R"regex(([a-zA-Z_]+)(?:\n)?)regex", std::regex::optimize);
+static const std::regex s_SingleCommandRegex(R"regex(((?:\w+)(?:\ +\w+)?)(?:\n)?)regex", std::regex::optimize);
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
@@ -152,18 +152,18 @@ void ActionManager::Update()
 			{
 				auto& previousMsg = actionTypes[(int)type];
 				const auto minInterval = action->GetMinInterval();
-				if (previousMsg || (minInterval.count() > 0 && (m_CurrentTime - m_LastTriggerTime[type]) < action->GetMinInterval()))
+
+				if (minInterval.count() > 0 && (previousMsg || (m_CurrentTime - m_LastTriggerTime[type]) < minInterval))
 				{
 					++it;
 					continue;
 				}
-				else
-				{
-					previousMsg = true;
-				}
+
+				previousMsg = true;
 			}
 
 			action->WriteCommands(fileContentsStream);
+			assert(!fileContents.empty());
 			it = m_Actions.erase(it);
 			m_LastTriggerTime[type] = m_CurrentTime;
 		}

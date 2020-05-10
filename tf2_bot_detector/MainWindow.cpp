@@ -2,6 +2,7 @@
 #include "ConsoleLines.h"
 #include "RegexCharConv.h"
 #include "ImGui_TF2BotDetector.h"
+#include "PeriodicActions.h"
 #include "Log.h"
 
 #include <imgui_desktop/ScopeGuards.h>
@@ -27,11 +28,14 @@ MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
 	m_CheaterList("playerlist_cheaters.txt"),
 	m_SuspiciousList("playerlist_suspicious.txt"),
-	m_ExploiterList("playerlist_exploiters.txt")
+	m_ExploiterList("playerlist_exploiters.txt"),
+	m_PeriodicActionManager(m_ActionManager)
 {
-	m_OpenTime = clock_t::now();
+	m_OpenTime = m_CurrentTimestampRT = clock_t::now();
 	AddConsoleLineListener(this);
 	AddConsoleLineListener(&m_ActionManager);
+
+	m_PeriodicActionManager.Add(std::make_unique<StatusUpdateAction>());
 }
 
 MainWindow::~MainWindow()
@@ -439,7 +443,7 @@ void MainWindow::OnUpdate()
 					if (m_CurrentTimestamp)
 					{
 						assert(*m_CurrentTimestamp >= time_point_t{});
-						SetLogTimestamp(m_CurrentTimestamp.value());
+						SetLogTimestamp(*m_CurrentTimestamp);
 
 						const auto prefix = match.prefix();
 						//const auto suffix = match.suffix();
@@ -474,6 +478,7 @@ void MainWindow::OnUpdate()
 					from_chars_throw(match[6], time.tm_sec);
 
 					m_CurrentTimestamp = clock_t::from_time_t(std::mktime(&time));
+					m_CurrentTimestampRT = clock_t::now();
 					regexBegin = match[0].second;
 				}
 
@@ -493,7 +498,10 @@ void MainWindow::OnUpdate()
 			UpdatePrintingLines();
 	}
 
+	SetLogTimestamp(GetCurrentTimestampCompensated());
+
 	ProcessPlayerActions();
+	m_PeriodicActionManager.Update(GetCurrentTimestampCompensated());
 	m_ActionManager.Update();
 }
 
@@ -746,7 +754,7 @@ void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 		chatMsg << ". Please kick them!";
 
-		if (const auto now = m_CurrentTimestamp.value(); (now - m_LastCheaterWarningTime) > 10s)
+		if (const auto now = GetCurrentTimestampCompensated(); (now - m_LastCheaterWarningTime) > 10s)
 		{
 			if (m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg)))
 			{
@@ -794,7 +802,7 @@ void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 void MainWindow::ProcessPlayerActions()
 {
-	const auto now = m_CurrentTimestamp.value();
+	const auto now = GetCurrentTimestampCompensated();
 	if ((now - m_LastPlayerActionsUpdate) < 1s)
 	{
 		return;
@@ -805,7 +813,7 @@ void MainWindow::ProcessPlayerActions()
 	}
 
 	// Don't process actions if we're way out of date
-	if ((now - m_CurrentTimestamp.value_or(time_point_t{})) > 15s)
+	if ((now - GetCurrentTimestampCompensated()) > 15s)
 		return;
 
 	const auto myTeam = TryGetMyTeam();
@@ -849,6 +857,14 @@ void MainWindow::ProcessPlayerActions()
 
 	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
 	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
+}
+
+time_point_t MainWindow::GetCurrentTimestampCompensated() const
+{
+	if (m_CurrentTimestamp)
+		return *m_CurrentTimestamp + (clock_t::now() - m_CurrentTimestampRT);
+	else
+		return {};
 }
 
 void MainWindow::UpdatePrintingLines()

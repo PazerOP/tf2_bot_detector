@@ -289,9 +289,14 @@ LobbyChangedLine::LobbyChangedLine(time_point_t timestamp, LobbyChangeType type)
 {
 }
 
+bool LobbyChangedLine::ShouldPrint() const
+{
+	return GetChangeType() == LobbyChangeType::Created;
+}
+
 void LobbyChangedLine::Print() const
 {
-	if (GetChangeType() == LobbyChangeType::Created)
+	if (ShouldPrint())
 		ImGui::Separator();
 }
 

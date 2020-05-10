@@ -5,6 +5,7 @@
 #include "Clock.h"
 #include "PlayerList.h"
 #include "LobbyMember.h"
+#include "PeriodicActionManager.h"
 #include "PlayerStatus.h"
 #include "TFConstants.h"
 #include "IConsoleLineListener.h"
@@ -69,8 +70,12 @@ namespace tf2_bot_detector
 		std::unique_ptr<FILE, CustomDeleters> m_File;
 		std::string m_FileLineBuf;
 		std::optional<time_point_t> m_CurrentTimestamp;
+		time_point_t m_CurrentTimestampRT;
 		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
 		bool m_Paused = false;
+
+		// Gets the current timestamp, but time progresses in real time even without new messages
+		time_point_t GetCurrentTimestampCompensated() const;
 
 		size_t m_PrintingLineCount = 0;
 		IConsoleLine* m_PrintingLines[512]{};
@@ -153,6 +158,7 @@ namespace tf2_bot_detector
 		void InitiateVotekick(const SteamID& id, KickReason reason);
 
 		ActionManager m_ActionManager;
+		PeriodicActionManager m_PeriodicActionManager;
 		std::set<IConsoleLineListener*> m_ConsoleLineListeners;
 	};
 }

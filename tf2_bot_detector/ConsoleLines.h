@@ -121,7 +121,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyChanged; }
 		LobbyChangeType GetChangeType() const { return m_ChangeType; }
-		bool ShouldPrint() const override { return true; }
+		bool ShouldPrint() const override;
 		void Print() const override;
 
 	private:

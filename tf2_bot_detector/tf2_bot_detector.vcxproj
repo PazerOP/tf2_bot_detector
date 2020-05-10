@@ -143,6 +143,8 @@
     <ClCompile Include="Actions.cpp" />
     <ClCompile Include="ImGui_TF2BotDetector.cpp" />
     <ClCompile Include="Log.cpp" />
+    <ClCompile Include="PeriodicActionManager.cpp" />
+    <ClCompile Include="PeriodicActions.cpp" />
     <ClCompile Include="PlayerList.cpp" />
     <ClCompile Include="ConsoleLines.cpp" />
     <ClCompile Include="main.cpp" />
@@ -156,6 +158,8 @@
     <ClInclude Include="IConsoleLineListener.h" />
     <ClInclude Include="ImGui_TF2BotDetector.h" />
     <ClInclude Include="Log.h" />
+    <ClInclude Include="PeriodicActionManager.h" />
+    <ClInclude Include="PeriodicActions.h" />
     <ClInclude Include="PlayerList.h" />
     <ClInclude Include="ConsoleLines.h" />
     <ClInclude Include="LobbyMember.h" />

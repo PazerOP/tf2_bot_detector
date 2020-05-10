@@ -15,6 +15,7 @@ namespace tf2_bot_detector
 		Kick,
 		ChatMessage,
 		LobbyUpdate,
+		StatusUpdate,
 
 		COUNT,
 	};
@@ -90,6 +91,17 @@ namespace tf2_bot_detector
 		static std::string_view GetCommand(ChatMessageType type);
 		static std::string ScrubMessage(const std::string_view& msg);
 	};
+
+#if 0
+	class StatusUpdateAction final : public GenericCommandAction
+	{
+	public:
+		StatusUpdateAction(bool shortStatus = false);
+
+		duration_t GetMinInterval() const override;
+		ActionType GetType() const override { return ActionType::StatusUpdate; }
+	};
+#endif
 }
 
 template<typename CharT, typename Traits>
