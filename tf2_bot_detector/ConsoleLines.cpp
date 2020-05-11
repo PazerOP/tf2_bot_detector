@@ -117,7 +117,6 @@ using svmatch = std::match_results<std::string_view::const_iterator>;
 static const std::regex s_ChatRegex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,32}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
 static const std::regex s_LobbyHeaderRegex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
 static const std::regex s_LobbyMemberRegex(R"regex(\s+(?:(?:Member)|(Pending))\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
-static const std::regex s_TimestampRegex(R"regex(\n?(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d): )regex", std::regex::optimize);
 static const std::regex s_KillNotificationRegex(R"regex((.*) killed (.*) with (.*)\.( \(crit\))?)regex", std::regex::optimize);
 static const std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+)(?:\s+(\S+))?)regex", std::regex::optimize);
 static const std::regex s_StatusShortRegex(R"regex(#(\d+) - (.+))regex", std::regex::optimize);
@@ -194,7 +193,21 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		from_chars_throw(result[7], status.m_Ping);
 		from_chars_throw(result[8], status.m_Loss);
 
-		status.m_State = result[9].str();
+		// State
+		{
+			const auto state = std::string_view(&*result[9].first, result[9].length());
+			if (state == "active"sv)
+				status.m_State = PlayerStatusState::Active;
+			else if (state == "spawning"sv)
+				status.m_State = PlayerStatusState::Spawning;
+			else if (state == "connecting"sv)
+				status.m_State = PlayerStatusState::Connecting;
+			else if (state == "challenging"sv)
+				status.m_State = PlayerStatusState::Challenging;
+			else
+				throw std::runtime_error("Unknown player status state "s << std::quoted(state));
+		}
+
 		status.m_Address = result[10].str();
 
 		return std::make_unique<ServerStatusPlayerLine>(timestamp, std::move(status));

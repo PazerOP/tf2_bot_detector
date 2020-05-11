@@ -87,13 +87,14 @@ namespace tf2_bot_detector
 
 		struct PlayerPrintData final
 		{
-			SteamID m_SteamID;
 			std::string m_Name;
+			SteamID m_SteamID;
 			PlayerScores m_Scores;
 			uint32_t m_ConnectedTime;
 			uint16_t m_UserID;
 			uint16_t m_Ping;
 			TFTeam m_Team;
+			PlayerStatusState m_State;
 		};
 		size_t GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const;
 

@@ -239,7 +239,7 @@ void MainWindow::OnDrawScoreboard()
 				ImGuiDesktop::ScopeGuards::ID idScope2((int)player.m_SteamID.Upper32);
 
 				std::optional<ImGuiDesktop::ScopeGuards::StyleColor> disabledCol;
-				if (player.m_Name.empty())
+				if (player.m_State != PlayerStatusState::Active || player.m_Name.empty())
 					disabledCol.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
 
 				char buf[32];
@@ -734,8 +734,16 @@ void MainWindow::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::
 			<< " friendly cheaters, but we're trying anyway :/", { 1, 0.5f, 0 });
 	}
 
-	// Votekick the first one
-	InitiateVotekick(friendlyCheaters[0], KickReason::Cheating);
+	// Votekick the first one that is actually connected
+	for (const auto& cheater : friendlyCheaters)
+	{
+		const auto& playerData = m_CurrentPlayerData[cheater];
+		if (playerData.m_Status.m_State == PlayerStatusState::Active)
+		{
+			InitiateVotekick(friendlyCheaters[0], KickReason::Cheating);
+			break;
+		}
+	}
 }
 
 void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
@@ -961,6 +969,7 @@ size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintDa
 			it->m_Scores = found->second.m_Scores;
 			it->m_Team = found->second.m_Team;
 			it->m_ConnectedTime = found->second.m_Status.m_ConnectedTime;
+			it->m_State = found->second.m_Status.m_State;
 		}
 	}
 
