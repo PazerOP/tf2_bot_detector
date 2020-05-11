@@ -621,7 +621,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 					if (auto found = FindSteamIDForName(chatLine.GetPlayerName()))
 					{
 						if (MarkPlayer(*found, PlayerMarkType::Racist))
-							Log("Marked "s << *found << "as racist (" << std::quoted(word) << " in chat message)");
+							Log("Marked "s << *found << " as racist (" << std::quoted(word) << " in chat message)");
 					}
 					else
 					{
@@ -857,7 +857,7 @@ void MainWindow::ProcessPlayerActions()
 	std::vector<SteamID> friendlyCheaters;
 	std::vector<PlayerExtraData*> connectingEnemyCheaters;
 
-	for (const auto& player : m_CurrentLobbyMembers)
+	const auto ProcessLobbyMember = [&](const LobbyMember& player)
 	{
 		const auto teamShareResult = GetTeamShareResult(*myTeam, player.m_SteamID);
 		switch (teamShareResult)
@@ -884,7 +884,12 @@ void MainWindow::ProcessPlayerActions()
 				break;
 			}
 		}
-	}
+	};
+
+	for (const auto& player : m_PendingLobbyMembers)
+		ProcessLobbyMember(player);
+	for (const auto& player : m_CurrentLobbyMembers)
+		ProcessLobbyMember(player);
 
 	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
 	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
@@ -1135,8 +1140,6 @@ std::optional<LobbyMemberTeam> MainWindow::TryGetMyTeam() const
 
 void MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
 {
-	Log("InitiateVotekick on "s << id << ": " << reason);
-
 	const auto userID = FindUserID(id);
 	if (!userID)
 	{
@@ -1144,8 +1147,8 @@ void MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
 		return;
 	}
 
-	auto action = std::make_unique<KickAction>(userID.value(), reason);
-	m_ActionManager.QueueAction(std::move(action));
+	if (m_ActionManager.QueueAction(std::make_unique<KickAction>(userID.value(), reason)))
+		Log("InitiateVotekick on "s << id << ": " << reason);
 }
 
 void MainWindow::CustomDeleters::operator()(FILE* f) const
