@@ -320,9 +320,16 @@ void MainWindow::OnDrawScoreboard()
 				// Connected time column
 				{
 					if (player.m_Name.empty())
+					{
 						ImGui::TextRightAligned("?");
+					}
 					else
-						ImGui::TextRightAlignedF("%u:%02u", player.m_ConnectedTime / 60, player.m_ConnectedTime % 60);
+					{
+						assert(player.m_ConnectedTime >= 0s);
+						ImGui::TextRightAlignedF("%u:%02u",
+							std::chrono::duration_cast<std::chrono::minutes>(player.m_ConnectedTime).count(),
+							std::chrono::duration_cast<std::chrono::seconds>(player.m_ConnectedTime).count() % 60);
+					}
 
 					ImGui::NextColumn();
 				}
@@ -927,6 +934,7 @@ size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintDa
 		end = current;
 	}
 
+	const auto now = GetCurrentTimestampCompensated();
 	for (auto it = begin; it != end; ++it)
 	{
 		if (auto found = m_CurrentPlayerData.find(it->m_SteamID); found != m_CurrentPlayerData.end())
@@ -936,7 +944,9 @@ size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintDa
 			it->m_Ping = found->second.m_Status.m_Ping;
 			it->m_Scores = found->second.m_Scores;
 			it->m_Team = found->second.m_Team;
-			it->m_ConnectedTime = found->second.m_Status.m_ConnectedTime;
+			it->m_ConnectedTime = now - found->second.m_Status.m_ConnectionTime;
+			auto test = to_seconds(it->m_ConnectedTime);
+			assert(it->m_ConnectedTime >= 0s);
 			it->m_State = found->second.m_Status.m_State;
 		}
 	}

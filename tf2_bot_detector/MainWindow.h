@@ -90,7 +90,7 @@ namespace tf2_bot_detector
 			std::string m_Name;
 			SteamID m_SteamID;
 			PlayerScores m_Scores;
-			uint32_t m_ConnectedTime;
+			duration_t m_ConnectedTime{};
 			uint16_t m_UserID;
 			uint16_t m_Ping;
 			TFTeam m_Team;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Clock.h"
 #include "SteamID.h"
 #include "TFConstants.h"
 
@@ -22,7 +23,7 @@ namespace tf2_bot_detector
 		std::string m_Address;
 		SteamID m_SteamID;
 
-		uint32_t m_ConnectedTime; // in seconds
+		time_point_t m_ConnectionTime{};
 		UserID_t m_UserID;
 		uint16_t m_Ping;
 		uint8_t m_Loss;

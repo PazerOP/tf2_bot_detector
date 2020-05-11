@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 using namespace tf2_bot_detector;
+using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
@@ -187,7 +188,9 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 			from_chars_throw(result[5], connectedMins);
 			from_chars_throw(result[6], connectedSecs);
 
-			status.m_ConnectedTime = (connectedHours * 60 * 60) + (connectedMins * 60) + connectedSecs;
+			status.m_ConnectionTime = timestamp - ((connectedHours * 1h) + (connectedMins * 1min) + connectedSecs * 1s);
+			//auto test = std::chrono::time_point_cast<std::chrono::seconds>(status.m_ConnectionTime);
+			//assert(test.time_since_epoch() > 0s);
 		}
 
 		from_chars_throw(result[7], status.m_Ping);
