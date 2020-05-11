@@ -666,38 +666,6 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 				Log("Marked "s << status.m_SteamID << " as cheater due to name ending in common name-stealing characters");
 		}
 
-#if 0
-		if (IsPlayerMarked(status.m_SteamID, PlayerMarkType::Cheater))
-		{
-			if (const auto curtime = clock_t::now(); (curtime - statusLine.GetTimestamp()) > 10s)
-			{
-				Log("Cheater detected, but is "s << to_seconds<float>(curtime - statusLine.GetTimestamp()) << " old, ignoring.");
-			}
-			else
-			{
-				switch (GetTeamShareResult(status.m_SteamID))
-				{
-				case TeamShareResult::SameTeams:
-					Log("Cheater on YOUR team: "s << std::quoted(status.m_Name), { 1, 1, 0, 1 });
-					InitiateVotekick(status.m_SteamID, KickReason::Cheating);
-					break;
-				case TeamShareResult::OppositeTeams:
-					Log("Telling other team about cheater named "s << std::quoted(status.m_Name) << "... (" << status.m_SteamID << ')', { 1, 0, 0, 1 });
-					m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(
-						"Attention! There is a cheater on the other team with the name "s <<
-						std::quoted(status.m_Name, '\'') << ". Please kick them!"));
-					break;
-				case TeamShareResult::Neither:
-					Log("Cheater found ("s << std::quoted(status.m_Name) << "), but can't find your steam ID in the lobby");
-					break;
-
-				default:
-					throw std::runtime_error("Unhandled TeamShareResult");
-				}
-			}
-		}
-#endif
-
 		break;
 	}
 	case ConsoleLineType::PlayerStatusShort:
