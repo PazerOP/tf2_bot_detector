@@ -18,7 +18,7 @@ KickAction::KickAction(uint16_t userID, KickReason reason) :
 
 duration_t KickAction::GetMinInterval() const
 {
-	return 30s;
+	return 10s;
 }
 
 std::string KickAction::MakeArgs(uint16_t userID, KickReason reason)
