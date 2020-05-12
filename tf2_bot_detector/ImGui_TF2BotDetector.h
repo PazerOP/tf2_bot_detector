@@ -53,4 +53,19 @@ namespace ImGui
 	{
 		return detail::PopupScope(BeginPopupContextItem(str_id, mouse_button));
 	}
+
+	inline void PlotLines(const char* label, float(*values_getter)(const void* data, int idx), const void* data, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2(0, 0))
+	{
+		return PlotLines(label, reinterpret_cast<float(*)(void*, int)>(values_getter), const_cast<void*>(data),
+			values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
+	}
+
+	template<typename TFunc>
+	inline void PlotLines(const char* label, const TFunc& values_getter, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2(0, 0))
+	{
+		return PlotLines(label,
+			[](const void* data, int idx) { return static_cast<float>((*reinterpret_cast<const TFunc*>(data))(idx)); },
+			reinterpret_cast<const void*>(&values_getter),
+			values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
+	}
 }

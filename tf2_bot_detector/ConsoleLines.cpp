@@ -123,6 +123,8 @@ static const std::regex s_StatusMessageRegex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\
 static const std::regex s_StatusShortRegex(R"regex(#(\d+) - (.+))regex", std::regex::optimize);
 static const std::regex s_CvarlistValueRegex(R"regex((\S+)\s+:\s+([-\d.]+)\s+:\s+(.+)?\s+:[\t ]+(.+)?)regex", std::regex::optimize);
 static const std::regex s_VoiceReceiveRegex(R"regex(Voice - chan (\d+), ent (\d+), bufsize: (\d+))regex", std::regex::optimize);
+static const std::regex s_StatusPlayerCountRegex(R"regex(players : (\d+) humans, (\d+) bots \((\d+) max\))regex", std::regex::optimize);
+static const std::regex s_EdictUsageRegex(R"regex(edicts  : (\d+) used of (\d+) max)regex", std::regex::optimize);
 std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, time_point_t timestamp)
 {
 	svmatch result;
@@ -267,6 +269,21 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		from_chars_throw(result[2], value);
 		return std::make_unique<CvarlistConvarLine>(timestamp, result[1].str(), value, result[3].str(), result[4].str());
 	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_StatusPlayerCountRegex))
+	{
+		uint8_t playerCount, botCount, maxPlayers;
+		from_chars_throw(result[1], playerCount);
+		from_chars_throw(result[2], botCount);
+		from_chars_throw(result[3], maxPlayers);
+		return std::make_unique<ServerStatusPlayerCountLine>(timestamp, playerCount, botCount, maxPlayers);
+	}
+	else if (std::regex_match(text.begin(), text.end(), result, s_EdictUsageRegex))
+	{
+		uint16_t usedEdicts, totalEdicts;
+		from_chars_throw(result[1], usedEdicts);
+		from_chars_throw(result[2], totalEdicts);
+		return std::make_unique<EdictUsageLine>(timestamp, usedEdicts, totalEdicts);
+	}
 
 	return nullptr;
 	//return std::make_unique<GenericConsoleLine>(timestamp, std::string(text));
@@ -348,4 +365,25 @@ VoiceReceiveLine::VoiceReceiveLine(time_point_t timestamp, uint8_t channel,
 void VoiceReceiveLine::Print() const
 {
 	ImGui::Text("Voice - chan %u, ent %u, bufsize: %u", m_Channel, m_Entindex, m_BufSize);
+}
+
+ServerStatusPlayerCountLine::ServerStatusPlayerCountLine(time_point_t timestamp, uint8_t playerCount,
+	uint8_t botCount, uint8_t maxplayers) :
+	IConsoleLine(timestamp), m_PlayerCount(playerCount), m_BotCount(botCount), m_MaxPlayers(maxplayers)
+{
+}
+
+void ServerStatusPlayerCountLine::Print() const
+{
+	ImGui::Text("players : %u humans, %u bots (%u max)", m_PlayerCount, m_BotCount, m_MaxPlayers);
+}
+
+EdictUsageLine::EdictUsageLine(time_point_t timestamp, uint16_t usedEdicts, uint16_t totalEdicts) :
+	IConsoleLine(timestamp), m_UsedEdicts(usedEdicts), m_TotalEdicts(totalEdicts)
+{
+}
+
+void EdictUsageLine::Print() const
+{
+	ImGui::Text("edicts  : %u used of %u max", m_UsedEdicts, m_TotalEdicts);
 }

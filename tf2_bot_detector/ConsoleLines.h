@@ -18,10 +18,12 @@ namespace tf2_bot_detector
 		LobbyMember,
 		PlayerStatus,
 		PlayerStatusShort,
+		PlayerStatusCount,
 		ClientReachedServerSpawn,
 		KillNotification,
 		CvarlistConvar,
 		VoiceReceive,
+		EdictUsage,
 	};
 
 	class IConsoleLine
@@ -156,6 +158,43 @@ namespace tf2_bot_detector
 
 	private:
 		PlayerStatusShort m_PlayerStatus;
+	};
+
+	class ServerStatusPlayerCountLine final : public IConsoleLine
+	{
+	public:
+		ServerStatusPlayerCountLine(time_point_t timestamp, uint8_t playerCount,
+			uint8_t botCount, uint8_t maxPlayers);
+
+		uint8_t GetPlayerCount() const { return m_PlayerCount; }
+		uint8_t GetBotCount() const { return m_BotCount; }
+		uint8_t GetMaxPlayerCount() const { return m_MaxPlayers; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusCount; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+	private:
+		uint8_t m_PlayerCount;
+		uint8_t m_BotCount;
+		uint8_t m_MaxPlayers;
+	};
+
+	class EdictUsageLine final : public IConsoleLine
+	{
+	public:
+		EdictUsageLine(time_point_t timestamp, uint16_t usedEdicts, uint16_t totalEdicts);
+
+		uint16_t GetUsedEdicts() const { return m_UsedEdicts; }
+		uint16_t GetTotalEdicts() const { return m_TotalEdicts; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::EdictUsage; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+	private:
+		uint16_t m_UsedEdicts;
+		uint16_t m_TotalEdicts;
 	};
 
 	class ClientReachedServerSpawnLine final : public IConsoleLine

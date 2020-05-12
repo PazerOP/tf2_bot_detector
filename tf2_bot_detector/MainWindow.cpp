@@ -389,6 +389,28 @@ void MainWindow::OnDrawAppLog()
 		});
 }
 
+void MainWindow::OnDrawServerStats()
+{
+	ImGui::PlotLines("Edicts", [&](int idx)
+		{
+			return m_EdictUsageSamples[idx].m_UsedEdicts;
+		}, (int)m_EdictUsageSamples.size(), 0, nullptr, 0, 2048);
+
+	ImGui::SameLine(0, 5);
+
+	if (!m_EdictUsageSamples.empty())
+	{
+		auto& lastSample = m_EdictUsageSamples.back();
+		char buf[32];
+		sprintf_s(buf, "%i", lastSample.m_UsedEdicts);
+		const float percent = float(lastSample.m_UsedEdicts) / lastSample.m_MaxEdicts;
+		ImGui::ProgressBar(percent, { -1, 0 }, buf);
+
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("%i of %i (%1.1f%%)", lastSample.m_UsedEdicts, lastSample.m_MaxEdicts, percent * 100);
+	}
+}
+
 void MainWindow::OnDraw()
 {
 #if 0
@@ -406,6 +428,7 @@ void MainWindow::OnDraw()
 
 	OnDrawChat(); ImGui::NextColumn();
 
+	OnDrawServerStats();
 	OnDrawScoreboard();
 	OnDrawAppLog();
 	ImGui::NextColumn();
@@ -668,6 +691,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		}
 
 		playerData.m_Status = newStatus;
+		playerData.m_LastStatusUpdateTime = statusLine.GetTimestamp();
 		ProcessDelayedBans(statusLine.GetTimestamp(), newStatus);
 
 		if (newStatus.m_Name.find("MYG)T"sv) != newStatus.m_Name.npos)
@@ -700,6 +724,17 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 			m_CurrentPlayerData[*attackerSteamID].m_Scores.m_Kills++;
 		if (const auto victimSteamID = FindSteamIDForName(killLine.GetVictimName()))
 			m_CurrentPlayerData[*victimSteamID].m_Scores.m_Deaths++;
+
+		break;
+	}
+
+	case ConsoleLineType::EdictUsage:
+	{
+		auto& usageLine = static_cast<const EdictUsageLine&>(parsed);
+		m_EdictUsageSamples.push_back({ usageLine.GetTimestamp(), usageLine.GetUsedEdicts(), usageLine.GetTotalEdicts() });
+
+		while (m_EdictUsageSamples.front().m_Timestamp < (usageLine.GetTimestamp() - 5min))
+			m_EdictUsageSamples.erase(m_EdictUsageSamples.begin());
 
 		break;
 	}

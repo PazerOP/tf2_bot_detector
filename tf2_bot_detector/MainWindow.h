@@ -58,6 +58,7 @@ namespace tf2_bot_detector
 		void OnDrawScoreboardContextMenu(const SteamID& steamID);
 		void OnDrawChat();
 		void OnDrawAppLog();
+		void OnDrawServerStats();
 
 		void OnUpdate() override;
 		size_t m_ParsedLineCount = 0;
@@ -121,7 +122,8 @@ namespace tf2_bot_detector
 			PlayerScores m_Scores{};
 			TFTeam m_Team{};
 			uint8_t m_ClientIndex{};
-			time_point_t m_LastUpdateTime{};
+			time_point_t m_LastStatusUpdateTime{};
+			time_point_t m_LastStatusShortUpdateTime{};
 
 			// If this is a known cheater, warn them ahead of time that the player is connecting, but only once
 			// (we don't know the cheater's name yet, so don't spam if they can't do anything about it yet)
@@ -147,6 +149,14 @@ namespace tf2_bot_detector
 		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<SteamID>& friendlyCheaters);
 		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<SteamID>& enemyCheaters,
 			const std::vector<PlayerExtraData*>& connectingEnemyCheaters);
+
+		struct EdictUsageSample
+		{
+			time_point_t m_Timestamp;
+			uint16_t m_UsedEdicts;
+			uint16_t m_MaxEdicts;
+		};
+		std::vector<EdictUsageSample> m_EdictUsageSamples;
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;
