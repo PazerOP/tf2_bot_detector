@@ -657,20 +657,28 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 	case ConsoleLineType::PlayerStatus:
 	{
 		auto& statusLine = static_cast<const ServerStatusPlayerLine&>(parsed);
-		const auto& status = statusLine.GetPlayerStatus();
-		auto& playerData = m_CurrentPlayerData[status.m_SteamID];
-		playerData.m_Status = status;
-		ProcessDelayedBans(statusLine.GetTimestamp(), status);
+		auto newStatus = statusLine.GetPlayerStatus();
+		auto& playerData = m_CurrentPlayerData[newStatus.m_SteamID];
 
-		if (status.m_Name.find("MYG)T"sv) != status.m_Name.npos)
+		// Don't introduce stutter to our connection time view
+		if (auto delta = (playerData.m_Status.m_ConnectionTime - newStatus.m_ConnectionTime);
+			delta < 2s && delta > -2s)
 		{
-			if (MarkPlayer(status.m_SteamID, PlayerMarkType::Cheater))
-				Log("Marked "s << status.m_SteamID << " as a cheater due to name (mygot advertisement)");
+			newStatus.m_ConnectionTime = playerData.m_Status.m_ConnectionTime;
 		}
-		if (status.m_Name.ends_with("\xE2\x80\x8F"sv))
+
+		playerData.m_Status = newStatus;
+		ProcessDelayedBans(statusLine.GetTimestamp(), newStatus);
+
+		if (newStatus.m_Name.find("MYG)T"sv) != newStatus.m_Name.npos)
 		{
-			if (MarkPlayer(status.m_SteamID, PlayerMarkType::Cheater))
-				Log("Marked "s << status.m_SteamID << " as cheater due to name ending in common name-stealing characters");
+			if (MarkPlayer(newStatus.m_SteamID, PlayerMarkType::Cheater))
+				Log("Marked "s << newStatus.m_SteamID << " as a cheater due to name (mygot advertisement)");
+		}
+		if (newStatus.m_Name.ends_with("\xE2\x80\x8F"sv))
+		{
+			if (MarkPlayer(newStatus.m_SteamID, PlayerMarkType::Cheater))
+				Log("Marked "s << newStatus.m_SteamID << " as cheater due to name ending in common name-stealing characters");
 		}
 
 		break;
