@@ -123,7 +123,6 @@ namespace tf2_bot_detector
 			TFTeam m_Team{};
 			uint8_t m_ClientIndex{};
 			time_point_t m_LastStatusUpdateTime{};
-			time_point_t m_LastStatusShortUpdateTime{};
 
 			// If this is a known cheater, warn them ahead of time that the player is connecting, but only once
 			// (we don't know the cheater's name yet, so don't spam if they can't do anything about it yet)
@@ -163,6 +162,7 @@ namespace tf2_bot_detector
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
 		time_point_t m_OpenTime;
 		PlayerList m_PlayerLists[(int)PlayerMarkType::COUNT];
+		time_point_t m_LastStatusUpdateTime{};
 		time_point_t m_LastCheaterWarningTime{};
 		PlayerList& GetPlayerList(PlayerMarkType type);
 		const PlayerList& GetPlayerList(PlayerMarkType type) const;

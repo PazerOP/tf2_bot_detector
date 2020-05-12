@@ -396,10 +396,10 @@ void MainWindow::OnDrawServerStats()
 			return m_EdictUsageSamples[idx].m_UsedEdicts;
 		}, (int)m_EdictUsageSamples.size(), 0, nullptr, 0, 2048);
 
-	ImGui::SameLine(0, 5);
-
 	if (!m_EdictUsageSamples.empty())
 	{
+		ImGui::SameLine(0, 4);
+
 		auto& lastSample = m_EdictUsageSamples.back();
 		char buf[32];
 		sprintf_s(buf, "%i", lastSample.m_UsedEdicts);
@@ -692,6 +692,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 
 		playerData.m_Status = newStatus;
 		playerData.m_LastStatusUpdateTime = statusLine.GetTimestamp();
+		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, playerData.m_LastStatusUpdateTime);
 		ProcessDelayedBans(statusLine.GetTimestamp(), newStatus);
 
 		if (newStatus.m_Name.find("MYG)T"sv) != newStatus.m_Name.npos)
@@ -974,6 +975,24 @@ size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintDa
 			current->m_SteamID = lobbyMember.m_SteamID;
 			current++;
 		}
+
+		if (current == begin)
+		{
+			// We seem to have either an empty lobby or we're playing on a community server.
+			// Just find the most recent status updates.
+			for (const auto& [steamID, playerData] : m_CurrentPlayerData)
+			{
+				if (playerData.m_LastStatusUpdateTime >= (m_LastStatusUpdateTime - 2s))
+				{
+					current->m_SteamID = steamID;
+					current++;
+
+					if (current >= end)
+						break; // This might happen, but we're not in a lobby so everything has to be approximate
+				}
+			}
+		}
+
 		end = current;
 	}
 
