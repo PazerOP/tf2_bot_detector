@@ -149,13 +149,30 @@ void ActionManager::Update(time_point_t curTime)
 		if (!writer.m_ComplexCommands)
 		{
 			std::string cmdLine;
+			bool firstCmd = true;
 
 			for (const auto& cmd : writer.m_Commands)
 			{
-				cmdLine << '+' << cmd.first << ' ';
+				if (firstCmd)
+					firstCmd = false;
+				else
+					cmdLine << ' ';
+
+				cmdLine << '+' << cmd.first;
 
 				if (!cmd.second.empty())
-					cmdLine << '"' << cmd.second << "\" ";
+				{
+					cmdLine << ' ';
+
+					const bool needsQuotes = !std::all_of(cmd.second.begin(), cmd.second.end(), [](char c) { return isalpha(c) || isdigit(c); });
+					if (needsQuotes)
+						cmdLine << '"';
+
+					cmdLine << cmd.second;
+
+					if (needsQuotes)
+						cmdLine << '"';
+				}
 			}
 
 			// A simple command, we can pass this directly to the engine
