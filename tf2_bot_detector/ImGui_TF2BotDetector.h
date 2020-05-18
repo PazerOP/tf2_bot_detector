@@ -68,4 +68,16 @@ namespace ImGui
 			reinterpret_cast<const void*>(&values_getter),
 			values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
 	}
+
+	template<typename TFunc>
+	inline void Combo(const char* label, int* current_item, TFunc items_getter, int items_count, int popup_max_height_in_items = -1)
+	{
+		const auto patch = [](void* data, int idx, const char** out_text)
+		{
+			return (*reinterpret_cast<TFunc*>(data))(idx, out_text);
+		};
+
+		return ImGui::Combo(label, current_item, patch, const_cast<void*>(&items_getter),
+			items_count, popup_max_height_in_items);
+	}
 }
