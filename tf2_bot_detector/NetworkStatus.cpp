@@ -14,8 +14,6 @@ static std::regex s_DataPerClientOut(R"regex(           per client out (\d+\.\d)
 static std::regex s_DataTotalOut(R"regex(- Data:    net total out  (\d+\.\d), in (\d+\.\d) kB\/s)regex", std::regex::optimize);
 
 // net_channels
-static std::regex s_ChannelLatency(R"regex(- latency: (\d+\.\d+), loss (\d+\.\d+))regex", std::regex::optimize);
-static std::regex s_ChannelPackets(R"regex(- packets: in (\d+\.\d+)\/s, out (\d+\.\d+)\/s)regex", std::regex::optimize);
 static std::regex s_ChannelChoke(R"regex(- choke: in (\d+\.\d+), out (\d+\.\d+))regex", std::regex::optimize);
 static std::regex s_ChannelFlow(R"regex(- flow: in (\d+\.\d+), out (\d+\.\d+) kB\/s)regex", std::regex::optimize);
 static std::regex s_ChannelTotal(R"regex(- total: in (\d+\.\d+), out (\d+\.\d+) MB)regex", std::regex::optimize);
@@ -92,4 +90,56 @@ void SplitPacketLine::Print() const
 		m_Packet.m_MTU,
 		m_Packet.m_Address.c_str(),
 		m_Packet.m_TotalSize);
+}
+
+NetChannelLatencyLossLine::NetChannelLatencyLossLine(time_point_t timestamp, float latency, float loss) :
+	BaseClass(timestamp), m_Latency(latency), m_Loss(loss)
+{
+}
+
+std::unique_ptr<IConsoleLine> NetChannelLatencyLossLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static std::regex s_Regex(R"regex(- latency: (\d+\.\d+), loss (\d+\.\d+))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		float latency, loss;
+		from_chars_throw(result[1], latency);
+		from_chars_throw(result[2], loss);
+
+		return std::make_unique<NetChannelLatencyLossLine>(timestamp, latency, loss);
+	}
+
+	return nullptr;
+}
+
+void NetChannelLatencyLossLine::Print() const
+{
+	ImGui::Text("- latency: %.1f, loss %.2f", m_Latency, m_Loss);
+}
+
+NetChannelPacketsLine::NetChannelPacketsLine(time_point_t timestamp, float inPerSecond, float outPerSecond) :
+	BaseClass(timestamp), m_InPerSecond(inPerSecond), m_OutPerSecond(outPerSecond)
+{
+}
+
+std::unique_ptr<IConsoleLine> NetChannelPacketsLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static std::regex s_Regex(R"regex(- packets: in (\d+\.\d+)\/s, out (\d+\.\d+)\/s)regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		float in, out;
+		from_chars_throw(result[1], in);
+		from_chars_throw(result[2], out);
+
+		return std::make_unique<NetChannelPacketsLine>(timestamp, in, out);
+	}
+
+	return std::unique_ptr<IConsoleLine>();
+}
+
+void NetChannelPacketsLine::Print() const
+{
+	ImGui::Text("- packets: in %.1f/s, out %.1f/s", m_InPerSecond, m_OutPerSecond);
 }

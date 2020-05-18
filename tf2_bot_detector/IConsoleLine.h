@@ -27,7 +27,7 @@ namespace tf2_bot_detector
 
 		NetChannelOnline,
 		NetChannelReliable,
-		NetChannelLatency,
+		NetChannelLatencyLoss,
 		NetChannelPackets,
 		NetChannelChoke,
 		NetChannelFlow,
