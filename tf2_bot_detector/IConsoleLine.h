@@ -25,6 +25,13 @@ namespace tf2_bot_detector
 		EdictUsage,
 		SplitPacket,
 
+		NetLatency,
+		NetLoss,
+		NetPacketsTotal,
+		NetPacketsPerClient,
+		NetDataTotal,
+		NetDataPerClient,
+
 		NetChannelOnline,
 		NetChannelReliable,
 		NetChannelLatencyLoss,
