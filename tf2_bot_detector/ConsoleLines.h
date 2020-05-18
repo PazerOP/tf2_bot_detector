@@ -3,51 +3,20 @@
 #include "Clock.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
+#include "IConsoleLine.h"
 
 #include <memory>
 #include <string_view>
 
 namespace tf2_bot_detector
 {
-	enum class ConsoleLineType
+	class GenericConsoleLine final : public ConsoleLineBase<GenericConsoleLine, false>
 	{
-		Generic,
-		Chat,
-		LobbyChanged,
-		LobbyHeader,
-		LobbyMember,
-		PlayerStatus,
-		PlayerStatusShort,
-		PlayerStatusCount,
-		ClientReachedServerSpawn,
-		KillNotification,
-		CvarlistConvar,
-		VoiceReceive,
-		EdictUsage,
-	};
+		using BaseClass = ConsoleLineBase;
 
-	class IConsoleLine
-	{
 	public:
-		IConsoleLine(time_point_t timestamp);
-		virtual ~IConsoleLine() = default;
-
-		virtual ConsoleLineType GetType() const = 0;
-		virtual bool ShouldPrint() const { return true; }
-		virtual void Print() const = 0;
-
-		static std::unique_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text, time_point_t timestamp);
-
-		time_point_t GetTimestamp() const { return m_Timestamp; }
-
-	private:
-		time_point_t m_Timestamp;
-	};
-
-	class GenericConsoleLine final : public IConsoleLine
-	{
-	public:
-		GenericConsoleLine(time_point_t timestamp, std::string&& text);
+		GenericConsoleLine(time_point_t timestamp, std::string text);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Generic; }
 		bool ShouldPrint() const override { return false; }
@@ -57,10 +26,13 @@ namespace tf2_bot_detector
 		std::string m_Text;
 	};
 
-	class ChatConsoleLine final : public IConsoleLine
+	class ChatConsoleLine final : public ConsoleLineBase<ChatConsoleLine, false>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		ChatConsoleLine(time_point_t timestamp, std::string&& playerName, std::string&& message, bool isDead, bool isTeam);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Chat; }
 		void Print() const override;
@@ -77,10 +49,13 @@ namespace tf2_bot_detector
 		bool m_IsTeam : 1;
 	};
 
-	class LobbyHeaderLine final : public IConsoleLine
+	class LobbyHeaderLine final : public ConsoleLineBase<LobbyHeaderLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		LobbyHeaderLine(time_point_t timestamp, unsigned memberCount, unsigned pendingCount);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		auto GetMemberCount() const { return m_MemberCount; }
 		auto GetPendingCount() const { return m_PendingCount; }
@@ -94,10 +69,13 @@ namespace tf2_bot_detector
 		unsigned m_PendingCount;
 	};
 
-	class LobbyMemberLine final : public IConsoleLine
+	class LobbyMemberLine final : public ConsoleLineBase<LobbyMemberLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		LobbyMemberLine(time_point_t timestamp, const LobbyMember& lobbyMember);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		const LobbyMember& GetLobbyMember() const { return m_LobbyMember; }
 
@@ -116,10 +94,13 @@ namespace tf2_bot_detector
 		Destroyed,
 	};
 
-	class LobbyChangedLine final : public IConsoleLine
+	class LobbyChangedLine final : public ConsoleLineBase<LobbyChangedLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		LobbyChangedLine(time_point_t timestamp, LobbyChangeType type);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyChanged; }
 		LobbyChangeType GetChangeType() const { return m_ChangeType; }
@@ -130,10 +111,13 @@ namespace tf2_bot_detector
 		LobbyChangeType m_ChangeType;
 	};
 
-	class ServerStatusPlayerLine final : public IConsoleLine
+	class ServerStatusPlayerLine final : public ConsoleLineBase<ServerStatusPlayerLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		ServerStatusPlayerLine(time_point_t timestamp, PlayerStatus playerStatus);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		const PlayerStatus& GetPlayerStatus() const { return m_PlayerStatus; }
 
@@ -145,10 +129,13 @@ namespace tf2_bot_detector
 		PlayerStatus m_PlayerStatus;
 	};
 
-	class ServerStatusShortPlayerLine final : public IConsoleLine
+	class ServerStatusShortPlayerLine final : public ConsoleLineBase<ServerStatusShortPlayerLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		ServerStatusShortPlayerLine(time_point_t timestamp, PlayerStatusShort playerStatus);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		const PlayerStatusShort& GetPlayerStatus() const { return m_PlayerStatus; }
 
@@ -160,11 +147,14 @@ namespace tf2_bot_detector
 		PlayerStatusShort m_PlayerStatus;
 	};
 
-	class ServerStatusPlayerCountLine final : public IConsoleLine
+	class ServerStatusPlayerCountLine final : public ConsoleLineBase<ServerStatusPlayerCountLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		ServerStatusPlayerCountLine(time_point_t timestamp, uint8_t playerCount,
 			uint8_t botCount, uint8_t maxPlayers);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		uint8_t GetPlayerCount() const { return m_PlayerCount; }
 		uint8_t GetBotCount() const { return m_BotCount; }
@@ -180,10 +170,13 @@ namespace tf2_bot_detector
 		uint8_t m_MaxPlayers;
 	};
 
-	class EdictUsageLine final : public IConsoleLine
+	class EdictUsageLine final : public ConsoleLineBase<EdictUsageLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		EdictUsageLine(time_point_t timestamp, uint16_t usedEdicts, uint16_t totalEdicts);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		uint16_t GetUsedEdicts() const { return m_UsedEdicts; }
 		uint16_t GetTotalEdicts() const { return m_TotalEdicts; }
@@ -197,21 +190,27 @@ namespace tf2_bot_detector
 		uint16_t m_TotalEdicts;
 	};
 
-	class ClientReachedServerSpawnLine final : public IConsoleLine
+	class ClientReachedServerSpawnLine final : public ConsoleLineBase<ClientReachedServerSpawnLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
-		using IConsoleLine::IConsoleLine;
+		using ConsoleLineBase::ConsoleLineBase;
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::ClientReachedServerSpawn; }
 		bool ShouldPrint() const override { return false; }
 		void Print() const override;
 	};
 
-	class KillNotificationLine final : public IConsoleLine
+	class KillNotificationLine final : public ConsoleLineBase<KillNotificationLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		KillNotificationLine(time_point_t timestamp, std::string attackerName,
 			std::string victimName, std::string weaponName, bool wasCrit);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		const std::string& GetVictimName() const { return m_VictimName; }
 		const std::string& GetAttackerName() const { return m_AttackerName; }
@@ -229,10 +228,13 @@ namespace tf2_bot_detector
 		bool m_WasCrit;
 	};
 
-	class CvarlistConvarLine final : public IConsoleLine
+	class CvarlistConvarLine final : public ConsoleLineBase<CvarlistConvarLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		CvarlistConvarLine(time_point_t timestamp, std::string name, float value, std::string flagsList, std::string helpText);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		const std::string& GetConvarName() const { return m_Name; }
 		float GetConvarValue() const { return m_Value; }
@@ -250,10 +252,13 @@ namespace tf2_bot_detector
 		std::string m_HelpText;
 	};
 
-	class VoiceReceiveLine final : public IConsoleLine
+	class VoiceReceiveLine final : public ConsoleLineBase<VoiceReceiveLine>
 	{
+		using BaseClass = ConsoleLineBase;
+
 	public:
 		VoiceReceiveLine(time_point_t timestamp, uint8_t channel, uint8_t entindex, uint16_t bufSize);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		uint8_t GetEntIndex() const { return m_Entindex; }
 

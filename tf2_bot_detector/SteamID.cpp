@@ -1,5 +1,5 @@
 #include "SteamID.h"
-#include "RegexCharConv.h"
+#include "RegexHelpers.h"
 
 #include <mh/text/string_insertion.hpp>
 

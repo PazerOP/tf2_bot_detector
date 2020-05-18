@@ -1,6 +1,6 @@
 #include "MainWindow.h"
 #include "ConsoleLines.h"
-#include "RegexCharConv.h"
+#include "RegexHelpers.h"
 #include "ImGui_TF2BotDetector.h"
 #include "PeriodicActions.h"
 #include "Log.h"
@@ -409,6 +409,16 @@ void MainWindow::OnDrawServerStats()
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("%i of %i (%1.1f%%)", lastSample.m_UsedEdicts, lastSample.m_MaxEdicts, percent * 100);
 	}
+
+	if (!m_ServerPingSamples.empty())
+	{
+		char buf[64];
+		sprintf_s(buf, "Average ping: %u", m_ServerPingSamples.back().m_Ping);
+		ImGui::PlotLines(buf, [&](int idx)
+			{
+				return m_ServerPingSamples[idx].m_Ping;
+			}, (int)m_ServerPingSamples.size());
+	}
 }
 
 void MainWindow::OnDraw()
@@ -451,13 +461,13 @@ void MainWindow::OnUpdate()
 			m_ConsoleLines.clear();
 	}
 
+	bool consoleLinesUpdated = false;
 	if (m_File)
 	{
 		char buf[4096];
 		size_t readCount;
 		using clock = std::chrono::steady_clock;
 		const auto startTime = clock::now();
-		bool consoleLinesUpdated = false;
 		do
 		{
 			readCount = fread(buf, sizeof(buf[0]), std::size(buf), m_File.get());
@@ -534,6 +544,9 @@ void MainWindow::OnUpdate()
 	ProcessPlayerActions();
 	m_PeriodicActionManager.Update(curTime);
 	m_ActionManager.Update(curTime);
+
+	if (consoleLinesUpdated)
+		UpdateServerPing(curTime);
 }
 
 bool MainWindow::IsTimeEven() const
@@ -1144,6 +1157,31 @@ const PlayerList& MainWindow::GetPlayerList(PlayerMarkType type) const
 	return m_PlayerLists[std::underlying_type_t<PlayerMarkType>(type)];
 }
 
+void MainWindow::UpdateServerPing(time_point_t timestamp)
+{
+	if ((timestamp - m_LastServerPingSample) <= 7s)
+		return;
+
+	float totalPing = 0;
+	uint16_t samples = 0;
+
+	for (const auto& player : m_CurrentPlayerData)
+	{
+		const PlayerExtraData& data = player.second;
+		if (data.m_LastStatusUpdateTime < (timestamp - 20s))
+			continue;
+
+		totalPing += data.GetAveragePing();
+		samples++;
+	}
+
+	m_ServerPingSamples.push_back({ timestamp, uint16_t(totalPing / samples) });
+	m_LastServerPingSample = timestamp;
+
+	while ((timestamp - m_ServerPingSamples.front().m_Timestamp) > 5min)
+		m_ServerPingSamples.erase(m_ServerPingSamples.begin());
+}
+
 bool MainWindow::MarkPlayer(const SteamID& id, PlayerMarkType markType, bool marked)
 {
 	switch (markType)
@@ -1203,4 +1241,18 @@ void MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
 void MainWindow::CustomDeleters::operator()(FILE* f) const
 {
 	fclose(f);
+}
+
+float MainWindow::PlayerExtraData::GetAveragePing() const
+{
+	unsigned totalPing = m_Status.m_Ping;
+	unsigned samples = 1;
+
+	for (const auto& entry : m_PingHistory)
+	{
+		totalPing += entry.m_Ping;
+		samples++;
+	}
+
+	return totalPing / float(samples);
 }

@@ -116,6 +116,17 @@ namespace tf2_bot_detector
 			const std::optional<LobbyMemberTeam>& team0, const std::optional<LobbyMemberTeam>& team1);
 		std::optional<LobbyMemberTeam> TryGetMyTeam() const;
 
+		struct PingSample
+		{
+			constexpr PingSample(time_point_t timestamp, uint16_t ping) :
+				m_Timestamp(timestamp), m_Ping(ping)
+			{
+			}
+
+			time_point_t m_Timestamp{};
+			uint16_t m_Ping{};
+		};
+
 		struct PlayerExtraData
 		{
 			PlayerStatus m_Status{};
@@ -123,6 +134,8 @@ namespace tf2_bot_detector
 			TFTeam m_Team{};
 			uint8_t m_ClientIndex{};
 			time_point_t m_LastStatusUpdateTime{};
+			std::vector<PingSample> m_PingHistory{};
+			float GetAveragePing() const;
 
 			// If this is a known cheater, warn them ahead of time that the player is connecting, but only once
 			// (we don't know the cheater's name yet, so don't spam if they can't do anything about it yet)
@@ -166,6 +179,10 @@ namespace tf2_bot_detector
 		time_point_t m_LastCheaterWarningTime{};
 		PlayerList& GetPlayerList(PlayerMarkType type);
 		const PlayerList& GetPlayerList(PlayerMarkType type) const;
+
+		void UpdateServerPing(time_point_t timestamp);
+		std::vector<PingSample> m_ServerPingSamples;
+		time_point_t m_LastServerPingSample{};
 
 		bool MarkPlayer(const SteamID& id, PlayerMarkType markType, bool marked = true);
 		bool IsPlayerMarked(const SteamID& id, PlayerMarkType markType) const;

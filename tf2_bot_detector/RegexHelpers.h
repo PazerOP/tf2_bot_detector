@@ -5,9 +5,12 @@
 #include <iomanip>
 #include <regex>
 #include <stdexcept>
+#include <string_view>
 
 namespace tf2_bot_detector
 {
+	using svmatch = std::match_results<std::string_view::const_iterator>;
+
 	template<typename TIter>
 	inline std::string_view to_string_view(const std::sub_match<TIter>& match)
 	{

@@ -143,6 +143,7 @@
     <ClCompile Include="Actions.cpp" />
     <ClCompile Include="ImGui_TF2BotDetector.cpp" />
     <ClCompile Include="Log.cpp" />
+    <ClCompile Include="NetworkStatus.cpp" />
     <ClCompile Include="PeriodicActionManager.cpp" />
     <ClCompile Include="PeriodicActions.cpp" />
     <ClCompile Include="PlayerList.cpp" />
@@ -155,9 +156,11 @@
     <ClInclude Include="ActionManager.h" />
     <ClInclude Include="Actions.h" />
     <ClInclude Include="Clock.h" />
+    <ClInclude Include="IConsoleLine.h" />
     <ClInclude Include="IConsoleLineListener.h" />
     <ClInclude Include="ImGui_TF2BotDetector.h" />
     <ClInclude Include="Log.h" />
+    <ClInclude Include="NetworkStatus.h" />
     <ClInclude Include="PeriodicActionManager.h" />
     <ClInclude Include="PeriodicActions.h" />
     <ClInclude Include="PlayerList.h" />
@@ -165,7 +168,7 @@
     <ClInclude Include="LobbyMember.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="PlayerStatus.h" />
-    <ClInclude Include="RegexCharConv.h" />
+    <ClInclude Include="RegexHelpers.h" />
     <ClInclude Include="SteamID.h" />
     <ClInclude Include="TFConstants.h" />
   </ItemGroup>
