@@ -23,6 +23,7 @@ namespace tf2_bot_detector
 		CvarlistConvar,
 		VoiceReceive,
 		EdictUsage,
+		SplitPacket,
 
 		NetChannelOnline,
 		NetChannelReliable,
