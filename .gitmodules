@@ -4,3 +4,6 @@
 [submodule "mh_stuff"]
 	path = mh_stuff
 	url = https://github.com/PazerOP/stuff.git
+[submodule "implot/repo"]
+	path = implot/repo
+	url = https://github.com/PazerOP/implot.git
