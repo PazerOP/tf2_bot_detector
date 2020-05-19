@@ -37,7 +37,7 @@ MainWindow::MainWindow() :
 	//EnableMSAA();
 	//assert(IsMSAAEnabled());
 
-	m_OpenTime = m_CurrentTimestampRT = clock_t::now();
+	m_OpenTime = clock_t::now();
 	AddConsoleLineListener(this);
 
 	m_PeriodicActionManager.Add<StatusUpdateAction>();
@@ -418,6 +418,38 @@ void MainWindow::OnDrawAppLog()
 		});
 }
 
+void MainWindow::OnDrawNetGraph()
+{
+	auto [startTime, endTime] = GetNetSamplesRange();
+	if ((endTime - startTime) > (NET_GRAPH_DURATION + 10s))
+		PruneNetSamples(startTime, endTime);
+
+	auto delta = GetCurrentTimestampCompensated() - endTime;
+	startTime += delta;
+	endTime += delta;
+
+	ImPlot::SetNextPlotLimitsX(-to_seconds<float>(NET_GRAPH_DURATION), 0, ImGuiCond_Always);
+
+	constexpr int YAXIS_TIME = 0;
+	constexpr int YAXIS_DATA = 1;
+
+	const auto maxLatency = std::max(GetMaxValue(m_NetSamplesIn.m_Latency), GetMaxValue(m_NetSamplesOut.m_Latency));
+	ImPlot::SetNextPlotLimitsY(0 - (maxLatency * 0.025f), maxLatency + (maxLatency * 0.025f), ImGuiCond_Always, YAXIS_TIME);
+
+	const auto maxData = std::max(GetMaxValue(m_NetSamplesIn.m_Data), GetMaxValue(m_NetSamplesOut.m_Data));
+	ImPlot::SetNextPlotLimitsY(0 - (maxData * 0.025f), maxData + (maxData * 0.025f), ImGuiCond_Always, YAXIS_DATA);
+
+	constexpr ImPlotFlags plotFlags = ImPlotFlags_Default | ImPlotFlags_AntiAliased | ImPlotFlags_YAxis2;
+	if (ImPlot::BeginPlot("NetGraph", "Time", nullptr, { -1, 0 }, plotFlags))
+	{
+		//PlotNetSamples("Ping In", m_NetSamplesIn.m_Latency, startTime, endTime, YAXIS_TIME);
+		//PlotNetSamples("Ping Out", m_NetSamplesOut.m_Latency, startTime, endTime, YAXIS_TIME);
+		PlotNetSamples("Data In", m_NetSamplesIn.m_Data, startTime, endTime, YAXIS_DATA);
+		PlotNetSamples("Data Out", m_NetSamplesOut.m_Data, startTime, endTime, YAXIS_DATA);
+		ImPlot::EndPlot();
+	}
+}
+
 void MainWindow::OnDrawServerStats()
 {
 	ImGui::PlotLines("Edicts", [&](int idx)
@@ -449,25 +481,7 @@ void MainWindow::OnDrawServerStats()
 			}, (int)m_ServerPingSamples.size());
 	}
 
-	{
-		auto [startTime, endTime] = GetNetSamplesRange();
-		if ((endTime - startTime) > (NET_GRAPH_DURATION + 10s))
-			PruneNetSamples(startTime, endTime);
-
-		auto delta = GetCurrentTimestampCompensated() - endTime;
-		startTime += delta;
-		endTime += delta;
-
-		ImPlot::SetNextPlotLimitsX(-to_seconds<float>(NET_GRAPH_DURATION), 0, ImGuiCond_Always);
-
-		constexpr ImPlotFlags plotFlags = ImPlotFlags_Default | ImPlotFlags_AntiAliased;
-		if (ImPlot::BeginPlot("NetGraph", "Time", nullptr, { -1, 0 }, plotFlags))
-		{
-			PlotNetSamples("Ping In", m_NetSamplesIn.m_Latency, startTime, endTime);
-			PlotNetSamples("Data In", m_NetSamplesIn.m_Data, startTime, endTime);
-			ImPlot::EndPlot();
-		}
-	}
+	OnDrawNetGraph();
 }
 
 void MainWindow::OnDraw()
@@ -480,6 +494,7 @@ void MainWindow::OnDraw()
 #endif
 
 	ImGui::Checkbox("Pause", &m_Paused);
+	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
 	ImGui::Text("Parsed line count: %zu", m_ParsedLineCount);
 
@@ -521,6 +536,15 @@ void MainWindow::OnDrawMenuBar()
 	if (s_ImPlotDemoWindow)
 		ImPlot::ShowDemoWindow(&s_ImPlotDemoWindow);
 #endif
+
+	if (ImGui::BeginMenu("Settings"))
+	{
+		ImGui::MenuItem("No Focus Sleep", nullptr, &m_IsSleepingEnabled);
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Slows the refresh rate when not focused to reduce CPU/GPU usage.");
+
+		ImGui::EndMenu();
+	}
 }
 
 static std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d):[ \n])regex", std::regex::optimize);
@@ -597,7 +621,12 @@ void MainWindow::OnUpdate()
 					from_chars_throw(match[6], time.tm_sec);
 
 					m_CurrentTimestamp = clock_t::from_time_t(std::mktime(&time));
-					m_CurrentTimestampRT = clock_t::now();
+					if (auto now = clock_t::now(); (now - *m_CurrentTimestamp) > 1250ms)
+						m_CurrentTimestampRT = now;
+					else
+						m_CurrentTimestampRT = *m_CurrentTimestamp;
+
+					//m_CurrentTimestampRT = clock_t::now();
 					regexBegin = match[0].second;
 				}
 
@@ -605,7 +634,7 @@ void MainWindow::OnUpdate()
 				m_FileLineBuf.erase(m_FileLineBuf.begin(), regexBegin);
 			}
 
-			if (auto elapsed = clock::now() - startTime; elapsed > 10ms)
+			if (auto elapsed = clock::now() - startTime; elapsed >= 100ms)
 				break;
 
 		} while (readCount > 0);
@@ -847,29 +876,29 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 	case ConsoleLineType::NetDataTotal:
 	{
 		auto& netDataLine = static_cast<const NetDataTotalLine&>(parsed);
-		m_NetSamplesIn.m_Data[parsed.GetTimestamp()] = netDataLine.GetInKBps();
-		m_NetSamplesOut.m_Data[parsed.GetTimestamp()] = netDataLine.GetOutKBps();
+		m_NetSamplesIn.m_Data[parsed.GetTimestamp()].AddSample(netDataLine.GetInKBps());
+		m_NetSamplesOut.m_Data[parsed.GetTimestamp()].AddSample(netDataLine.GetOutKBps());
 		break;
 	}
 	case ConsoleLineType::NetLatency:
 	{
 		auto& netLatencyLine = static_cast<const NetLatencyLine&>(parsed);
-		m_NetSamplesIn.m_Latency[parsed.GetTimestamp()] = netLatencyLine.GetInLatency();
-		m_NetSamplesOut.m_Latency[parsed.GetTimestamp()] = netLatencyLine.GetOutLatency();
+		m_NetSamplesIn.m_Latency[parsed.GetTimestamp()].AddSample(netLatencyLine.GetInLatency());
+		m_NetSamplesOut.m_Latency[parsed.GetTimestamp()].AddSample(netLatencyLine.GetOutLatency());
 		break;
 	}
 	case ConsoleLineType::NetPacketsTotal:
 	{
 		auto& netPacketsLine = static_cast<const NetPacketsTotalLine&>(parsed);
-		m_NetSamplesIn.m_Packets[parsed.GetTimestamp()] = netPacketsLine.GetInPacketsPerSecond();
-		m_NetSamplesOut.m_Packets[parsed.GetTimestamp()] = netPacketsLine.GetOutPacketsPerSecond();
+		m_NetSamplesIn.m_Packets[parsed.GetTimestamp()].AddSample(netPacketsLine.GetInPacketsPerSecond());
+		m_NetSamplesOut.m_Packets[parsed.GetTimestamp()].AddSample(netPacketsLine.GetOutPacketsPerSecond());
 		break;
 	}
 	case ConsoleLineType::NetLoss:
 	{
 		auto& netLossLine = static_cast<const NetLossLine&>(parsed);
-		m_NetSamplesIn.m_Loss[parsed.GetTimestamp()] = netLossLine.GetInLossPercent();
-		m_NetSamplesOut.m_Loss[parsed.GetTimestamp()] = netLossLine.GetOutLossPercent();
+		m_NetSamplesIn.m_Loss[parsed.GetTimestamp()].AddSample(netLossLine.GetInLossPercent());
+		m_NetSamplesOut.m_Loss[parsed.GetTimestamp()].AddSample(netLossLine.GetOutLossPercent());
 		break;
 	}
 	}
@@ -1308,7 +1337,7 @@ std::pair<time_point_t, time_point_t> MainWindow::GetNetSamplesRange() const
 	time_point_t maxTime = time_point_t::min();
 	bool nonEmpty = false;
 
-	const auto Check = [&](const std::map<time_point_t, float>& data)
+	const auto Check = [&](const std::map<time_point_t, AvgSample>& data)
 	{
 		if (data.empty())
 			return;
@@ -1333,7 +1362,7 @@ std::pair<time_point_t, time_point_t> MainWindow::GetNetSamplesRange() const
 
 void MainWindow::PruneNetSamples(time_point_t& startTime, time_point_t& endTime)
 {
-	const auto Prune = [&](std::map<time_point_t, float>& data)
+	const auto Prune = [&](std::map<time_point_t, AvgSample>& data)
 	{
 		auto lower = data.lower_bound(endTime - NET_GRAPH_DURATION);
 		if (lower == data.begin())
@@ -1357,8 +1386,8 @@ void MainWindow::PruneNetSamples(time_point_t& startTime, time_point_t& endTime)
 	endTime = newRange.second;
 }
 
-void MainWindow::PlotNetSamples(const char* label_id, const std::map<time_point_t, float>& data,
-	time_point_t startTime, time_point_t endTime) const
+void MainWindow::PlotNetSamples(const char* label_id, const std::map<time_point_t, AvgSample>& data,
+	time_point_t startTime, time_point_t endTime, int yAxis) const
 {
 	if (data.empty() || startTime == endTime)
 		return;
@@ -1370,22 +1399,32 @@ void MainWindow::PlotNetSamples(const char* label_id, const std::map<time_point_
 
 	{
 		const auto startX = ImPlot::GetPlotLimits().X.Min;
-		auto test = startTime - endTime;
-		auto test2 = endTime - startTime;
-		const auto startOffset = (startTime - endTime) + (data.begin()->first - startTime);
+		const auto dataStartTime = data.begin()->first;
+		const auto dataEndTime = std::prev(data.end())->first;
+		const auto startOffset = (startTime - endTime) + (dataStartTime - startTime);
 		const float startOffsetFloat = to_seconds<float>(startOffset);
-		//const float startOffsetFloat = startX + to_seconds<float>(data.begin()->first - startTime);
 		size_t i = 0;
+
 		for (const auto& entry : data)
 		{
-			points[i].x = startOffsetFloat + to_seconds<float>(entry.first - startTime);
-			points[i].y = entry.second;
+			points[i].x = startOffsetFloat + to_seconds<float>(entry.first - dataStartTime);
+			points[i].y = entry.second.m_AvgValue;
 			i++;
 		}
 	}
 
+	ImPlot::SetPlotYAxis(yAxis);
 	ImPlot::PlotLine(label_id, points, (int)data.size());
 	_freea(points);
+}
+
+float MainWindow::GetMaxValue(const std::map<time_point_t, AvgSample>& data)
+{
+	float max = FLT_MIN;
+	for (const auto& pair : data)
+		max = std::max(max, pair.second.m_AvgValue);
+
+	return max;
 }
 
 bool MainWindow::MarkPlayer(const SteamID& id, PlayerMarkType markType, bool marked)
@@ -1461,4 +1500,17 @@ float MainWindow::PlayerExtraData::GetAveragePing() const
 	}
 
 	return totalPing / float(samples);
+}
+
+void MainWindow::AvgSample::AddSample(float value)
+{
+#if 0
+	float delta = m_SampleCount / float(m_SampleCount + 1);
+	m_AvgValue = mh::lerp(m_SampleCount / float(m_SampleCount + 1), value, m_AvgValue);
+	m_SampleCount++;
+#else
+	auto old = m_AvgValue;
+	m_AvgValue = ((m_AvgValue * m_SampleCount) + value) / (m_SampleCount + 1);
+	m_SampleCount++;
+#endif
 }
