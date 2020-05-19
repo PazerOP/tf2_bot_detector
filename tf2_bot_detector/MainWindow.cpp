@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "ConsoleLines.h"
+#include "NetworkStatus.h"
 #include "RegexHelpers.h"
 #include "ImGui_TF2BotDetector.h"
 #include "PeriodicActions.h"
@@ -33,6 +34,9 @@ MainWindow::MainWindow() :
 		PlayerList("playerlist_racism.txt"),
 	}
 {
+	//EnableMSAA();
+	//assert(IsMSAAEnabled());
+
 	m_OpenTime = m_CurrentTimestampRT = clock_t::now();
 	AddConsoleLineListener(this);
 
@@ -444,6 +448,26 @@ void MainWindow::OnDrawServerStats()
 				return m_ServerPingSamples[idx].m_Ping;
 			}, (int)m_ServerPingSamples.size());
 	}
+
+	{
+		auto [startTime, endTime] = GetNetSamplesRange();
+		if ((endTime - startTime) > (NET_GRAPH_DURATION + 10s))
+			PruneNetSamples(startTime, endTime);
+
+		auto delta = GetCurrentTimestampCompensated() - endTime;
+		startTime += delta;
+		endTime += delta;
+
+		ImPlot::SetNextPlotLimitsX(-to_seconds<float>(NET_GRAPH_DURATION), 0, ImGuiCond_Always);
+
+		constexpr ImPlotFlags plotFlags = ImPlotFlags_Default | ImPlotFlags_AntiAliased;
+		if (ImPlot::BeginPlot("NetGraph", "Time", nullptr, { -1, 0 }, plotFlags))
+		{
+			PlotNetSamples("Ping In", m_NetSamplesIn.m_Latency, startTime, endTime);
+			PlotNetSamples("Data In", m_NetSamplesIn.m_Data, startTime, endTime);
+			ImPlot::EndPlot();
+		}
+	}
 }
 
 void MainWindow::OnDraw()
@@ -817,6 +841,35 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		while (m_EdictUsageSamples.front().m_Timestamp < (usageLine.GetTimestamp() - 5min))
 			m_EdictUsageSamples.erase(m_EdictUsageSamples.begin());
 
+		break;
+	}
+
+	case ConsoleLineType::NetDataTotal:
+	{
+		auto& netDataLine = static_cast<const NetDataTotalLine&>(parsed);
+		m_NetSamplesIn.m_Data[parsed.GetTimestamp()] = netDataLine.GetInKBps();
+		m_NetSamplesOut.m_Data[parsed.GetTimestamp()] = netDataLine.GetOutKBps();
+		break;
+	}
+	case ConsoleLineType::NetLatency:
+	{
+		auto& netLatencyLine = static_cast<const NetLatencyLine&>(parsed);
+		m_NetSamplesIn.m_Latency[parsed.GetTimestamp()] = netLatencyLine.GetInLatency();
+		m_NetSamplesOut.m_Latency[parsed.GetTimestamp()] = netLatencyLine.GetOutLatency();
+		break;
+	}
+	case ConsoleLineType::NetPacketsTotal:
+	{
+		auto& netPacketsLine = static_cast<const NetPacketsTotalLine&>(parsed);
+		m_NetSamplesIn.m_Packets[parsed.GetTimestamp()] = netPacketsLine.GetInPacketsPerSecond();
+		m_NetSamplesOut.m_Packets[parsed.GetTimestamp()] = netPacketsLine.GetOutPacketsPerSecond();
+		break;
+	}
+	case ConsoleLineType::NetLoss:
+	{
+		auto& netLossLine = static_cast<const NetLossLine&>(parsed);
+		m_NetSamplesIn.m_Loss[parsed.GetTimestamp()] = netLossLine.GetInLossPercent();
+		m_NetSamplesOut.m_Loss[parsed.GetTimestamp()] = netLossLine.GetOutLossPercent();
 		break;
 	}
 	}
@@ -1247,6 +1300,92 @@ void MainWindow::UpdateServerPing(time_point_t timestamp)
 
 	while ((timestamp - m_ServerPingSamples.front().m_Timestamp) > 5min)
 		m_ServerPingSamples.erase(m_ServerPingSamples.begin());
+}
+
+std::pair<time_point_t, time_point_t> MainWindow::GetNetSamplesRange() const
+{
+	time_point_t minTime = time_point_t::max();
+	time_point_t maxTime = time_point_t::min();
+	bool nonEmpty = false;
+
+	const auto Check = [&](const std::map<time_point_t, float>& data)
+	{
+		if (data.empty())
+			return;
+
+		minTime = std::min(minTime, data.begin()->first);
+		maxTime = std::max(maxTime, std::prev(data.end())->first);
+		nonEmpty = true;
+	};
+
+	Check(m_NetSamplesIn.m_Latency);
+	Check(m_NetSamplesIn.m_Loss);
+	Check(m_NetSamplesIn.m_Packets);
+	Check(m_NetSamplesIn.m_Data);
+
+	Check(m_NetSamplesOut.m_Latency);
+	Check(m_NetSamplesOut.m_Loss);
+	Check(m_NetSamplesOut.m_Packets);
+	Check(m_NetSamplesOut.m_Data);
+
+	return { minTime, maxTime };
+}
+
+void MainWindow::PruneNetSamples(time_point_t& startTime, time_point_t& endTime)
+{
+	const auto Prune = [&](std::map<time_point_t, float>& data)
+	{
+		auto lower = data.lower_bound(endTime - NET_GRAPH_DURATION);
+		if (lower == data.begin())
+			return;
+
+		data.erase(data.begin(), std::prev(lower));
+	};
+
+	Prune(m_NetSamplesIn.m_Latency);
+	Prune(m_NetSamplesIn.m_Loss);
+	Prune(m_NetSamplesIn.m_Packets);
+	Prune(m_NetSamplesIn.m_Data);
+
+	Prune(m_NetSamplesOut.m_Latency);
+	Prune(m_NetSamplesOut.m_Loss);
+	Prune(m_NetSamplesOut.m_Packets);
+	Prune(m_NetSamplesOut.m_Data);
+
+	const auto newRange = GetNetSamplesRange();
+	startTime = newRange.first;
+	endTime = newRange.second;
+}
+
+void MainWindow::PlotNetSamples(const char* label_id, const std::map<time_point_t, float>& data,
+	time_point_t startTime, time_point_t endTime) const
+{
+	if (data.empty() || startTime == endTime)
+		return;
+
+	const auto count = data.size();
+	ImVec2* points = reinterpret_cast<ImVec2*>(_malloca(sizeof(ImVec2) * data.size()));
+	if (!points)
+		throw std::runtime_error("Failed to allocate memory for points");
+
+	{
+		const auto startX = ImPlot::GetPlotLimits().X.Min;
+		auto test = startTime - endTime;
+		auto test2 = endTime - startTime;
+		const auto startOffset = (startTime - endTime) + (data.begin()->first - startTime);
+		const float startOffsetFloat = to_seconds<float>(startOffset);
+		//const float startOffsetFloat = startX + to_seconds<float>(data.begin()->first - startTime);
+		size_t i = 0;
+		for (const auto& entry : data)
+		{
+			points[i].x = startOffsetFloat + to_seconds<float>(entry.first - startTime);
+			points[i].y = entry.second;
+			i++;
+		}
+	}
+
+	ImPlot::PlotLine(label_id, points, (int)data.size());
+	_freea(points);
 }
 
 bool MainWindow::MarkPlayer(const SteamID& id, PlayerMarkType markType, bool marked)

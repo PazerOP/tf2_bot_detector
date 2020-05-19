@@ -9,7 +9,7 @@ namespace tf2_bot_detector
 	using duration_t = clock_t::duration;
 
 	template<typename T = double, typename TRep, typename TPeriod>
-	inline T to_seconds(const std::chrono::duration<TRep, TPeriod>& dur)
+	inline constexpr T to_seconds(const std::chrono::duration<TRep, TPeriod>& dur)
 	{
 		return std::chrono::duration_cast<std::chrono::duration<T>>(dur).count();
 	}

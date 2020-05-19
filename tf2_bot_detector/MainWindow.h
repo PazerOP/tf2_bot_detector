@@ -187,6 +187,22 @@ namespace tf2_bot_detector
 		std::vector<PingSample> m_ServerPingSamples;
 		time_point_t m_LastServerPingSample{};
 
+		struct NetSamples
+		{
+			std::map<time_point_t, float> m_Latency;
+			std::map<time_point_t, float> m_Loss;
+			std::map<time_point_t, float> m_Packets;
+			std::map<time_point_t, float> m_Data;
+		};
+		NetSamples m_NetSamplesOut;
+		NetSamples m_NetSamplesIn;
+		std::pair<time_point_t, time_point_t> GetNetSamplesRange() const;
+		void PruneNetSamples(time_point_t& startTime, time_point_t& endTime);
+		static constexpr duration_t NET_GRAPH_DURATION = std::chrono::seconds(30);
+
+		void PlotNetSamples(const char* label_id, const std::map<time_point_t, float>& data,
+			time_point_t startTime, time_point_t endTime) const;
+
 		bool MarkPlayer(const SteamID& id, PlayerMarkType markType, bool marked = true);
 		bool IsPlayerMarked(const SteamID& id, PlayerMarkType markType) const;
 

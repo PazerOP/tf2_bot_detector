@@ -2,8 +2,10 @@
 
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
+#include <implot.h>
 
 #include <string_view>
+#include <type_traits>
 
 namespace ImGui
 {
@@ -79,5 +81,17 @@ namespace ImGui
 
 		return ImGui::Combo(label, current_item, patch, const_cast<void*>(&items_getter),
 			items_count, popup_max_height_in_items);
+	}
+}
+
+namespace ImPlot
+{
+	template<typename TFunc, typename = std::enable_if_t<std::is_invocable_v<TFunc, int>>>
+	inline void PlotLine(const char* label_id, TFunc getter, int count, int offset = 0)
+	{
+		return ImPlot::PlotLine(label_id,
+			[](void* data, int idx) { return (*reinterpret_cast<TFunc*>(data))(idx); },
+			reinterpret_cast<void*>(&getter),
+			count, offset);
 	}
 }
