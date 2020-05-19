@@ -18,6 +18,12 @@ namespace tf2_bot_detector
 
 		void Add(std::unique_ptr<IPeriodicAction>&& action);
 
+		template<typename TAction, typename... TArgs>
+		void Add(TArgs&&... args)
+		{
+			return Add(std::make_unique<TAction>(std::forward<TArgs>(args)...));
+		}
+
 		void Update(time_point_t curTime);
 
 	private:

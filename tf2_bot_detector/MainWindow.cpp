@@ -35,7 +35,8 @@ MainWindow::MainWindow() :
 	m_OpenTime = m_CurrentTimestampRT = clock_t::now();
 	AddConsoleLineListener(this);
 
-	m_PeriodicActionManager.Add(std::make_unique<StatusUpdateAction>());
+	m_PeriodicActionManager.Add<StatusUpdateAction>();
+	//m_PeriodicActionManager.Add<NetStatusAction>();
 }
 
 MainWindow::~MainWindow()
@@ -158,7 +159,7 @@ void MainWindow::OnDrawScoreboard()
 			/*const auto*/ contentWidth = ImGui::GetContentRegionMax().x;
 			/*const auto*/ windowContentWidth = ImGui::GetWindowContentRegionWidth();
 			/*const auto*/ windowWidth = ImGui::GetWindowWidth();
-			ImGui::Columns(6, "PlayersColumns");
+			ImGui::Columns(7, "PlayersColumns");
 
 			// Columns setup
 			{
@@ -211,6 +212,19 @@ void MainWindow::OnDrawScoreboard()
 					if (scoreboardResized)
 					{
 						const float width = 60;
+						nameColumnWidth -= width;
+						ImGui::SetColumnWidth(-1, width);
+					}
+
+					ImGui::NextColumn();
+				}
+
+				// Ping
+				{
+					ImGui::TextUnformatted("Ping");
+					if (scoreboardResized)
+					{
+						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
 						nameColumnWidth -= width;
 						ImGui::SetColumnWidth(-1, width);
 					}
@@ -334,6 +348,16 @@ void MainWindow::OnDrawScoreboard()
 					ImGui::NextColumn();
 				}
 
+				// Ping column
+				{
+					if (player.m_Name.empty())
+						ImGui::TextRightAligned("?");
+					else
+						ImGui::TextRightAlignedF("%u", player.m_Ping);
+
+					ImGui::NextColumn();
+				}
+
 				// Steam ID column
 				{
 					if (player.m_SteamID.Type != SteamAccountType::Invalid)
@@ -436,9 +460,11 @@ void MainWindow::OnDraw()
 
 	ImGui::Columns(2, "MainWindowSplit");
 
-	OnDrawChat(); ImGui::NextColumn();
-
 	OnDrawServerStats();
+	OnDrawChat();
+
+	ImGui::NextColumn();
+
 	OnDrawScoreboard();
 	OnDrawAppLog();
 	ImGui::NextColumn();
@@ -690,6 +716,18 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 
 		break;
 	}
+	case ConsoleLineType::Ping:
+	{
+		auto& pingLine = static_cast<const PingLine&>(parsed);
+		if (auto found = FindSteamIDForName(pingLine.GetPlayerName()))
+		{
+			auto& playerData = m_CurrentPlayerData[*found];
+			playerData.m_Status.m_Ping = pingLine.GetPing();
+			playerData.m_LastPingUpdateTime = pingLine.GetTimestamp();
+		}
+
+		break;
+	}
 	case ConsoleLineType::PlayerStatus:
 	{
 		auto& statusLine = static_cast<const ServerStatusPlayerLine&>(parsed);
@@ -704,7 +742,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		}
 
 		playerData.m_Status = newStatus;
-		playerData.m_LastStatusUpdateTime = statusLine.GetTimestamp();
+		playerData.m_LastStatusUpdateTime = playerData.m_LastPingUpdateTime = statusLine.GetTimestamp();
 		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, playerData.m_LastStatusUpdateTime);
 		ProcessDelayedBans(statusLine.GetTimestamp(), newStatus);
 

@@ -12,6 +12,7 @@ namespace tf2_bot_detector
 	{
 		Generic,
 		Chat,
+		Ping,
 		LobbyChanged,
 		LobbyHeader,
 		LobbyMember,

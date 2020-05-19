@@ -19,9 +19,16 @@ namespace tf2_bot_detector
 		ActionManager();
 		~ActionManager();
 
+		void Update(time_point_t curTime);
+
 		// Returns false if the action was not queued
 		bool QueueAction(std::unique_ptr<IAction>&& action);
-		void Update(time_point_t curTime);
+
+		template<typename TAction, typename... TArgs>
+		bool QueueAction(TArgs&&... args)
+		{
+			return QueueAction(std::make_unique<TAction>(std::forward<TArgs>(args)...));
+		}
 
 	private:
 		static void SendCommandToGame(const std::string_view& cmd);

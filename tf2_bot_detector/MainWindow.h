@@ -134,6 +134,7 @@ namespace tf2_bot_detector
 			TFTeam m_Team{};
 			uint8_t m_ClientIndex{};
 			time_point_t m_LastStatusUpdateTime{};
+			time_point_t m_LastPingUpdateTime{};
 			std::vector<PingSample> m_PingHistory{};
 			float GetAveragePing() const;
 

@@ -1,5 +1,6 @@
 #include "PeriodicActionManager.h"
 #include "PeriodicActions.h"
+#include "Log.h"
 
 using namespace tf2_bot_detector;
 
@@ -21,10 +22,19 @@ void PeriodicActionManager::Update(time_point_t curTime)
 {
 	for (auto& action : m_Actions)
 	{
-		if ((curTime - action.m_LastRunTime) >= action.m_Action->GetInterval())
+		const auto interval = action.m_Action->GetInterval();
+		if (action.m_LastRunTime == time_point_t{})
+		{
+			const auto delay = action.m_Action->GetInitialDelay();
+			action.m_LastRunTime = curTime - interval + delay;
+		}
+
+		if ((curTime - action.m_LastRunTime) >= interval)
 		{
 			if (action.m_Action->Execute(m_ActionManager))
 				action.m_LastRunTime = curTime;
+			else
+				Log("Couldn't run action");
 		}
 	}
 }

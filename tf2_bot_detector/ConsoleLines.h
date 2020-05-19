@@ -271,4 +271,24 @@ namespace tf2_bot_detector
 		uint8_t m_Entindex;
 		uint16_t m_BufSize;
 	};
+
+	class PingLine final : public ConsoleLineBase<PingLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		PingLine(time_point_t timestamp, uint16_t ping, std::string playerName);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::Ping; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+		uint16_t GetPing() const { return m_Ping; }
+		const std::string& GetPlayerName() const { return m_PlayerName; }
+
+	private:
+		uint16_t m_Ping{};
+		std::string m_PlayerName;
+	};
 }

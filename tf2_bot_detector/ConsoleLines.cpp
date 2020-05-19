@@ -506,3 +506,27 @@ void EdictUsageLine::Print() const
 {
 	ImGui::Text("edicts  : %u used of %u max", m_UsedEdicts, m_TotalEdicts);
 }
+
+PingLine::PingLine(time_point_t timestamp, uint16_t ping, std::string playerName) :
+	BaseClass(timestamp), m_Ping(ping), m_PlayerName(std::move(playerName))
+{
+}
+
+std::unique_ptr<IConsoleLine> PingLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex( *(\d+) ms : (.{1,32}))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		uint16_t ping;
+		from_chars_throw(result[1], ping);
+		return std::make_unique<PingLine>(timestamp, ping, result[2].str());
+	}
+
+	return nullptr;
+}
+
+void PingLine::Print() const
+{
+	ImGui::Text("%4u : %s", m_Ping, m_PlayerName.c_str());
+}
