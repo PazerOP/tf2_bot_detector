@@ -139,6 +139,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\implot\repo\implot.cpp" />
+    <ClCompile Include="..\implot\repo\implot_demo.cpp" />
     <ClCompile Include="ActionManager.cpp" />
     <ClCompile Include="Actions.cpp" />
     <ClCompile Include="ImGui_TF2BotDetector.cpp" />
@@ -153,6 +155,7 @@
     <ClCompile Include="SteamID.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\implot\repo\implot.h" />
     <ClInclude Include="ActionManager.h" />
     <ClInclude Include="Actions.h" />
     <ClInclude Include="Clock.h" />

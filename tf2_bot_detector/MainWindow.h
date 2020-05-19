@@ -54,6 +54,8 @@ namespace tf2_bot_detector
 
 	private:
 		void OnDraw() override;
+		void OnDrawMenuBar() override;
+		bool HasMenuBar() const override { return true; }
 		void OnDrawScoreboard();
 		void OnDrawScoreboardContextMenu(const SteamID& steamID);
 		void OnDrawChat();

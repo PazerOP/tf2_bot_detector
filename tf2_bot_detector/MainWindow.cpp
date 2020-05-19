@@ -8,6 +8,7 @@
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
+#include <implot.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/case_insensitive_string.hpp>
 
@@ -468,6 +469,34 @@ void MainWindow::OnDraw()
 	OnDrawScoreboard();
 	OnDrawAppLog();
 	ImGui::NextColumn();
+}
+
+void MainWindow::OnDrawMenuBar()
+{
+	if (ImGui::BeginMenu("File"))
+	{
+		ImGui::EndMenu();
+	}
+
+#ifdef _DEBUG
+	static bool s_ImGuiDemoWindow = false;
+	static bool s_ImPlotDemoWindow = false;
+#endif
+	if (ImGui::BeginMenu("Window"))
+	{
+#ifdef _DEBUG
+		ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ImGuiDemoWindow);
+		ImGui::MenuItem("ImPlot Demo Window", nullptr, &s_ImPlotDemoWindow);
+#endif
+		ImGui::EndMenu();
+	}
+
+#ifdef _DEBUG
+	if (s_ImGuiDemoWindow)
+		ImGui::ShowDemoWindow(&s_ImGuiDemoWindow);
+	if (s_ImPlotDemoWindow)
+		ImPlot::ShowDemoWindow(&s_ImPlotDemoWindow);
+#endif
 }
 
 static std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d):[ \n])regex", std::regex::optimize);
