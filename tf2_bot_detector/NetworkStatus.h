@@ -281,7 +281,7 @@ namespace tf2_bot_detector
 		float GetInKBps() const { return GetFloat1(); }
 		float GetOutKBps() const { return GetFloat0(); }
 
-		ConsoleLineType GetType() const override { return ConsoleLineType::NetDataTotal; }
+		ConsoleLineType GetType() const override { return ConsoleLineType::NetDataPerClient; }
 
 		static constexpr const char PRINT_FORMAT_STRING[] =  "           per client out %.1f, in %.1f kB/s";
 		static constexpr const char REGEX_PATTERN[] = R"regex(           per client out (\d+\.\d), in (\d+\.\d) kB\/s)regex";
