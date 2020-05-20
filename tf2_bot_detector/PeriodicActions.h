@@ -16,7 +16,7 @@ namespace tf2_bot_detector
 		virtual ~IPeriodicAction() = default;
 
 		virtual duration_t GetInterval() const = 0;
-		virtual duration_t GetInitialDelay() const;
+		virtual duration_t GetInitialDelay() const { return {}; }
 
 		[[nodiscard]] virtual bool Execute(ActionManager& manager) = 0;
 	};
@@ -30,12 +30,5 @@ namespace tf2_bot_detector
 	private:
 		bool m_NextShort = false;
 		bool m_NextPing = false;
-	};
-
-	class NetStatusAction : public IPeriodicAction
-	{
-	public:
-		duration_t GetInterval() const override;
-		bool Execute(ActionManager& manager) override;
 	};
 }

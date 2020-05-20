@@ -34,14 +34,12 @@ MainWindow::MainWindow() :
 		PlayerList("playerlist_racism.txt"),
 	}
 {
-	//EnableMSAA();
-	//assert(IsMSAAEnabled());
-
 	m_OpenTime = clock_t::now();
 	AddConsoleLineListener(this);
 
 	m_PeriodicActionManager.Add<StatusUpdateAction>();
-	//m_PeriodicActionManager.Add<NetStatusAction>();
+
+	m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 }
 
 MainWindow::~MainWindow()
@@ -673,6 +671,7 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 static const std::regex s_WordRegex(R"regex((\w+))regex", std::regex::optimize);
 void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 {
+	const auto tsComp = GetCurrentTimestampCompensated();
 	const auto ClearLobbyState = [&]
 	{
 		m_CurrentLobbyMembers.clear();
@@ -876,29 +875,29 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 	case ConsoleLineType::NetDataTotal:
 	{
 		auto& netDataLine = static_cast<const NetDataTotalLine&>(parsed);
-		m_NetSamplesIn.m_Data[parsed.GetTimestamp()].AddSample(netDataLine.GetInKBps());
-		m_NetSamplesOut.m_Data[parsed.GetTimestamp()].AddSample(netDataLine.GetOutKBps());
+		m_NetSamplesIn.m_Data[tsComp].AddSample(netDataLine.GetInKBps());
+		m_NetSamplesOut.m_Data[tsComp].AddSample(netDataLine.GetOutKBps());
 		break;
 	}
 	case ConsoleLineType::NetLatency:
 	{
 		auto& netLatencyLine = static_cast<const NetLatencyLine&>(parsed);
-		m_NetSamplesIn.m_Latency[parsed.GetTimestamp()].AddSample(netLatencyLine.GetInLatency());
-		m_NetSamplesOut.m_Latency[parsed.GetTimestamp()].AddSample(netLatencyLine.GetOutLatency());
+		m_NetSamplesIn.m_Latency[tsComp].AddSample(netLatencyLine.GetInLatency());
+		m_NetSamplesOut.m_Latency[tsComp].AddSample(netLatencyLine.GetOutLatency());
 		break;
 	}
 	case ConsoleLineType::NetPacketsTotal:
 	{
 		auto& netPacketsLine = static_cast<const NetPacketsTotalLine&>(parsed);
-		m_NetSamplesIn.m_Packets[parsed.GetTimestamp()].AddSample(netPacketsLine.GetInPacketsPerSecond());
-		m_NetSamplesOut.m_Packets[parsed.GetTimestamp()].AddSample(netPacketsLine.GetOutPacketsPerSecond());
+		m_NetSamplesIn.m_Packets[tsComp].AddSample(netPacketsLine.GetInPacketsPerSecond());
+		m_NetSamplesOut.m_Packets[tsComp].AddSample(netPacketsLine.GetOutPacketsPerSecond());
 		break;
 	}
 	case ConsoleLineType::NetLoss:
 	{
 		auto& netLossLine = static_cast<const NetLossLine&>(parsed);
-		m_NetSamplesIn.m_Loss[parsed.GetTimestamp()].AddSample(netLossLine.GetInLossPercent());
-		m_NetSamplesOut.m_Loss[parsed.GetTimestamp()].AddSample(netLossLine.GetOutLossPercent());
+		m_NetSamplesIn.m_Loss[tsComp].AddSample(netLossLine.GetInLossPercent());
+		m_NetSamplesOut.m_Loss[tsComp].AddSample(netLossLine.GetOutLossPercent());
 		break;
 	}
 	}

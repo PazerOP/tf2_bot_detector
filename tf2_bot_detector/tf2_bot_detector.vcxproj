@@ -159,6 +159,7 @@
     <ClInclude Include="ActionManager.h" />
     <ClInclude Include="Actions.h" />
     <ClInclude Include="Clock.h" />
+    <ClInclude Include="ICommandSource.h" />
     <ClInclude Include="IConsoleLine.h" />
     <ClInclude Include="IConsoleLineListener.h" />
     <ClInclude Include="ImGui_TF2BotDetector.h" />

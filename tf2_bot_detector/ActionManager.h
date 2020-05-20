@@ -30,6 +30,16 @@ namespace tf2_bot_detector
 			return QueueAction(std::make_unique<TAction>(std::forward<TArgs>(args)...));
 		}
 
+		// Whenever another action triggers a send of command(s) to the game, these actions will be
+		// given the chance to add themselves to the
+		void AddPiggybackAction(std::unique_ptr<IAction> action);
+
+		template<typename TAction, typename... TArgs>
+		void AddPiggybackAction(TArgs&&... args)
+		{
+			return AddPiggybackAction(std::make_unique<TAction>(std::forward<TArgs>(args)...));
+		}
+
 	private:
 		static void SendCommandToGame(const std::string_view& cmd);
 
@@ -43,6 +53,7 @@ namespace tf2_bot_detector
 
 		time_point_t m_LastUpdateTime{};
 		std::vector<std::unique_ptr<IAction>> m_Actions;
+		std::vector<std::unique_ptr<IAction>> m_PiggybackActions;
 		std::map<ActionType, time_point_t> m_LastTriggerTime;
 		uint32_t m_LastUpdateIndex = 0;
 	};

@@ -92,6 +92,11 @@ bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 	return true;
 }
 
+void ActionManager::AddPiggybackAction(std::unique_ptr<IAction> action)
+{
+	m_PiggybackActions.push_back(std::move(action));
+}
+
 void ActionManager::Update(time_point_t curTime)
 {
 	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
@@ -101,7 +106,7 @@ void ActionManager::Update(time_point_t curTime)
 	{
 		bool actionTypes[(int)ActionType::COUNT]{};
 
-		struct Writer final : IActionCommandWriter
+		struct Writer final : ICommandWriter
 		{
 			void Write(std::string cmd, std::string args) override
 			{
@@ -124,28 +129,43 @@ void ActionManager::Update(time_point_t curTime)
 
 		} writer;
 
-		for (auto it = m_Actions.begin(); it != m_Actions.end(); )
+		const auto ProcessAction = [&](const IAction* action)
 		{
-			const IAction* action = it->get();
 			const ActionType type = action->GetType();
 			{
 				auto& previousMsg = actionTypes[(int)type];
 				const auto minInterval = action->GetMinInterval();
 
 				if (minInterval.count() > 0 && (previousMsg || (curTime - m_LastTriggerTime[type]) < minInterval))
-				{
-					++it;
-					continue;
-				}
+					return false;
 
 				previousMsg = true;
 			}
 
 			action->WriteCommands(writer);
-			it = m_Actions.erase(it);
+			//it = m_Actions.erase(it);
 			m_LastTriggerTime[type] = curTime;
+			return true;
+		};
+
+		// Handle normal actions
+		for (auto it = m_Actions.begin(); it != m_Actions.end(); )
+		{
+			const IAction* action = it->get();
+			if (ProcessAction(it->get()))
+				it = m_Actions.erase(it);
+			else
+				++it;
 		}
 
+		if (!writer.m_Commands.empty())
+		{
+			// Handle piggyback commands
+			for (const auto& action : m_PiggybackActions)
+				ProcessAction(action.get());
+		}
+
+		// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?
 		if (!writer.m_ComplexCommands)
 		{
 			std::string cmdLine;

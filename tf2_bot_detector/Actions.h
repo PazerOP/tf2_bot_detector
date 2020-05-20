@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Clock.h"
+#include "ICommandSource.h"
 
 #include <cassert>
 #include <cstdint>
@@ -20,16 +21,7 @@ namespace tf2_bot_detector
 		COUNT,
 	};
 
-	class IActionCommandWriter
-	{
-	public:
-		virtual ~IActionCommandWriter() = default;
-
-		virtual void Write(std::string cmd, std::string args) = 0;
-		virtual void Write(std::string cmd) { return Write(cmd, {}); }
-	};
-
-	class IAction
+	class IAction : public ICommandSource
 	{
 	public:
 		virtual ~IAction() = default;
@@ -37,7 +29,6 @@ namespace tf2_bot_detector
 		virtual duration_t GetMinInterval() const { return {}; }
 		virtual ActionType GetType() const = 0;
 		virtual size_t GetMaxQueuedCount() const { return size_t(-1); }
-		virtual void WriteCommands(IActionCommandWriter& writer) const {}
 	};
 
 	class GenericCommandAction : public IAction
@@ -46,7 +37,7 @@ namespace tf2_bot_detector
 		explicit GenericCommandAction(std::string cmd, std::string args = std::string());
 
 		ActionType GetType() const override { return ActionType::GenericCommand; }
-		void WriteCommands(IActionCommandWriter& writer) const;
+		void WriteCommands(ICommandWriter& writer) const;
 
 	private:
 		std::string m_Command;
@@ -59,7 +50,7 @@ namespace tf2_bot_detector
 		ActionType GetType() const override { return ActionType::LobbyUpdate; }
 		duration_t GetMinInterval() const override;
 		size_t GetMaxQueuedCount() const { return 1; }
-		void WriteCommands(IActionCommandWriter& writer) const override;
+		void WriteCommands(ICommandWriter& writer) const override;
 	};
 
 	enum class KickReason

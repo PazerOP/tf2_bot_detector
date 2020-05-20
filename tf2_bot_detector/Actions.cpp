@@ -43,7 +43,7 @@ GenericCommandAction::GenericCommandAction(std::string cmd, std::string args) :
 {
 }
 
-void GenericCommandAction::WriteCommands(IActionCommandWriter& writer) const
+void GenericCommandAction::WriteCommands(ICommandWriter& writer) const
 {
 #if 0
 	if (m_Command == "tf_lobby_debug"sv)
@@ -92,7 +92,7 @@ duration_t LobbyUpdateAction::GetMinInterval() const
 	return 100ms;
 }
 
-void LobbyUpdateAction::WriteCommands(IActionCommandWriter& writer) const
+void LobbyUpdateAction::WriteCommands(ICommandWriter& writer) const
 {
 	writer.Write("tf_lobby_debug");
 }

@@ -36,21 +36,3 @@ bool StatusUpdateAction::Execute(ActionManager& manager)
 
 	return true;
 }
-
-duration_t NetStatusAction::GetInterval() const
-{
-	return 100ms;
-}
-
-bool NetStatusAction::Execute(ActionManager& manager)
-{
-	if (!manager.QueueAction<GenericCommandAction>("net_status"))
-		return false;
-
-	return true;
-}
-
-duration_t IPeriodicAction::GetInitialDelay() const
-{
-	return 0s;
-}
