@@ -479,7 +479,7 @@ void MainWindow::OnDrawServerStats()
 			}, (int)m_ServerPingSamples.size());
 	}
 
-	OnDrawNetGraph();
+	//OnDrawNetGraph();
 }
 
 void MainWindow::OnDraw()
