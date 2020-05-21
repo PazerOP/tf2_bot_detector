@@ -67,7 +67,7 @@ namespace tf2_bot_detector
 		size_t m_ParsedLineCount = 0;
 
 		bool m_IsSleepingEnabled = true;
-		bool IsSleepingEnabled() const override { return m_IsSleepingEnabled; }
+		bool IsSleepingEnabled() const override;
 
 		bool IsTimeEven() const;
 		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
@@ -80,13 +80,35 @@ namespace tf2_bot_detector
 		};
 		std::unique_ptr<FILE, CustomDeleters> m_File;
 		std::string m_FileLineBuf;
-		std::optional<time_point_t> m_CurrentTimestamp;
-		time_point_t m_CurrentTimestampRT;
+
+		// A compensated timestamp. Allows time to appear to progress normally
+		// (with all the sub-second precision offered by clock_t) despite the uneven
+		// pacing of the output from the log file.
+		struct CompensatedTS
+		{
+		public:
+			bool IsRecordedValid() const { return m_Recorded.has_value(); }
+			void SetRecorded(time_point_t recorded);
+
+			void Snapshot();
+			bool IsSnapshotValid() const { return m_Snapshot.has_value(); }
+			time_point_t GetSnapshot() const;
+
+		private:
+			std::optional<time_point_t> m_Recorded;  // real time at instant of recording
+			time_point_t m_Parsed{};                 // real time when the recorded value was read
+			std::optional<time_point_t> m_Snapshot;  // compensated time when Snapshot() was called
+			std::optional<time_point_t> m_PreviousSnapshot;
+
+			mutable bool m_SnapshotUsed = false;
+
+		} m_CurrentTimestamp;
+
 		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
 		bool m_Paused = false;
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
-		time_point_t GetCurrentTimestampCompensated() const;
+		time_point_t GetCurrentTimestampCompensated() const { return m_CurrentTimestamp.GetSnapshot(); }
 
 		size_t m_PrintingLineCount = 0;
 		IConsoleLine* m_PrintingLines[512]{};

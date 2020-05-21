@@ -13,4 +13,23 @@ namespace tf2_bot_detector
 	{
 		return std::chrono::duration_cast<std::chrono::duration<T>>(dur).count();
 	}
+
+	template<typename TClock, typename TClockDuration, typename TDurRep, typename TDurPeriod>
+	inline constexpr std::chrono::time_point<TClock, TClockDuration> round_time_point(
+		const std::chrono::time_point<TClock, TClockDuration>& time,
+		const std::chrono::duration<TDurRep, TDurPeriod>& roundDuration)
+	{
+		const auto clockDur = time.time_since_epoch();
+
+		const auto delta = time.time_since_epoch() % roundDuration;
+
+		const auto floored = time.time_since_epoch() - delta;
+
+		using ret_t = std::chrono::time_point<TClock, TClockDuration>;
+
+		if (delta < (roundDuration / 2))
+			return ret_t(floored);
+		else
+			return ret_t(floored + roundDuration);
+	}
 }

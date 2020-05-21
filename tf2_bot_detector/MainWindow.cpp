@@ -537,9 +537,9 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::BeginMenu("Settings"))
 	{
-		ImGui::MenuItem("No Focus Sleep", nullptr, &m_IsSleepingEnabled);
+		ImGui::MenuItem("Sleep when unfocused", nullptr, &m_IsSleepingEnabled);
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Slows the refresh rate when not focused to reduce CPU/GPU usage.");
+			ImGui::SetTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
 
 		ImGui::EndMenu();
 	}
@@ -562,6 +562,16 @@ void MainWindow::OnUpdate()
 			m_ConsoleLines.clear();
 	}
 
+	bool snapshotUpdated = false;
+	const auto TrySnapshot = [&]()
+	{
+		if (!snapshotUpdated || !m_CurrentTimestamp.IsSnapshotValid())
+		{
+			m_CurrentTimestamp.Snapshot();
+			snapshotUpdated = true;
+		}
+	};
+
 	bool consoleLinesUpdated = false;
 	if (m_File)
 	{
@@ -580,15 +590,19 @@ void MainWindow::OnUpdate()
 				std::smatch match;
 				while (std::regex_search(regexBegin, m_FileLineBuf.cend(), match, s_TimestampRegex))
 				{
-					if (m_CurrentTimestamp)
+					if (m_CurrentTimestamp.IsRecordedValid())
 					{
-						assert(*m_CurrentTimestamp >= time_point_t{});
-						SetLogTimestamp(*m_CurrentTimestamp);
+						// If we have a valid snapshot, that means that there was a previously parsed
+						// timestamp. The contents of that line is the current timestamp match's prefix
+						// (the previous timestamp match was erased from the string)
+
+						TrySnapshot();
+						SetLogTimestamp(m_CurrentTimestamp.GetSnapshot());
 
 						const auto prefix = match.prefix();
 						//const auto suffix = match.suffix();
 						const std::string_view lineStr(&*prefix.first, prefix.length());
-						auto parsed = IConsoleLine::ParseConsoleLine(lineStr, *m_CurrentTimestamp);
+						auto parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
 
 						if (parsed)
 						{
@@ -601,7 +615,7 @@ void MainWindow::OnUpdate()
 						else
 						{
 							for (auto listener : m_ConsoleLineListeners)
-								listener->OnConsoleLineUnparsed(*m_CurrentTimestamp, lineStr);
+								listener->OnConsoleLineUnparsed(m_CurrentTimestamp.GetSnapshot(), lineStr);
 						}
 					}
 
@@ -618,13 +632,7 @@ void MainWindow::OnUpdate()
 					from_chars_throw(match[5], time.tm_min);
 					from_chars_throw(match[6], time.tm_sec);
 
-					m_CurrentTimestamp = clock_t::from_time_t(std::mktime(&time));
-					if (auto now = clock_t::now(); (now - *m_CurrentTimestamp) > 1250ms)
-						m_CurrentTimestampRT = now;
-					else
-						m_CurrentTimestampRT = *m_CurrentTimestamp;
-
-					//m_CurrentTimestampRT = clock_t::now();
+					m_CurrentTimestamp.SetRecorded(clock_t::from_time_t(std::mktime(&time)));
 					regexBegin = match[0].second;
 				}
 
@@ -644,15 +652,20 @@ void MainWindow::OnUpdate()
 			UpdatePrintingLines();
 	}
 
-	const auto curTime = GetCurrentTimestampCompensated();
-	SetLogTimestamp(curTime);
+	TrySnapshot();
+	SetLogTimestamp(m_CurrentTimestamp.GetSnapshot());
 
 	ProcessPlayerActions();
-	m_PeriodicActionManager.Update(curTime);
-	m_ActionManager.Update(curTime);
+	m_PeriodicActionManager.Update(m_CurrentTimestamp.GetSnapshot());
+	m_ActionManager.Update(m_CurrentTimestamp.GetSnapshot());
 
 	if (consoleLinesUpdated)
-		UpdateServerPing(curTime);
+		UpdateServerPing(m_CurrentTimestamp.GetSnapshot());
+}
+
+bool MainWindow::IsSleepingEnabled() const
+{
+	return m_IsSleepingEnabled && !HasFocus();
 }
 
 bool MainWindow::IsTimeEven() const
@@ -671,7 +684,7 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 static const std::regex s_WordRegex(R"regex((\w+))regex", std::regex::optimize);
 void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 {
-	const auto tsComp = GetCurrentTimestampCompensated();
+	//const auto tsComp = GetCurrentTimestampCompensated();
 	const auto ClearLobbyState = [&]
 	{
 		m_CurrentLobbyMembers.clear();
@@ -875,29 +888,33 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 	case ConsoleLineType::NetDataTotal:
 	{
 		auto& netDataLine = static_cast<const NetDataTotalLine&>(parsed);
-		m_NetSamplesIn.m_Data[tsComp].AddSample(netDataLine.GetInKBps());
-		m_NetSamplesOut.m_Data[tsComp].AddSample(netDataLine.GetOutKBps());
+		auto ts = round_time_point(netDataLine.GetTimestamp(), 100ms);
+		m_NetSamplesIn.m_Data[ts].AddSample(netDataLine.GetInKBps());
+		m_NetSamplesOut.m_Data[ts].AddSample(netDataLine.GetOutKBps());
 		break;
 	}
 	case ConsoleLineType::NetLatency:
 	{
 		auto& netLatencyLine = static_cast<const NetLatencyLine&>(parsed);
-		m_NetSamplesIn.m_Latency[tsComp].AddSample(netLatencyLine.GetInLatency());
-		m_NetSamplesOut.m_Latency[tsComp].AddSample(netLatencyLine.GetOutLatency());
+		auto ts = round_time_point(netLatencyLine.GetTimestamp(), 100ms);
+		m_NetSamplesIn.m_Latency[ts].AddSample(netLatencyLine.GetInLatency());
+		m_NetSamplesOut.m_Latency[ts].AddSample(netLatencyLine.GetOutLatency());
 		break;
 	}
 	case ConsoleLineType::NetPacketsTotal:
 	{
 		auto& netPacketsLine = static_cast<const NetPacketsTotalLine&>(parsed);
-		m_NetSamplesIn.m_Packets[tsComp].AddSample(netPacketsLine.GetInPacketsPerSecond());
-		m_NetSamplesOut.m_Packets[tsComp].AddSample(netPacketsLine.GetOutPacketsPerSecond());
+		auto ts = round_time_point(netPacketsLine.GetTimestamp(), 100ms);
+		m_NetSamplesIn.m_Packets[ts].AddSample(netPacketsLine.GetInPacketsPerSecond());
+		m_NetSamplesOut.m_Packets[ts].AddSample(netPacketsLine.GetOutPacketsPerSecond());
 		break;
 	}
 	case ConsoleLineType::NetLoss:
 	{
 		auto& netLossLine = static_cast<const NetLossLine&>(parsed);
-		m_NetSamplesIn.m_Loss[tsComp].AddSample(netLossLine.GetInLossPercent());
-		m_NetSamplesOut.m_Loss[tsComp].AddSample(netLossLine.GetOutLossPercent());
+		auto ts = round_time_point(netLossLine.GetTimestamp(), 100ms);
+		m_NetSamplesIn.m_Loss[ts].AddSample(netLossLine.GetInLossPercent());
+		m_NetSamplesOut.m_Loss[ts].AddSample(netLossLine.GetOutLossPercent());
 		break;
 	}
 	}
@@ -1081,25 +1098,6 @@ void MainWindow::ProcessPlayerActions()
 
 	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
 	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
-}
-
-time_point_t MainWindow::GetCurrentTimestampCompensated() const
-{
-	if (m_CurrentTimestamp)
-	{
-		const auto now = clock_t::now();
-		const auto extra = now - m_CurrentTimestampRT;
-		[[maybe_unused]] const auto extraSeconds = to_seconds(extra);
-		const auto adjustedTS = *m_CurrentTimestamp + extra;
-
-		const auto error = adjustedTS - now;
-		const auto errorSeconds = to_seconds(extra);
-		assert(error <= 1s);
-
-		return std::min(adjustedTS, now);
-	}
-
-	return {};
 }
 
 void MainWindow::UpdatePrintingLines()
@@ -1512,4 +1510,53 @@ void MainWindow::AvgSample::AddSample(float value)
 	m_AvgValue = ((m_AvgValue * m_SampleCount) + value) / (m_SampleCount + 1);
 	m_SampleCount++;
 #endif
+}
+
+void MainWindow::CompensatedTS::SetRecorded(time_point_t recorded)
+{
+	assert(recorded.time_since_epoch() > 0s);
+	m_Recorded = recorded;
+
+	const auto now = clock_t::now();
+	if (m_Snapshot && (now - *m_Snapshot) >= 1s)
+		m_Snapshot.reset();
+
+	if ((now - recorded) > 1250ms)
+		m_Parsed = now;
+	else
+		m_Parsed = recorded;
+}
+
+void MainWindow::CompensatedTS::Snapshot()
+{
+	const auto now = clock_t::now();
+	const auto extra = now - m_Parsed;
+	[[maybe_unused]] const auto extraSeconds = to_seconds(extra);
+	const time_point_t adjustedTS = m_Recorded.value() + extra;
+
+	const auto error = adjustedTS - now;
+	const auto errorSeconds = to_seconds(extra);
+	assert(error <= 1s);
+
+	auto newSnapshot = std::min(adjustedTS, now);
+
+#if 0
+	if (m_SnapshotUsed && m_PreviousSnapshot && newSnapshot < *m_PreviousSnapshot)
+	{
+		// going backwards in time!!!
+		const auto delta = to_seconds(newSnapshot - *m_PreviousSnapshot);
+		assert(delta >= -0.01);
+		newSnapshot = *m_PreviousSnapshot;
+	}
+#endif
+
+	m_Snapshot = newSnapshot;
+	m_PreviousSnapshot = newSnapshot;
+	m_SnapshotUsed = false;
+}
+
+time_point_t MainWindow::CompensatedTS::GetSnapshot() const
+{
+	m_SnapshotUsed = true;
+	return m_Snapshot.value();
 }
