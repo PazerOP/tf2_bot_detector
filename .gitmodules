@@ -7,3 +7,6 @@
 [submodule "implot/repo"]
 	path = implot/repo
 	url = https://github.com/PazerOP/implot.git
+[submodule "submodules/nlohmann_json"]
+	path = submodules/nlohmann_json
+	url = https://github.com/nlohmann/json.git
