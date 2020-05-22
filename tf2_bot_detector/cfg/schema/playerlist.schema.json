@@ -36,7 +36,7 @@
 					"additionalProperties": false,
 					"description": "Information about the last time this player was seen.",
 					"properties": {
-						"name": {
+						"player_name": {
 							"description": "The name this player had the last time they were seen.",
 							"type": "string"
 						},
