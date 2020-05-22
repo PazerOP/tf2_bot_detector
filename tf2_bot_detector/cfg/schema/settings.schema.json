@@ -11,7 +11,7 @@
 		},
 		"local_steamid": {
 			"description": "The SteamID of the player running the tool.",
-			"type": "string"
+			"$ref": "./shared.schema.json#definitions/steamid"
 		},
 		"sleep_when_unfocused": {
 			"description": "If true, the tool reduces its updating FPS when not focused to reduce CPU/GPU usage.",

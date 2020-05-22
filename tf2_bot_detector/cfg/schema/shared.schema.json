@@ -29,6 +29,17 @@
 			"items": {
 				"$ref": "#/definitions/tfbd_player_attributes"
 			}
+		},
+		"steamid": {
+			"oneOf": [
+				{
+					"type": "string",
+					"pattern": "^\\[([a-zA-Z]):\\d:\\d+(?::\\d+)?\\]$"
+				},
+				{
+					"type": "integer"
+				}
+			]
 		}
 	}
 }

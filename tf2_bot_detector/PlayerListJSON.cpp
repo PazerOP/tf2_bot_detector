@@ -160,7 +160,7 @@ void PlayerListJSON::SaveFile() const
 	auto jsonString = json.dump(1, '\t', true);
 	{
 		std::ofstream file(s_PlayerListPath);
-		file << jsonString;
+		file << jsonString << '\n';
 	}
 }
 

@@ -25,7 +25,7 @@
 			"properties": {
 				"steamid": {
 					"description": "The SteamID of the player.",
-					"type": "string"
+					"$ref": "./shared.schema.json#definitions/steamid"
 				},
 				"attributes": {
 					"description": "Attributes applied to the player",
