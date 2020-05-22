@@ -14,7 +14,7 @@
 			"$ref": "./shared.schema.json#definitions/steamid"
 		},
 		"sleep_when_unfocused": {
-			"description": "If true, the tool reduces its updating FPS when not focused to reduce CPU/GPU usage.",
+			"description": "If true, the tool reduces its update rate when not focused to reduce CPU/GPU usage.",
 			"type": "boolean"
 		},
 		"rules": {

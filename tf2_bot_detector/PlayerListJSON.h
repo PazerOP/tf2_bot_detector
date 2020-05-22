@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <map>
+#include <optional>
 
 namespace tf2_bot_detector
 {
@@ -38,9 +39,14 @@ namespace tf2_bot_detector
 
 		SteamID GetSteamID() const { return m_SteamID; }
 
-		std::chrono::system_clock::time_point m_LastSeenTime;
-		std::string m_LastSeenName;
 		PlayerAttributesList m_Attributes;
+
+		struct LastSeen
+		{
+			std::chrono::system_clock::time_point m_Time;
+			std::string m_PlayerName;
+		};
+		std::optional<LastSeen> m_LastSeen;
 
 	private:
 		SteamID m_SteamID;

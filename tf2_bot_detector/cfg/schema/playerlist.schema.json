@@ -44,9 +44,16 @@
 							"description": "The time this player was last seen.",
 							"type": "integer"
 						}
-					}
+					},
+					"required": [
+						"time"
+					]
 				}
-			}
+			},
+			"required": [
+				"steamid",
+				"attributes"
+			]
 		}
 	}
 }

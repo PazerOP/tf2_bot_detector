@@ -35,6 +35,10 @@ namespace tf2_bot_detector
 		if (d.HasAttribute(PlayerAttributes::Racist))
 			j.push_back("racist");
 	}
+	void to_json(nlohmann::json& j, const PlayerListData::LastSeen& d)
+	{
+		j["time"] = std::chrono::duration_cast<std::chrono::seconds>(d.m_Time.time_since_epoch()).count();
+	}
 	void to_json(nlohmann::json& j, const PlayerListData& d)
 	{
 		//j = json{ { "name", p.name }, { "address", p.address }, { "age", p.age } };
@@ -44,6 +48,9 @@ namespace tf2_bot_detector
 			{ "steamid", d.GetSteamID() },
 			{ "attributes", d.m_Attributes }
 		};
+
+		if (d.m_LastSeen)
+			j["last_seen"] = *d.m_LastSeen;
 	}
 
 	void from_json(const nlohmann::json& j, PlayerAttributesList& d)
@@ -68,18 +75,21 @@ namespace tf2_bot_detector
 				throw std::runtime_error("Unknown player attribute type "s << std::quoted(str));
 		}
 	}
+	void from_json(const nlohmann::json& j, PlayerListData::LastSeen& d)
+	{
+		using clock = std::chrono::system_clock;
+		using time_point = clock::time_point;
+		using duration = clock::duration;
+
+		d.m_Time = clock::time_point(clock::duration(j.at("time").get<clock::duration::rep>()));
+		d.m_PlayerName = j.at("player_name").get<std::string>();
+	}
 	void from_json(const nlohmann::json& j, PlayerListData& d)
 	{
 		d.m_Attributes = j.at("attributes").get<PlayerAttributesList>();
 
 		if (auto lastSeen = j.find(""); lastSeen != j.end())
-		{
-			using clock = std::chrono::system_clock;
-			using time_point = clock::time_point;
-			using duration = clock::duration;
-			d.m_LastSeenTime = clock::time_point(clock::duration(lastSeen->at("time").get<clock::duration::rep>()));
-			d.m_LastSeenName = lastSeen->value<std::string>("player_name", "");
-		}
+			lastSeen->get_to(d.m_LastSeen.emplace());
 	}
 	void from_json(const nlohmann::json& j, SteamID& id)
 	{
@@ -89,7 +99,9 @@ namespace tf2_bot_detector
 
 PlayerListJSON::PlayerListJSON()
 {
+	// Immediately load and resave to normalize any formatting
 	LoadFile();
+	SaveFile();
 }
 
 #if 0

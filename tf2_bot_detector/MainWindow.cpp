@@ -33,8 +33,6 @@ MainWindow::MainWindow() :
 	m_PeriodicActionManager.Add<StatusUpdateAction>();
 
 	m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
-
-	m_PlayerList.SaveFile();
 }
 
 MainWindow::~MainWindow()
@@ -1415,15 +1413,26 @@ float MainWindow::GetMaxValue(const std::map<time_point_t, AvgSample>& data)
 
 bool MainWindow::SetPlayerAttribute(const SteamID& id, PlayerAttributes attribute, bool set)
 {
-	const auto result = m_PlayerList.ModifyPlayer(id, [&](PlayerListData& data)
-		{
-			if (data.m_Attributes.SetAttribute(attribute, set))
-				return ModifyPlayerAction::Modified;
+	bool attributeChanged = false;
 
-			return ModifyPlayerAction::NoChanges;
+	m_PlayerList.ModifyPlayer(id, [&](PlayerListData& data)
+		{
+			data.m_Attributes.SetAttribute(attribute, set);
+
+			if (!data.m_LastSeen)
+				data.m_LastSeen.emplace();
+
+			data.m_LastSeen->m_Time = GetCurrentTimestampCompensated();
+			if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
+			{
+				if (auto& name = found->second.m_Status.m_Name; !name.empty())
+					data.m_LastSeen->m_PlayerName = found->second.m_Status.m_Name;
+			}
+
+			return ModifyPlayerAction::Modified;
 		});
 
-	return result != ModifyPlayerResult::NoChanges;
+	return attributeChanged;
 }
 
 bool MainWindow::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const
