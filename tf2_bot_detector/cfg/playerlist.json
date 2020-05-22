@@ -1,0 +1,11 @@
+{
+	"$schema": "./schema/playerlist.schema.json",
+	"players": [
+		{
+			"steamid": "[U:1:97878702]",
+			"attributes": [
+				"suspicious"
+			]
+		}
+	]
+}

@@ -1,5 +1,5 @@
 {
-	"$schema": "./settings.schema.json",
+	"$schema": "./schema/settings.schema.json",
 	"local_steamid": "[U:1:43645661]",
 	"sleep_when_unfocused": true,
 	"rules": [

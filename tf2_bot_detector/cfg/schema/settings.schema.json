@@ -1,7 +1,7 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"$id": "settings_schema.json",
-	"title": "TF2 Bot Detector Settings",
+	"$id": "settings.schema.json",
+	"title": "TF2 Bot Detector Settings Schema",
 	"type": "object",
 	"additionalProperties": false,
 	"properties": {
@@ -128,33 +128,6 @@
 				}
 			}
 		},
-		"tfbd_player_attributes": {
-			"oneOf": [
-				{
-					"description": "A player who uses software to modify the game state to gain an advantage.",
-					"const": "cheater"
-				},
-				{
-					"description": "A player who may or may not be legitimate. Used for keeping tabs on them if they do something more blatant.",
-					"const": "suspicious"
-				},
-				{
-					"description": "A player who abuses bugs to gain an advantage or disrupt the game.",
-					"const": "exploiter"
-				},
-				{
-					"description": "A moron.",
-					"const": "racist"
-				}
-			]
-		},
-		"tfbd_player_attributes_array": {
-			"type": "array",
-			"uniqueItems": true,
-			"items": {
-				"$ref": "#/definitions/tfbd_player_attributes"
-			}
-		},
 		"tfbd_rule": {
 			"type": "object",
 			"additionalProperties": false,
@@ -199,11 +172,11 @@
 					"properties": {
 						"mark": {
 							"description": "What attributes to apply to the player.",
-							"$ref": "#/definitions/tfbd_player_attributes_array"
+							"$ref": "./shared.schema.json#/definitions/tfbd_player_attributes_array"
 						},
 						"unmark": {
 							"description": "What attributes to remove from the player.",
-							"$ref": "#/definitions/tfbd_player_attributes_array"
+							"$ref": "./shared.schema.json#/definitions/tfbd_player_attributes_array"
 						}
 					}
 				}
