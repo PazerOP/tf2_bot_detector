@@ -7,7 +7,7 @@
 
 namespace tf2_bot_detector
 {
-	class PlayerList
+	class [[deprecated("Use PlayerListJSON")]] PlayerList
 	{
 	public:
 		PlayerList(std::filesystem::path filename);

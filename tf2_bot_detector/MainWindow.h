@@ -4,6 +4,7 @@
 #include "ActionManager.h"
 #include "Clock.h"
 #include "PlayerList.h"
+#include "PlayerListJSON.h"
 #include "LobbyMember.h"
 #include "PeriodicActionManager.h"
 #include "PlayerStatus.h"
@@ -30,17 +31,6 @@ namespace tf2_bot_detector
 	{
 		uint16_t m_Kills = 0;
 		uint16_t m_Deaths = 0;
-	};
-
-	enum class PlayerMarkType
-	{
-		// Make sure this order matches the one in MainWindow::MainWindow()
-		Cheater,
-		Suspicious,
-		Exploiter,
-		Racist,
-
-		COUNT,
 	};
 
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener
@@ -203,11 +193,9 @@ namespace tf2_bot_detector
 		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
 		time_point_t m_OpenTime;
-		PlayerList m_PlayerLists[(int)PlayerMarkType::COUNT];
+		PlayerListJSON m_PlayerList;
 		time_point_t m_LastStatusUpdateTime{};
 		time_point_t m_LastCheaterWarningTime{};
-		PlayerList& GetPlayerList(PlayerMarkType type);
-		const PlayerList& GetPlayerList(PlayerMarkType type) const;
 
 		void UpdateServerPing(time_point_t timestamp);
 		std::vector<PingSample> m_ServerPingSamples;
@@ -238,8 +226,8 @@ namespace tf2_bot_detector
 			time_point_t startTime, time_point_t endTime, int yAxis = 0) const;
 		static float GetMaxValue(const std::map<time_point_t, AvgSample>& data);
 
-		bool MarkPlayer(const SteamID& id, PlayerMarkType markType, bool marked = true);
-		bool IsPlayerMarked(const SteamID& id, PlayerMarkType markType) const;
+		bool SetPlayerAttribute(const SteamID& id, PlayerAttributes markType, bool set = true);
+		bool HasPlayerAttribute(const SteamID& id, PlayerAttributes markType) const;
 
 		void InitiateVotekick(const SteamID& id, KickReason reason);
 
@@ -247,22 +235,4 @@ namespace tf2_bot_detector
 		PeriodicActionManager m_PeriodicActionManager;
 		std::set<IConsoleLineListener*> m_ConsoleLineListeners;
 	};
-}
-
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::PlayerMarkType type)
-{
-	using tf2_bot_detector::PlayerMarkType;
-
-	switch (type)
-	{
-	case PlayerMarkType::Cheater:     return os << "PlayerMarkType::Cheater";
-	case PlayerMarkType::Exploiter:   return os << "PlayerMarkType::Exploiter";
-	case PlayerMarkType::Racist:      return os << "PlayerMarkType::Racist";
-	case PlayerMarkType::Suspicious:  return os << "PlayerMarkType::Suspicious";
-
-	default:
-		assert(!"Unknown PlayerMarkType");
-		return os << "<UNKNOWN>";
-	}
 }

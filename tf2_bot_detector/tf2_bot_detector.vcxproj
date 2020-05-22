@@ -152,6 +152,7 @@
     <ClCompile Include="ConsoleLines.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
+    <ClCompile Include="PlayerListJSON.cpp" />
     <ClCompile Include="SteamID.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +172,7 @@
     <ClInclude Include="ConsoleLines.h" />
     <ClInclude Include="LobbyMember.h" />
     <ClInclude Include="MainWindow.h" />
+    <ClInclude Include="PlayerListJSON.h" />
     <ClInclude Include="PlayerStatus.h" />
     <ClInclude Include="RegexHelpers.h" />
     <ClInclude Include="SteamID.h" />

@@ -7,11 +7,14 @@
 using namespace tf2_bot_detector;
 namespace fs = std::filesystem;
 
+#pragma warning(push)
+#pragma warning(disable : 4996)
 PlayerList::PlayerList(fs::path filename) :
 	m_Filename(std::move(filename))
 {
 	LoadFile();
 }
+#pragma warning(pop)
 
 void PlayerList::LoadFile()
 {
