@@ -1,0 +1,218 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "settings_schema.json",
+	"title": "TF2 Bot Detector Settings",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"description": "The JSON schema to validate this file against.",
+			"type": "string"
+		},
+		"local_steamid": {
+			"description": "The SteamID of the player running the tool.",
+			"type": "string"
+		},
+		"sleep_when_unfocused": {
+			"description": "If true, the tool reduces its updating FPS when not focused to reduce CPU/GPU usage.",
+			"type": "boolean"
+		},
+		"rules": {
+			"description": "Defines rules for automatically performing actions on players.",
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/tfbd_rule"
+			}
+		}
+	},
+	"required": [
+		"local_steamid",
+		"sleep_when_unfocused",
+		"rules"
+	],
+	"definitions": {
+		"tfbd_text_match_group": {
+			"oneOf": [
+				{
+					"type": "string",
+					"description": "Matches a single value."
+				},
+				{
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Matches one or multiple values",
+					"properties": {
+						"mode": {
+							"description": "The matching mode.",
+							"enum": [
+								"match_all",
+								"match_any"
+							]
+						},
+						"values": {
+							"type": "array",
+							"description": "List of values to match.",
+							"items": {
+								"$ref": "#/definitions"
+							}
+						}
+					}
+				}
+			]
+		},
+		"tfbd_text_match": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Defines a method of matching text",
+			"properties": {
+				"mode": {
+					"description": "The matching mode.",
+					"oneOf": [
+						{
+							"description": "Text that exactly matches the given value.",
+							"const": "equal"
+						},
+						{
+							"description": "Text contained anywhere in the body of another section of text.",
+							"const": "contains"
+						},
+						{
+							"description": "Text that begins with the given value.",
+							"const": "starts_with"
+						},
+						{
+							"description": "Text that ends with the given value.",
+							"const": "ends_with"
+						},
+						{
+							"description": "Text that matches the given ECMAScript regular expression.",
+							"const": "regex"
+						},
+						{
+							"description": "Text that contains the given word.",
+							"const": "word"
+						}
+					]
+				},
+				"pattern": {
+					"description": "The matching pattern(s). Can be either a string or an array of strings.",
+					"oneOf": [
+						{
+							"description": "The matching pattern.",
+							"type": "string"
+						},
+						{
+							"description": "The matching patterns. If any of these are successful, the entire match is successful.",
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						}
+					]
+				},
+				"case_sensitive": {
+					"type": "boolean",
+					"description": "Controls whether the matching is case sensitive or not.",
+					"default": false
+				}
+			},
+			"required": [
+				"mode",
+				"pattern"
+			],
+			"dependencies": {
+				"equal": {
+					"oneOf": [
+						{}
+					]
+				}
+			}
+		},
+		"tfbd_player_attributes": {
+			"oneOf": [
+				{
+					"description": "A player who uses software to modify the game state to gain an advantage.",
+					"const": "cheater"
+				},
+				{
+					"description": "A player who may or may not be legitimate. Used for keeping tabs on them if they do something more blatant.",
+					"const": "suspicious"
+				},
+				{
+					"description": "A player who abuses bugs to gain an advantage or disrupt the game.",
+					"const": "exploiter"
+				},
+				{
+					"description": "A moron.",
+					"const": "racist"
+				}
+			]
+		},
+		"tfbd_player_attributes_array": {
+			"type": "array",
+			"uniqueItems": true,
+			"items": {
+				"$ref": "#/definitions/tfbd_player_attributes"
+			}
+		},
+		"tfbd_rule": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"description": {
+					"type": "string",
+					"description": "Used to describe this action in the tool."
+				},
+				"triggers": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Determines when this rule should apply.",
+					"properties": {
+						"mode": {
+							"description": "Specifies behavior if there are multiple triggers.",
+							"oneOf": [
+								{
+									"description": "Rule applies when all of the triggers are true.",
+									"const": "match_all"
+								},
+								{
+									"description": "Rule applies when any of the triggers are true.",
+									"const": "match_any"
+								}
+							],
+							"default": "match_all"
+						},
+						"username_text_match": {
+							"$ref": "#/definitions/tfbd_text_match",
+							"description": "Match against the username."
+						},
+						"chatmsg_text_match": {
+							"$ref": "#/definitions/tfbd_text_match",
+							"description": "Match against the username."
+						}
+					}
+				},
+				"actions": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Actions to take when this rule applies.",
+					"properties": {
+						"mark": {
+							"description": "What attributes to apply to the player.",
+							"$ref": "#/definitions/tfbd_player_attributes_array"
+						},
+						"unmark": {
+							"description": "What attributes to remove from the player.",
+							"$ref": "#/definitions/tfbd_player_attributes_array"
+						}
+					}
+				}
+			},
+			"required": [
+				"description",
+				"triggers",
+				"actions"
+			]
+		}
+	}
+}

@@ -1,0 +1,53 @@
+{
+	"$schema": "./settings.schema.json",
+	"local_steamid": "[U:1:43645661]",
+	"sleep_when_unfocused": true,
+	"rules": [
+		{
+			"description": "mygot bots/advertisement",
+			"triggers": {
+				"username_text_match": {
+					"mode": "equal",
+					"pattern": "MYG)T"
+				}
+			},
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			}
+		},
+		{
+			"description": "Generic name-stealing bot",
+			"triggers": {
+				"username_text_match": {
+					"mode": "ends_with",
+					"pattern": "\u200F"
+				}
+			},
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			}
+		},
+		{
+			"description": "Racism",
+			"triggers": {
+				"chatmsg_text_match": {
+					"mode": "word",
+					"pattern": [
+						"nigger",
+						"niggers"
+					],
+					"case_sensitive": false
+				}
+			},
+			"actions": {
+				"mark": [
+					"racist"
+				]
+			}
+		}
+	]
+}
