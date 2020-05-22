@@ -51,13 +51,8 @@ namespace tf2_bot_detector
 		{
 		}
 
-		std::strong_ordering operator<=>(const SteamID& other) const { return ID64 <=> other.ID64; }
-
-#if _MSC_VER == 1925
-		// Workaround for broken spaceship operator==/!=
-		bool operator==(const SteamID& other) const { return std::is_eq(*this <=> other); }
-		bool operator!=(const SteamID& other) const { return std::is_neq(*this <=> other); }
-#endif
+		constexpr std::strong_ordering operator<=>(const SteamID& other) const { return ID64 <=> other.ID64; }
+		constexpr bool operator==(const SteamID& other) const { return std::is_eq(*this <=> other); }
 
 		constexpr bool IsValid() const { return Type != SteamAccountType::Invalid && Universe != SteamAccountUniverse::Invalid; }
 		std::string str() const;
