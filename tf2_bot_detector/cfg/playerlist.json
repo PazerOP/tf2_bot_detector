@@ -381,8 +381,21 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"time": 1590189162
+			},
+			"steamid": "[U:1:1056124618]"
+		},
+		{
+			"attributes": [
+				"cheater",
 				"suspicious"
 			],
+			"last_seen": {
+				"time": 1590189134
+			},
 			"steamid": "[U:1:1056286485]"
 		},
 		{
@@ -407,6 +420,9 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"time": 1590185297
+			},
 			"steamid": "[U:1:1056757188]"
 		},
 		{
@@ -564,6 +580,15 @@
 				"cheater"
 			],
 			"steamid": "[U:1:1083851265]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"time": 1590185676
+			},
+			"steamid": "[U:1:1085343792]"
 		},
 		{
 			"attributes": [
