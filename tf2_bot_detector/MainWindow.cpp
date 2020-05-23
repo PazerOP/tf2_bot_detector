@@ -139,10 +139,13 @@ void MainWindow::OnDrawScoreboard()
 	forceRecalc |= ImGui::DragFloat("Extra width", &extraWidth, 0.5f);
 #endif
 
+	OnDrawScoreboardColorPicker("You", m_Settings.m_Theme.m_Colors.m_ScoreboardYou); ImGui::SameLine();
 	OnDrawScoreboardColorPicker("Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheater); ImGui::SameLine();
 	OnDrawScoreboardColorPicker("Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious); ImGui::SameLine();
 	OnDrawScoreboardColorPicker("Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter); ImGui::SameLine();
-	OnDrawScoreboardColorPicker("Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacist);
+	OnDrawScoreboardColorPicker("Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacist); ImGui::SameLine();
+
+	ImGui::NewLine();
 
 	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
 	//ImGui::SetNextWindowContentSize(ImVec2(500, 0));
@@ -260,9 +263,11 @@ void MainWindow::OnDrawScoreboard()
 				ImGuiDesktop::ScopeGuards::ID idScope((int)player.m_SteamID.Lower32);
 				ImGuiDesktop::ScopeGuards::ID idScope2((int)player.m_SteamID.Upper32);
 
-				std::optional<ImGuiDesktop::ScopeGuards::StyleColor> disabledCol;
+				std::optional<ImGuiDesktop::ScopeGuards::StyleColor> textColor;
 				if (player.m_State != PlayerStatusState::Active || player.m_Name.empty())
-					disabledCol.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
+					textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
+				else if (player.m_SteamID == m_Settings.m_LocalSteamID)
+					textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYou);
 
 				char buf[32];
 				if (player.m_UserID == 0)
@@ -283,7 +288,7 @@ void MainWindow::OnDrawScoreboard()
 						{
 						case TFTeam::Red: return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
 						case TFTeam::Blue: return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
-						default: return ImVec4(0, 0, 0, 0);
+						default: return ImVec4(0.5f, 0.5f, 0.5f, 0);
 						}
 					}();
 
@@ -301,10 +306,10 @@ void MainWindow::OnDrawScoreboard()
 
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 
-					bgColor.w = 0.8f;
+					bgColor.w = std::min(bgColor.w + 0.25f, 0.8f);
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeHovered(ImGuiCol_HeaderHovered, bgColor);
 
-					bgColor.w = 1.0f;
+					bgColor.w = std::min(bgColor.w + 0.5f, 1.0f);
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 					ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
 					ImGui::NextColumn();
@@ -372,7 +377,7 @@ void MainWindow::OnDrawScoreboard()
 				// Steam ID column
 				{
 					if (player.m_SteamID.Type != SteamAccountType::Invalid)
-						disabledCol.reset(); // Draw steamid in normal color
+						textColor.reset(); // Draw steamid in normal color
 
 					ImGui::TextUnformatted(player.m_SteamID.str());
 					ImGui::NextColumn();
@@ -1458,8 +1463,7 @@ bool MainWindow::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribut
 
 std::optional<LobbyMemberTeam> MainWindow::TryGetMyTeam() const
 {
-	static constexpr SteamID s_PazerSID(76561198003911389ull);
-	return FindLobbyMemberTeam(s_PazerSID);
+	return FindLobbyMemberTeam(m_Settings.m_LocalSteamID);
 }
 
 void MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)

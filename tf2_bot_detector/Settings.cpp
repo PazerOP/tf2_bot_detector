@@ -52,6 +52,7 @@ namespace tf2_bot_detector
 			{ "scoreboard_suspicious", d.m_ScoreboardSuspicious },
 			{ "scoreboard_exploiter", d.m_ScoreboardExploiter },
 			{ "scoreboard_racism", d.m_ScoreboardRacist },
+			{ "scoreboard_you", d.m_ScoreboardYou },
 		};
 	}
 
@@ -131,6 +132,7 @@ namespace tf2_bot_detector
 		j.at("scoreboard_suspicious").get_to(d.m_ScoreboardSuspicious);
 		j.at("scoreboard_exploiter").get_to(d.m_ScoreboardExploiter);
 		j.at("scoreboard_racism").get_to(d.m_ScoreboardRacist);
+		j.at("scoreboard_you").get_to(d.m_ScoreboardYou);
 	}
 
 	void from_json(const nlohmann::json& j, Settings::Theme& d)

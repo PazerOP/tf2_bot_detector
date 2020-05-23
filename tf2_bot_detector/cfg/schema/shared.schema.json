@@ -39,7 +39,13 @@
 				"description": "Channel intensity.",
 				"minimum": 0,
 				"maximum": 1
-			}
+			},
+			"default": [
+				1.0,
+				1.0,
+				1.0,
+				1.0
+			]
 		},
 		"steamid": {
 			"oneOf": [

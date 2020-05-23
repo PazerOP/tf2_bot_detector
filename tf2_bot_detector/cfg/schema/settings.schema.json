@@ -40,10 +40,24 @@
 						"scoreboard_exploiter": {
 							"$ref": "./shared.schema.json#definitions/color",
 							"description": "Color to flash rows on the scoreboard for players marked as racist."
+						},
+						"scoreboard_you": {
+							"$ref": "./shared.schema.json#definitions/color",
+							"description": "Color to highlight your SteamID on the scoreboard."
 						}
-					}
+					},
+					"required": [
+						"scoreboard_racism",
+						"scoreboard_cheater",
+						"scoreboard_suspicious",
+						"scoreboard_exploiter",
+						"scoreboard_you"
+					]
 				}
-			}
+			},
+			"required": [
+				"colors"
+			]
 		},
 		"rules": {
 			"description": "Defines rules for automatically performing actions on players.",

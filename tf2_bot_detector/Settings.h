@@ -52,6 +52,7 @@ namespace tf2_bot_detector
 				float m_ScoreboardSuspicious[4] = { 1, 1, 0, 1 };
 				float m_ScoreboardExploiter[4] = { 0, 1, 1, 1 };
 				float m_ScoreboardRacist[4] = { 1, 1, 1, 1 };
+				float m_ScoreboardYou[4] = { 0.5, 1, 0.5, 1 };
 			} m_Colors;
 
 		} m_Theme;
