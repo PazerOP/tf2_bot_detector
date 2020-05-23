@@ -5,6 +5,7 @@
 #include "Clock.h"
 #include "PlayerList.h"
 #include "PlayerListJSON.h"
+#include "Settings.h"
 #include "LobbyMember.h"
 #include "PeriodicActionManager.h"
 #include "PlayerStatus.h"
@@ -47,6 +48,7 @@ namespace tf2_bot_detector
 		void OnDrawMenuBar() override;
 		bool HasMenuBar() const override { return true; }
 		void OnDrawScoreboard();
+		void OnDrawScoreboardColorPicker(const char* name_id, float color[4]);
 		void OnDrawScoreboardContextMenu(const SteamID& steamID);
 		void OnDrawChat();
 		void OnDrawAppLog();
@@ -56,7 +58,6 @@ namespace tf2_bot_detector
 		void OnUpdate() override;
 		size_t m_ParsedLineCount = 0;
 
-		bool m_IsSleepingEnabled = true;
 		bool IsSleepingEnabled() const override;
 
 		bool IsTimeEven() const;
@@ -221,6 +222,8 @@ namespace tf2_bot_detector
 		std::pair<time_point_t, time_point_t> GetNetSamplesRange() const;
 		void PruneNetSamples(time_point_t& startTime, time_point_t& endTime);
 		static constexpr duration_t NET_GRAPH_DURATION = std::chrono::seconds(30);
+
+		Settings m_Settings;
 
 		void PlotNetSamples(const char* label_id, const std::map<time_point_t, AvgSample>& data,
 			time_point_t startTime, time_point_t endTime, int yAxis = 0) const;

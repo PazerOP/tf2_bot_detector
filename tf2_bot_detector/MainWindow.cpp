@@ -115,6 +115,12 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 	}
 }
 
+void MainWindow::OnDrawScoreboardColorPicker(const char* name, float color[4])
+{
+	if (ImGui::ColorEdit4(name, color, ImGuiColorEditFlags_NoInputs))
+		m_Settings.SaveFile();
+}
+
 void MainWindow::OnDrawScoreboard()
 {
 	static float frameWidth, contentWidth, windowContentWidth, windowWidth;
@@ -133,14 +139,10 @@ void MainWindow::OnDrawScoreboard()
 	forceRecalc |= ImGui::DragFloat("Extra width", &extraWidth, 0.5f);
 #endif
 
-	static ImVec4 cheaterColor{ 1, 0, 1, 1 };
-	static ImVec4 suspiciousColor{ 1, 1, 0, 1 };
-	static ImVec4 exploiterColor{ 0, 1, 1, 1 };
-	static ImVec4 racistColor{ 1, 1, 1, 1 };
-	ImGui::ColorEdit4("Cheater", &cheaterColor.x, ImGuiColorEditFlags_NoInputs); ImGui::SameLine();
-	ImGui::ColorEdit4("Suspicious", &suspiciousColor.x, ImGuiColorEditFlags_NoInputs); ImGui::SameLine();
-	ImGui::ColorEdit4("Exploiter", &exploiterColor.x, ImGuiColorEditFlags_NoInputs); ImGui::SameLine();
-	ImGui::ColorEdit4("Racist", &racistColor.x, ImGuiColorEditFlags_NoInputs);
+	OnDrawScoreboardColorPicker("Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheater); ImGui::SameLine();
+	OnDrawScoreboardColorPicker("Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious); ImGui::SameLine();
+	OnDrawScoreboardColorPicker("Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter); ImGui::SameLine();
+	OnDrawScoreboardColorPicker("Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacist);
 
 	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
 	//ImGui::SetNextWindowContentSize(ImVec2(500, 0));
@@ -288,13 +290,13 @@ void MainWindow::OnDrawScoreboard()
 					if (const PlayerAttributesList* attributes = m_PlayerList.FindPlayerAttributes(player.m_SteamID))
 					{
 						if (attributes->HasAttribute(PlayerAttributes::Cheater))
-							bgColor = mh::lerp(TimeSine(), bgColor, cheaterColor);
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheater));
 						else if (attributes->HasAttribute(PlayerAttributes::Suspicious))
-							bgColor = mh::lerp(TimeSine(), bgColor, suspiciousColor);
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious));
 						else if (attributes->HasAttribute(PlayerAttributes::Exploiter))
-							bgColor = mh::lerp(TimeSine(), bgColor, exploiterColor);
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter));
 						else if (attributes->HasAttribute(PlayerAttributes::Racist))
-							bgColor = mh::lerp(TimeSine(), bgColor, racistColor);
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacist));
 					}
 
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
@@ -543,7 +545,9 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::BeginMenu("Settings"))
 	{
-		ImGui::MenuItem("Sleep when unfocused", nullptr, &m_IsSleepingEnabled);
+		if (ImGui::MenuItem("Sleep when unfocused", nullptr, &m_Settings.m_SleepWhenUnfocused))
+			m_Settings.SaveFile();
+
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
 
@@ -671,7 +675,7 @@ void MainWindow::OnUpdate()
 
 bool MainWindow::IsSleepingEnabled() const
 {
-	return m_IsSleepingEnabled && !HasFocus();
+	return m_Settings.m_SleepWhenUnfocused && !HasFocus();
 }
 
 bool MainWindow::IsTimeEven() const

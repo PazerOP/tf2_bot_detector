@@ -2,6 +2,7 @@
 #include "RegexHelpers.h"
 
 #include <mh/text/string_insertion.hpp>
+#include <nlohmann/json.hpp>
 
 #include <regex>
 #include <stdexcept>
@@ -80,4 +81,14 @@ std::string SteamID::str() const
 	std::string retVal;
 	retVal << *this;
 	return retVal;
+}
+
+void tf2_bot_detector::to_json(nlohmann::json& j, const SteamID& d)
+{
+	j = d.str();
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, SteamID& d)
+{
+	d = SteamID(j.get<std::string_view>());
 }

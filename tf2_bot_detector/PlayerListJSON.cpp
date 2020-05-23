@@ -15,10 +15,6 @@ static std::filesystem::path s_PlayerListPath("cfg/playerlist.json");
 
 namespace tf2_bot_detector
 {
-	void to_json(nlohmann::json& j, const SteamID& d)
-	{
-		j = d.str();
-	}
 	void to_json(nlohmann::json& j, const PlayerAttributesList& d)
 	{
 		if (!j.is_array())
@@ -87,14 +83,16 @@ namespace tf2_bot_detector
 	}
 	void from_json(const nlohmann::json& j, PlayerListData& d)
 	{
+		if (SteamID sid = j.at("steamid"); d.GetSteamID() != sid)
+		{
+			throw std::runtime_error("Mismatch between target PlayerListData SteamID ("s
+				<< d.GetSteamID() << ") and json SteamID (" << sid << ')');
+		}
+
 		d.m_Attributes = j.at("attributes").get<PlayerAttributesList>();
 
 		if (auto lastSeen = j.find("last_seen"); lastSeen != j.end())
 			lastSeen->get_to(d.m_LastSeen.emplace());
-	}
-	void from_json(const nlohmann::json& j, SteamID& id)
-	{
-		id = SteamID(j.get<std::string_view>());
 	}
 }
 
@@ -148,7 +146,6 @@ void PlayerListJSON::LoadFile()
 
 	m_Players.clear();
 
-	const auto& players = json.at("players");
 	for (const auto& player : json.at("players"))
 	{
 		const SteamID steamID(player.at("steamid").get<std::string>());

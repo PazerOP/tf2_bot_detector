@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <cassert>
 #include <compare>
 #include <functional>
@@ -75,6 +77,9 @@ namespace tf2_bot_detector
 		};
 	};
 	static_assert(sizeof(SteamID) == sizeof(uint64_t));
+
+	void to_json(nlohmann::json& j, const SteamID& d);
+	void from_json(const nlohmann::json& j, SteamID& d);
 }
 
 namespace std

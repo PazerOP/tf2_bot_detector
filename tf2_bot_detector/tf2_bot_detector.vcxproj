@@ -153,6 +153,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="PlayerListJSON.cpp" />
+    <ClCompile Include="Settings.cpp" />
     <ClCompile Include="SteamID.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -175,6 +176,7 @@
     <ClInclude Include="PlayerListJSON.h" />
     <ClInclude Include="PlayerStatus.h" />
     <ClInclude Include="RegexHelpers.h" />
+    <ClInclude Include="Settings.h" />
     <ClInclude Include="SteamID.h" />
     <ClInclude Include="TFConstants.h" />
   </ItemGroup>
