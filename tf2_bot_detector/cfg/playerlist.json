@@ -238,8 +238,13 @@
 		},
 		{
 			"attributes": [
+				"cheater",
 				"suspicious"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU QUA\u200fCK\u200f\u200f\u200f",
+				"time": 1590227576
+			},
 			"steamid": "[U:1:1002031425]"
 		},
 		{
@@ -252,12 +257,20 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YO\u200fU QUACK\u200f\u200f",
+				"time": 1590230796
+			},
 			"steamid": "[U:1:1002098410]"
 		},
 		{
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU\u200f QUACK\u200f\u200f",
+				"time": 1590227698
+			},
 			"steamid": "[U:1:1002106170]"
 		},
 		{
@@ -294,6 +307,16 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU QUAC\u200fK\u200f\u200f\u200f",
+				"time": 1590229626
+			},
+			"steamid": "[U:1:1002181117]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:1002274368]"
 		},
 		{
@@ -306,12 +329,20 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN\u200f YOU QUACK\u200f\u200f",
+				"time": 1590227317
+			},
 			"steamid": "[U:1:1002344275]"
 		},
 		{
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU Q\u200fUACK\u200f\u200f\u200f",
+				"time": 1590227637
+			},
 			"steamid": "[U:1:1002346104]"
 		},
 		{
@@ -325,6 +356,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU\u200f QUACK\u200f\u200f\u200f",
+				"time": 1590227686
+			},
 			"steamid": "[U:1:1002545563]"
 		},
 		{
@@ -508,6 +543,20 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN \u200fYOU QUACK\u200f",
+				"time": 1590230156
+			},
+			"steamid": "[U:1:1057483213]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "CAN YOU\u200f QUACK\u200f",
+				"time": 1590227540
+			},
 			"steamid": "[U:1:1057553722]"
 		},
 		{
@@ -520,24 +569,40 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU Q\u200fUACK\u200f",
+				"time": 1590227342
+			},
 			"steamid": "[U:1:1057902377]"
 		},
 		{
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU QU\u200fACK\u200f\u200f",
+				"time": 1590227428
+			},
 			"steamid": "[U:1:1058591317]"
 		},
 		{
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU QUA\u200fCK\u200f\u200f",
+				"time": 1590227809
+			},
 			"steamid": "[U:1:1058753409]"
 		},
 		{
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU QUAC\u200fK\u200f\u200f",
+				"time": 1590230094
+			},
 			"steamid": "[U:1:1058764764]"
 		},
 		{
@@ -556,6 +621,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CAN YOU QUACK\u200f\u200f\u200f",
+				"time": 1590227514
+			},
 			"steamid": "[U:1:1058945715]"
 		},
 		{
@@ -568,6 +637,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "CA\u200fN YOU QUACK\u200f",
+				"time": 1590227649
+			},
 			"steamid": "[U:1:1059203591]"
 		},
 		{
