@@ -132,6 +132,8 @@
 						{
 							"description": "The matching patterns. If any of these are successful, the entire match is successful.",
 							"type": "array",
+							"minItems": 1,
+							"uniqueItems": true,
 							"items": {
 								"type": "string"
 							}
@@ -147,14 +149,7 @@
 			"required": [
 				"mode",
 				"pattern"
-			],
-			"dependencies": {
-				"equal": {
-					"oneOf": [
-						{}
-					]
-				}
-			}
+			]
 		},
 		"tfbd_rule": {
 			"type": "object",
