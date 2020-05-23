@@ -45,12 +45,13 @@ namespace tf2_bot_detector
 	}
 	void to_json(nlohmann::json& j, const PlayerListData::LastSeen& d)
 	{
+		if (!d.m_PlayerName.empty())
+			j["player_name"] = d.m_PlayerName;
+
 		j["time"] = std::chrono::duration_cast<std::chrono::seconds>(d.m_Time.time_since_epoch()).count();
 	}
 	void to_json(nlohmann::json& j, const PlayerListData& d)
 	{
-		//j = json{ { "name", p.name }, { "address", p.address }, { "age", p.age } };
-
 		j = nlohmann::json
 		{
 			{ "steamid", d.GetSteamID() },
