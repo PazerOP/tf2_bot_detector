@@ -133,6 +133,15 @@ void MainWindow::OnDrawScoreboard()
 	forceRecalc |= ImGui::DragFloat("Extra width", &extraWidth, 0.5f);
 #endif
 
+	static ImVec4 cheaterColor{ 1, 0, 1, 1 };
+	static ImVec4 suspiciousColor{ 1, 1, 0, 1 };
+	static ImVec4 exploiterColor{ 0, 1, 1, 1 };
+	static ImVec4 racistColor{ 1, 1, 1, 1 };
+	ImGui::ColorEdit4("Cheater", &cheaterColor.x, ImGuiColorEditFlags_NoInputs); ImGui::SameLine();
+	ImGui::ColorEdit4("Suspicious", &suspiciousColor.x, ImGuiColorEditFlags_NoInputs); ImGui::SameLine();
+	ImGui::ColorEdit4("Exploiter", &exploiterColor.x, ImGuiColorEditFlags_NoInputs); ImGui::SameLine();
+	ImGui::ColorEdit4("Racist", &racistColor.x, ImGuiColorEditFlags_NoInputs);
+
 	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
 	//ImGui::SetNextWindowContentSize(ImVec2(500, 0));
 	if (ImGui::BeginChild("Scoreboard", { 0, ImGui::GetContentRegionAvail().y / 2 }, true, ImGuiWindowFlags_HorizontalScrollbar))
@@ -279,13 +288,13 @@ void MainWindow::OnDrawScoreboard()
 					if (const PlayerAttributesList* attributes = m_PlayerList.FindPlayerAttributes(player.m_SteamID))
 					{
 						if (attributes->HasAttribute(PlayerAttributes::Cheater))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 0, 1, 1));
+							bgColor = mh::lerp(TimeSine(), bgColor, cheaterColor);
 						else if (attributes->HasAttribute(PlayerAttributes::Suspicious))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 1, 0, 1));
+							bgColor = mh::lerp(TimeSine(), bgColor, suspiciousColor);
 						else if (attributes->HasAttribute(PlayerAttributes::Exploiter))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(0, 1, 1, 1));
+							bgColor = mh::lerp(TimeSine(), bgColor, exploiterColor);
 						else if (attributes->HasAttribute(PlayerAttributes::Racist))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(1, 1, 1, 1));
+							bgColor = mh::lerp(TimeSine(), bgColor, racistColor);
 					}
 
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);

@@ -17,6 +17,34 @@
 			"description": "If true, the tool reduces its update rate when not focused to reduce CPU/GPU usage.",
 			"type": "boolean"
 		},
+		"theme": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"colors": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"scoreboard_racism": {
+							"$ref": "./shared.schema.json#definitions/color",
+							"description": "Color to flash rows on the scoreboard for players marked as racist."
+						},
+						"scoreboard_cheater": {
+							"$ref": "./shared.schema.json#definitions/color",
+							"description": "Color to flash rows on the scoreboard for players marked as cheaters."
+						},
+						"scoreboard_suspicious": {
+							"$ref": "./shared.schema.json#definitions/color",
+							"description": "Color to flash rows on the scoreboard for players marked as racist."
+						},
+						"scoreboard_exploiter": {
+							"$ref": "./shared.schema.json#definitions/color",
+							"description": "Color to flash rows on the scoreboard for players marked as racist."
+						}
+					}
+				}
+			}
+		},
 		"rules": {
 			"description": "Defines rules for automatically performing actions on players.",
 			"type": "array",

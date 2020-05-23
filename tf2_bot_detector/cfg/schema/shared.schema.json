@@ -30,6 +30,17 @@
 				"$ref": "#/definitions/tfbd_player_attributes"
 			}
 		},
+		"color": {
+			"type": "array",
+			"minItems": 3,
+			"maxItems": 4,
+			"items": {
+				"type":"number",
+				"description": "Channel intensity.",
+				"minimum": 0,
+				"maximum": 1
+			}
+		},
 		"steamid": {
 			"oneOf": [
 				{

@@ -2,6 +2,14 @@
 	"$schema": "./schema/settings.schema.json",
 	"local_steamid": "[U:1:43645661]",
 	"sleep_when_unfocused": true,
+	"theme": {
+		"colors": {
+			"scoreboard_racism": [1.0, 1.0, 1.0, 1.0],
+			"scoreboard_cheater": [1.0, 0.0, 1.0, 1.0],
+			"scoreboard_suspicious": [1.0, 1.0, 0.0, 1.0],
+			"scoreboard_exploiter": [0.0, 1.0, 1.0, 1.0]
+		}
+	},
 	"rules": [
 		{
 			"description": "mygot bots/advertisement",
