@@ -80,15 +80,16 @@ namespace tf2_bot_detector
 		using clock = std::chrono::system_clock;
 		using time_point = clock::time_point;
 		using duration = clock::duration;
+		using seconds = std::chrono::seconds;
 
-		d.m_Time = clock::time_point(clock::duration(j.at("time").get<clock::duration::rep>()));
-		d.m_PlayerName = j.at("player_name").get<std::string>();
+		d.m_Time = clock::time_point(seconds(j.at("time").get<seconds::rep>()));
+		d.m_PlayerName = j.value("player_name", "");
 	}
 	void from_json(const nlohmann::json& j, PlayerListData& d)
 	{
 		d.m_Attributes = j.at("attributes").get<PlayerAttributesList>();
 
-		if (auto lastSeen = j.find(""); lastSeen != j.end())
+		if (auto lastSeen = j.find("last_seen"); lastSeen != j.end())
 			lastSeen->get_to(d.m_LastSeen.emplace());
 	}
 	void from_json(const nlohmann::json& j, SteamID& id)
