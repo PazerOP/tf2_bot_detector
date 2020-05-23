@@ -2,6 +2,8 @@
 
 #include "SteamID.h"
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <chrono>
 #include <map>
 #include <optional>
@@ -97,6 +99,9 @@ namespace tf2_bot_detector
 	private:
 		std::map<SteamID, PlayerListData> m_Players;
 	};
+
+	void to_json(nlohmann::json& j, const PlayerAttributes& d);
+	void from_json(const nlohmann::json& j, PlayerAttributes& d);
 }
 
 template<typename CharT, typename Traits>

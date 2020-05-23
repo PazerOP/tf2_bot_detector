@@ -1,61 +1,83 @@
 {
 	"$schema": "./schema/settings.schema.json",
 	"local_steamid": "[U:1:43645661]",
-	"sleep_when_unfocused": true,
-	"theme": {
-		"colors": {
-			"scoreboard_racism": [1.0, 1.0, 1.0, 1.0],
-			"scoreboard_cheater": [1.0, 0.0, 1.0, 1.0],
-			"scoreboard_suspicious": [1.0, 1.0, 0.0, 1.0],
-			"scoreboard_exploiter": [0.0, 1.0, 1.0, 1.0]
-		}
-	},
 	"rules": [
 		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "mygot bots/advertisement",
 			"triggers": {
 				"username_text_match": {
+					"case_sensitive": false,
 					"mode": "equal",
 					"pattern": "MYG)T"
 				}
-			},
+			}
+		},
+		{
 			"actions": {
 				"mark": [
 					"cheater"
 				]
-			}
-		},
-		{
+			},
 			"description": "Generic name-stealing bot",
 			"triggers": {
 				"username_text_match": {
+					"case_sensitive": false,
 					"mode": "ends_with",
-					"pattern": "\u200F"
+					"pattern": "\u200f"
 				}
-			},
-			"actions": {
-				"mark": [
-					"cheater"
-				]
 			}
 		},
 		{
-			"description": "Racism",
-			"triggers": {
-				"chatmsg_text_match": {
-					"mode": "word",
-					"pattern": [
-						"nigger",
-						"niggers"
-					],
-					"case_sensitive": false
-				}
-			},
 			"actions": {
 				"mark": [
 					"racist"
 				]
+			},
+			"description": "Racism",
+			"triggers": {
+				"chatmsg_text_match": {
+					"case_sensitive": false,
+					"mode": "word",
+					"pattern": [
+						"nigger",
+						"niggers"
+					]
+				}
 			}
 		}
-	]
+	],
+	"sleep_when_unfocused": true,
+	"theme": {
+		"colors": {
+			"scoreboard_cheater": [
+				1.0,
+				0.0,
+				1.0,
+				1.0
+			],
+			"scoreboard_exploiter": [
+				0.0,
+				1.0,
+				1.0,
+				1.0
+			],
+			"scoreboard_racism": [
+				1.0,
+				1.0,
+				1.0,
+				1.0
+			],
+			"scoreboard_suspicious": [
+				1.0,
+				1.0,
+				0.0,
+				1.0
+			]
+		}
+	}
 }

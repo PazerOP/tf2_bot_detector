@@ -15,6 +15,20 @@ static std::filesystem::path s_PlayerListPath("cfg/playerlist.json");
 
 namespace tf2_bot_detector
 {
+	void to_json(nlohmann::json& j, const PlayerAttributes& d)
+	{
+		switch (d)
+		{
+		case PlayerAttributes::Cheater:     j = "cheater"; break;
+		case PlayerAttributes::Suspicious:  j = "suspicious"; break;
+		case PlayerAttributes::Exploiter:   j = "exploiter"; break;
+		case PlayerAttributes::Racist:      j = "racist"; break;
+
+		default:
+			throw std::runtime_error("Unknown PlayerAttributes value "s << +std::underlying_type_t<PlayerAttributes>(d));
+		}
+	}
+
 	void to_json(nlohmann::json& j, const PlayerAttributesList& d)
 	{
 		if (!j.is_array())
@@ -22,14 +36,12 @@ namespace tf2_bot_detector
 		else
 			j.clear();
 
-		if (d.HasAttribute(PlayerAttributes::Cheater))
-			j.push_back("cheater");
-		if (d.HasAttribute(PlayerAttributes::Suspicious))
-			j.push_back("suspicious");
-		if (d.HasAttribute(PlayerAttributes::Exploiter))
-			j.push_back("exploiter");
-		if (d.HasAttribute(PlayerAttributes::Racist))
-			j.push_back("racist");
+		using ut = std::underlying_type_t<PlayerAttributes>;
+		for (ut i = 0; i < ut(PlayerAttributes::COUNT); i++)
+		{
+			if (d.HasAttribute(PlayerAttributes(i)))
+				j.push_back(PlayerAttributes(i));
+		}
 	}
 	void to_json(nlohmann::json& j, const PlayerListData::LastSeen& d)
 	{
@@ -49,6 +61,20 @@ namespace tf2_bot_detector
 			j["last_seen"] = *d.m_LastSeen;
 	}
 
+	void from_json(const nlohmann::json& j, PlayerAttributes& d)
+	{
+		const auto& str = j.get<std::string_view>();
+		if (str == "suspicious"sv)
+			d = PlayerAttributes::Suspicious;
+		else if (str == "cheater"sv)
+			d = PlayerAttributes::Cheater;
+		else if (str == "exploiter"sv)
+			d = PlayerAttributes::Exploiter;
+		else if (str == "racist"sv)
+			d = PlayerAttributes::Racist;
+		else
+			throw std::runtime_error("Unknown player attribute type "s << std::quoted(str));
+	}
 	void from_json(const nlohmann::json& j, PlayerAttributesList& d)
 	{
 		d = {};
@@ -57,19 +83,7 @@ namespace tf2_bot_detector
 			throw std::invalid_argument("json must be an array");
 
 		for (const auto& attribute : j)
-		{
-			const auto& str = attribute.get<std::string_view>();
-			if (str == "suspicious"sv)
-				d.SetAttribute(PlayerAttributes::Suspicious);
-			else if (str == "cheater"sv)
-				d.SetAttribute(PlayerAttributes::Cheater);
-			else if (str == "exploiter"sv)
-				d.SetAttribute(PlayerAttributes::Exploiter);
-			else if (str == "racist"sv)
-				d.SetAttribute(PlayerAttributes::Racist);
-			else
-				throw std::runtime_error("Unknown player attribute type "s << std::quoted(str));
-		}
+			d.SetAttribute(attribute);
 	}
 	void from_json(const nlohmann::json& j, PlayerListData::LastSeen& d)
 	{
