@@ -4,6 +4,7 @@
 #include "Log.h"
 #include "Settings.h"
 
+#include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <filesystem>
@@ -227,7 +228,7 @@ void ActionManager::Update(time_point_t curTime)
 	m_LastUpdateTime = curTime;
 }
 
-bool ActionManager::SendCommandToGame(const std::string_view& cmd)
+bool ActionManager::SendCommandToGame(const std::string_view& cmd) const
 {
 	if (cmd.empty())
 		return true;
@@ -238,17 +239,18 @@ bool ActionManager::SendCommandToGame(const std::string_view& cmd)
 		return false;
 	}
 
-	static constexpr const char HL2_DIR[] = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\";
+	const std::filesystem::path hl2Dir = m_Settings->m_TFDir / "..";
+	const std::filesystem::path hl2ExePath = hl2Dir / "hl2.exe";
 
-	std::string cmdLine;
-	cmdLine << '"' << HL2_DIR << "hl2.exe\" -game tf -hijack " << cmd;
+	std::wstring cmdLine;
+	cmdLine << hl2ExePath << " -game tf -hijack " << cmd;
 
-	STARTUPINFOA si{};
+	STARTUPINFOW si{};
 	si.cb = sizeof(si);
 
 	PROCESS_INFORMATION pi{};
 
-	auto result = CreateProcessA(
+	auto result = CreateProcessW(
 		nullptr,             // application/module name
 		cmdLine.data(),      // command line
 		nullptr,             // process attributes
@@ -256,7 +258,7 @@ bool ActionManager::SendCommandToGame(const std::string_view& cmd)
 		FALSE,               // inherit handles
 		IDLE_PRIORITY_CLASS, // creation flags
 		nullptr,             // environment
-		HL2_DIR,             // working directory
+		hl2Dir.c_str(),      // working directory
 		&si,                 // STARTUPINFO
 		&pi                  // PROCESS_INFORMATION
 		);
