@@ -121,11 +121,16 @@ void ActionManager::Update(time_point_t curTime)
 				if (!m_ComplexCommands && !std::all_of(args.begin(), args.end(), [](char c) { return isalpha(c) || isdigit(c) || isspace(c); }))
 					m_ComplexCommands = true;
 
+				m_CommandArgCount++;
+				if (!args.empty())
+					m_CommandArgCount++;
+
 				m_Commands.push_back({ std::move(cmd), std::move(args) });
 			}
 
 			std::vector<std::pair<std::string, std::string>> m_Commands;
 			bool m_ComplexCommands = false;
+			size_t m_CommandArgCount = 0;
 
 		} writer;
 
@@ -166,7 +171,7 @@ void ActionManager::Update(time_point_t curTime)
 		}
 
 		// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?
-		if (!writer.m_ComplexCommands)
+		if (!writer.m_ComplexCommands && writer.m_CommandArgCount < 200)
 		{
 			std::string cmdLine;
 			bool firstCmd = true;
@@ -203,7 +208,7 @@ void ActionManager::Update(time_point_t curTime)
 			// More complicated, write out a file and exec it
 			const std::string cfgFilename = ""s << ++m_LastUpdateIndex << ".cfg";
 			auto globalPath = absolute_cfg_temp();
-			std::filesystem::create_directories(globalPath); // TODO: this is not ok for release
+			std::filesystem::create_directories(globalPath);
 			globalPath /= cfgFilename;
 			{
 				std::ofstream file(globalPath, std::ios_base::trunc);
@@ -222,15 +227,15 @@ void ActionManager::Update(time_point_t curTime)
 	m_LastUpdateTime = curTime;
 }
 
-void ActionManager::SendCommandToGame(const std::string_view& cmd)
+bool ActionManager::SendCommandToGame(const std::string_view& cmd)
 {
 	if (cmd.empty())
-		return;
+		return true;
 
 	if (!FindWindowA("Valve001", nullptr))
 	{
 		Log("Attempted to send command \""s << cmd << "\" to game, but game is not running", { 1, 1, 0.8f });
-		return;
+		return false;
 	}
 
 	static constexpr const char HL2_DIR[] = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\";
@@ -271,4 +276,6 @@ void ActionManager::SendCommandToGame(const std::string_view& cmd)
 		throw std::runtime_error(__FUNCTION__ ": Failed to close process");
 	if (!CloseHandle(pi.hThread))
 		throw std::runtime_error(__FUNCTION__ ": Failed to close process thread");
+
+	return true;
 }

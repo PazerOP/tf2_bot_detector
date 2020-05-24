@@ -42,7 +42,7 @@ namespace tf2_bot_detector
 		}
 
 	private:
-		static void SendCommandToGame(const std::string_view& cmd);
+		static bool SendCommandToGame(const std::string_view& cmd);
 
 		static constexpr duration_t UPDATE_INTERVAL = std::chrono::milliseconds(100);
 
