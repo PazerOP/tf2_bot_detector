@@ -26,10 +26,12 @@ bool StatusUpdateAction::Execute(ActionManager& manager)
 	}
 	else
 	{
-		if (!manager.QueueAction<GenericCommandAction>("status", m_NextShort ? "short" : ""))
-			return false;
+		//if (!manager.QueueAction<GenericCommandAction>("status", m_NextShort ? "short" : ""))
+		//	return false;
 
-		m_NextShort = !m_NextShort;
+		//m_NextShort = !m_NextShort;
+		if (!manager.QueueAction<GenericCommandAction>("status"))
+			return false;
 	}
 
 	m_NextPing = !m_NextPing;
