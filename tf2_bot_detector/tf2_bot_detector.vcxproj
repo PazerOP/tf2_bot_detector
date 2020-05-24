@@ -148,7 +148,6 @@
     <ClCompile Include="NetworkStatus.cpp" />
     <ClCompile Include="PeriodicActionManager.cpp" />
     <ClCompile Include="PeriodicActions.cpp" />
-    <ClCompile Include="PlayerList.cpp" />
     <ClCompile Include="ConsoleLines.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
@@ -169,7 +168,6 @@
     <ClInclude Include="NetworkStatus.h" />
     <ClInclude Include="PeriodicActionManager.h" />
     <ClInclude Include="PeriodicActions.h" />
-    <ClInclude Include="PlayerList.h" />
     <ClInclude Include="ConsoleLines.h" />
     <ClInclude Include="LobbyMember.h" />
     <ClInclude Include="MainWindow.h" />

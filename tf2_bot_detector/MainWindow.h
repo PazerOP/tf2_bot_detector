@@ -3,7 +3,6 @@
 #include "Actions.h"
 #include "ActionManager.h"
 #include "Clock.h"
-#include "PlayerList.h"
 #include "PlayerListJSON.h"
 #include "Settings.h"
 #include "LobbyMember.h"
