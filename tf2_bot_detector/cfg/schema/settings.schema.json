@@ -17,6 +17,10 @@
 			"description": "If true, the tool reduces its update rate when not focused to reduce CPU/GPU usage.",
 			"type": "boolean"
 		},
+		"tf_game_dir": {
+			"description": "The tf folder.",
+			"type": "string"
+		},
 		"theme": {
 			"type": "object",
 			"additionalProperties": false,

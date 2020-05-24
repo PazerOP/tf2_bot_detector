@@ -25,6 +25,7 @@ using namespace std::string_view_literals;
 
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
+	m_ActionManager(m_Settings),
 	m_PeriodicActionManager(m_ActionManager)
 {
 	m_OpenTime = clock_t::now();
@@ -569,7 +570,7 @@ void MainWindow::OnUpdate()
 	if (!m_File)
 	{
 		{
-			FILE* temp = _fsopen("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf\\console.log", "r", _SH_DENYNO);
+			FILE* temp = _fsopen((m_Settings.m_TFDir / "console.log").string().c_str(), "r", _SH_DENYNO);
 			m_File.reset(temp);
 		}
 

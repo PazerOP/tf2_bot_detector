@@ -2,6 +2,7 @@
 #include "Actions.h"
 #include "ConsoleLines.h"
 #include "Log.h"
+#include "Settings.h"
 
 #include <mh/text/string_insertion.hpp>
 
@@ -35,26 +36,25 @@ namespace tfbd_paths
 			return cfg() / "temp";
 		}
 	}
-	namespace absolute
-	{
-		static std::filesystem::path root()
-		{
-			return "C:/Program Files (x86)/Steam/steamapps/common/Team Fortress 2/tf/custom/tf2_bot_detector/";
-		}
-		static std::filesystem::path cfg()
-		{
-			return root() / "cfg" / local::cfg();
-		}
-		static std::filesystem::path cfg_temp()
-		{
-			return root() / "cfg" / local::cfg_temp();
-		}
-	}
 }
 
-ActionManager::ActionManager()
+auto ActionManager::absolute_root() const
 {
-	std::filesystem::remove_all(tfbd_paths::absolute::cfg_temp());
+	return m_Settings->m_TFDir / "custom/tf2_bot_detector";
+}
+auto ActionManager::absolute_cfg() const
+{
+	return absolute_root() / "cfg" / tfbd_paths::local::cfg();
+}
+auto ActionManager::absolute_cfg_temp() const
+{
+	return absolute_root() / "cfg" / tfbd_paths::local::cfg_temp();
+}
+
+ActionManager::ActionManager(const Settings& settings) :
+	m_Settings(&settings)
+{
+	std::filesystem::remove_all(absolute_cfg_temp());
 }
 
 ActionManager::~ActionManager()
@@ -202,7 +202,7 @@ void ActionManager::Update(time_point_t curTime)
 		{
 			// More complicated, write out a file and exec it
 			const std::string cfgFilename = ""s << ++m_LastUpdateIndex << ".cfg";
-			auto globalPath = tfbd_paths::absolute::cfg_temp();
+			auto globalPath = absolute_cfg_temp();
 			std::filesystem::create_directories(globalPath); // TODO: this is not ok for release
 			globalPath /= cfgFilename;
 			{

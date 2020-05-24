@@ -52,6 +52,7 @@
 		}
 	],
 	"sleep_when_unfocused": true,
+	"tf_game_dir": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf\\",
 	"theme": {
 		"colors": {
 			"scoreboard_cheater": [

@@ -12,11 +12,12 @@ namespace tf2_bot_detector
 {
 	class IAction;
 	enum class ActionType;
+	class Settings;
 
 	class ActionManager final
 	{
 	public:
-		ActionManager();
+		ActionManager(const Settings& settings);
 		~ActionManager();
 
 		void Update(time_point_t curTime);
@@ -51,6 +52,11 @@ namespace tf2_bot_detector
 			uint32_t m_UpdateIndex;
 		};
 
+		auto absolute_root() const;
+		auto absolute_cfg() const;
+		auto absolute_cfg_temp() const;
+
+		const Settings* m_Settings = nullptr;
 		time_point_t m_LastUpdateTime{};
 		std::vector<std::unique_ptr<IAction>> m_Actions;
 		std::vector<std::unique_ptr<IAction>> m_PiggybackActions;

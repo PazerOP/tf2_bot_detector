@@ -223,8 +223,6 @@ namespace tf2_bot_detector
 		void PruneNetSamples(time_point_t& startTime, time_point_t& endTime);
 		static constexpr duration_t NET_GRAPH_DURATION = std::chrono::seconds(30);
 
-		Settings m_Settings;
-
 		void PlotNetSamples(const char* label_id, const std::map<time_point_t, AvgSample>& data,
 			time_point_t startTime, time_point_t endTime, int yAxis = 0) const;
 		static float GetMaxValue(const std::map<time_point_t, AvgSample>& data);
@@ -234,6 +232,7 @@ namespace tf2_bot_detector
 
 		void InitiateVotekick(const SteamID& id, KickReason reason);
 
+		Settings m_Settings;
 		ActionManager m_ActionManager;
 		PeriodicActionManager m_PeriodicActionManager;
 		std::set<IConsoleLineListener*> m_ConsoleLineListeners;

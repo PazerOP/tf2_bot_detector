@@ -4,6 +4,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <filesystem>
 #include <optional>
 #include <vector>
 
@@ -43,6 +44,7 @@ namespace tf2_bot_detector
 
 		SteamID m_LocalSteamID;
 		bool m_SleepWhenUnfocused = true;
+		std::filesystem::path m_TFDir;
 
 		struct Theme
 		{

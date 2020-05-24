@@ -223,6 +223,7 @@ void Settings::LoadFile()
 
 	m_LocalSteamID = json.at("local_steamid");
 	m_SleepWhenUnfocused = json.at("sleep_when_unfocused");
+	m_TFDir = json.at("tf_game_dir").get<std::string>();
 	m_Theme = json.at("theme");
 	m_Rules = json.at("rules").get<std::vector<Rule>>();
 }
@@ -232,9 +233,10 @@ void Settings::SaveFile() const
 	nlohmann::json json =
 	{
 		{ "$schema", "./schema/settings.schema.json" },
-		{ "theme", m_Theme },
 		{ "local_steamid", m_LocalSteamID },
 		{ "sleep_when_unfocused", m_SleepWhenUnfocused },
+		{ "tf_game_dir", m_TFDir.string() },
+		{ "theme", m_Theme },
 		{ "rules", m_Rules },
 	};;
 
