@@ -244,7 +244,7 @@ ServerStatusPlayerLine::ServerStatusPlayerLine(time_point_t timestamp, PlayerSta
 
 std::unique_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
-	static const std::regex s_Regex(R"regex(#\s+(\d+)\s+"(.*)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+)(?:\s+(\S+))?)regex", std::regex::optimize);
+	static const std::regex s_Regex(R"regex(#\s+(\d+)\s+"(?:.|\n)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+)(?:\s+(\S+))?)regex", std::regex::optimize);
 
 	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
 	{
