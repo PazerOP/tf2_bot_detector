@@ -230,7 +230,7 @@ namespace tf2_bot_detector
 		bool SetPlayerAttribute(const SteamID& id, PlayerAttributes markType, bool set = true);
 		bool HasPlayerAttribute(const SteamID& id, PlayerAttributes markType) const;
 
-		void InitiateVotekick(const SteamID& id, KickReason reason);
+		bool InitiateVotekick(const SteamID& id, KickReason reason);
 
 		Settings m_Settings;
 		ActionManager m_ActionManager;

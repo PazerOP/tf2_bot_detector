@@ -953,8 +953,8 @@ void MainWindow::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::
 		const auto& playerData = m_CurrentPlayerData[cheater];
 		if (playerData.m_Status.m_State == PlayerStatusState::Active)
 		{
-			InitiateVotekick(friendlyCheaters[0], KickReason::Cheating);
-			break;
+			if (InitiateVotekick(cheater, KickReason::Cheating))
+				break;
 		}
 	}
 }
@@ -1467,17 +1467,19 @@ std::optional<LobbyMemberTeam> MainWindow::TryGetMyTeam() const
 	return FindLobbyMemberTeam(m_Settings.m_LocalSteamID);
 }
 
-void MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
+bool MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
 {
 	const auto userID = FindUserID(id);
 	if (!userID)
 	{
 		Log("Wanted to kick "s << id << ", but could not find userid");
-		return;
+		return false;
 	}
 
 	if (m_ActionManager.QueueAction(std::make_unique<KickAction>(userID.value(), reason)))
 		Log("InitiateVotekick on "s << id << ": " << reason);
+
+	return true;
 }
 
 void MainWindow::CustomDeleters::operator()(FILE* f) const
