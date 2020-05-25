@@ -147,6 +147,7 @@
     <ClCompile Include="ImGui_TF2BotDetector.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="NetworkStatus.cpp" />
+    <ClCompile Include="PathUtils.cpp" />
     <ClCompile Include="PeriodicActionManager.cpp" />
     <ClCompile Include="PeriodicActions.cpp" />
     <ClCompile Include="ConsoleLines.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="ImGui_TF2BotDetector.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="NetworkStatus.h" />
+    <ClInclude Include="PathUtils.h" />
     <ClInclude Include="PeriodicActionManager.h" />
     <ClInclude Include="PeriodicActions.h" />
     <ClInclude Include="ConsoleLines.h" />

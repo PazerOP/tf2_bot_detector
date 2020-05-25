@@ -69,6 +69,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "SickQuickScopes2007",
+				"time": 1590374625
+			},
+			"steamid": "[U:1:113571527]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"steamid": "[U:1:113829888]"
@@ -78,6 +88,17 @@
 				"cheater"
 			],
 			"steamid": "[U:1:116453236]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "R.I.P. Dick Gay",
+				"time": 1590368792
+			},
+			"steamid": "[U:1:139237846]"
 		},
 		{
 			"attributes": [
@@ -162,6 +183,16 @@
 				"suspicious"
 			],
 			"steamid": "[U:1:325792672]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "racist frg",
+				"time": 1590378577
+			},
+			"steamid": "[U:1:336435847]"
 		},
 		{
 			"attributes": [
@@ -1044,6 +1075,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "AundreiVII",
+				"time": 1590373863
+			},
+			"steamid": "[U:1:1093844463]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -1168,8 +1209,8 @@
 				"racist"
 			],
 			"last_seen": {
-				"player_name": "(1)MYG)T",
-				"time": 1590313777
+				"player_name": "MYG)T",
+				"time": 1590368707
 			},
 			"steamid": "[U:1:1098855245]"
 		},
@@ -1228,7 +1269,7 @@
 			],
 			"last_seen": {
 				"player_name": "MYG)T",
-				"time": 1590313775
+				"time": 1590378559
 			},
 			"steamid": "[U:1:1099391048]"
 		},

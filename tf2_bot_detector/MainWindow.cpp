@@ -5,6 +5,7 @@
 #include "ImGui_TF2BotDetector.h"
 #include "PeriodicActions.h"
 #include "Log.h"
+#include "PathUtils.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -485,6 +486,7 @@ void MainWindow::OnDrawSettingsPopup()
 
 			ImGuiDesktop::ScopeGuards::StyleColor text(ImGuiCol_Text, { 1, 0, 0, 1 });
 			ImGui::TextUnformatted(msg);
+			ImGui::NewLine();
 		};
 
 		// Local steamid
@@ -517,8 +519,21 @@ void MainWindow::OnDrawSettingsPopup()
 			if (ImGui::InputText("tf directory", &pathStr))
 			{
 				std::filesystem::path path(pathStr);
-				if (!std::filesystem::is_directory(path))
-					errorMsg = "Not a directory: "s << path;
+				using Result = ValidateTFDirectoryResult;
+				switch (ValidateTFDirectory(path))
+				{
+				case Result::Valid:
+					break;
+				case Result::DoesNotExist:
+					errorMsg << "Path not found!" << path;
+					break;
+				case Result::NotADirectory:
+					errorMsg << "Not a directory!" << path;
+					break;
+				case Result::InvalidContents:
+					errorMsg << "Doesn't look like a real tf directory!";
+					break;
+				}
 			}
 
 			PrintErrorMsg(errorMsg);
@@ -739,7 +754,7 @@ void MainWindow::OnUpdate()
 				m_FileLineBuf.erase(m_FileLineBuf.begin(), regexBegin);
 			}
 
-			if (auto elapsed = clock::now() - startTime; elapsed >= 100ms)
+			if (auto elapsed = clock::now() - startTime; elapsed >= 50ms)
 				break;
 
 		} while (readCount > 0);
