@@ -165,7 +165,7 @@ void MainWindow::OnDrawScoreboard()
 				return changed || forceRecalc;
 			}();
 
-			/*const auto*/ frameWidth = std::max(contentWidthMin, windowContentWidth);// ImGui::GetWorkRectSize().x;
+			/*const auto*/ frameWidth = ImGui::GetWorkRectSize().x;
 			PlayerPrintData printData[33]{};
 			const size_t playerPrintDataCount = GeneratePlayerPrintData(std::begin(printData), std::end(printData));
 
