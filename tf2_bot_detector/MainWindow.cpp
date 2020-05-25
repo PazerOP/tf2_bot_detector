@@ -9,6 +9,7 @@
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 #include <implot.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/case_insensitive_string.hpp>
@@ -462,6 +463,79 @@ void MainWindow::OnDrawNetGraph()
 	}
 }
 
+void MainWindow::OnDrawSettingsPopup()
+{
+	static constexpr char POPUP_NAME[] = "Settings##Popup";
+
+	static bool s_Open = false;
+	if (m_SettingsPopupOpen)
+	{
+		m_SettingsPopupOpen = false;
+		ImGui::OpenPopup(POPUP_NAME);
+		s_Open = true;
+	}
+
+	//ImGui::SetNextWindowSize()
+	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open))
+	{
+		const auto PrintErrorMsg = [](const std::string_view& msg)
+		{
+			if (msg.empty())
+				return;
+
+			ImGuiDesktop::ScopeGuards::StyleColor text(ImGuiCol_Text, { 1, 0, 0, 1 });
+			ImGui::TextUnformatted(msg);
+		};
+
+		// Local steamid
+		{
+			std::string steamID;
+			if (m_Settings.m_LocalSteamID.IsValid())
+				steamID = m_Settings.m_LocalSteamID.str();
+
+			std::string errorMsg;
+			if (ImGui::InputTextWithHint("My Steam ID", "[U:1:1234567890]", &steamID))
+			{
+				try
+				{
+					m_Settings.m_LocalSteamID = SteamID(steamID);
+					m_Settings.SaveFile();
+				}
+				catch (const std::invalid_argument& error)
+				{
+					errorMsg = error.what();
+				}
+			}
+
+			PrintErrorMsg(errorMsg);
+		}
+
+		// TF game dir
+		{
+			std::string errorMsg;
+			std::string pathStr = m_Settings.m_TFDir.string();
+			if (ImGui::InputText("tf directory", &pathStr))
+			{
+				std::filesystem::path path(pathStr);
+				if (!std::filesystem::is_directory(path))
+					errorMsg = "Not a directory: "s << path;
+			}
+
+			PrintErrorMsg(errorMsg);
+		}
+
+		// Sleep when unfocused
+		{
+			if (ImGui::Checkbox("Sleep when unfocused", &m_Settings.m_SleepWhenUnfocused))
+				m_Settings.SaveFile();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
 void MainWindow::OnDrawServerStats()
 {
 	ImGui::PlotLines("Edicts", [&](int idx)
@@ -520,6 +594,8 @@ void MainWindow::OnDraw()
 	OnDrawScoreboard();
 	OnDrawAppLog();
 	ImGui::NextColumn();
+
+	OnDrawSettingsPopup();
 }
 
 void MainWindow::OnDrawMenuBar()
@@ -549,8 +625,14 @@ void MainWindow::OnDrawMenuBar()
 		ImPlot::ShowDemoWindow(&s_ImPlotDemoWindow);
 #endif
 
+	if (ImGui::MenuItem("Settings"))
+		OpenSettingsPopup();
+
+#if 0
 	if (ImGui::BeginMenu("Settings"))
 	{
+		if (ImGui::MenuItem("Open"))
+
 		if (ImGui::MenuItem("Sleep when unfocused", nullptr, &m_Settings.m_SleepWhenUnfocused))
 			m_Settings.SaveFile();
 
@@ -559,6 +641,7 @@ void MainWindow::OnDrawMenuBar()
 
 		ImGui::EndMenu();
 	}
+#endif
 }
 
 static std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d):[ \n])regex", std::regex::optimize);

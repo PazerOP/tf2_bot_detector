@@ -221,7 +221,9 @@ void Settings::LoadFile()
 		file >> json;
 	}
 
-	m_LocalSteamID = json.at("local_steamid");
+	if (auto found = json.find("local_steamid"); found != json.end())
+		m_LocalSteamID = json.at("local_steamid");
+
 	m_SleepWhenUnfocused = json.at("sleep_when_unfocused");
 	m_TFDir = json.at("tf_game_dir").get<std::string>();
 	m_Theme = json.at("theme");
@@ -233,12 +235,14 @@ void Settings::SaveFile() const
 	nlohmann::json json =
 	{
 		{ "$schema", "./schema/settings.schema.json" },
-		{ "local_steamid", m_LocalSteamID },
 		{ "sleep_when_unfocused", m_SleepWhenUnfocused },
 		{ "tf_game_dir", m_TFDir.string() },
 		{ "theme", m_Theme },
 		{ "rules", m_Rules },
-	};;
+	};
+
+	if (m_LocalSteamID.IsValid())
+		json["local_steamid"] = m_LocalSteamID;
 
 	// Make sure we successfully serialize BEFORE we destroy our file
 	auto jsonString = json.dump(1, '\t', true);

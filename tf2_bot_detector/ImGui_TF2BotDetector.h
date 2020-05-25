@@ -2,6 +2,7 @@
 
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 #include <implot.h>
 
 #include <string_view>
@@ -81,6 +82,20 @@ namespace ImGui
 
 		return ImGui::Combo(label, current_item, patch, const_cast<void*>(&items_getter),
 			items_count, popup_max_height_in_items);
+	}
+
+	template<typename TFunc>
+	inline bool InputTextWithHint(const char* label, const char* hint, std::string* str,
+		ImGuiInputTextFlags flags, TFunc&& callback)
+	{
+		const auto patch = [](ImGuiInputTextCallbackData* data) -> int
+		{
+			void* funcPtr = data->UserData;
+			data->UserData = nullptr;
+			return (*reinterpret_cast<std::remove_reference_t<TFunc>*>(funcPtr))(data);
+		};
+
+		return ImGui::InputTextWithHint(label, hint, str, flags, patch, const_cast<void*>(reinterpret_cast<const void*>(&callback)));
 	}
 }
 

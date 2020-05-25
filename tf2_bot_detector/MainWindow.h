@@ -54,6 +54,10 @@ namespace tf2_bot_detector
 		void OnDrawServerStats();
 		void OnDrawNetGraph();
 
+		void OnDrawSettingsPopup();
+		bool m_SettingsPopupOpen = false;
+		void OpenSettingsPopup() { m_SettingsPopupOpen = true; }
+
 		void OnUpdate() override;
 		size_t m_ParsedLineCount = 0;
 
