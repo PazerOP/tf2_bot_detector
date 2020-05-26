@@ -160,14 +160,14 @@ void WorldState::EventBroadcaster::OnTimestampUpdate(WorldState& world)
 		listener->OnTimestampUpdate(world);
 }
 
-void WorldState::EventBroadcaster::OnPlayerStatusUpdate(WorldState& world, const PlayerRef& player)
+void WorldState::EventBroadcaster::OnPlayerStatusUpdate(WorldState& world, const IPlayer& player)
 {
 	for (auto listener : m_EventListeners)
 		listener->OnPlayerStatusUpdate(world, player);
 }
 
 void WorldState::EventBroadcaster::OnChatMsg(WorldState& world,
-	const PlayerRef& player, const std::string_view& msg)
+	const IPlayer& player, const std::string_view& msg)
 {
 	for (auto listener : m_EventListeners)
 		listener->OnChatMsg(world, player, msg);
@@ -232,6 +232,14 @@ auto WorldState::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
 		return TeamShareResult::OppositeTeams;
 	else
 		throw std::runtime_error("Unexpected team value(s)");
+}
+
+const IPlayer* WorldState::FindPlayer(const SteamID& id) const
+{
+	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
+		return &found->second;
+
+	return nullptr;
 }
 
 void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
@@ -299,7 +307,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 	}
 #endif
 
-	
+
 
 	case ConsoleLineType::LobbyMember:
 	{
@@ -342,18 +350,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 		playerData.m_Status = newStatus;
 		playerData.m_LastStatusUpdateTime = playerData.m_LastPingUpdateTime = statusLine.GetTimestamp();
 		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, playerData.m_LastStatusUpdateTime);
-		ProcessDelayedBans(statusLine.GetTimestamp(), newStatus);
-
-		if (newStatus.m_Name.find("MYG)T"sv) != newStatus.m_Name.npos)
-		{
-			if (SetPlayerAttribute(newStatus.m_SteamID, PlayerAttributes::Cheater))
-				Log("Marked "s << newStatus.m_SteamID << " as a cheater due to name (mygot advertisement)");
-		}
-		if (newStatus.m_Name.ends_with("\xE2\x80\x8F"sv))
-		{
-			if (SetPlayerAttribute(newStatus.m_SteamID, PlayerAttributes::Cheater))
-				Log("Marked "s << newStatus.m_SteamID << " as cheater due to name ending in common name-stealing characters");
-		}
+		m_EventBroadcaster.OnPlayerStatusUpdate(*this, playerData);
 
 		break;
 	}
@@ -361,7 +358,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 	{
 		auto& statusLine = static_cast<const ServerStatusShortPlayerLine&>(parsed);
 		const auto& status = statusLine.GetPlayerStatus();
-		if (auto steamID = world.FindSteamIDForName(status.m_Name))
+		if (auto steamID = FindSteamIDForName(status.m_Name))
 			m_CurrentPlayerData[*steamID].m_ClientIndex = status.m_ClientIndex;
 
 		break;
@@ -370,25 +367,15 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 	{
 		auto& killLine = static_cast<const KillNotificationLine&>(parsed);
 
-		if (const auto attackerSteamID = world.FindSteamIDForName(killLine.GetAttackerName()))
+		if (const auto attackerSteamID = FindSteamIDForName(killLine.GetAttackerName()))
 			m_CurrentPlayerData[*attackerSteamID].m_Scores.m_Kills++;
-		if (const auto victimSteamID = world.FindSteamIDForName(killLine.GetVictimName()))
+		if (const auto victimSteamID = FindSteamIDForName(killLine.GetVictimName()))
 			m_CurrentPlayerData[*victimSteamID].m_Scores.m_Deaths++;
 
 		break;
 	}
 
-	case ConsoleLineType::EdictUsage:
-	{
-		auto& usageLine = static_cast<const EdictUsageLine&>(parsed);
-		m_EdictUsageSamples.push_back({ usageLine.GetTimestamp(), usageLine.GetUsedEdicts(), usageLine.GetTotalEdicts() });
-
-		while (m_EdictUsageSamples.front().m_Timestamp < (usageLine.GetTimestamp() - 5min))
-			m_EdictUsageSamples.erase(m_EdictUsageSamples.begin());
-
-		break;
-	}
-
+#if 0
 	case ConsoleLineType::NetDataTotal:
 	{
 		auto& netDataLine = static_cast<const NetDataTotalLine&>(parsed);
@@ -421,6 +408,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 		m_NetSamplesOut.m_Loss[ts].AddSample(netLossLine.GetOutLossPercent());
 		break;
 	}
+#endif
 	}
 }
 

@@ -2,6 +2,7 @@
 
 #include "CompensatedTS.h"
 #include "IConsoleLineListener.h"
+#include "IPlayer.h"
 #include "IWorldEventListener.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
@@ -22,12 +23,6 @@ namespace tf2_bot_detector
 		Neither,
 	};
 
-	struct PlayerScores
-	{
-		uint16_t m_Kills = 0;
-		uint16_t m_Deaths = 0;
-	};
-
 	class WorldState : IConsoleLineListener
 	{
 	public:
@@ -45,30 +40,28 @@ namespace tf2_bot_detector
 
 		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const;
 		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const;
-		std::optional<uint16_t> FindUserID(const SteamID& id) const;
+		std::optional<UserID_t> FindUserID(const SteamID& id) const;
 		TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const;
 		TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const;
 		static TeamShareResult GetTeamShareResult(
 			const std::optional<LobbyMemberTeam>& team0, const std::optional<LobbyMemberTeam>& team1);
 
-		template<typename T> T* GetPlayerData(const SteamID& id)
-		{
-			return const_cast<T*>(std::as_const(*this).GetPlayerData<T>(id));
-		}
-		template<typename T> const T* GetPlayerData(const SteamID& id) const
-		{
-			if (auto foundPlayer = m_CurrentPlayerData.find(id); foundPlayer != m_CurrentPlayerData.end())
-			{
-				if (auto foundData = foundPlayer->second.m_UserData.find(typeid(T)); foundData != foundPlayer->second.m_UserData.end())
-					return &std::any_cast<T>(foundData->second);
-			}
+		IPlayer* FindPlayer(const SteamID& id);
+		const IPlayer* FindPlayer(const SteamID& id) const;
 
-			return nullptr;
-		}
-		template<typename T> bool SetPlayerData(const SteamID& id, T&& value)
+		size_t GetLobbyMemberCount() const;
+		template<typename TFunc> void ForEachLobbyMember(TFunc&& func) const
 		{
-			if (auto foundPlayer = m_CurrentPlayerData.find(id); foundPlayer != m_CurrentPlayerData.end())
-				foundPlayer->second.m_UserData[typeid(T)] = std::move(value);
+			for (const LobbyMember& member : m_CurrentLobbyMembers)
+				func(member);
+			for (const LobbyMember& member : m_PendingLobbyMembers)
+				func(member);
+		}
+
+		template<typename TFunc> void ForEachPlayer(TFunc&& func) const
+		{
+			for (const auto& pair : m_CurrentPlayerData)
+				func(pair.second);
 		}
 
 	private:
@@ -87,16 +80,30 @@ namespace tf2_bot_detector
 
 		CompensatedTS m_CurrentTimestamp;
 
-		struct PlayerExtraData final
+		struct PlayerExtraData final : IPlayer
 		{
+			std::string_view GetName() const override { return m_Status.m_Name; }
+			SteamID GetSteamID() const override;
+			PlayerStatusState GetConnectionState() const override;
+			std::optional<UserID_t> GetUserID() const override;
+			TFTeam GetTeam() const override { return m_Team; }
+			duration_t GetConnectedTime() const override;
+			const PlayerScores& GetScores() const override { return m_Scores; }
+			uint16_t GetPing() const override;
+			time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
+
 			PlayerStatus m_Status{};
 			PlayerScores m_Scores{};
 			TFTeam m_Team{};
 
-			// uint8_t m_ClientIndex{};
+			uint8_t m_ClientIndex{};
 			time_point_t m_LastStatusUpdateTime{};
 			time_point_t m_LastPingUpdateTime{};
 			std::map<std::type_index, std::any> m_UserData;
+
+		protected:
+			const std::any* FindDataStorage(const std::type_index& type) const override;
+			std::any& GetOrCreateDataStorage(const std::type_index& type) override;
 		};
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;

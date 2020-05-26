@@ -36,16 +36,13 @@ namespace tf2_bot_detector
 		MainWindow();
 		~MainWindow();
 
-		void AddConsoleLineListener(IConsoleLineListener* listener);
-		bool RemoveConsoleLineListener(IConsoleLineListener* listener);
-
 	private:
 		void OnDraw() override;
 		void OnDrawMenuBar() override;
 		bool HasMenuBar() const override { return true; }
 		void OnDrawScoreboard();
 		void OnDrawScoreboardColorPicker(const char* name_id, float color[4]);
-		void OnDrawScoreboardContextMenu(const SteamID& steamID);
+		void OnDrawScoreboardContextMenu(const IPlayer& player);
 		void OnDrawChat();
 		void OnDrawAppLog();
 		void OnDrawServerStats();
@@ -67,21 +64,31 @@ namespace tf2_bot_detector
 		void OnConsoleLineParsed(IConsoleLine& line);
 
 		// IWorldEventListener
-		void OnChatMsg(WorldState& world, const PlayerRef& player, const std::string_view& msg) override;
+		void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
 
-		std::optional<WorldState> m_WorldState;
 		bool m_Paused = false;
 
-		WorldState& GetWorld() { return m_WorldState.value(); }
-		const WorldState& GetWorld() const { return m_WorldState.value(); }
+		struct WorldStateExtra
+		{
+			WorldStateExtra(MainWindow* window, const std::filesystem::path& conLogFile);
+
+			WorldState m_WorldState;
+			ModeratorLogic m_ModeratorLogic;
+		};
+		std::optional<WorldStateExtra> m_WorldState;
+		WorldState& GetWorld() { return m_WorldState.value().m_WorldState; }
+		const WorldState& GetWorld() const { return m_WorldState.value().m_WorldState; }
+		ModeratorLogic& GetModLogic() { return m_WorldState.value().m_ModeratorLogic; }
+		const ModeratorLogic& GetModLogic() const { return m_WorldState.value().m_ModeratorLogic; }
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
-		time_point_t GetCurrentTimestampCompensated() const { return m_WorldState.value().GetCurrentTime(); }
+		time_point_t GetCurrentTimestampCompensated() const { return GetWorld().GetCurrentTime(); }
 		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
 		size_t m_PrintingLineCount = 0;
 		const IConsoleLine* m_PrintingLines[512]{}; // newest to oldest order
 
+#if 0
 		struct PlayerPrintData final
 		{
 			std::string m_Name;
@@ -94,9 +101,9 @@ namespace tf2_bot_detector
 			PlayerStatusState m_State;
 		};
 		size_t GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const;
-
-		std::optional<LobbyMemberTeam> TryGetMyTeam() const;
-		TeamShareResult GetTeamShareResult(const SteamID& id) const;
+#else
+		size_t GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const;
+#endif
 
 		struct PingSample
 		{
@@ -140,9 +147,7 @@ namespace tf2_bot_detector
 		std::vector<EdictUsageSample> m_EdictUsageSamples;
 
 		time_point_t m_OpenTime;
-		PlayerListJSON m_PlayerList;
 		time_point_t m_LastStatusUpdateTime{};
-		time_point_t m_LastCheaterWarningTime{};
 
 		void UpdateServerPing(time_point_t timestamp);
 		std::vector<PingSample> m_ServerPingSamples;
@@ -176,6 +181,5 @@ namespace tf2_bot_detector
 		Settings m_Settings;
 		ActionManager m_ActionManager;
 		PeriodicActionManager m_PeriodicActionManager;
-		ModeratorLogic m_ModeratorLogic;
 	};
 }

@@ -82,6 +82,7 @@ namespace tf2_bot_detector
 
 		const PlayerListData* FindPlayerData(const SteamID& id) const;
 		const PlayerAttributesList* FindPlayerAttributes(const SteamID& id) const;
+		bool HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const;
 
 		template<typename TFunc>
 		ModifyPlayerResult ModifyPlayer(const SteamID& id, TFunc&& func)

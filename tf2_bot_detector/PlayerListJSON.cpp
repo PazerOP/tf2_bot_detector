@@ -205,6 +205,14 @@ const PlayerAttributesList* PlayerListJSON::FindPlayerAttributes(const SteamID& 
 	return nullptr;
 }
 
+bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const
+{
+	if (auto found = FindPlayerAttributes(id))
+		return found->HasAttribute(attribute);
+
+	return false;
+}
+
 ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	ModifyPlayerAction(*func)(PlayerListData& data, void* userData), void* userData)
 {

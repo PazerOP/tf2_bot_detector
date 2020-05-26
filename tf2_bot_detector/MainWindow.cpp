@@ -31,7 +31,6 @@ MainWindow::MainWindow() :
 	m_PeriodicActionManager(m_ActionManager)
 {
 	m_OpenTime = clock_t::now();
-	AddConsoleLineListener(this);
 
 	m_PeriodicActionManager.Add<StatusUpdateAction>();
 
@@ -40,17 +39,6 @@ MainWindow::MainWindow() :
 
 MainWindow::~MainWindow()
 {
-}
-
-void MainWindow::AddConsoleLineListener(IConsoleLineListener* listener)
-{
-	if (listener)
-		m_ConsoleLineListeners.insert(listener);
-}
-
-bool MainWindow::RemoveConsoleLineListener(IConsoleLineListener* listener)
-{
-	return m_ConsoleLineListeners.erase(listener) > 0;
 }
 
 static float GetRemainingColumnWidth(float contentRegionWidth, int column_index = -1)
@@ -72,27 +60,30 @@ static float GetRemainingColumnWidth(float contentRegionWidth, int column_index 
 	return contentRegionWidth - 3;//ImGui::GetStyle().ItemSpacing.x;
 }
 
-void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
+void MainWindow::OnDrawScoreboardContextMenu(const IPlayer& player)
 {
 	if (auto popupScope = ImGui::BeginPopupContextItemScope("PlayerContextMenu"))
 	{
 		ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
 
+		const auto steamID = player.GetSteamID();
 		if (ImGui::MenuItem("Copy SteamID", nullptr, false, steamID.IsValid()))
 			ImGui::SetClipboardText(steamID.str().c_str());
 
-		const auto& world = m_WorldState.value();
+		const auto& world = GetWorld();
+		auto& modLogic = GetModLogic();
 
-		if (ImGui::BeginMenu("Votekick", (GetTeamShareResult(steamID) == TeamShareResult::SameTeams) && world.FindUserID(steamID)))
+		if (ImGui::BeginMenu("Votekick",
+			(world.GetTeamShareResult(steamID, m_Settings.m_LocalSteamID) == TeamShareResult::SameTeams) && world.FindUserID(steamID)))
 		{
 			if (ImGui::MenuItem("Cheating"))
-				m_ModeratorLogic.InitiateVotekick(steamID, KickReason::Cheating);
+				modLogic.InitiateVotekick(player, KickReason::Cheating);
 			if (ImGui::MenuItem("Idle"))
-				m_ModeratorLogic.InitiateVotekick(steamID, KickReason::Idle);
+				modLogic.InitiateVotekick(player, KickReason::Idle);
 			if (ImGui::MenuItem("Other"))
-				m_ModeratorLogic.InitiateVotekick(steamID, KickReason::Other);
+				modLogic.InitiateVotekick(player, KickReason::Other);
 			if (ImGui::MenuItem("Scamming"))
-				m_ModeratorLogic.InitiateVotekick(steamID, KickReason::Scamming);
+				modLogic.InitiateVotekick(player, KickReason::Scamming);
 
 			ImGui::EndMenu();
 		}
@@ -101,17 +92,16 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 
 		if (ImGui::BeginMenu("Mark"))
 		{
-			const PlayerListData* existingData = m_PlayerList.FindPlayerData(steamID);
 			for (int i = 0; i < (int)PlayerAttributes::COUNT; i++)
 			{
-				const bool existingMarked = m_ModeratorLogic.HasPlayerAttribute(steamID, PlayerAttributes(i));
+				const bool existingMarked = modLogic.HasPlayerAttribute(player, PlayerAttributes(i));
 
 				std::string name;
 				name << PlayerAttributes(i);
 				if (ImGui::MenuItem(name.c_str(), nullptr, existingMarked))
 				{
-					if (m_ModeratorLogic.SetPlayerAttribute(steamID, PlayerAttributes(i), !existingMarked))
-						Log("Manually marked "s << steamID << (existingMarked ? "NOT " : "") << PlayerAttributes(i));
+					if (modLogic.SetPlayerAttribute(player, PlayerAttributes(i), !existingMarked))
+						Log("Manually marked "s << player << (existingMarked ? "NOT " : "") << PlayerAttributes(i));
 				}
 			}
 
@@ -169,7 +159,7 @@ void MainWindow::OnDrawScoreboard()
 			}();
 
 			/*const auto*/ frameWidth = ImGui::GetWorkRectSize().x;
-			PlayerPrintData printData[33]{};
+			const IPlayer* printData[33]{};
 			const size_t playerPrintDataCount = GeneratePlayerPrintData(std::begin(printData), std::end(printData));
 
 			/*const auto*/ contentWidth = ImGui::GetContentRegionMax().x;
@@ -264,23 +254,23 @@ void MainWindow::OnDrawScoreboard()
 
 			for (size_t i = 0; i < playerPrintDataCount; i++)
 			{
-				const auto& player = printData[i];
-				ImGuiDesktop::ScopeGuards::ID idScope((int)player.m_SteamID.Lower32);
-				ImGuiDesktop::ScopeGuards::ID idScope2((int)player.m_SteamID.Upper32);
+				const auto& player = *printData[i];
+				ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
+				ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
 
 				std::optional<ImGuiDesktop::ScopeGuards::StyleColor> textColor;
-				if (player.m_State != PlayerStatusState::Active || player.m_Name.empty())
+				if (player.GetConnectionState() != PlayerStatusState::Active || player.GetName().empty())
 					textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
-				else if (player.m_SteamID == m_Settings.m_LocalSteamID)
+				else if (player.GetSteamID() == m_Settings.m_LocalSteamID)
 					textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYou);
 
 				char buf[32];
-				if (player.m_UserID == 0)
+				if (!player.GetUserID().has_value())
 				{
 					buf[0] = '?';
 					buf[1] = '\0';
 				}
-				else if (auto result = mh::to_chars(buf, player.m_UserID))
+				else if (auto result = mh::to_chars(buf, player.GetUserID().value()))
 					*result.ptr = '\0';
 				else
 					continue;
@@ -289,7 +279,7 @@ void MainWindow::OnDrawScoreboard()
 				{
 					ImVec4 bgColor = [&]()
 					{
-						switch (player.m_Team)
+						switch (player.GetTeam())
 						{
 						case TFTeam::Red: return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
 						case TFTeam::Blue: return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
@@ -297,17 +287,15 @@ void MainWindow::OnDrawScoreboard()
 						}
 					}();
 
-					if (const PlayerAttributesList* attributes = m_PlayerList.FindPlayerAttributes(player.m_SteamID))
-					{
-						if (attributes->HasAttribute(PlayerAttributes::Cheater))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheater));
-						else if (attributes->HasAttribute(PlayerAttributes::Suspicious))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious));
-						else if (attributes->HasAttribute(PlayerAttributes::Exploiter))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter));
-						else if (attributes->HasAttribute(PlayerAttributes::Racist))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacist));
-					}
+					const auto& modLogic = GetModLogic();
+					if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Cheater))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheater));
+					else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Suspicious))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious));
+					else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Exploiter))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter));
+					else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Racist))
+						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacist));
 
 					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 
@@ -320,50 +308,50 @@ void MainWindow::OnDrawScoreboard()
 					ImGui::NextColumn();
 				}
 
-				OnDrawScoreboardContextMenu(player.m_SteamID);
+				OnDrawScoreboardContextMenu(player);
 
 				// player names column
 				{
-					if (player.m_Name.empty())
+					if (player.GetName().empty())
 						ImGui::TextUnformatted("<Unknown>");
 					else
-						ImGui::TextUnformatted(player.m_Name);
+						ImGui::TextUnformatted(player.GetName());
 
 					ImGui::NextColumn();
 				}
 
 				// Kills column
 				{
-					if (player.m_Name.empty())
+					if (player.GetName().empty())
 						ImGui::TextRightAligned("?");
 					else
-						ImGui::TextRightAlignedF("%u", player.m_Scores.m_Kills);
+						ImGui::TextRightAlignedF("%u", player.GetScores().m_Kills);
 
 					ImGui::NextColumn();
 				}
 
 				// Deaths column
 				{
-					if (player.m_Name.empty())
+					if (player.GetName().empty())
 						ImGui::TextRightAligned("?");
 					else
-						ImGui::TextRightAlignedF("%u", player.m_Scores.m_Deaths);
+						ImGui::TextRightAlignedF("%u", player.GetScores().m_Deaths);
 
 					ImGui::NextColumn();
 				}
 
 				// Connected time column
 				{
-					if (player.m_Name.empty())
+					if (player.GetName().empty())
 					{
 						ImGui::TextRightAligned("?");
 					}
 					else
 					{
-						assert(player.m_ConnectedTime >= 0s);
+						assert(player.GetConnectedTime() >= 0s);
 						ImGui::TextRightAlignedF("%u:%02u",
-							std::chrono::duration_cast<std::chrono::minutes>(player.m_ConnectedTime).count(),
-							std::chrono::duration_cast<std::chrono::seconds>(player.m_ConnectedTime).count() % 60);
+							std::chrono::duration_cast<std::chrono::minutes>(player.GetConnectedTime()).count(),
+							std::chrono::duration_cast<std::chrono::seconds>(player.GetConnectedTime()).count() % 60);
 					}
 
 					ImGui::NextColumn();
@@ -371,20 +359,20 @@ void MainWindow::OnDrawScoreboard()
 
 				// Ping column
 				{
-					if (player.m_Name.empty())
+					if (player.GetName().empty())
 						ImGui::TextRightAligned("?");
 					else
-						ImGui::TextRightAlignedF("%u", player.m_Ping);
+						ImGui::TextRightAlignedF("%u", player.GetPing());
 
 					ImGui::NextColumn();
 				}
 
 				// Steam ID column
 				{
-					if (player.m_SteamID.Type != SteamAccountType::Invalid)
+					if (player.GetSteamID().Type != SteamAccountType::Invalid)
 						textColor.reset(); // Draw steamid in normal color
 
-					ImGui::TextUnformatted(player.m_SteamID.str());
+					ImGui::TextUnformatted(player.GetSteamID().str());
 					ImGui::NextColumn();
 				}
 			}
@@ -666,16 +654,15 @@ void MainWindow::OnUpdate()
 	if (m_Paused)
 		return;
 
-	m_WorldState.value().Update();
+	GetWorld().Update();
 
-	ProcessPlayerActions();
 	m_PeriodicActionManager.Update(GetCurrentTimestampCompensated());
 	m_ActionManager.Update(GetCurrentTimestampCompensated());
 }
 
 void MainWindow::OnUpdate(WorldState& world, bool consoleLinesUpdated)
 {
-	assert(&world == &m_WorldState.value());
+	assert(&world == &GetWorld());
 
 	QueueUpdate();
 
@@ -729,6 +716,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		break;
 	}
 
+#if 0
 	case ConsoleLineType::Chat:
 	{
 		auto& chatLine = static_cast<const ChatConsoleLine&>(parsed);
@@ -778,300 +766,71 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 
 		break;
 	}
+#endif
+
+	case ConsoleLineType::EdictUsage:
+	{
+		auto& usageLine = static_cast<const EdictUsageLine&>(parsed);
+		m_EdictUsageSamples.push_back({ usageLine.GetTimestamp(), usageLine.GetUsedEdicts(), usageLine.GetTotalEdicts() });
+
+		while (m_EdictUsageSamples.front().m_Timestamp < (usageLine.GetTimestamp() - 5min))
+			m_EdictUsageSamples.erase(m_EdictUsageSamples.begin());
+
+		break;
+	}
 	}
 }
 
-void MainWindow::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<SteamID>& friendlyCheaters)
-{
-	if (friendlyCheaters.empty())
-		return; // Nothing to do
-
-	if ((friendlyPlayerCount / 2) <= friendlyCheaters.size())
-	{
-		Log("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
-			<< " friendly cheaters, but we're trying anyway :/", { 1, 0.5f, 0 });
-	}
-
-	// Votekick the first one that is actually connected
-	for (const auto& cheater : friendlyCheaters)
-	{
-		const auto& playerData = m_CurrentPlayerData[cheater];
-		if (playerData.m_Status.m_State == PlayerStatusState::Active)
-		{
-			if (InitiateVotekick(cheater, KickReason::Cheating))
-				break;
-		}
-	}
-}
-
-void MainWindow::HandleEnemyCheaters(uint8_t enemyPlayerCount,
-	const std::vector<SteamID>& enemyCheaters, const std::vector<PlayerExtraData*>& connectingEnemyCheaters)
-{
-	if (enemyCheaters.empty() && connectingEnemyCheaters.empty())
-		return;
-
-	if (const auto cheaterCount = (enemyCheaters.size() + connectingEnemyCheaters.size()); (enemyPlayerCount / 2) <= cheaterCount)
-	{
-		Log("Impossible to pass a successful votekick against "s << cheaterCount << " enemy cheaters. Skipping all warnings.");
-		return;
-	}
-
-	if (!enemyCheaters.empty())
-	{
-		// There are enough people on the other team to votekick the cheater(s)
-		std::string logMsg;
-		logMsg << "Telling the other team about " << enemyCheaters.size() << " cheater(s) named ";
-
-		std::string chatMsg;
-		chatMsg << "Attention! There ";
-		if (enemyCheaters.size() == 1)
-			chatMsg << "is a cheater ";
-		else
-			chatMsg << "are " << enemyCheaters.size() << " cheaters ";
-
-		chatMsg << "on the other team named ";
-		for (size_t i = 0; i < enemyCheaters.size(); i++)
-		{
-			const auto& cheaterData = m_CurrentPlayerData[enemyCheaters[i]];
-			if (cheaterData.m_Status.m_Name.empty())
-				continue; // Theoretically this should never happen, but don't embarass ourselves
-
-			if (i != 0)
-			{
-				chatMsg << ", ";
-				logMsg << ", ";
-			}
-
-			chatMsg << std::quoted(cheaterData.m_Status.m_Name);
-			logMsg << std::quoted(cheaterData.m_Status.m_Name) << " (" << enemyCheaters[i] << ')';
-		}
-
-		chatMsg << ". Please kick them!";
-
-		if (const auto now = GetCurrentTimestampCompensated(); (now - m_LastCheaterWarningTime) > 10s)
-		{
-			GetCurrentTimestampCompensated();
-			if (m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg)))
-			{
-				Log(logMsg, { 1, 0, 0, 1 });
-				m_LastCheaterWarningTime = now;
-			}
-		}
-	}
-	else if (!connectingEnemyCheaters.empty())
-	{
-		bool needsWarning = false;
-		for (PlayerExtraData* cheaterData : connectingEnemyCheaters)
-		{
-			if (!cheaterData->m_PreWarnedOtherTeam)
-			{
-				needsWarning = true;
-				break;
-			}
-		}
-
-		if (needsWarning)
-		{
-			std::string chatMsg;
-			chatMsg << "Heads up! There ";
-			if (connectingEnemyCheaters.size() == 1)
-				chatMsg << "is a known cheater ";
-			else
-				chatMsg << "are " << connectingEnemyCheaters.size() << " known cheaters ";
-
-			chatMsg << "joining the other team! Name";
-			if (connectingEnemyCheaters.size() > 1)
-				chatMsg << 's';
-
-			chatMsg << " unknown until they fully join.";
-
-			Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
-			GetCurrentTimestampCompensated();
-			if (m_ActionManager.QueueAction(std::make_unique<ChatMessageAction>(chatMsg)))
-			{
-				for (PlayerExtraData* cheaterData : connectingEnemyCheaters)
-					cheaterData->m_PreWarnedOtherTeam = true;
-			}
-		}
-	}
-}
-
-void MainWindow::ProcessPlayerActions()
-{
-	const auto now = GetCurrentTimestampCompensated();
-	if ((now - m_LastPlayerActionsUpdate) < 1s)
-	{
-		return;
-	}
-	else
-	{
-		m_LastPlayerActionsUpdate = now;
-	}
-
-	// Don't process actions if we're way out of date
-	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(clock_t::now() - now);
-	if ((clock_t::now() - now) > 15s)
-		return;
-
-	const auto myTeam = TryGetMyTeam();
-	if (!myTeam)
-		return; // We don't know what team we're on, so we can't really take any actions.
-
-	uint8_t totalEnemyPlayers = 0;
-	uint8_t totalFriendlyPlayers = 0;
-	std::vector<SteamID> enemyCheaters;
-	std::vector<SteamID> friendlyCheaters;
-	std::vector<PlayerExtraData*> connectingEnemyCheaters;
-
-	const auto ProcessLobbyMember = [&](const LobbyMember& player)
-	{
-		const auto teamShareResult = GetWorld().GetTeamShareResult(*myTeam, player.m_SteamID);
-		switch (teamShareResult)
-		{
-		case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
-		case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
-		}
-
-		auto& playerExtraData = m_CurrentPlayerData[player.m_SteamID];
-
-		if (HasPlayerAttribute(player.m_SteamID, PlayerAttributes::Cheater))
-		{
-			switch (teamShareResult)
-			{
-			case TeamShareResult::SameTeams:
-				friendlyCheaters.push_back(player.m_SteamID);
-				break;
-			case TeamShareResult::OppositeTeams:
-				if (playerExtraData.m_Status.m_Name.empty())
-					connectingEnemyCheaters.push_back(&playerExtraData);
-				else
-					enemyCheaters.push_back(player.m_SteamID);
-
-				break;
-			}
-		}
-	};
-
-	for (const auto& player : m_PendingLobbyMembers)
-		ProcessLobbyMember(player);
-	for (const auto& player : m_CurrentLobbyMembers)
-		ProcessLobbyMember(player);
-
-	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
-	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
-}
-
-size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const
+size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const
 {
 	assert(begin <= end);
-	const size_t totalLobbyMembersCount = m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
-	assert(static_cast<size_t>(end - begin) >= totalLobbyMembersCount);
+	auto& world = GetWorld();
+	assert(static_cast<size_t>(end - begin) >= world.GetLobbyMemberCount());
 
-	std::fill(begin, end, PlayerPrintData{});
+	std::fill(begin, end, nullptr);
 
 	{
-		PlayerPrintData* current = begin;
-		for (const auto& lobbyMember : m_CurrentLobbyMembers)
-		{
-			current->m_SteamID = lobbyMember.m_SteamID;
-			current++;
-		}
-		for (const auto& lobbyMember : m_PendingLobbyMembers)
-		{
-			current->m_SteamID = lobbyMember.m_SteamID;
-			current++;
-		}
+		auto* current = begin;
+		world.ForEachLobbyMember([&](const LobbyMember& member)
+			{
+				*current = world.FindPlayer(member.m_SteamID);
+				current++;
+			});
 
 		if (current == begin)
 		{
 			// We seem to have either an empty lobby or we're playing on a community server.
 			// Just find the most recent status updates.
-			for (const auto& [steamID, playerData] : m_CurrentPlayerData)
-			{
-				if (playerData.m_LastStatusUpdateTime >= (m_LastStatusUpdateTime - 15s))
+			world.ForEachPlayer([&](const IPlayer& playerData)
 				{
-					current->m_SteamID = steamID;
-					current++;
+					if (playerData.GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
+					{
+						if (current >= end)
+							return; // This might happen, but we're not in a lobby so everything has to be approximate
 
-					if (current >= end)
-						break; // This might happen, but we're not in a lobby so everything has to be approximate
-				}
-			}
+						*current = &playerData;
+						current++;
+
+					}
+				});
 		}
 
 		end = current;
 	}
 
-	const auto now = GetCurrentTimestampCompensated();
-	for (auto it = begin; it != end; ++it)
-	{
-		if (auto found = m_CurrentPlayerData.find(it->m_SteamID); found != m_CurrentPlayerData.end())
+	std::sort(begin, end, [](const IPlayer* lhs, const IPlayer* rhs)
 		{
-			it->m_UserID = found->second.m_Status.m_UserID;
-			it->m_Name = found->second.m_Status.m_Name;
-			it->m_Ping = found->second.m_Status.m_Ping;
-			it->m_Scores = found->second.m_Scores;
-			it->m_Team = found->second.m_Team;
-			it->m_ConnectedTime = now - found->second.m_Status.m_ConnectionTime;
-			auto test = to_seconds(it->m_ConnectedTime);
-			assert(it->m_ConnectedTime >= 0s);
-			it->m_State = found->second.m_Status.m_State;
-		}
-	}
+			if (auto result = !!rhs <=> !!lhs; !std::is_eq(result))
+				return result < 0;
 
-	std::sort(begin, end, [](const PlayerPrintData& lhs, const PlayerPrintData& rhs)
-		{
 			// Intentionally reversed, we want descending kill order
-			auto killsResult = rhs.m_Scores.m_Kills <=> lhs.m_Scores.m_Kills;
-			if (std::is_lt(killsResult))
-				return true;
-			else if (std::is_gt(killsResult))
-				return false;
+			if (auto killsResult = rhs->GetScores().m_Kills <=> lhs->GetScores().m_Kills; !std::is_eq(killsResult))
+				return killsResult < 0;
 
-			return lhs.m_Scores.m_Deaths < rhs.m_Scores.m_Deaths;
+			return lhs->GetScores().m_Deaths < rhs->GetScores().m_Deaths;
 		});
 
 	return static_cast<size_t>(end - begin);
-}
-
-auto MainWindow::GetTeamShareResult(const SteamID& id) const -> TeamShareResult
-{
-	return GetWorld().GetTeamShareResult(TryGetMyTeam(), id);
-}
-
-void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& updatedStatus)
-{
-	for (size_t i = 0; i < m_DelayedBans.size(); i++)
-	{
-		const auto& ban = m_DelayedBans[i];
-		const auto timeSince = timestamp - ban.m_Timestamp;
-
-		const auto RemoveBan = [&]()
-		{
-			m_DelayedBans.erase(m_DelayedBans.begin() + i);
-			i--;
-		};
-
-		if (timeSince > 10s)
-		{
-			RemoveBan();
-			Log("Expiring delayed ban for user with name "s << std::quoted(ban.m_PlayerName)
-				<< " (" << to_seconds(timeSince) << " second delay)");
-			continue;
-		}
-
-		if (ban.m_PlayerName == updatedStatus.m_Name)
-		{
-			if (SetPlayerAttribute(updatedStatus.m_SteamID, PlayerAttributes::Cheater))
-			{
-				Log("Applying delayed ban ("s << to_seconds(timeSince) << " second delay) to player "
-					<< updatedStatus.m_SteamID);
-			}
-
-			RemoveBan();
-			break;
-		}
-	}
 }
 
 #if 0
@@ -1197,58 +956,6 @@ float MainWindow::GetMaxValue(const std::map<time_point_t, AvgSample>& data)
 	return max;
 }
 
-bool MainWindow::SetPlayerAttribute(const SteamID& id, PlayerAttributes attribute, bool set)
-{
-	bool attributeChanged = false;
-
-	m_PlayerList.ModifyPlayer(id, [&](PlayerListData& data)
-		{
-			data.m_Attributes.SetAttribute(attribute, set);
-
-			if (!data.m_LastSeen)
-				data.m_LastSeen.emplace();
-
-			data.m_LastSeen->m_Time = GetCurrentTimestampCompensated();
-			if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
-			{
-				if (auto& name = found->second.m_Status.m_Name; !name.empty())
-					data.m_LastSeen->m_PlayerName = found->second.m_Status.m_Name;
-			}
-
-			return ModifyPlayerAction::Modified;
-		});
-
-	return attributeChanged;
-}
-
-bool MainWindow::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const
-{
-	if (const auto* attributes = m_PlayerList.FindPlayerAttributes(id))
-		return attributes->HasAttribute(attribute);
-
-	return false;
-}
-
-std::optional<LobbyMemberTeam> MainWindow::TryGetMyTeam() const
-{
-	return GetWorld().FindLobbyMemberTeam(m_Settings.m_LocalSteamID);
-}
-
-bool MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
-{
-	const auto userID = GetWorld().FindUserID(id);
-	if (!userID)
-	{
-		Log("Wanted to kick "s << id << ", but could not find userid");
-		return false;
-	}
-
-	if (m_ActionManager.QueueAction(std::make_unique<KickAction>(userID.value(), reason)))
-		Log("InitiateVotekick on "s << id << ": " << reason);
-
-	return true;
-}
-
 float MainWindow::PlayerExtraData::GetAveragePing() const
 {
 	unsigned totalPing = m_Status.m_Ping;
@@ -1274,4 +981,11 @@ void MainWindow::AvgSample::AddSample(float value)
 	m_AvgValue = ((m_AvgValue * m_SampleCount) + value) / (m_SampleCount + 1);
 	m_SampleCount++;
 #endif
+}
+
+MainWindow::WorldStateExtra::WorldStateExtra(MainWindow* window, const std::filesystem::path& conLogFile) :
+	m_WorldState(conLogFile),
+	m_ModeratorLogic(m_WorldState, window->m_ActionManager)
+{
+	m_WorldState.AddConsoleLineListener(window);
 }

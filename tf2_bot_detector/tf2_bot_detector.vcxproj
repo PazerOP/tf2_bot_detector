@@ -146,6 +146,7 @@
     <ClCompile Include="CompensatedTS.cpp" />
     <ClCompile Include="ImGui_TF2BotDetector.cpp" />
     <ClCompile Include="Log.cpp" />
+    <ClCompile Include="ModeratorLogic.cpp" />
     <ClCompile Include="NetworkStatus.cpp" />
     <ClCompile Include="PathUtils.cpp" />
     <ClCompile Include="PeriodicActionManager.cpp" />

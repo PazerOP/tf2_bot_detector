@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace tf2_bot_detector
 {
 	enum class TFTeam : uint8_t
