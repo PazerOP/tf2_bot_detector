@@ -317,7 +317,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 	case ConsoleLineType::Ping:
 	{
 		auto& pingLine = static_cast<const PingLine&>(parsed);
-		if (auto found = GetWorld().FindSteamIDForName(pingLine.GetPlayerName()))
+		if (auto found = FindSteamIDForName(pingLine.GetPlayerName()))
 		{
 			auto& playerData = m_CurrentPlayerData[*found];
 			playerData.m_Status.m_Ping = pingLine.GetPing();

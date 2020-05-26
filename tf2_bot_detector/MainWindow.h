@@ -4,6 +4,7 @@
 #include "ActionManager.h"
 #include "Clock.h"
 #include "CompensatedTS.h"
+#include "ModeratorLogic.h"
 #include "PlayerListJSON.h"
 #include "Settings.h"
 #include "WorldState.h"
@@ -130,20 +131,6 @@ namespace tf2_bot_detector
 			} m_Voice;
 		};
 
-		struct DelayedChatBan
-		{
-			time_point_t m_Timestamp;
-			std::string m_PlayerName;
-		};
-		std::vector<DelayedChatBan> m_DelayedBans;
-		void ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& updatedStatus);
-
-		time_point_t m_LastPlayerActionsUpdate{};
-		void ProcessPlayerActions();
-		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<SteamID>& friendlyCheaters);
-		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<SteamID>& enemyCheaters,
-			const std::vector<PlayerExtraData*>& connectingEnemyCheaters);
-
 		struct EdictUsageSample
 		{
 			time_point_t m_Timestamp;
@@ -186,13 +173,9 @@ namespace tf2_bot_detector
 			time_point_t startTime, time_point_t endTime, int yAxis = 0) const;
 		static float GetMaxValue(const std::map<time_point_t, AvgSample>& data);
 
-		bool SetPlayerAttribute(const SteamID& id, PlayerAttributes markType, bool set = true);
-		bool HasPlayerAttribute(const SteamID& id, PlayerAttributes markType) const;
-
-		bool InitiateVotekick(const SteamID& id, KickReason reason);
-
 		Settings m_Settings;
 		ActionManager m_ActionManager;
 		PeriodicActionManager m_PeriodicActionManager;
+		ModeratorLogic m_ModeratorLogic;
 	};
 }

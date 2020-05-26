@@ -86,13 +86,13 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 		if (ImGui::BeginMenu("Votekick", (GetTeamShareResult(steamID) == TeamShareResult::SameTeams) && world.FindUserID(steamID)))
 		{
 			if (ImGui::MenuItem("Cheating"))
-				InitiateVotekick(steamID, KickReason::Cheating);
+				m_ModeratorLogic.InitiateVotekick(steamID, KickReason::Cheating);
 			if (ImGui::MenuItem("Idle"))
-				InitiateVotekick(steamID, KickReason::Idle);
+				m_ModeratorLogic.InitiateVotekick(steamID, KickReason::Idle);
 			if (ImGui::MenuItem("Other"))
-				InitiateVotekick(steamID, KickReason::Other);
+				m_ModeratorLogic.InitiateVotekick(steamID, KickReason::Other);
 			if (ImGui::MenuItem("Scamming"))
-				InitiateVotekick(steamID, KickReason::Scamming);
+				m_ModeratorLogic.InitiateVotekick(steamID, KickReason::Scamming);
 
 			ImGui::EndMenu();
 		}
@@ -104,13 +104,13 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 			const PlayerListData* existingData = m_PlayerList.FindPlayerData(steamID);
 			for (int i = 0; i < (int)PlayerAttributes::COUNT; i++)
 			{
-				const bool existingMarked = HasPlayerAttribute(steamID, PlayerAttributes(i));
+				const bool existingMarked = m_ModeratorLogic.HasPlayerAttribute(steamID, PlayerAttributes(i));
 
 				std::string name;
 				name << PlayerAttributes(i);
 				if (ImGui::MenuItem(name.c_str(), nullptr, existingMarked))
 				{
-					if (SetPlayerAttribute(steamID, PlayerAttributes(i), !existingMarked))
+					if (m_ModeratorLogic.SetPlayerAttribute(steamID, PlayerAttributes(i), !existingMarked))
 						Log("Manually marked "s << steamID << (existingMarked ? "NOT " : "") << PlayerAttributes(i));
 				}
 			}

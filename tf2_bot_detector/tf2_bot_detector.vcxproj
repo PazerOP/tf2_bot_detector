@@ -168,6 +168,7 @@
     <ClInclude Include="IConsoleLine.h" />
     <ClInclude Include="IConsoleLineListener.h" />
     <ClInclude Include="ImGui_TF2BotDetector.h" />
+    <ClInclude Include="IPlayer.h" />
     <ClInclude Include="IWorldEventListener.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="ModeratorLogic.h" />

@@ -103,12 +103,14 @@ namespace tf2_bot_detector
 		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
 
+		time_point_t m_LastStatusUpdateTime{};
+
 		struct EventBroadcaster final : IWorldEventListener
 		{
 			void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 			void OnTimestampUpdate(WorldState& world) override;
-			void OnPlayerStatusUpdate(WorldState& world, const PlayerRef& player) override;
-			void OnChatMsg(WorldState& world, const PlayerRef& player, const std::string_view& msg) override;
+			void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
+			void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
 
 			std::unordered_set<IWorldEventListener*> m_EventListeners;
 		} m_EventBroadcaster;
