@@ -81,7 +81,9 @@ void MainWindow::OnDrawScoreboardContextMenu(const SteamID& steamID)
 		if (ImGui::MenuItem("Copy SteamID", nullptr, false, steamID.IsValid()))
 			ImGui::SetClipboardText(steamID.str().c_str());
 
-		if (ImGui::BeginMenu("Votekick", (GetTeamShareResult(steamID) == TeamShareResult::SameTeams) && FindUserID(steamID)))
+		const auto& world = m_WorldState.value();
+
+		if (ImGui::BeginMenu("Votekick", (GetTeamShareResult(steamID) == TeamShareResult::SameTeams) && world.FindUserID(steamID)))
 		{
 			if (ImGui::MenuItem("Cheating"))
 				InitiateVotekick(steamID, KickReason::Cheating);
@@ -659,122 +661,26 @@ void MainWindow::OnDrawMenuBar()
 #endif
 }
 
-static std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d):[ \n])regex", std::regex::optimize);
 void MainWindow::OnUpdate()
 {
 	if (m_Paused)
 		return;
 
-	if (!m_File)
-	{
-		{
-			FILE* temp = _fsopen((m_Settings.m_TFDir / "console.log").string().c_str(), "r", _SH_DENYNO);
-			m_File.reset(temp);
-		}
-
-		if (m_File)
-			m_ConsoleLines.clear();
-	}
-
-	bool snapshotUpdated = false;
-	const auto TrySnapshot = [&]()
-	{
-		if (!snapshotUpdated || !m_CurrentTimestamp.IsSnapshotValid())
-		{
-			m_CurrentTimestamp.Snapshot();
-			snapshotUpdated = true;
-		}
-	};
-
-	bool consoleLinesUpdated = false;
-	if (m_File)
-	{
-		char buf[4096];
-		size_t readCount;
-		using clock = std::chrono::steady_clock;
-		const auto startTime = clock::now();
-		do
-		{
-			readCount = fread(buf, sizeof(buf[0]), std::size(buf), m_File.get());
-			if (readCount > 0)
-			{
-				m_FileLineBuf.append(buf, readCount);
-
-				auto regexBegin = m_FileLineBuf.cbegin();
-				std::smatch match;
-				while (std::regex_search(regexBegin, m_FileLineBuf.cend(), match, s_TimestampRegex))
-				{
-					if (m_CurrentTimestamp.IsRecordedValid())
-					{
-						// If we have a valid snapshot, that means that there was a previously parsed
-						// timestamp. The contents of that line is the current timestamp match's prefix
-						// (the previous timestamp match was erased from the string)
-
-						TrySnapshot();
-						SetLogTimestamp(m_CurrentTimestamp.GetSnapshot());
-
-						const auto prefix = match.prefix();
-						//const auto suffix = match.suffix();
-						const std::string_view lineStr(&*prefix.first, prefix.length());
-						auto parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
-
-						if (parsed)
-						{
-							for (auto listener : m_ConsoleLineListeners)
-								listener->OnConsoleLineParsed(*parsed);
-
-							m_ConsoleLines.push_back(std::move(parsed));
-							consoleLinesUpdated = true;
-						}
-						else
-						{
-							for (auto listener : m_ConsoleLineListeners)
-								listener->OnConsoleLineUnparsed(m_CurrentTimestamp.GetSnapshot(), lineStr);
-						}
-					}
-
-					std::tm time{};
-					time.tm_isdst = -1;
-					from_chars_throw(match[1], time.tm_mon);
-					time.tm_mon -= 1;
-
-					from_chars_throw(match[2], time.tm_mday);
-					from_chars_throw(match[3], time.tm_year);
-					time.tm_year -= 1900;
-
-					from_chars_throw(match[4], time.tm_hour);
-					from_chars_throw(match[5], time.tm_min);
-					from_chars_throw(match[6], time.tm_sec);
-
-					m_CurrentTimestamp.SetRecorded(clock_t::from_time_t(std::mktime(&time)));
-					regexBegin = match[0].second;
-				}
-
-				m_ParsedLineCount += std::count(m_FileLineBuf.cbegin(), regexBegin, '\n');
-				m_FileLineBuf.erase(m_FileLineBuf.begin(), regexBegin);
-			}
-
-			if (auto elapsed = clock::now() - startTime; elapsed >= 50ms)
-				break;
-
-		} while (readCount > 0);
-
-		if (readCount > 0)
-			QueueUpdate();
-
-		if (consoleLinesUpdated)
-			UpdatePrintingLines();
-	}
-
-	TrySnapshot();
-	SetLogTimestamp(m_CurrentTimestamp.GetSnapshot());
+	m_WorldState.value().Update();
 
 	ProcessPlayerActions();
-	m_PeriodicActionManager.Update(m_CurrentTimestamp.GetSnapshot());
-	m_ActionManager.Update(m_CurrentTimestamp.GetSnapshot());
+	m_PeriodicActionManager.Update(GetCurrentTimestampCompensated());
+	m_ActionManager.Update(GetCurrentTimestampCompensated());
+}
+
+void MainWindow::OnUpdate(WorldState& world, bool consoleLinesUpdated)
+{
+	assert(&world == &m_WorldState.value());
+
+	QueueUpdate();
 
 	if (consoleLinesUpdated)
-		UpdateServerPing(m_CurrentTimestamp.GetSnapshot());
+		UpdateServerPing(GetCurrentTimestampCompensated());
 }
 
 bool MainWindow::IsSleepingEnabled() const
@@ -798,66 +704,28 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 static const std::regex s_WordRegex(R"regex((\w+))regex", std::regex::optimize);
 void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 {
-	//const auto tsComp = GetCurrentTimestampCompensated();
-	const auto ClearLobbyState = [&]
+	const auto& world = GetWorld();
+
+	if (parsed.ShouldPrint())
 	{
-		m_CurrentLobbyMembers.clear();
-		m_PendingLobbyMembers.clear();
-		m_CurrentPlayerData.clear();
-	};
+		if (m_PrintingLineCount >= std::size(m_PrintingLines))
+			std::copy_backward(&m_PrintingLines[0], &m_PrintingLines[std::size(m_PrintingLines) - 1], &m_PrintingLines[1]);
+		else
+			std::copy(&m_PrintingLines[0], &m_PrintingLines[m_PrintingLineCount], &m_PrintingLines[1]);
+
+		m_PrintingLines[0] = &parsed;
+	}
 
 	switch (parsed.GetType())
 	{
-	case ConsoleLineType::LobbyHeader:
-	{
-		auto& headerLine = static_cast<const LobbyHeaderLine&>(parsed);
-		m_CurrentLobbyMembers.resize(headerLine.GetMemberCount());
-		m_PendingLobbyMembers.resize(headerLine.GetPendingCount());
-		break;
-	}
 	case ConsoleLineType::LobbyChanged:
 	{
 		auto& lobbyChangedLine = static_cast<const LobbyChangedLine&>(parsed);
 		const LobbyChangeType changeType = lobbyChangedLine.GetChangeType();
 
-		if (changeType == LobbyChangeType::Created)
-		{
-			ClearLobbyState();
-		}
-
 		if (changeType == LobbyChangeType::Created || changeType == LobbyChangeType::Updated)
-		{
-			m_ActionManager.QueueAction(std::make_unique<LobbyUpdateAction>());
-			// We can't trust the existing client indices
-			for (auto& player : m_CurrentPlayerData)
-				player.second.m_ClientIndex = 0;
-		}
-		break;
-	}
-	case ConsoleLineType::ClientReachedServerSpawn:
-	{
-		// Reset current lobby members/player statuses
-		//ClearLobbyState();
-		break;
-	}
+			m_ActionManager.QueueAction<LobbyUpdateAction>();
 
-	case ConsoleLineType::VoiceReceive:
-	{
-		auto& voiceReceiveLine = static_cast<const VoiceReceiveLine&>(parsed);
-		for (auto& player : m_CurrentPlayerData)
-		{
-			if (player.second.m_ClientIndex == (voiceReceiveLine.GetEntIndex() + 1))
-			{
-				auto& voice = player.second.m_Voice;
-				if (voice.m_LastTransmission != parsed.GetTimestamp())
-				{
-					voice.m_TotalTransmissions += 1s; // This is fine because we know the resolution of our timestamps is 1 second
-					voice.m_LastTransmission = parsed.GetTimestamp();
-				}
-
-				break;
-			}
-		}
 		break;
 	}
 
@@ -867,7 +735,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 		if (auto count = std::count(chatLine.GetMessage().begin(), chatLine.GetMessage().end(), '\n'); count > 2)
 		{
 			// Cheater is clearing the chat
-			if (auto steamID = FindSteamIDForName(chatLine.GetPlayerName()))
+			if (auto steamID = world.FindSteamIDForName(chatLine.GetPlayerName()))
 			{
 				if (SetPlayerAttribute(*steamID, PlayerAttributes::Cheater))
 					Log("Marked "s << *steamID << " as cheater (" << count << " newlines in chat message)");
@@ -895,7 +763,7 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 				if (mh::case_insensitive_compare(word, "nigger"sv) || mh::case_insensitive_compare(word, "niggers"sv))
 				{
 					Log("Detected Bad Word in chat: "s << word);
-					if (auto found = FindSteamIDForName(chatLine.GetPlayerName()))
+					if (auto found = GetWorld().FindSteamIDForName(chatLine.GetPlayerName()))
 					{
 						if (SetPlayerAttribute(*found, PlayerAttributes::Racist))
 							Log("Marked "s << *found << " as racist (" << std::quoted(word) << " in chat message)");
@@ -908,127 +776,6 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 			}
 		}
 
-		break;
-	}
-
-	case ConsoleLineType::LobbyMember:
-	{
-		auto& memberLine = static_cast<const LobbyMemberLine&>(parsed);
-		const auto& member = memberLine.GetLobbyMember();
-		auto& vec = member.m_Pending ? m_PendingLobbyMembers : m_CurrentLobbyMembers;
-		if (member.m_Index < vec.size())
-			vec[member.m_Index] = member;
-
-		const TFTeam tfTeam = member.m_Team == LobbyMemberTeam::Defenders ? TFTeam::Red : TFTeam::Blue;
-		m_CurrentPlayerData[member.m_SteamID].m_Team = tfTeam;
-
-		break;
-	}
-	case ConsoleLineType::Ping:
-	{
-		auto& pingLine = static_cast<const PingLine&>(parsed);
-		if (auto found = FindSteamIDForName(pingLine.GetPlayerName()))
-		{
-			auto& playerData = m_CurrentPlayerData[*found];
-			playerData.m_Status.m_Ping = pingLine.GetPing();
-			playerData.m_LastPingUpdateTime = pingLine.GetTimestamp();
-		}
-
-		break;
-	}
-	case ConsoleLineType::PlayerStatus:
-	{
-		auto& statusLine = static_cast<const ServerStatusPlayerLine&>(parsed);
-		auto newStatus = statusLine.GetPlayerStatus();
-		auto& playerData = m_CurrentPlayerData[newStatus.m_SteamID];
-
-		// Don't introduce stutter to our connection time view
-		if (auto delta = (playerData.m_Status.m_ConnectionTime - newStatus.m_ConnectionTime);
-			delta < 2s && delta > -2s)
-		{
-			newStatus.m_ConnectionTime = playerData.m_Status.m_ConnectionTime;
-		}
-
-		playerData.m_Status = newStatus;
-		playerData.m_LastStatusUpdateTime = playerData.m_LastPingUpdateTime = statusLine.GetTimestamp();
-		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, playerData.m_LastStatusUpdateTime);
-		ProcessDelayedBans(statusLine.GetTimestamp(), newStatus);
-
-		if (newStatus.m_Name.find("MYG)T"sv) != newStatus.m_Name.npos)
-		{
-			if (SetPlayerAttribute(newStatus.m_SteamID, PlayerAttributes::Cheater))
-				Log("Marked "s << newStatus.m_SteamID << " as a cheater due to name (mygot advertisement)");
-		}
-		if (newStatus.m_Name.ends_with("\xE2\x80\x8F"sv))
-		{
-			if (SetPlayerAttribute(newStatus.m_SteamID, PlayerAttributes::Cheater))
-				Log("Marked "s << newStatus.m_SteamID << " as cheater due to name ending in common name-stealing characters");
-		}
-
-		break;
-	}
-	case ConsoleLineType::PlayerStatusShort:
-	{
-		auto& statusLine = static_cast<const ServerStatusShortPlayerLine&>(parsed);
-		const auto& status = statusLine.GetPlayerStatus();
-		if (auto steamID = FindSteamIDForName(status.m_Name))
-			m_CurrentPlayerData[*steamID].m_ClientIndex = status.m_ClientIndex;
-
-		break;
-	}
-	case ConsoleLineType::KillNotification:
-	{
-		auto& killLine = static_cast<const KillNotificationLine&>(parsed);
-
-		if (const auto attackerSteamID = FindSteamIDForName(killLine.GetAttackerName()))
-			m_CurrentPlayerData[*attackerSteamID].m_Scores.m_Kills++;
-		if (const auto victimSteamID = FindSteamIDForName(killLine.GetVictimName()))
-			m_CurrentPlayerData[*victimSteamID].m_Scores.m_Deaths++;
-
-		break;
-	}
-
-	case ConsoleLineType::EdictUsage:
-	{
-		auto& usageLine = static_cast<const EdictUsageLine&>(parsed);
-		m_EdictUsageSamples.push_back({ usageLine.GetTimestamp(), usageLine.GetUsedEdicts(), usageLine.GetTotalEdicts() });
-
-		while (m_EdictUsageSamples.front().m_Timestamp < (usageLine.GetTimestamp() - 5min))
-			m_EdictUsageSamples.erase(m_EdictUsageSamples.begin());
-
-		break;
-	}
-
-	case ConsoleLineType::NetDataTotal:
-	{
-		auto& netDataLine = static_cast<const NetDataTotalLine&>(parsed);
-		auto ts = round_time_point(netDataLine.GetTimestamp(), 100ms);
-		m_NetSamplesIn.m_Data[ts].AddSample(netDataLine.GetInKBps());
-		m_NetSamplesOut.m_Data[ts].AddSample(netDataLine.GetOutKBps());
-		break;
-	}
-	case ConsoleLineType::NetLatency:
-	{
-		auto& netLatencyLine = static_cast<const NetLatencyLine&>(parsed);
-		auto ts = round_time_point(netLatencyLine.GetTimestamp(), 100ms);
-		m_NetSamplesIn.m_Latency[ts].AddSample(netLatencyLine.GetInLatency());
-		m_NetSamplesOut.m_Latency[ts].AddSample(netLatencyLine.GetOutLatency());
-		break;
-	}
-	case ConsoleLineType::NetPacketsTotal:
-	{
-		auto& netPacketsLine = static_cast<const NetPacketsTotalLine&>(parsed);
-		auto ts = round_time_point(netPacketsLine.GetTimestamp(), 100ms);
-		m_NetSamplesIn.m_Packets[ts].AddSample(netPacketsLine.GetInPacketsPerSecond());
-		m_NetSamplesOut.m_Packets[ts].AddSample(netPacketsLine.GetOutPacketsPerSecond());
-		break;
-	}
-	case ConsoleLineType::NetLoss:
-	{
-		auto& netLossLine = static_cast<const NetLossLine&>(parsed);
-		auto ts = round_time_point(netLossLine.GetTimestamp(), 100ms);
-		m_NetSamplesIn.m_Loss[ts].AddSample(netLossLine.GetInLossPercent());
-		m_NetSamplesOut.m_Loss[ts].AddSample(netLossLine.GetOutLossPercent());
 		break;
 	}
 	}
@@ -1178,7 +925,7 @@ void MainWindow::ProcessPlayerActions()
 
 	const auto ProcessLobbyMember = [&](const LobbyMember& player)
 	{
-		const auto teamShareResult = GetTeamShareResult(*myTeam, player.m_SteamID);
+		const auto teamShareResult = GetWorld().GetTeamShareResult(*myTeam, player.m_SteamID);
 		switch (teamShareResult)
 		{
 		case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
@@ -1212,20 +959,6 @@ void MainWindow::ProcessPlayerActions()
 
 	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
 	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
-}
-
-void MainWindow::UpdatePrintingLines()
-{
-	m_PrintingLineCount = 0;
-	for (auto it = m_ConsoleLines.rbegin(); it != m_ConsoleLines.rend(); ++it)
-	{
-		if (it->get()->ShouldPrint())
-		{
-			m_PrintingLines[m_PrintingLineCount++] = it->get();
-			if (m_PrintingLineCount >= 512)
-				break;
-		}
-	}
 }
 
 size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const
@@ -1301,75 +1034,9 @@ size_t MainWindow::GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintDa
 	return static_cast<size_t>(end - begin);
 }
 
-std::optional<SteamID> MainWindow::FindSteamIDForName(const std::string_view& playerName) const
-{
-	for (const auto& data : m_CurrentPlayerData)
-	{
-		if (data.second.m_Status.m_Name == playerName)
-			return data.first;
-	}
-
-	return std::nullopt;
-}
-
-std::optional<LobbyMemberTeam> MainWindow::FindLobbyMemberTeam(const SteamID& id) const
-{
-	for (const auto& member : m_CurrentLobbyMembers)
-	{
-		if (member.m_SteamID == id)
-			return member.m_Team;
-	}
-
-	for (const auto& member : m_PendingLobbyMembers)
-	{
-		if (member.m_SteamID == id)
-			return member.m_Team;
-	}
-
-	return std::nullopt;
-}
-
-std::optional<uint16_t> MainWindow::FindUserID(const SteamID& id) const
-{
-	for (const auto& player : m_CurrentPlayerData)
-	{
-		if (player.second.m_Status.m_SteamID == id)
-			return player.second.m_Status.m_UserID;
-	}
-
-	return std::nullopt;
-}
-
 auto MainWindow::GetTeamShareResult(const SteamID& id) const -> TeamShareResult
 {
-	return GetTeamShareResult(TryGetMyTeam(), id);
-}
-
-auto MainWindow::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
-	const SteamID& id1) const -> TeamShareResult
-{
-	return GetTeamShareResult(team0, FindLobbyMemberTeam(id1));
-}
-
-auto MainWindow::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
-	const std::optional<LobbyMemberTeam>& team1) -> TeamShareResult
-{
-	if (!team0)
-		return TeamShareResult::Neither;
-	if (!team1)
-		return TeamShareResult::Neither;
-
-	if (*team0 == *team1)
-		return TeamShareResult::SameTeams;
-	else if (*team0 == OppositeTeam(*team1))
-		return TeamShareResult::OppositeTeams;
-	else
-		throw std::runtime_error("Unexpected team value(s)");
-}
-
-auto MainWindow::GetTeamShareResult(const SteamID& id0, const SteamID& id1) const -> TeamShareResult
-{
-	return GetTeamShareResult(FindLobbyMemberTeam(id0), FindLobbyMemberTeam(id1));
+	return GetWorld().GetTeamShareResult(TryGetMyTeam(), id);
 }
 
 void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& updatedStatus)
@@ -1407,6 +1074,7 @@ void MainWindow::ProcessDelayedBans(time_point_t timestamp, const PlayerStatus& 
 	}
 }
 
+#if 0
 void MainWindow::UpdateServerPing(time_point_t timestamp)
 {
 	if ((timestamp - m_LastServerPingSample) <= 7s)
@@ -1431,6 +1099,7 @@ void MainWindow::UpdateServerPing(time_point_t timestamp)
 	while ((timestamp - m_ServerPingSamples.front().m_Timestamp) > 5min)
 		m_ServerPingSamples.erase(m_ServerPingSamples.begin());
 }
+#endif
 
 std::pair<time_point_t, time_point_t> MainWindow::GetNetSamplesRange() const
 {
@@ -1562,12 +1231,12 @@ bool MainWindow::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribut
 
 std::optional<LobbyMemberTeam> MainWindow::TryGetMyTeam() const
 {
-	return FindLobbyMemberTeam(m_Settings.m_LocalSteamID);
+	return GetWorld().FindLobbyMemberTeam(m_Settings.m_LocalSteamID);
 }
 
 bool MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
 {
-	const auto userID = FindUserID(id);
+	const auto userID = GetWorld().FindUserID(id);
 	if (!userID)
 	{
 		Log("Wanted to kick "s << id << ", but could not find userid");
@@ -1578,11 +1247,6 @@ bool MainWindow::InitiateVotekick(const SteamID& id, KickReason reason)
 		Log("InitiateVotekick on "s << id << ": " << reason);
 
 	return true;
-}
-
-void MainWindow::CustomDeleters::operator()(FILE* f) const
-{
-	fclose(f);
 }
 
 float MainWindow::PlayerExtraData::GetAveragePing() const

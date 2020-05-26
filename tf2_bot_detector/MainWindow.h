@@ -6,6 +6,7 @@
 #include "CompensatedTS.h"
 #include "PlayerListJSON.h"
 #include "Settings.h"
+#include "WorldState.h"
 #include "LobbyMember.h"
 #include "PeriodicActionManager.h"
 #include "PlayerStatus.h"
@@ -28,13 +29,7 @@ namespace tf2_bot_detector
 	class IConsoleLine;
 	class IConsoleLineListener;
 
-	struct PlayerScores
-	{
-		uint16_t m_Kills = 0;
-		uint16_t m_Deaths = 0;
-	};
-
-	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener
+	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener, BaseWorldEventListener
 	{
 	public:
 		MainWindow();
@@ -67,26 +62,24 @@ namespace tf2_bot_detector
 		bool IsTimeEven() const;
 		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
 
+		// IConsoleLineListener
 		void OnConsoleLineParsed(IConsoleLine& line);
 
-		struct CustomDeleters
-		{
-			void operator()(FILE*) const;
-		};
-		std::unique_ptr<FILE, CustomDeleters> m_File;
-		std::string m_FileLineBuf;
+		// IWorldEventListener
+		void OnChatMsg(WorldState& world, const PlayerRef& player, const std::string_view& msg) override;
 
-		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
+		std::optional<WorldState> m_WorldState;
 		bool m_Paused = false;
 
-		CompensatedTS m_CurrentTimestamp;
+		WorldState& GetWorld() { return m_WorldState.value(); }
+		const WorldState& GetWorld() const { return m_WorldState.value(); }
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
-		time_point_t GetCurrentTimestampCompensated() const { return m_CurrentTimestamp.GetSnapshot(); }
+		time_point_t GetCurrentTimestampCompensated() const { return m_WorldState.value().GetCurrentTime(); }
+		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
 		size_t m_PrintingLineCount = 0;
-		IConsoleLine* m_PrintingLines[512]{};
-		void UpdatePrintingLines();
+		const IConsoleLine* m_PrintingLines[512]{}; // newest to oldest order
 
 		struct PlayerPrintData final
 		{
@@ -101,22 +94,8 @@ namespace tf2_bot_detector
 		};
 		size_t GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const;
 
-		enum class TeamShareResult
-		{
-			SameTeams,
-			OppositeTeams,
-			Neither,
-		};
-
-		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const;
-		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const;
-		std::optional<uint16_t> FindUserID(const SteamID& id) const;
-		TeamShareResult GetTeamShareResult(const SteamID& id) const;
-		TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const;
-		TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const;
-		static TeamShareResult GetTeamShareResult(
-			const std::optional<LobbyMemberTeam>& team0, const std::optional<LobbyMemberTeam>& team1);
 		std::optional<LobbyMemberTeam> TryGetMyTeam() const;
+		TeamShareResult GetTeamShareResult(const SteamID& id) const;
 
 		struct PingSample
 		{
@@ -173,9 +152,6 @@ namespace tf2_bot_detector
 		};
 		std::vector<EdictUsageSample> m_EdictUsageSamples;
 
-		std::vector<LobbyMember> m_CurrentLobbyMembers;
-		std::vector<LobbyMember> m_PendingLobbyMembers;
-		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
 		time_point_t m_OpenTime;
 		PlayerListJSON m_PlayerList;
 		time_point_t m_LastStatusUpdateTime{};
@@ -218,6 +194,5 @@ namespace tf2_bot_detector
 		Settings m_Settings;
 		ActionManager m_ActionManager;
 		PeriodicActionManager m_PeriodicActionManager;
-		std::set<IConsoleLineListener*> m_ConsoleLineListeners;
 	};
 }

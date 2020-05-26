@@ -156,6 +156,7 @@
     <ClCompile Include="PlayerListJSON.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="SteamID.cpp" />
+    <ClCompile Include="WorldState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\implot\repo\implot.h" />
@@ -167,7 +168,9 @@
     <ClInclude Include="IConsoleLine.h" />
     <ClInclude Include="IConsoleLineListener.h" />
     <ClInclude Include="ImGui_TF2BotDetector.h" />
+    <ClInclude Include="IWorldEventListener.h" />
     <ClInclude Include="Log.h" />
+    <ClInclude Include="ModeratorLogic.h" />
     <ClInclude Include="NetworkStatus.h" />
     <ClInclude Include="PathUtils.h" />
     <ClInclude Include="PeriodicActionManager.h" />
@@ -181,6 +184,7 @@
     <ClInclude Include="Settings.h" />
     <ClInclude Include="SteamID.h" />
     <ClInclude Include="TFConstants.h" />
+    <ClInclude Include="WorldState.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

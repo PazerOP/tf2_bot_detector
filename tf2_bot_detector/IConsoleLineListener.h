@@ -2,19 +2,19 @@
 
 #include "Clock.h"
 
-#include <memory>
 #include <string_view>
 
 namespace tf2_bot_detector
 {
 	class IConsoleLine;
+	class WorldState;
 
 	class IConsoleLineListener
 	{
 	public:
 		virtual ~IConsoleLineListener() = default;
 
-		virtual void OnConsoleLineParsed(IConsoleLine& line) {}
-		virtual void OnConsoleLineUnparsed(time_point_t timestamp, const std::string_view& text) {}
+		virtual void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) {}
+		virtual void OnConsoleLineUnparsed(WorldState& world, const std::string_view& text) {}
 	};
 }
