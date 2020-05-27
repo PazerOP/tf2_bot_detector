@@ -17,6 +17,12 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
+void ModeratorLogic::OnUpdate(WorldState& world, bool consoleLinesUpdated)
+{
+	if (consoleLinesUpdated)
+		ProcessPlayerActions();
+}
+
 void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& player)
 {
 	ProcessDelayedBans(world.GetCurrentTime(), player);
@@ -194,8 +200,8 @@ void ModeratorLogic::ProcessPlayerActions()
 
 	// Don't process actions if we're way out of date
 	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(clock_t::now() - now);
-	if ((clock_t::now() - now) > 15s)
-		return;
+	//if ((clock_t::now() - now) > 15s)
+	//	return;
 
 	const auto myTeam = TryGetMyTeam();
 	if (!myTeam)
@@ -210,7 +216,6 @@ void ModeratorLogic::ProcessPlayerActions()
 	for (const LobbyMember* lobbyMember : m_World->GetLobbyMembers())
 	{
 		IPlayer* playerPtr = m_World->FindPlayer(lobbyMember->m_SteamID);
-		assert(playerPtr);
 		IPlayer& player = *playerPtr;
 
 		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, lobbyMember->m_SteamID);
@@ -276,9 +281,11 @@ std::optional<LobbyMemberTeam> ModeratorLogic::TryGetMyTeam() const
 	return m_World->FindLobbyMemberTeam(m_Settings->m_LocalSteamID);
 }
 
-ModeratorLogic::ModeratorLogic(WorldState& world, ActionManager& actionManager) :
-	m_World(&world), m_ActionManager(&actionManager)
+ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :
+	m_World(&world), m_Settings(&settings), m_ActionManager(&actionManager)
 {
+	m_World->AddConsoleLineListener(this);
+	m_World->AddWorldEventListener(this);
 }
 
 bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason)

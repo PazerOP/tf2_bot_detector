@@ -10,6 +10,7 @@
 
 namespace tf2_bot_detector
 {
+	struct LobbyMember;
 	enum class PlayerStatusState : uint8_t;
 	enum class TFTeam : uint8_t;
 
@@ -26,6 +27,8 @@ namespace tf2_bot_detector
 
 		virtual WorldState& GetWorld() { return const_cast<WorldState&>(std::as_const(*this).GetWorld()); }
 		virtual const WorldState& GetWorld() const = 0;
+
+		virtual const LobbyMember* GetLobbyMember() const = 0;
 
 		virtual std::string_view GetName() const = 0;
 		virtual SteamID GetSteamID() const = 0;

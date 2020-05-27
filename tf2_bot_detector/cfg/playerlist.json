@@ -412,7 +412,7 @@
 			],
 			"last_seen": {
 				"player_name": "CAN YOU Q\u200fUACK\u200f\u200f\u200f",
-				"time": 1590313714
+				"time": 1590551311
 			},
 			"steamid": "[U:1:1002346104]"
 		},
@@ -568,7 +568,7 @@
 			],
 			"last_seen": {
 				"player_name": "CAN YOU QU\u200fACK\u200f",
-				"time": 1590300008
+				"time": 1590551421
 			},
 			"steamid": "[U:1:1057067437]"
 		},
@@ -741,6 +741,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "C\u200fAN YOU QUACK\u200f",
+				"time": 1590551575
+			},
 			"steamid": "[U:1:1058888798]"
 		},
 		{
@@ -769,7 +773,7 @@
 			],
 			"last_seen": {
 				"player_name": "CA\u200fN YOU QUACK\u200f",
-				"time": 1590313659
+				"time": 1590551342
 			},
 			"steamid": "[U:1:1059203591]"
 		},
@@ -1310,10 +1314,40 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "furry-bot 4",
+				"time": 1590552521
+			},
+			"steamid": "[U:1:1099621675]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "(2)MYG)T",
 				"time": 1590308741
 			},
 			"steamid": "[U:1:1100000846]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 24",
+				"time": 1590553142
+			},
+			"steamid": "[U:1:1100846308]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 19",
+				"time": 1590553134
+			},
+			"steamid": "[U:1:1101117350]"
 		}
 	]
 }

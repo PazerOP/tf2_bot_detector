@@ -55,8 +55,8 @@ namespace tf2_bot_detector
 
 		size_t GetLobbyMemberCount() const;
 
-		mh::generator<const LobbyMember*> GetLobbyMembers() const;
-		mh::generator<LobbyMember*> GetLobbyMembers();
+		mh::generator<const IPlayer*> GetLobbyMembers() const;
+		mh::generator<IPlayer*> GetLobbyMembers();
 		mh::generator<const IPlayer*> GetPlayers() const;
 		mh::generator<IPlayer*> GetPlayers();
 
@@ -82,6 +82,7 @@ namespace tf2_bot_detector
 
 			using IPlayer::GetWorld;
 			const WorldState& GetWorld() const override { return *m_World; }
+			const LobbyMember* GetLobbyMember() const override;
 			std::string_view GetName() const override { return m_Status.m_Name; }
 			SteamID GetSteamID() const override { return m_Status.m_SteamID; }
 			PlayerStatusState GetConnectionState() const override { return m_Status.m_State; }

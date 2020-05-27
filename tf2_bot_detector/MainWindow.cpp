@@ -36,7 +36,7 @@ MainWindow::MainWindow() :
 
 	m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 
-	m_WorldState.emplace(*this, m_Settings.m_TFDir / "console.log");
+	m_WorldState.emplace(*this, m_Settings, m_Settings.m_TFDir / "console.log");
 }
 
 MainWindow::~MainWindow()
@@ -1001,9 +1001,10 @@ void MainWindow::AvgSample::AddSample(float value)
 #endif
 }
 
-MainWindow::WorldStateExtra::WorldStateExtra(MainWindow& window, const std::filesystem::path& conLogFile) :
+MainWindow::WorldStateExtra::WorldStateExtra(MainWindow& window,
+	const Settings& settings, const std::filesystem::path& conLogFile) :
 	m_WorldState(conLogFile),
-	m_ModeratorLogic(m_WorldState, window.m_ActionManager)
+	m_ModeratorLogic(m_WorldState, settings, window.m_ActionManager)
 {
 	m_WorldState.AddConsoleLineListener(&window);
 	m_WorldState.AddWorldEventListener(&window);

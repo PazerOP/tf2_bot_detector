@@ -272,7 +272,7 @@ size_t WorldState::GetLobbyMemberCount() const
 	return m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
 }
 
-mh::generator<const LobbyMember*> WorldState::GetLobbyMembers() const
+mh::generator<const IPlayer*> WorldState::GetLobbyMembers() const
 {
 	for (const auto& member : m_CurrentLobbyMembers)
 		co_yield &member;
@@ -280,7 +280,7 @@ mh::generator<const LobbyMember*> WorldState::GetLobbyMembers() const
 		co_yield &member;
 }
 
-mh::generator<LobbyMember*> WorldState::GetLobbyMembers()
+mh::generator<IPlayer*> WorldState::GetLobbyMembers()
 {
 	for (const LobbyMember* member : std::as_const(*this).GetLobbyMembers())
 		co_yield const_cast<LobbyMember*>(member);

@@ -71,7 +71,7 @@ namespace tf2_bot_detector
 
 		struct WorldStateExtra
 		{
-			WorldStateExtra(MainWindow& window, const std::filesystem::path& conLogFile);
+			WorldStateExtra(MainWindow& window, const Settings& settings, const std::filesystem::path& conLogFile);
 
 			WorldState m_WorldState;
 			ModeratorLogic m_ModeratorLogic;
