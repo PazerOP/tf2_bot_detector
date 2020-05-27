@@ -8,7 +8,7 @@
 					"cheater"
 				]
 			},
-			"description": "mygot bots/advertisement",
+			"description": "(catbot) mygot",
 			"triggers": {
 				"username_text_match": {
 					"case_sensitive": false,
@@ -17,6 +17,21 @@
 				}
 			}
 		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) furry-bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"pattern": "furry-bot \\d+"
+				}
+			}
+		}
 		{
 			"actions": {
 				"mark": [

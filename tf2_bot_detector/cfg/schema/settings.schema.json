@@ -202,7 +202,7 @@
 						},
 						"chatmsg_text_match": {
 							"$ref": "#/definitions/tfbd_text_match",
-							"description": "Match against the username."
+							"description": "Match against chat messages sent by the player."
 						}
 					}
 				},
