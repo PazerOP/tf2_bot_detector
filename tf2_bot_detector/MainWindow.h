@@ -53,7 +53,6 @@ namespace tf2_bot_detector
 		void OpenSettingsPopup() { m_SettingsPopupOpen = true; }
 
 		void OnUpdate() override;
-		size_t m_ParsedLineCount = 0;
 
 		bool IsSleepingEnabled() const override;
 
@@ -61,32 +60,34 @@ namespace tf2_bot_detector
 		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
 
 		// IConsoleLineListener
-		void OnConsoleLineParsed(IConsoleLine& line);
+		void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) override;
 
 		// IWorldEventListener
 		//void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
+		void OnTimestampUpdate(WorldState& world) override;
 		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
 		bool m_Paused = false;
 
 		struct WorldStateExtra
 		{
-			WorldStateExtra(MainWindow* window, const std::filesystem::path& conLogFile);
+			WorldStateExtra(MainWindow& window, const std::filesystem::path& conLogFile);
 
 			WorldState m_WorldState;
 			ModeratorLogic m_ModeratorLogic;
 		};
 		std::optional<WorldStateExtra> m_WorldState;
+		bool IsWorldValid() const { return m_WorldState.has_value(); }
 		WorldState& GetWorld() { return m_WorldState.value().m_WorldState; }
 		const WorldState& GetWorld() const { return m_WorldState.value().m_WorldState; }
 		ModeratorLogic& GetModLogic() { return m_WorldState.value().m_ModeratorLogic; }
 		const ModeratorLogic& GetModLogic() const { return m_WorldState.value().m_ModeratorLogic; }
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
-		time_point_t GetCurrentTimestampCompensated() const { return GetWorld().GetCurrentTime(); }
+		time_point_t GetCurrentTimestampCompensated() const;
 
-		size_t m_PrintingLineCount = 0;
-		const IConsoleLine* m_PrintingLines[512]{}; // newest to oldest order
+		std::vector<const IConsoleLine*> m_PrintingLines;  // newest to oldest order
+		static constexpr size_t MAX_PRINTING_LINES = 512;
 
 #if 0
 		struct PlayerPrintData final
@@ -118,6 +119,10 @@ namespace tf2_bot_detector
 
 		struct PlayerExtraData final
 		{
+			PlayerExtraData(const IPlayer& player) : m_Parent(&player) {}
+
+			const IPlayer* m_Parent = nullptr;
+
 			time_point_t m_LastPingUpdateTime{};
 			std::vector<PingSample> m_PingHistory{};
 			float GetAveragePing() const;

@@ -299,7 +299,13 @@ std::unique_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string
 
 void ServerStatusPlayerLine::Print() const
 {
-	// Don't print anything for this particular message
+	const PlayerStatus& s = m_PlayerStatus;
+	ImGui::Text("# %6u \"%-19s\" %-19s %4u %4u",
+		s.m_UserID,
+		s.m_Name.c_str(),
+		s.m_SteamID.str().c_str(),
+		s.m_Ping,
+		s.m_Loss);
 }
 
 std::unique_ptr<IConsoleLine> ClientReachedServerSpawnLine::TryParse(const std::string_view& text, time_point_t timestamp)

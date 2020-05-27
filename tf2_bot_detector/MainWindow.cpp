@@ -35,6 +35,8 @@ MainWindow::MainWindow() :
 	m_PeriodicActionManager.Add<StatusUpdateAction>();
 
 	m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
+
+	m_WorldState.emplace(*this, m_Settings.m_TFDir / "console.log");
 }
 
 MainWindow::~MainWindow()
@@ -348,7 +350,6 @@ void MainWindow::OnDrawScoreboard()
 					}
 					else
 					{
-						assert(player.GetConnectedTime() >= 0s);
 						ImGui::TextRightAlignedF("%u:%02u",
 							std::chrono::duration_cast<std::chrono::minutes>(player.GetConnectedTime()).count(),
 							std::chrono::duration_cast<std::chrono::seconds>(player.GetConnectedTime()).count() % 60);
@@ -389,7 +390,7 @@ void MainWindow::OnDrawChat()
 		{
 			ImGui::PushTextWrapPos();
 
-			for (auto it = &m_PrintingLines[m_PrintingLineCount - 1]; it != &m_PrintingLines[-1]; --it)
+			for (auto it = m_PrintingLines.rbegin(); it != m_PrintingLines.rend(); ++it)
 			{
 				assert(*it);
 				(*it)->Print();
@@ -587,7 +588,7 @@ void MainWindow::OnDraw()
 	ImGui::Checkbox("Pause", &m_Paused);
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
-	ImGui::Text("Parsed line count: %zu", m_ParsedLineCount);
+	ImGui::Text("Parsed line count: %zu", IsWorldValid() ? GetWorld().GetParsedLineCount() : 0);
 
 	ImGui::Columns(2, "MainWindowSplit");
 
@@ -660,6 +661,11 @@ void MainWindow::OnUpdate()
 	}
 }
 
+void MainWindow::OnTimestampUpdate(WorldState& world)
+{
+	SetLogTimestamp(world.GetCurrentTime());
+}
+
 void MainWindow::OnUpdate(WorldState& world, bool consoleLinesUpdated)
 {
 	assert(&world == &GetWorld());
@@ -688,18 +694,21 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 	return mh::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
 }
 
-void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
+void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 {
-	const auto& world = GetWorld();
-
 	if (parsed.ShouldPrint())
 	{
-		if (m_PrintingLineCount >= std::size(m_PrintingLines))
-			std::copy_backward(&m_PrintingLines[0], &m_PrintingLines[std::size(m_PrintingLines) - 1], &m_PrintingLines[1]);
-		else
-			std::copy(&m_PrintingLines[0], &m_PrintingLines[m_PrintingLineCount], &m_PrintingLines[1]);
+		while (m_PrintingLines.size() > MAX_PRINTING_LINES)
+			m_PrintingLines.pop_back();
 
-		m_PrintingLines[0] = &parsed;
+		m_PrintingLines.insert(m_PrintingLines.begin(), &parsed);
+		//if (m_PrintingLineCount >= std::size(m_PrintingLines))
+		//	std::copy_backward(std::begin(m_PrintingLines), std::end(m_PrintingLines) - 1, std::begin(m_PrintingLines) + 1);
+		//else
+		//	std::copy(&m_PrintingLines[0], &m_PrintingLines[m_PrintingLineCount], &m_PrintingLines[1]);
+
+		//m_PrintingLines[0] = &parsed;
+		//m_PrintingLineCount++;
 	}
 
 	switch (parsed.GetType())
@@ -782,6 +791,9 @@ void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 
 size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const
 {
+	if (!IsWorldValid())
+		return 0;
+
 	assert(begin <= end);
 	auto& world = GetWorld();
 	assert(static_cast<size_t>(end - begin) >= world.GetLobbyMemberCount());
@@ -792,8 +804,10 @@ size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer*
 		auto* current = begin;
 		for (const LobbyMember* member : world.GetLobbyMembers())
 		{
+			assert(member);
 			*current = world.FindPlayer(member->m_SteamID);
-			current++;
+			if (*current)
+				current++;
 		}
 
 		if (current == begin)
@@ -802,6 +816,7 @@ size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer*
 			// Just find the most recent status updates.
 			for (const IPlayer* playerData : world.GetPlayers())
 			{
+				assert(playerData);
 				if (playerData->GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
 				{
 					*current = playerData;
@@ -818,11 +833,12 @@ size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer*
 
 	std::sort(begin, end, [](const IPlayer* lhs, const IPlayer* rhs)
 		{
-			if (!lhs && !rhs)
-				return false;
-
-			if (auto result = !!rhs <=> !!lhs; !std::is_eq(result))
-				return result < 0;
+			assert(lhs);
+			assert(rhs);
+			//if (!lhs && !rhs)
+			//	return false;
+			//if (auto result = !!rhs <=> !!lhs; !std::is_eq(result))
+			//	return result < 0;
 
 			// Intentionally reversed, we want descending kill order
 			if (auto killsResult = rhs->GetScores().m_Kills <=> lhs->GetScores().m_Kills; !std::is_eq(killsResult))
@@ -842,12 +858,12 @@ void MainWindow::UpdateServerPing(time_point_t timestamp)
 	float totalPing = 0;
 	uint16_t samples = 0;
 
-	for (const auto& player : GetWorld().GetPlayers())
+	for (IPlayer* player : GetWorld().GetPlayers())
 	{
 		if (player->GetLastStatusUpdateTime() < (timestamp - 20s))
 			continue;
 
-		auto& data = player->GetOrCreateData<PlayerExtraData>();
+		auto& data = player->GetOrCreateData<PlayerExtraData>(*player);
 		totalPing += data.GetAveragePing();
 		samples++;
 	}
@@ -957,9 +973,9 @@ float MainWindow::GetMaxValue(const std::map<time_point_t, AvgSample>& data)
 
 float MainWindow::PlayerExtraData::GetAveragePing() const
 {
-	throw std::runtime_error("TODO");
-#if 0
-	unsigned totalPing = m_Status.m_Ping;
+	//throw std::runtime_error("TODO");
+#if 1
+	unsigned totalPing = m_Parent->GetPing();
 	unsigned samples = 1;
 
 	for (const auto& entry : m_PingHistory)
@@ -985,9 +1001,18 @@ void MainWindow::AvgSample::AddSample(float value)
 #endif
 }
 
-MainWindow::WorldStateExtra::WorldStateExtra(MainWindow* window, const std::filesystem::path& conLogFile) :
+MainWindow::WorldStateExtra::WorldStateExtra(MainWindow& window, const std::filesystem::path& conLogFile) :
 	m_WorldState(conLogFile),
-	m_ModeratorLogic(m_WorldState, window->m_ActionManager)
+	m_ModeratorLogic(m_WorldState, window.m_ActionManager)
 {
-	m_WorldState.AddConsoleLineListener(window);
+	m_WorldState.AddConsoleLineListener(&window);
+	m_WorldState.AddWorldEventListener(&window);
+}
+
+time_point_t MainWindow::GetCurrentTimestampCompensated() const
+{
+	if (IsWorldValid())
+		return m_WorldState->m_WorldState.GetCurrentTime();
+	else
+		return m_OpenTime;
 }

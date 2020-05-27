@@ -72,7 +72,7 @@ namespace tf2_bot_detector
 		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
 		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
 
-		void OnConsoleLineParsed(IConsoleLine& parsed);
+		void OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed) override;
 
 		CompensatedTS m_CurrentTimestamp;
 

@@ -47,9 +47,13 @@ namespace tf2_bot_detector
 		{
 			return const_cast<T*>(std::as_const(*this).GetData<T>());
 		}
-		template<typename T> inline T& GetOrCreateData()
+		template<typename T, typename... TArgs> inline T& GetOrCreateData(TArgs&&... args)
 		{
-			return std::any_cast<T&>(GetOrCreateDataStorage(typeid(T)));
+			auto& storage = GetOrCreateDataStorage(typeid(T));
+			if (!storage.has_value())
+				return storage.emplace<T>(std::forward<TArgs>(args)...);
+			else
+				return std::any_cast<T&>(storage);
 		}
 #if 0
 		template<typename T> const T* GetPlayerData(const SteamID& id) const

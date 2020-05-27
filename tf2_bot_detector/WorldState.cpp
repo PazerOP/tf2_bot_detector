@@ -126,10 +126,10 @@ void WorldState::Update()
 #endif
 	}
 
+	TrySnapshot();
+
 	if (linesProcessed)
 		m_EventBroadcaster.OnUpdate(*this, consoleLinesUpdated);
-
-	TrySnapshot();
 
 #if 0
 	SetLogTimestamp(m_CurrentTimestamp.GetSnapshot());
@@ -298,8 +298,10 @@ mh::generator<IPlayer*> WorldState::GetPlayers()
 		co_yield const_cast<IPlayer*>(player);
 }
 
-void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
+void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 {
+	assert(&world == this);
+
 	const auto ClearLobbyState = [&]
 	{
 		m_CurrentLobbyMembers.clear();
@@ -362,8 +364,6 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 		break;
 	}
 #endif
-
-
 
 	case ConsoleLineType::LobbyMember:
 	{
@@ -491,7 +491,10 @@ std::optional<UserID_t> WorldState::PlayerExtraData::GetUserID() const
 
 duration_t WorldState::PlayerExtraData::GetConnectedTime() const
 {
-	return GetWorld().GetCurrentTime() - GetConnectionTime();
+	auto result = GetWorld().GetCurrentTime() - GetConnectionTime();
+	assert(result >= -1s);
+	result = std::max<duration_t>(result, 0s);
+	return result;
 }
 
 const std::any* WorldState::PlayerExtraData::FindDataStorage(const std::type_index& type) const
