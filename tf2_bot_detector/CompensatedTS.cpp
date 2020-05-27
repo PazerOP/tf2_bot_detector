@@ -51,6 +51,13 @@ void CompensatedTS::Snapshot()
 
 time_point_t CompensatedTS::GetSnapshot() const
 {
-	m_SnapshotUsed = true;
-	return m_Snapshot.value();
+	if (m_Snapshot.has_value())
+	{
+		m_SnapshotUsed = true;
+		return *m_Snapshot;
+	}
+	else
+	{
+		return {};
+	}
 }

@@ -35,6 +35,10 @@ namespace tf2_bot_detector
 	/// </summary>
 	struct LobbyMember
 	{
+		auto operator<=>(const LobbyMember&) const = default;
+
+		constexpr bool IsValid() const { return m_SteamID.IsValid(); }
+
 		SteamID m_SteamID;
 		unsigned m_Index;
 		LobbyMemberTeam m_Team;

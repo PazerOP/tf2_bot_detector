@@ -113,38 +113,43 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 		std::string logMsg;
 		logMsg << "Telling the other team about " << enemyCheaters.size() << " cheater(s) named ";
 
-		std::string chatMsg;
-		chatMsg << "Attention! There ";
-		if (enemyCheaters.size() == 1)
-			chatMsg << "is a cheater ";
-		else
-			chatMsg << "are " << enemyCheaters.size() << " cheaters ";
-
-		chatMsg << "on the other team named ";
+		std::string chatMsgCheaters;
+		size_t chatMsgCheatersCount = 0;
 		for (size_t i = 0; i < enemyCheaters.size(); i++)
 		{
 			const IPlayer* cheaterData = enemyCheaters[i];
+			logMsg << enemyCheaters[i];
 			if (cheaterData->GetName().empty())
 				continue; // Theoretically this should never happen, but don't embarass ourselves
 
 			if (i != 0)
 			{
-				chatMsg << ", ";
+				chatMsgCheaters << ", ";
 				logMsg << ", ";
 			}
 
-			chatMsg << std::quoted(cheaterData->GetName());
-			logMsg << std::quoted(cheaterData->GetName()) << " (" << enemyCheaters[i] << ')';
+			chatMsgCheaters << std::quoted(cheaterData->GetName());
+			chatMsgCheatersCount++;
 		}
 
-		chatMsg << ". Please kick them!";
-
-		if (const auto now = m_World->GetCurrentTime(); (now - m_LastCheaterWarningTime) > 10s)
+		if (chatMsgCheatersCount > 0)
 		{
-			if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+			std::string chatMsg;
+			chatMsg << "Attention! There ";
+			if (chatMsgCheatersCount == 1)
+				chatMsg << "is a cheater ";
+			else
+				chatMsg << "are " << chatMsgCheatersCount << " cheaters ";
+
+			chatMsg << "on the other team named " << chatMsgCheaters << ". Please kick them!";
+
+			if (const auto now = m_World->GetCurrentTime(); (now - m_LastCheaterWarningTime) > 10s)
 			{
-				Log(logMsg, { 1, 0, 0, 1 });
-				m_LastCheaterWarningTime = now;
+				if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+				{
+					Log(logMsg, { 1, 0, 0, 1 });
+					m_LastCheaterWarningTime = now;
+				}
 			}
 		}
 	}
@@ -189,6 +194,7 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 void ModeratorLogic::ProcessPlayerActions()
 {
 	const auto now = m_World->GetCurrentTime();
+#if 0
 	if ((now - m_LastPlayerActionsUpdate) < 1s)
 	{
 		return;
@@ -197,6 +203,7 @@ void ModeratorLogic::ProcessPlayerActions()
 	{
 		m_LastPlayerActionsUpdate = now;
 	}
+#endif
 
 	// Don't process actions if we're way out of date
 	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(clock_t::now() - now);
@@ -213,19 +220,20 @@ void ModeratorLogic::ProcessPlayerActions()
 	std::vector<const IPlayer*> friendlyCheaters;
 	std::vector<IPlayer*> connectingEnemyCheaters;
 
-	for (const LobbyMember* lobbyMember : m_World->GetLobbyMembers())
+	for (IPlayer* playerPtr : m_World->GetLobbyMembers())
 	{
-		IPlayer* playerPtr = m_World->FindPlayer(lobbyMember->m_SteamID);
+		assert(playerPtr);
 		IPlayer& player = *playerPtr;
+		const SteamID steamID = player.GetSteamID();
 
-		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, lobbyMember->m_SteamID);
+		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, steamID);
 		switch (teamShareResult)
 		{
 		case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
 		case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
 		}
 
-		if (HasPlayerAttribute(lobbyMember->m_SteamID, PlayerAttributes::Cheater))
+		if (HasPlayerAttribute(steamID, PlayerAttributes::Cheater))
 		{
 			switch (teamShareResult)
 			{

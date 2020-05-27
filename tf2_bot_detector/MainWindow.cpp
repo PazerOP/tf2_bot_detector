@@ -796,16 +796,16 @@ size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer*
 
 	assert(begin <= end);
 	auto& world = GetWorld();
-	assert(static_cast<size_t>(end - begin) >= world.GetLobbyMemberCount());
+	assert(static_cast<size_t>(end - begin) >= world.GetApproxLobbyMemberCount());
 
 	std::fill(begin, end, nullptr);
 
 	{
 		auto* current = begin;
-		for (const LobbyMember* member : world.GetLobbyMembers())
+		for (const IPlayer* member : world.GetLobbyMembers())
 		{
 			assert(member);
-			*current = world.FindPlayer(member->m_SteamID);
+			*current = member;
 			if (*current)
 				current++;
 		}

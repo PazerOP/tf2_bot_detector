@@ -34,7 +34,7 @@ void WorldState::Update()
 	bool snapshotUpdated = false;
 	const auto TrySnapshot = [&]()
 	{
-		if (!snapshotUpdated || !m_CurrentTimestamp.IsSnapshotValid())
+		if ((!snapshotUpdated || !m_CurrentTimestamp.IsSnapshotValid()) && m_CurrentTimestamp.IsRecordedValid())
 		{
 			m_CurrentTimestamp.Snapshot();
 			snapshotUpdated = true;
@@ -267,23 +267,56 @@ const IPlayer* WorldState::FindPlayer(const SteamID& id) const
 	return nullptr;
 }
 
-size_t WorldState::GetLobbyMemberCount() const
+size_t WorldState::GetApproxLobbyMemberCount() const
 {
 	return m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
 }
 
 mh::generator<const IPlayer*> WorldState::GetLobbyMembers() const
 {
+	const auto GetPlayer = [&](const LobbyMember& member) -> const IPlayer*
+	{
+		assert(member != LobbyMember{});
+		assert(member.m_SteamID.IsValid());
+
+		if (auto found = m_CurrentPlayerData.find(member.m_SteamID); found != m_CurrentPlayerData.end())
+		{
+			[[maybe_unused]] const LobbyMember* testMember = found->second.GetLobbyMember();
+			assert(*testMember == member);
+			return &found->second;
+		}
+		else
+		{
+			throw std::runtime_error("Missing player for lobby member!");
+		}
+	};
+
 	for (const auto& member : m_CurrentLobbyMembers)
-		co_yield &member;
+	{
+		if (!member.IsValid())
+			continue;
+
+		co_yield GetPlayer(member);
+	}
 	for (const auto& member : m_PendingLobbyMembers)
-		co_yield &member;
+	{
+		if (!member.IsValid())
+			continue;
+
+		if (std::any_of(m_CurrentLobbyMembers.begin(), m_CurrentLobbyMembers.end(),
+			[&](const LobbyMember& member2) { return member.m_SteamID == member2.m_SteamID; }))
+		{
+			// Don't return two different instances with the same steamid.
+			continue;
+		}
+		co_yield GetPlayer(member);
+	}
 }
 
 mh::generator<IPlayer*> WorldState::GetLobbyMembers()
 {
-	for (const LobbyMember* member : std::as_const(*this).GetLobbyMembers())
-		co_yield const_cast<LobbyMember*>(member);
+	for (const IPlayer* member : std::as_const(*this).GetLobbyMembers())
+		co_yield const_cast<IPlayer*>(member);
 }
 
 mh::generator<const IPlayer*> WorldState::GetPlayers() const
@@ -331,8 +364,8 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		if (changeType == LobbyChangeType::Created || changeType == LobbyChangeType::Updated)
 		{
 			// We can't trust the existing client indices
-			//for (auto& player : m_CurrentPlayerData)
-			//	player.second.m_ClientIndex = 0;
+			for (auto& player : m_CurrentPlayerData)
+				player.second.m_ClientIndex = 0;
 		}
 		break;
 	}
@@ -403,6 +436,7 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 			newStatus.m_ConnectionTime = playerData.m_Status.m_ConnectionTime;
 		}
 
+		assert(playerData.m_Status.m_SteamID == newStatus.m_SteamID);
 		playerData.m_Status = newStatus;
 		playerData.m_LastStatusUpdateTime = playerData.m_LastPingUpdateTime = statusLine.GetTimestamp();
 		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, playerData.m_LastStatusUpdateTime);
@@ -470,15 +504,40 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 
 auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
 {
+	PlayerExtraData* data;
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
-		return found->second;
+		data = &found->second;
 	else
-		return m_CurrentPlayerData.emplace(id, *this).first->second;
+		data = &m_CurrentPlayerData.emplace(id, *this).first->second;
+
+	assert(!data->m_Status.m_SteamID.IsValid() || data->m_Status.m_SteamID == id);
+	data->m_Status.m_SteamID = id;
+	assert(data->GetSteamID() == id);
+
+	return *data;
 }
 
 auto WorldState::GetTeamShareResult(const SteamID& id0, const SteamID& id1) const -> TeamShareResult
 {
 	return GetTeamShareResult(FindLobbyMemberTeam(id0), FindLobbyMemberTeam(id1));
+}
+
+const LobbyMember* WorldState::PlayerExtraData::GetLobbyMember() const
+{
+	auto& world = GetWorld();
+	const auto steamID = GetSteamID();
+	for (const auto& member : world.m_CurrentLobbyMembers)
+	{
+		if (member.m_SteamID == steamID)
+			return &member;
+	}
+	for (const auto& member : world.m_PendingLobbyMembers)
+	{
+		if (member.m_SteamID == steamID)
+			return &member;
+	}
+
+	return nullptr;
 }
 
 std::optional<UserID_t> WorldState::PlayerExtraData::GetUserID() const

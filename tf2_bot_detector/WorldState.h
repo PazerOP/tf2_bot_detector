@@ -53,7 +53,7 @@ namespace tf2_bot_detector
 		IPlayer* FindPlayer(const SteamID& id);
 		const IPlayer* FindPlayer(const SteamID& id) const;
 
-		size_t GetLobbyMemberCount() const;
+		size_t GetApproxLobbyMemberCount() const;
 
 		mh::generator<const IPlayer*> GetLobbyMembers() const;
 		mh::generator<IPlayer*> GetLobbyMembers();
