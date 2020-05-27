@@ -688,7 +688,6 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 	return mh::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
 }
 
-static const std::regex s_WordRegex(R"regex((\w+))regex", std::regex::optimize);
 void MainWindow::OnConsoleLineParsed(IConsoleLine& parsed)
 {
 	const auto& world = GetWorld();
@@ -833,7 +832,6 @@ size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer*
 	return static_cast<size_t>(end - begin);
 }
 
-#if 0
 void MainWindow::UpdateServerPing(time_point_t timestamp)
 {
 	if ((timestamp - m_LastServerPingSample) <= 7s)
@@ -858,7 +856,6 @@ void MainWindow::UpdateServerPing(time_point_t timestamp)
 	while ((timestamp - m_ServerPingSamples.front().m_Timestamp) > 5min)
 		m_ServerPingSamples.erase(m_ServerPingSamples.begin());
 }
-#endif
 
 std::pair<time_point_t, time_point_t> MainWindow::GetNetSamplesRange() const
 {

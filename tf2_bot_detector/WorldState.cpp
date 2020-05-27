@@ -143,6 +143,26 @@ void WorldState::Update()
 #endif
 }
 
+void WorldState::AddWorldEventListener(IWorldEventListener* listener)
+{
+	m_EventBroadcaster.m_EventListeners.insert(listener);
+}
+
+void WorldState::RemoveWorldEventListener(IWorldEventListener* listener)
+{
+	m_EventBroadcaster.m_EventListeners.erase(listener);
+}
+
+void WorldState::AddConsoleLineListener(IConsoleLineListener* listener)
+{
+	m_ConsoleLineListeners.insert(listener);
+}
+
+void WorldState::RemoveConsoleLineListener(IConsoleLineListener* listener)
+{
+	m_ConsoleLineListeners.erase(listener);
+}
+
 void WorldState::CustomDeleters::operator()(FILE* f) const
 {
 	fclose(f);
@@ -234,12 +254,24 @@ auto WorldState::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
 		throw std::runtime_error("Unexpected team value(s)");
 }
 
+IPlayer* WorldState::FindPlayer(const SteamID& id)
+{
+	return const_cast<IPlayer*>(std::as_const(*this).FindPlayer(id));
+}
+
 const IPlayer* WorldState::FindPlayer(const SteamID& id) const
 {
+
+
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
 		return &found->second;
 
 	return nullptr;
+}
+
+size_t WorldState::GetLobbyMemberCount() const
+{
+	return m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
 }
 
 void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)

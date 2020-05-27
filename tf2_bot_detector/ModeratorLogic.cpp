@@ -6,9 +6,11 @@
 #include "Settings.h"
 #include "WorldState.h"
 
+#include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <iomanip>
+#include <regex>
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
@@ -31,6 +33,37 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 	{
 		if (SetPlayerAttribute(player, PlayerAttributes::Cheater))
 			Log("Marked "s << steamID << " as cheater due to name ending in common name-stealing characters");
+	}
+}
+
+void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg)
+{
+	if (auto count = std::count(msg.begin(), msg.end(), '\n'); count > 2)
+	{
+		// Cheater is clearing the chat
+		if (SetPlayerAttribute(player, PlayerAttributes::Cheater))
+			Log("Marked "s << player << " as cheater (" << count << " newlines in chat message)");
+	}
+
+	// Kick for racism
+	{
+		static const std::regex s_WordRegex(R"regex((\w+))regex", std::regex::optimize);
+		using svregex_iterator = std::regex_iterator<std::string_view::const_iterator>;
+		auto begin = svregex_iterator(msg.begin(), msg.end(), s_WordRegex);
+		auto end = svregex_iterator();
+
+		for (auto it = begin; it != end; ++it)
+		{
+			const auto& wordMatch = it->operator[](1);
+			const std::string_view word(&*wordMatch.first, wordMatch.length());
+			if (mh::case_insensitive_compare(word, "nigger"sv) || mh::case_insensitive_compare(word, "niggers"sv))
+			{
+				Log("Detected Bad Word in chat: "s << word);
+
+				if (SetPlayerAttribute(player, PlayerAttributes::Racist))
+					Log("Marked "s << player << " as racist (" << std::quoted(word) << " in chat message)");
+			}
+		}
 	}
 }
 
@@ -187,7 +220,7 @@ void ModeratorLogic::ProcessPlayerActions()
 			case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
 			}
 
-			if (m_PlayerList.HasPlayerAttribute(lobbyMember.m_SteamID, PlayerAttributes::Cheater))
+			if (HasPlayerAttribute(lobbyMember.m_SteamID, PlayerAttributes::Cheater))
 			{
 				switch (teamShareResult)
 				{
@@ -231,9 +264,21 @@ bool ModeratorLogic::SetPlayerAttribute(const IPlayer& player, PlayerAttributes 
 	return attributeChanged;
 }
 
+bool ModeratorLogic::HasPlayerAttribute(const SteamID& id, PlayerAttributes markType) const
+{
+	// ModeratorLogic::HasPlayerAttribute is an important abstraction since later we
+	// might have multiple player lists
+	return m_PlayerList.HasPlayerAttribute(id, markType);
+}
+
 std::optional<LobbyMemberTeam> ModeratorLogic::TryGetMyTeam() const
 {
 	return m_World->FindLobbyMemberTeam(m_Settings->m_LocalSteamID);
+}
+
+ModeratorLogic::ModeratorLogic(WorldState& world, ActionManager& actionManager) :
+	m_World(&world), m_ActionManager(&actionManager)
+{
 }
 
 bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason)

@@ -64,7 +64,8 @@ namespace tf2_bot_detector
 		void OnConsoleLineParsed(IConsoleLine& line);
 
 		// IWorldEventListener
-		void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
+		//void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
+		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
 		bool m_Paused = false;
 
@@ -83,7 +84,6 @@ namespace tf2_bot_detector
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
 		time_point_t GetCurrentTimestampCompensated() const { return GetWorld().GetCurrentTime(); }
-		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
 		size_t m_PrintingLineCount = 0;
 		const IConsoleLine* m_PrintingLines[512]{}; // newest to oldest order
