@@ -261,8 +261,6 @@ IPlayer* WorldState::FindPlayer(const SteamID& id)
 
 const IPlayer* WorldState::FindPlayer(const SteamID& id) const
 {
-
-
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
 		return &found->second;
 
@@ -272,6 +270,32 @@ const IPlayer* WorldState::FindPlayer(const SteamID& id) const
 size_t WorldState::GetLobbyMemberCount() const
 {
 	return m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
+}
+
+mh::generator<const LobbyMember*> WorldState::GetLobbyMembers() const
+{
+	for (const auto& member : m_CurrentLobbyMembers)
+		co_yield &member;
+	for (const auto& member : m_PendingLobbyMembers)
+		co_yield &member;
+}
+
+mh::generator<LobbyMember*> WorldState::GetLobbyMembers()
+{
+	for (const LobbyMember* member : std::as_const(*this).GetLobbyMembers())
+		co_yield const_cast<LobbyMember*>(member);
+}
+
+mh::generator<const IPlayer*> WorldState::GetPlayers() const
+{
+	for (const auto& pair : m_CurrentPlayerData)
+		co_yield &pair.second;
+}
+
+mh::generator<IPlayer*> WorldState::GetPlayers()
+{
+	for (const IPlayer* player : std::as_const(*this).GetPlayers())
+		co_yield const_cast<IPlayer*>(player);
 }
 
 void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
@@ -350,7 +374,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 			vec[member.m_Index] = member;
 
 		const TFTeam tfTeam = member.m_Team == LobbyMemberTeam::Defenders ? TFTeam::Red : TFTeam::Blue;
-		m_CurrentPlayerData[member.m_SteamID].m_Team = tfTeam;
+		FindOrCreatePlayer(member.m_SteamID).m_Team = tfTeam;
 
 		break;
 	}
@@ -359,7 +383,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 		auto& pingLine = static_cast<const PingLine&>(parsed);
 		if (auto found = FindSteamIDForName(pingLine.GetPlayerName()))
 		{
-			auto& playerData = m_CurrentPlayerData[*found];
+			auto& playerData = FindOrCreatePlayer(*found);
 			playerData.m_Status.m_Ping = pingLine.GetPing();
 			playerData.m_LastPingUpdateTime = pingLine.GetTimestamp();
 		}
@@ -370,7 +394,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 	{
 		auto& statusLine = static_cast<const ServerStatusPlayerLine&>(parsed);
 		auto newStatus = statusLine.GetPlayerStatus();
-		auto& playerData = m_CurrentPlayerData[newStatus.m_SteamID];
+		auto& playerData = FindOrCreatePlayer(newStatus.m_SteamID);
 
 		// Don't introduce stutter to our connection time view
 		if (auto delta = (playerData.m_Status.m_ConnectionTime - newStatus.m_ConnectionTime);
@@ -391,7 +415,7 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 		auto& statusLine = static_cast<const ServerStatusShortPlayerLine&>(parsed);
 		const auto& status = statusLine.GetPlayerStatus();
 		if (auto steamID = FindSteamIDForName(status.m_Name))
-			m_CurrentPlayerData[*steamID].m_ClientIndex = status.m_ClientIndex;
+			FindOrCreatePlayer(*steamID).m_ClientIndex = status.m_ClientIndex;
 
 		break;
 	}
@@ -400,9 +424,9 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 		auto& killLine = static_cast<const KillNotificationLine&>(parsed);
 
 		if (const auto attackerSteamID = FindSteamIDForName(killLine.GetAttackerName()))
-			m_CurrentPlayerData[*attackerSteamID].m_Scores.m_Kills++;
+			FindOrCreatePlayer(*attackerSteamID).m_Scores.m_Kills++;
 		if (const auto victimSteamID = FindSteamIDForName(killLine.GetVictimName()))
-			m_CurrentPlayerData[*victimSteamID].m_Scores.m_Deaths++;
+			FindOrCreatePlayer(*victimSteamID).m_Scores.m_Deaths++;
 
 		break;
 	}
@@ -444,7 +468,41 @@ void WorldState::OnConsoleLineParsed(IConsoleLine& parsed)
 	}
 }
 
+auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
+{
+	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
+		return found->second;
+	else
+		return m_CurrentPlayerData.emplace(id, *this).first->second;
+}
+
 auto WorldState::GetTeamShareResult(const SteamID& id0, const SteamID& id1) const -> TeamShareResult
 {
 	return GetTeamShareResult(FindLobbyMemberTeam(id0), FindLobbyMemberTeam(id1));
+}
+
+std::optional<UserID_t> WorldState::PlayerExtraData::GetUserID() const
+{
+	if (m_Status.m_UserID > 0)
+		return m_Status.m_UserID;
+
+	return std::nullopt;
+}
+
+duration_t WorldState::PlayerExtraData::GetConnectedTime() const
+{
+	return GetWorld().GetCurrentTime() - GetConnectionTime();
+}
+
+const std::any* WorldState::PlayerExtraData::FindDataStorage(const std::type_index& type) const
+{
+	if (auto found = m_UserData.find(type); found != m_UserData.end())
+		return &found->second;
+
+	return nullptr;
+}
+
+std::any& WorldState::PlayerExtraData::GetOrCreateDataStorage(const std::type_index& type)
+{
+	return m_UserData[type];
 }

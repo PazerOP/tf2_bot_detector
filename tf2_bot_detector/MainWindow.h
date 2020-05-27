@@ -116,26 +116,11 @@ namespace tf2_bot_detector
 			uint16_t m_Ping{};
 		};
 
-		struct PlayerExtraData
+		struct PlayerExtraData final
 		{
-			PlayerStatus m_Status{};
-			PlayerScores m_Scores{};
-			TFTeam m_Team{};
-			uint8_t m_ClientIndex{};
-			time_point_t m_LastStatusUpdateTime{};
 			time_point_t m_LastPingUpdateTime{};
 			std::vector<PingSample> m_PingHistory{};
 			float GetAveragePing() const;
-
-			// If this is a known cheater, warn them ahead of time that the player is connecting, but only once
-			// (we don't know the cheater's name yet, so don't spam if they can't do anything about it yet)
-			bool m_PreWarnedOtherTeam = false;
-
-			struct
-			{
-				time_point_t m_LastTransmission{};
-				duration_t m_TotalTransmissions{};
-			} m_Voice;
 		};
 
 		struct EdictUsageSample

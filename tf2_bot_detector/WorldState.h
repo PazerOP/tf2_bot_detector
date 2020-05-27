@@ -7,7 +7,11 @@
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
 
+#include <mh/coroutine/generator.hpp>
+
 #include <any>
+#include <experimental/coroutine>
+#include <experimental/generator>
 #include <filesystem>
 #include <typeindex>
 #include <unordered_set>
@@ -50,19 +54,11 @@ namespace tf2_bot_detector
 		const IPlayer* FindPlayer(const SteamID& id) const;
 
 		size_t GetLobbyMemberCount() const;
-		template<typename TFunc> void ForEachLobbyMember(TFunc&& func) const
-		{
-			for (const LobbyMember& member : m_CurrentLobbyMembers)
-				func(member);
-			for (const LobbyMember& member : m_PendingLobbyMembers)
-				func(member);
-		}
 
-		template<typename TFunc> void ForEachPlayer(TFunc&& func) const
-		{
-			for (const auto& pair : m_CurrentPlayerData)
-				func(pair.second);
-		}
+		mh::generator<const LobbyMember*> GetLobbyMembers() const;
+		mh::generator<LobbyMember*> GetLobbyMembers();
+		mh::generator<const IPlayer*> GetPlayers() const;
+		mh::generator<IPlayer*> GetPlayers();
 
 	private:
 		struct CustomDeleters
@@ -82,16 +78,22 @@ namespace tf2_bot_detector
 
 		struct PlayerExtraData final : IPlayer
 		{
+			PlayerExtraData(WorldState& world) : m_World(&world) {}
+
+			using IPlayer::GetWorld;
+			const WorldState& GetWorld() const override { return *m_World; }
 			std::string_view GetName() const override { return m_Status.m_Name; }
-			SteamID GetSteamID() const override;
-			PlayerStatusState GetConnectionState() const override;
+			SteamID GetSteamID() const override { return m_Status.m_SteamID; }
+			PlayerStatusState GetConnectionState() const override { return m_Status.m_State; }
 			std::optional<UserID_t> GetUserID() const override;
 			TFTeam GetTeam() const override { return m_Team; }
+			time_point_t GetConnectionTime() const override { return m_Status.m_ConnectionTime; }
 			duration_t GetConnectedTime() const override;
 			const PlayerScores& GetScores() const override { return m_Scores; }
-			uint16_t GetPing() const override;
+			uint16_t GetPing() const override { return m_Status.m_Ping; }
 			time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
 
+			WorldState* m_World{};
 			PlayerStatus m_Status{};
 			PlayerScores m_Scores{};
 			TFTeam m_Team{};
@@ -99,12 +101,14 @@ namespace tf2_bot_detector
 			uint8_t m_ClientIndex{};
 			time_point_t m_LastStatusUpdateTime{};
 			time_point_t m_LastPingUpdateTime{};
-			std::map<std::type_index, std::any> m_UserData;
 
 		protected:
+			std::map<std::type_index, std::any> m_UserData;
 			const std::any* FindDataStorage(const std::type_index& type) const override;
 			std::any& GetOrCreateDataStorage(const std::type_index& type) override;
 		};
+
+		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;

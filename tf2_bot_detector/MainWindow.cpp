@@ -651,13 +651,13 @@ void MainWindow::OnDrawMenuBar()
 
 void MainWindow::OnUpdate()
 {
-	if (m_Paused)
-		return;
+	if (!m_Paused && m_WorldState.has_value())
+	{
+		GetWorld().Update();
 
-	GetWorld().Update();
-
-	m_PeriodicActionManager.Update(GetCurrentTimestampCompensated());
-	m_ActionManager.Update(GetCurrentTimestampCompensated());
+		m_PeriodicActionManager.Update(GetCurrentTimestampCompensated());
+		m_ActionManager.Update(GetCurrentTimestampCompensated());
+	}
 }
 
 void MainWindow::OnUpdate(WorldState& world, bool consoleLinesUpdated)
@@ -790,28 +790,27 @@ size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer*
 
 	{
 		auto* current = begin;
-		world.ForEachLobbyMember([&](const LobbyMember& member)
-			{
-				*current = world.FindPlayer(member.m_SteamID);
-				current++;
-			});
+		for (const LobbyMember* member : world.GetLobbyMembers())
+		{
+			*current = world.FindPlayer(member->m_SteamID);
+			current++;
+		}
 
 		if (current == begin)
 		{
 			// We seem to have either an empty lobby or we're playing on a community server.
 			// Just find the most recent status updates.
-			world.ForEachPlayer([&](const IPlayer& playerData)
+			for (const IPlayer* playerData : world.GetPlayers())
+			{
+				if (playerData->GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
 				{
-					if (playerData.GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
-					{
-						if (current >= end)
-							return; // This might happen, but we're not in a lobby so everything has to be approximate
+					*current = playerData;
+					current++;
 
-						*current = &playerData;
-						current++;
-
-					}
-				});
+					if (current >= end)
+						break; // This might happen, but we're not in a lobby so everything has to be approximate
+				}
+			}
 		}
 
 		end = current;
@@ -819,6 +818,9 @@ size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer*
 
 	std::sort(begin, end, [](const IPlayer* lhs, const IPlayer* rhs)
 		{
+			if (!lhs && !rhs)
+				return false;
+
 			if (auto result = !!rhs <=> !!lhs; !std::is_eq(result))
 				return result < 0;
 
@@ -840,12 +842,12 @@ void MainWindow::UpdateServerPing(time_point_t timestamp)
 	float totalPing = 0;
 	uint16_t samples = 0;
 
-	for (const auto& player : m_CurrentPlayerData)
+	for (const auto& player : GetWorld().GetPlayers())
 	{
-		const PlayerExtraData& data = player.second;
-		if (data.m_LastStatusUpdateTime < (timestamp - 20s))
+		if (player->GetLastStatusUpdateTime() < (timestamp - 20s))
 			continue;
 
+		auto& data = player->GetOrCreateData<PlayerExtraData>();
 		totalPing += data.GetAveragePing();
 		samples++;
 	}
@@ -955,6 +957,8 @@ float MainWindow::GetMaxValue(const std::map<time_point_t, AvgSample>& data)
 
 float MainWindow::PlayerExtraData::GetAveragePing() const
 {
+	throw std::runtime_error("TODO");
+#if 0
 	unsigned totalPing = m_Status.m_Ping;
 	unsigned samples = 1;
 
@@ -965,6 +969,7 @@ float MainWindow::PlayerExtraData::GetAveragePing() const
 	}
 
 	return totalPing / float(samples);
+#endif
 }
 
 void MainWindow::AvgSample::AddSample(float value)

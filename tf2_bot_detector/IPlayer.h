@@ -24,11 +24,15 @@ namespace tf2_bot_detector
 	public:
 		virtual ~IPlayer() = default;
 
+		virtual WorldState& GetWorld() { return const_cast<WorldState&>(std::as_const(*this).GetWorld()); }
+		virtual const WorldState& GetWorld() const = 0;
+
 		virtual std::string_view GetName() const = 0;
 		virtual SteamID GetSteamID() const = 0;
 		virtual std::optional<UserID_t> GetUserID() const = 0;
 
 		virtual PlayerStatusState GetConnectionState() const = 0;
+		virtual time_point_t GetConnectionTime() const = 0;
 		virtual duration_t GetConnectedTime() const = 0;
 
 		virtual TFTeam GetTeam() const = 0;

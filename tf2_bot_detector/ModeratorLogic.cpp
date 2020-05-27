@@ -207,36 +207,36 @@ void ModeratorLogic::ProcessPlayerActions()
 	std::vector<const IPlayer*> friendlyCheaters;
 	std::vector<IPlayer*> connectingEnemyCheaters;
 
-	m_World->ForEachLobbyMember([&](const LobbyMember& lobbyMember)
-		{
-			IPlayer* playerPtr = m_World->FindPlayer(lobbyMember.m_SteamID);
-			assert(playerPtr);
-			IPlayer& player = *playerPtr;
+	for (const LobbyMember* lobbyMember : m_World->GetLobbyMembers())
+	{
+		IPlayer* playerPtr = m_World->FindPlayer(lobbyMember->m_SteamID);
+		assert(playerPtr);
+		IPlayer& player = *playerPtr;
 
-			const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, lobbyMember.m_SteamID);
+		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, lobbyMember->m_SteamID);
+		switch (teamShareResult)
+		{
+		case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
+		case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
+		}
+
+		if (HasPlayerAttribute(lobbyMember->m_SteamID, PlayerAttributes::Cheater))
+		{
 			switch (teamShareResult)
 			{
-			case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
-			case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
-			}
+			case TeamShareResult::SameTeams:
+				friendlyCheaters.push_back(&player);
+				break;
+			case TeamShareResult::OppositeTeams:
+				if (!player.GetName().empty())
+					connectingEnemyCheaters.push_back(&player);
+				else
+					enemyCheaters.push_back(&player);
 
-			if (HasPlayerAttribute(lobbyMember.m_SteamID, PlayerAttributes::Cheater))
-			{
-				switch (teamShareResult)
-				{
-				case TeamShareResult::SameTeams:
-					friendlyCheaters.push_back(&player);
-					break;
-				case TeamShareResult::OppositeTeams:
-					if (!player.GetName().empty())
-						connectingEnemyCheaters.push_back(&player);
-					else
-						enemyCheaters.push_back(&player);
-
-					break;
-				}
+				break;
 			}
-		});
+		}
+	}
 
 	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
 	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
