@@ -1,12 +1,15 @@
 #include "Settings.h"
 #include "PlayerListJSON.h"
+#include "IPlayer.h"
 
+#include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <regex>
 
 using namespace tf2_bot_detector;
 using namespace std::string_literals;
@@ -64,7 +67,7 @@ namespace tf2_bot_detector
 		};
 	}
 
-	void to_json(nlohmann::json& j, const Settings::TextMatch& d)
+	void to_json(nlohmann::json& j, const TextMatch& d)
 	{
 		j =
 		{
@@ -78,7 +81,7 @@ namespace tf2_bot_detector
 			j["pattern"] = d.m_Patterns;
 	}
 
-	void to_json(nlohmann::json& j, const Settings::Rule::Triggers& d)
+	void to_json(nlohmann::json& j, const ModerationRule::Triggers& d)
 	{
 		size_t count = 0;
 
@@ -97,7 +100,7 @@ namespace tf2_bot_detector
 			j["mode"] = d.m_Mode;
 	}
 
-	void to_json(nlohmann::json& j, const Settings::Rule::Actions& d)
+	void to_json(nlohmann::json& j, const ModerationRule::Actions& d)
 	{
 		if (!d.m_Mark.empty())
 			j["mark"] = d.m_Mark;
@@ -105,7 +108,7 @@ namespace tf2_bot_detector
 			j["unmark"] = d.m_Unmark;
 	}
 
-	void to_json(nlohmann::json& j, const Settings::Rule& d)
+	void to_json(nlohmann::json& j, const ModerationRule& d)
 	{
 		j =
 		{
@@ -160,7 +163,7 @@ namespace tf2_bot_detector
 			throw std::runtime_error("Unable to parse TextMatchMode from "s << std::quoted(str));
 	}
 
-	void from_json(const nlohmann::json& j, Settings::TextMatch& d)
+	void from_json(const nlohmann::json& j, TextMatch& d)
 	{
 		d.m_Mode = j.at("mode");
 
@@ -179,18 +182,18 @@ namespace tf2_bot_detector
 			d.m_CaseSensitive = false;
 	}
 
-	void from_json(const nlohmann::json& j, Settings::Rule::Triggers& d)
+	void from_json(const nlohmann::json& j, ModerationRule::Triggers& d)
 	{
 		if (auto found = j.find("mode"); found != j.end())
 			d.m_Mode = *found;
 
 		if (auto found = j.find("chatmsg_text_match"); found != j.end())
-			d.m_ChatMsgTextMatch.emplace(Settings::TextMatch(*found));
+			d.m_ChatMsgTextMatch.emplace(TextMatch(*found));
 		if (auto found = j.find("username_text_match"); found != j.end())
-			d.m_UsernameTextMatch.emplace(Settings::TextMatch(*found));
+			d.m_UsernameTextMatch.emplace(TextMatch(*found));
 	}
 
-	void from_json(const nlohmann::json& j, Settings::Rule::Actions& d)
+	void from_json(const nlohmann::json& j, ModerationRule::Actions& d)
 	{
 		if (auto found = j.find("mark"); found != j.end())
 			d.m_Mark = found->get<std::vector<PlayerAttributes>>();
@@ -198,7 +201,7 @@ namespace tf2_bot_detector
 			d.m_Unmark = found->get<std::vector<PlayerAttributes>>();
 	}
 
-	void from_json(const nlohmann::json& j, Settings::Rule& d)
+	void from_json(const nlohmann::json& j, ModerationRule& d)
 	{
 		d.m_Description = j.at("description");
 		d.m_Triggers = j.at("triggers");
@@ -227,7 +230,7 @@ void Settings::LoadFile()
 	m_SleepWhenUnfocused = json.at("sleep_when_unfocused");
 	m_TFDir = json.at("tf_game_dir").get<std::string>();
 	m_Theme = json.at("theme");
-	m_Rules = json.at("rules").get<std::vector<Rule>>();
+	m_Rules = json.at("rules").get<std::vector<ModerationRule>>();
 }
 
 void Settings::SaveFile() const
@@ -250,4 +253,134 @@ void Settings::SaveFile() const
 		std::ofstream file(s_SettingsPath);
 		file << jsonString << '\n';
 	}
+}
+
+bool TextMatch::Match(const std::string_view& text) const
+{
+	switch (m_Mode)
+	{
+	case TextMatchMode::Equal:
+	{
+		return std::any_of(m_Patterns.begin(), m_Patterns.end(), [&](const std::string_view& pattern)
+			{
+				if (m_CaseSensitive)
+					return text == pattern;
+				else
+					return mh::case_insensitive_compare(text, pattern);
+			});
+	}
+	case TextMatchMode::Contains:
+	{
+		return std::any_of(m_Patterns.begin(), m_Patterns.end(), [&](const std::string_view& pattern)
+			{
+				if (m_CaseSensitive)
+					return text.find(pattern) != text.npos;
+				else
+					return mh::case_insensitive_view(text).find(mh::case_insensitive_view(pattern)) != text.npos;
+			});
+		break;
+	}
+	case TextMatchMode::StartsWith:
+	{
+		return std::any_of(m_Patterns.begin(), m_Patterns.end(), [&](const std::string_view& pattern)
+			{
+				if (m_CaseSensitive)
+					return text.starts_with(pattern);
+				else
+					return mh::case_insensitive_view(text).starts_with(mh::case_insensitive_view(pattern));
+			});
+	}
+	case TextMatchMode::EndsWith:
+	{
+		return std::any_of(m_Patterns.begin(), m_Patterns.end(), [&](const std::string_view& pattern)
+			{
+				if (m_CaseSensitive)
+					return text.ends_with(pattern);
+				else
+					return mh::case_insensitive_view(text).ends_with(mh::case_insensitive_view(pattern));
+			});
+	}
+	case TextMatchMode::Regex:
+	{
+		return std::any_of(m_Patterns.begin(), m_Patterns.end(), [&](const std::string_view& pattern)
+			{
+				std::regex_constants::syntax_option_type options{};
+				if (!m_CaseSensitive)
+					options = std::regex_constants::icase;
+
+				std::regex r(pattern.begin(), pattern.end(), options);
+				return std::regex_match(text.begin(), text.end(), r);
+			});
+	}
+	case TextMatchMode::Word:
+	{
+		static const std::regex s_WordRegex(R"regex((\w+))regex", std::regex::optimize);
+
+		const auto end = std::regex_iterator<std::string_view::const_iterator>{};
+		for (auto it = std::regex_iterator<std::string_view::const_iterator>(text.begin(), text.end(), s_WordRegex);
+			it != end; ++it)
+		{
+			const std::string_view itStr(&*it->operator[](0).first, it->operator[](0).length());
+			const auto anyMatches = std::any_of(m_Patterns.begin(), m_Patterns.end(), [&](const std::string_view& pattern)
+				{
+					if (m_CaseSensitive)
+						return itStr == pattern;
+					else
+						return mh::case_insensitive_compare(itStr, pattern);
+				});
+
+			if (anyMatches)
+				return true;
+		}
+
+		return false;
+	}
+
+	default:
+		throw std::runtime_error("Unknown TextMatchMode "s << +std::underlying_type_t<TextMatchMode>(m_Mode));
+	}
+}
+
+bool ModerationRule::Match(const IPlayer& player) const
+{
+	return Match(player, std::string_view{});
+}
+
+bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMsg) const
+{
+	const bool usernameMatch = [&]()
+	{
+		if (!m_Triggers.m_UsernameTextMatch)
+			return false;
+
+		const auto name = player.GetName();
+		if (name.empty())
+			return false;
+
+		return m_Triggers.m_UsernameTextMatch->Match(name);
+	}();
+	if (m_Triggers.m_Mode == TriggerMatchMode::MatchAny && usernameMatch)
+		return true;
+
+	const bool chatMsgMatch = [&]()
+	{
+		if (!m_Triggers.m_ChatMsgTextMatch || chatMsg.empty())
+			return false;
+
+		return m_Triggers.m_ChatMsgTextMatch->Match(chatMsg);
+	}();
+	if (m_Triggers.m_Mode == TriggerMatchMode::MatchAny && chatMsgMatch)
+		return true;
+
+	if (m_Triggers.m_Mode == TriggerMatchMode::MatchAll)
+	{
+		if (m_Triggers.m_UsernameTextMatch && m_Triggers.m_ChatMsgTextMatch)
+			return usernameMatch && chatMsgMatch;
+		else if (m_Triggers.m_UsernameTextMatch)
+			return usernameMatch;
+		else if (m_Triggers.m_ChatMsgTextMatch)
+			return chatMsgMatch;
+	}
+
+	return false;
 }

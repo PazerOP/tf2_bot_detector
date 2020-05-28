@@ -23,6 +23,20 @@ void ModeratorLogic::OnUpdate(WorldState& world, bool consoleLinesUpdated)
 		ProcessPlayerActions();
 }
 
+void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& player)
+{
+	for (PlayerAttributes attribute : rule.m_Actions.m_Mark)
+	{
+		if (SetPlayerAttribute(player, attribute))
+			Log("Marked "s << player << " with " << attribute << " due to rule match with " << std::quoted(rule.m_Description));
+	}
+	for (PlayerAttributes attribute : rule.m_Actions.m_Unmark)
+	{
+		if (SetPlayerAttribute(player, attribute, false))
+			Log("Unmarked "s << player << " with " << attribute << " due to rule match with " << std::quoted(rule.m_Description));
+	}
+}
+
 void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& player)
 {
 	ProcessDelayedBans(world.GetCurrentTime(), player);
@@ -30,6 +44,15 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 	const auto name = player.GetName();
 	const auto steamID = player.GetSteamID();
 
+	for (const auto& rule : m_Settings->m_Rules)
+	{
+		if (!rule.Match(player))
+			continue;
+
+		OnRuleMatch(rule, player);
+	}
+
+#if 0
 	if (name.find("MYG)T"sv) != name.npos)
 	{
 		if (SetPlayerAttribute(player, PlayerAttributes::Cheater))
@@ -40,10 +63,20 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 		if (SetPlayerAttribute(player, PlayerAttributes::Cheater))
 			Log("Marked "s << steamID << " as cheater due to name ending in common name-stealing characters");
 	}
+#endif
 }
 
 void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg)
 {
+	for (const auto& rule : m_Settings->m_Rules)
+	{
+		if (!rule.Match(player, msg))
+			continue;
+
+		OnRuleMatch(rule, player);
+	}
+
+#if 0
 	if (auto count = std::count(msg.begin(), msg.end(), '\n'); count > 2)
 	{
 		// Cheater is clearing the chat
@@ -71,6 +104,7 @@ void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const s
 			}
 		}
 	}
+#endif
 }
 
 void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<const IPlayer*>& friendlyCheaters)
@@ -194,7 +228,6 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 void ModeratorLogic::ProcessPlayerActions()
 {
 	const auto now = m_World->GetCurrentTime();
-#if 0
 	if ((now - m_LastPlayerActionsUpdate) < 1s)
 	{
 		return;
@@ -203,7 +236,6 @@ void ModeratorLogic::ProcessPlayerActions()
 	{
 		m_LastPlayerActionsUpdate = now;
 	}
-#endif
 
 	// Don't process actions if we're way out of date
 	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(clock_t::now() - now);
@@ -261,6 +293,8 @@ bool ModeratorLogic::SetPlayerAttribute(const IPlayer& player, PlayerAttributes 
 
 	m_PlayerList.ModifyPlayer(player.GetSteamID(), [&](PlayerListData& data)
 		{
+			attributeChanged = data.m_Attributes.HasAttribute(attribute) != set;
+
 			data.m_Attributes.SetAttribute(attribute, set);
 
 			if (!data.m_LastSeen)

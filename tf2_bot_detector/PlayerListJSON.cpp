@@ -151,11 +151,14 @@ static PlayerListData ParsePlayer(const nlohmann::json& json)
 }
 #endif
 
-void PlayerListJSON::LoadFile()
+bool PlayerListJSON::LoadFile()
 {
 	nlohmann::json json;
 	{
 		std::ifstream file(s_PlayerListPath);
+		if (!file.good())
+			return false;
+
 		file >> json;
 	}
 
@@ -168,6 +171,8 @@ void PlayerListJSON::LoadFile()
 		player.get_to(parsed);
 		m_Players.emplace(steamID, std::move(parsed));
 	}
+
+	return true;
 }
 
 void PlayerListJSON::SaveFile() const
@@ -178,6 +183,7 @@ void PlayerListJSON::SaveFile() const
 	};
 
 	auto& players = json["players"];
+	players = json.array();
 	for (const auto& pair : m_Players)
 		players.push_back(pair.second);
 

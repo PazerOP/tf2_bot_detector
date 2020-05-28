@@ -24,7 +24,7 @@ namespace tf2_bot_detector
 			return Add(std::make_unique<TAction>(std::forward<TArgs>(args)...));
 		}
 
-		void Update(time_point_t curTime);
+		void Update();
 
 	private:
 		ActionManager& m_ActionManager;

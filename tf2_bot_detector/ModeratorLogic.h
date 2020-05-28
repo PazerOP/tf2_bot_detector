@@ -13,6 +13,7 @@ namespace tf2_bot_detector
 	enum class LobbyMemberTeam : uint8_t;
 	class IPlayer;
 	enum class KickReason;
+	struct ModerationRule;
 	enum class PlayerAttributes;
 	class Settings;
 	class SteamID;
@@ -52,6 +53,8 @@ namespace tf2_bot_detector
 		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 		void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
 		void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
+
+		void OnRuleMatch(const ModerationRule& rule, const IPlayer& player);
 
 		struct DelayedChatBan
 		{

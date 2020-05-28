@@ -117,30 +117,18 @@ void WorldState::Update()
 
 		} while (readCount > 0);
 
-#if 0
-		if (readCount > 0)
-			QueueUpdate();
-
-		if (consoleLinesUpdated)
-			UpdatePrintingLines();
-#endif
+		// Parse progress
+		{
+			const auto pos = ftell(m_File.get());
+			const auto length = std::filesystem::file_size(m_FileName);
+			m_ParseProgress = float(double(pos) / length);
+		}
 	}
 
 	TrySnapshot();
 
 	if (linesProcessed)
 		m_EventBroadcaster.OnUpdate(*this, consoleLinesUpdated);
-
-#if 0
-	SetLogTimestamp(m_CurrentTimestamp.GetSnapshot());
-
-	ProcessPlayerActions();
-	m_PeriodicActionManager.Update(m_CurrentTimestamp.GetSnapshot());
-	m_ActionManager.Update(m_CurrentTimestamp.GetSnapshot());
-
-	if (consoleLinesUpdated)
-		UpdateServerPing(m_CurrentTimestamp.GetSnapshot());
-#endif
 }
 
 void WorldState::AddWorldEventListener(IWorldEventListener* listener)

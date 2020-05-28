@@ -11,6 +11,7 @@
 namespace tf2_bot_detector
 {
 	enum class PlayerAttributes;
+	class IPlayer;
 
 	enum class TriggerMatchMode
 	{
@@ -33,6 +34,37 @@ namespace tf2_bot_detector
 
 	void to_json(nlohmann::json& j, const TextMatchMode& d);
 	void from_json(const nlohmann::json& j, TextMatchMode& d);
+
+	struct TextMatch
+	{
+		TextMatchMode m_Mode;
+		std::vector<std::string> m_Patterns;
+		bool m_CaseSensitive = false;
+
+		bool Match(const std::string_view& text) const;
+	};
+
+	struct ModerationRule
+	{
+		std::string m_Description;
+
+		bool Match(const IPlayer& player) const;
+		bool Match(const IPlayer& player, const std::string_view& chatMsg) const;
+
+		struct Triggers
+		{
+			TriggerMatchMode m_Mode = TriggerMatchMode::MatchAll;
+
+			std::optional<TextMatch> m_UsernameTextMatch;
+			std::optional<TextMatch> m_ChatMsgTextMatch;
+		} m_Triggers;
+
+		struct Actions
+		{
+			std::vector<PlayerAttributes> m_Mark;
+			std::vector<PlayerAttributes> m_Unmark;
+		} m_Actions;
+	};
 
 	class Settings final
 	{
@@ -59,31 +91,6 @@ namespace tf2_bot_detector
 
 		} m_Theme;
 
-		struct TextMatch
-		{
-			TextMatchMode m_Mode;
-			std::vector<std::string> m_Patterns;
-			bool m_CaseSensitive = false;
-		};
-
-		struct Rule
-		{
-			std::string m_Description;
-
-			struct Triggers
-			{
-				TriggerMatchMode m_Mode = TriggerMatchMode::MatchAll;
-
-				std::optional<TextMatch> m_UsernameTextMatch;
-				std::optional<TextMatch> m_ChatMsgTextMatch;
-			} m_Triggers;
-
-			struct Actions
-			{
-				std::vector<PlayerAttributes> m_Mark;
-				std::vector<PlayerAttributes> m_Unmark;
-			} m_Actions;
-		};
-		std::vector<Rule> m_Rules;
+		std::vector<ModerationRule> m_Rules;
 	};
 }

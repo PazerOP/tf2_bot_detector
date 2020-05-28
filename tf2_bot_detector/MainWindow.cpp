@@ -570,7 +570,7 @@ void MainWindow::OnDrawServerStats()
 		ImGui::PlotLines(buf, [&](int idx)
 			{
 				return m_ServerPingSamples[idx].m_Ping;
-			}, (int)m_ServerPingSamples.size());
+			}, (int)m_ServerPingSamples.size(), 0, nullptr, 0);
 	}
 
 	//OnDrawNetGraph();
@@ -585,12 +585,27 @@ void MainWindow::OnDraw()
 		SetShouldClose(true);
 #endif
 
+	ImGui::Columns(2, "MainWindowSplit");
+
 	ImGui::Checkbox("Pause", &m_Paused);
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
-	ImGui::Text("Parsed line count: %zu", IsWorldValid() ? GetWorld().GetParsedLineCount() : 0);
+	if (IsWorldValid())
+	{
+		auto& world = GetWorld();
+		const auto parsedLineCount = world.GetParsedLineCount();
+		const auto parseProgress = world.GetParseProgress();
 
-	ImGui::Columns(2, "MainWindowSplit");
+		if (parseProgress < 0.95f)
+		{
+			char overlayStr[64];
+			sprintf_s(overlayStr, "%1.2f %%", parseProgress * 100);
+			ImGui::ProgressBar(parseProgress, { 0, 0 }, overlayStr);
+			ImGui::SameLine(0, 4);
+		}
+
+		ImGui::Text("Parsed line count: %zu", parsedLineCount);
+	}
 
 	OnDrawServerStats();
 	OnDrawChat();
@@ -656,8 +671,8 @@ void MainWindow::OnUpdate()
 	{
 		GetWorld().Update();
 
-		m_PeriodicActionManager.Update(GetCurrentTimestampCompensated());
-		m_ActionManager.Update(GetCurrentTimestampCompensated());
+		m_PeriodicActionManager.Update();
+		m_ActionManager.Update();
 	}
 }
 

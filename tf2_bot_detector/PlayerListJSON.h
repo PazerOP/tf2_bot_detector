@@ -77,7 +77,7 @@ namespace tf2_bot_detector
 	public:
 		PlayerListJSON();
 
-		void LoadFile();
+		bool LoadFile();
 		void SaveFile() const;
 
 		const PlayerListData* FindPlayerData(const SteamID& id) const;

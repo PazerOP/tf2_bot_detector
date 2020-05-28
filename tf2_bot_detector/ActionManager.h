@@ -20,7 +20,7 @@ namespace tf2_bot_detector
 		ActionManager(const Settings& settings);
 		~ActionManager();
 
-		void Update(time_point_t curTime);
+		void Update();
 
 		// Returns false if the action was not queued
 		bool QueueAction(std::unique_ptr<IAction>&& action);

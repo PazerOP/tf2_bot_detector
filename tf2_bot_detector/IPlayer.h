@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Clock.h"
 #include "SteamID.h"
 #include "TFConstants.h"
 
@@ -13,6 +14,7 @@ namespace tf2_bot_detector
 	struct LobbyMember;
 	enum class PlayerStatusState : uint8_t;
 	enum class TFTeam : uint8_t;
+	class WorldState;
 
 	struct PlayerScores
 	{

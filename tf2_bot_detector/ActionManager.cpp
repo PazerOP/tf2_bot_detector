@@ -98,8 +98,9 @@ void ActionManager::AddPiggybackAction(std::unique_ptr<IAction> action)
 	m_PiggybackActions.push_back(std::move(action));
 }
 
-void ActionManager::Update(time_point_t curTime)
+void ActionManager::Update()
 {
+	const auto curTime = clock_t::now();
 	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
 		return;
 

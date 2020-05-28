@@ -18,8 +18,10 @@ void PeriodicActionManager::Add(std::unique_ptr<IPeriodicAction>&& action)
 	m_Actions.push_back({ std::move(action), {} });
 }
 
-void PeriodicActionManager::Update(time_point_t curTime)
+void PeriodicActionManager::Update()
 {
+	const auto curTime = clock_t::now();
+
 	for (auto& action : m_Actions)
 	{
 		const auto interval = action.m_Action->GetInterval();

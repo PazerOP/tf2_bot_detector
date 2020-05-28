@@ -35,6 +35,7 @@ namespace tf2_bot_detector
 		void Update();
 		time_point_t GetCurrentTime() const { return m_CurrentTimestamp.GetSnapshot(); }
 		size_t GetParsedLineCount() const { return m_ParsedLineCount; }
+		float GetParseProgress() const { return m_ParseProgress; }
 
 		void AddWorldEventListener(IWorldEventListener* listener);
 		void RemoveWorldEventListener(IWorldEventListener* listener);
@@ -69,6 +70,7 @@ namespace tf2_bot_detector
 		std::unique_ptr<FILE, CustomDeleters> m_File;
 		std::string m_FileLineBuf;
 		size_t m_ParsedLineCount = 0;
+		float m_ParseProgress = 0;
 		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
 		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
 

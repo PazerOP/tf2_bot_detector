@@ -18,7 +18,7 @@ KickAction::KickAction(uint16_t userID, KickReason reason) :
 
 duration_t KickAction::GetMinInterval() const
 {
-	return 10s;
+	return 5s;
 }
 
 std::string KickAction::MakeArgs(uint16_t userID, KickReason reason)
@@ -89,7 +89,7 @@ std::string ChatMessageAction::ScrubMessage(const std::string_view& msg)
 
 duration_t LobbyUpdateAction::GetMinInterval() const
 {
-	return 100ms;
+	return 1s;
 }
 
 void LobbyUpdateAction::WriteCommands(ICommandWriter& writer) const

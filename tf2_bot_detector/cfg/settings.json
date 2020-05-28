@@ -38,12 +38,45 @@
 					"cheater"
 				]
 			},
+			"description": "(catbot) Rick May Was A Pedo Bot ##",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"pattern": "Rick May Was A Pedo Bot \\d+"
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "Generic name-stealing bot",
 			"triggers": {
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "ends_with",
 					"pattern": "\u200f"
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Cheater (newlines in chat message)",
+			"triggers": {
+				"chatmsg_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"pattern": [
+						"\n\n",
+						"\r\n\r\n"
+					]
 				}
 			}
 		},
