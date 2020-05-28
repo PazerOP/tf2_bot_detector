@@ -51,19 +51,6 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 
 		OnRuleMatch(rule, player);
 	}
-
-#if 0
-	if (name.find("MYG)T"sv) != name.npos)
-	{
-		if (SetPlayerAttribute(player, PlayerAttributes::Cheater))
-			Log("Marked "s << steamID << " as a cheater due to name (mygot advertisement)");
-	}
-	if (name.ends_with("\xE2\x80\x8F"sv))
-	{
-		if (SetPlayerAttribute(player, PlayerAttributes::Cheater))
-			Log("Marked "s << steamID << " as cheater due to name ending in common name-stealing characters");
-	}
-#endif
 }
 
 void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg)
@@ -75,36 +62,6 @@ void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const s
 
 		OnRuleMatch(rule, player);
 	}
-
-#if 0
-	if (auto count = std::count(msg.begin(), msg.end(), '\n'); count > 2)
-	{
-		// Cheater is clearing the chat
-		if (SetPlayerAttribute(player, PlayerAttributes::Cheater))
-			Log("Marked "s << player << " as cheater (" << count << " newlines in chat message)");
-	}
-
-	// Kick for racism
-	{
-		static const std::regex s_WordRegex(R"regex((\w+))regex", std::regex::optimize);
-		using svregex_iterator = std::regex_iterator<std::string_view::const_iterator>;
-		auto begin = svregex_iterator(msg.begin(), msg.end(), s_WordRegex);
-		auto end = svregex_iterator();
-
-		for (auto it = begin; it != end; ++it)
-		{
-			const auto& wordMatch = it->operator[](1);
-			const std::string_view word(&*wordMatch.first, wordMatch.length());
-			if (mh::case_insensitive_compare(word, "nigger"sv) || mh::case_insensitive_compare(word, "niggers"sv))
-			{
-				Log("Detected Bad Word in chat: "s << word);
-
-				if (SetPlayerAttribute(player, PlayerAttributes::Racist))
-					Log("Marked "s << player << " as racist (" << std::quoted(word) << " in chat message)");
-			}
-		}
-	}
-#endif
 }
 
 void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<const IPlayer*>& friendlyCheaters)

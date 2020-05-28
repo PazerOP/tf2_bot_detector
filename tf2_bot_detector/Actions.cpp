@@ -45,18 +45,7 @@ GenericCommandAction::GenericCommandAction(std::string cmd, std::string args) :
 
 void GenericCommandAction::WriteCommands(ICommandWriter& writer) const
 {
-#if 0
-	if (m_Command == "tf_lobby_debug"sv)
-	{
-		os << m_Command << '\n';
-		return;
-	}
-
-	auto cleaned = mh::find_and_replace(m_Command, "\"", "'");
-	os << "echo "s << std::quoted("[TFBD_DEBUG_CMD] "s << cleaned) << '\n';
-#else
 	writer.Write(m_Command, m_Args);
-#endif
 }
 
 ChatMessageAction::ChatMessageAction(const std::string_view& message, ChatMessageType type) :

@@ -64,16 +64,6 @@ ActionManager::~ActionManager()
 
 bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 {
-#if 0
-	static uint32_t s_LastAction = 0;
-	const uint32_t curAction = ++s_LastAction;
-	{
-		std::ofstream file(s_UpdateCFGPath / (""s << curAction << ".cfg"), std::ios_base::trunc);
-		action->WriteCommands(file);
-	}
-	SendCommandToGame("+exec tf2_bot_detector/temp/"s << curAction << ".cfg");
-#endif
-
 	if (const auto maxQueuedCount = action->GetMaxQueuedCount();
 		maxQueuedCount <= m_Actions.size())
 	{
