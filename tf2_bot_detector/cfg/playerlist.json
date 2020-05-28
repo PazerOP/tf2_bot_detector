@@ -160,12 +160,6 @@
 			"attributes": [
 				"cheater"
 			],
-			"steamid": "[U:1:220625254]"
-		},
-		{
-			"attributes": [
-				"cheater"
-			],
 			"steamid": "[U:1:246188269]"
 		},
 		{
@@ -334,7 +328,7 @@
 			],
 			"last_seen": {
 				"player_name": "C\u200fAN YOU QUACK\u200f\u200f",
-				"time": 1590313775
+				"time": 1590700125
 			},
 			"steamid": "[U:1:1002142831]"
 		},
@@ -370,7 +364,7 @@
 			],
 			"last_seen": {
 				"player_name": "CAN YOU QUAC\u200fK\u200f\u200f\u200f",
-				"time": 1590625021
+				"time": 1590696503
 			},
 			"steamid": "[U:1:1002181117]"
 		},
@@ -1365,6 +1359,16 @@
 				"time": 1590309437
 			},
 			"steamid": "[U:1:1099467339]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1590699107
+			},
+			"steamid": "[U:1:1099510185]"
 		},
 		{
 			"attributes": [
