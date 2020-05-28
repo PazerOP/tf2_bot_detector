@@ -140,23 +140,14 @@
 						}
 					]
 				},
-				"pattern": {
-					"description": "The matching pattern(s). Can be either a string or an array of strings.",
-					"oneOf": [
-						{
-							"description": "The matching pattern.",
-							"type": "string"
-						},
-						{
-							"description": "The matching patterns. If any of these are successful, the entire match is successful.",
-							"type": "array",
-							"minItems": 1,
-							"uniqueItems": true,
-							"items": {
-								"type": "string"
-							}
-						}
-					]
+				"patterns": {
+					"description": "The matching patterns. If any of these are successful, the entire match is successful.",
+					"type": "array",
+					"minItems": 1,
+					"uniqueItems": true,
+					"items": {
+						"type": "string"
+					}
 				},
 				"case_sensitive": {
 					"type": "boolean",
@@ -166,7 +157,7 @@
 			},
 			"required": [
 				"mode",
-				"pattern"
+				"patterns"
 			]
 		},
 		"tfbd_rule": {

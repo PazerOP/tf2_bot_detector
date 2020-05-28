@@ -13,7 +13,9 @@
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "equal",
-					"pattern": "MYG)T"
+					"patterns": [
+						"MYG)T"
+					]
 				}
 			}
 		},
@@ -28,7 +30,9 @@
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "regex",
-					"pattern": "furry-bot \\d+"
+					"patterns": [
+						"furry-bot \\d+"
+					]
 				}
 			}
 		},
@@ -43,7 +47,9 @@
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "regex",
-					"pattern": "Rick May Was A Pedo Bot \\d+"
+					"patterns": [
+						"Rick May Was A Pedo Bot \\d+"
+					]
 				}
 			}
 		},
@@ -58,7 +64,9 @@
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "ends_with",
-					"pattern": "\u200f"
+					"patterns": [
+						"\u200f"
+					]
 				}
 			}
 		},
@@ -73,7 +81,7 @@
 				"chatmsg_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
-					"pattern": [
+					"patterns": [
 						"\n\n",
 						"\r\n\r\n"
 					]
@@ -91,7 +99,7 @@
 				"chatmsg_text_match": {
 					"case_sensitive": false,
 					"mode": "word",
-					"pattern": [
+					"patterns": [
 						"nigger",
 						"niggers"
 					]

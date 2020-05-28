@@ -72,13 +72,9 @@ namespace tf2_bot_detector
 		j =
 		{
 			{ "mode", d.m_Mode },
-			{ "case_sensitive", d.m_CaseSensitive }
+			{ "case_sensitive", d.m_CaseSensitive },
+			{ "patterns", d.m_Patterns },
 		};
-
-		if (d.m_Patterns.size() == 1)
-			j["pattern"] = d.m_Patterns.front();
-		else
-			j["pattern"] = d.m_Patterns;
 	}
 
 	void to_json(nlohmann::json& j, const ModerationRule::Triggers& d)
@@ -166,15 +162,7 @@ namespace tf2_bot_detector
 	void from_json(const nlohmann::json& j, TextMatch& d)
 	{
 		d.m_Mode = j.at("mode");
-
-		// Patterns, both arrays and single values
-		{
-			auto& pattern = j.at("pattern");
-			if (pattern.is_array())
-				d.m_Patterns = pattern.get<std::vector<std::string>>();
-			else
-				d.m_Patterns.push_back(pattern);
-		}
+		d.m_Patterns = j.at("patterns").get<std::vector<std::string>>();
 
 		if (auto found = j.find("case_sensitive"); found != j.end())
 			d.m_CaseSensitive = *found;
