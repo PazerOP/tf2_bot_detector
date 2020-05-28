@@ -270,7 +270,7 @@ mh::generator<const IPlayer*> WorldState::GetLobbyMembers() const
 		if (auto found = m_CurrentPlayerData.find(member.m_SteamID); found != m_CurrentPlayerData.end())
 		{
 			[[maybe_unused]] const LobbyMember* testMember = found->second.GetLobbyMember();
-			assert(*testMember == member);
+			//assert(*testMember == member);
 			return &found->second;
 		}
 		else
