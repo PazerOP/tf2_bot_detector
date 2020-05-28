@@ -44,7 +44,7 @@ namespace tf2_bot_detector
 	private:
 		bool SendCommandToGame(const std::string_view& cmd) const;
 
-		static constexpr duration_t UPDATE_INTERVAL = std::chrono::milliseconds(100);
+		static constexpr duration_t UPDATE_INTERVAL = std::chrono::seconds(1);
 
 		struct QueuedAction
 		{
