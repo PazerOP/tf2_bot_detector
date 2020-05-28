@@ -159,7 +159,7 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 		for (const IPlayer* cheater : connectingEnemyCheaters)
 		{
 			auto cheaterData = cheater->GetData<PlayerExtraData>();
-			if (cheaterData && !cheaterData->m_PreWarnedOtherTeam)
+			if (!cheaterData || !cheaterData->m_PreWarnedOtherTeam)
 			{
 				needsWarning = true;
 				break;
@@ -207,8 +207,8 @@ void ModeratorLogic::ProcessPlayerActions()
 
 	// Don't process actions if we're way out of date
 	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(clock_t::now() - now);
-	//if ((clock_t::now() - now) > 15s)
-	//	return;
+	if ((clock_t::now() - now) > 15s)
+		return;
 
 	const auto myTeam = TryGetMyTeam();
 	if (!myTeam)
@@ -241,10 +241,10 @@ void ModeratorLogic::ProcessPlayerActions()
 				friendlyCheaters.push_back(&player);
 				break;
 			case TeamShareResult::OppositeTeams:
-				if (!player.GetName().empty())
-					connectingEnemyCheaters.push_back(&player);
-				else
+				if (!player.GetName().empty() && player.GetConnectionState() == PlayerStatusState::Active)
 					enemyCheaters.push_back(&player);
+				else
+					connectingEnemyCheaters.push_back(&player);
 
 				break;
 			}

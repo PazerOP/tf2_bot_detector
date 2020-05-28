@@ -11,6 +11,8 @@ namespace tf2_bot_detector
 {
 	enum class PlayerStatusState : uint8_t
 	{
+		Invalid,
+
 		Challenging,
 		Connecting,
 		Spawning,
@@ -27,7 +29,7 @@ namespace tf2_bot_detector
 		UserID_t m_UserID;
 		uint16_t m_Ping;
 		uint8_t m_Loss;
-		PlayerStatusState m_State;
+		PlayerStatusState m_State = PlayerStatusState::Invalid;
 	};
 
 	struct PlayerStatusShort
