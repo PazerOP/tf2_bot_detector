@@ -26,7 +26,11 @@
 					"description": "The tf folder.",
 					"type": "string"
 				}
-			}
+			},
+			"required": [
+				"local_steamid",
+				"tf_game_dir"
+			]
 		},
 		"theme": {
 			"type": "object",
@@ -131,8 +135,8 @@
 		}
 	},
 	"required": [
-		"local_steamid",
-		"sleep_when_unfocused",
+		"general",
+		"theme",
 		"rules"
 	],
 	"definitions": {
