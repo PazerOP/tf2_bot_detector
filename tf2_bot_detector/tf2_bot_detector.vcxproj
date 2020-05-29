@@ -139,7 +139,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\APPDATA\LOCAL\TEMP\TMPE71F.TMP.CPP" />
     <ClCompile Include="..\implot\repo\implot.cpp" />
     <ClCompile Include="..\implot\repo\implot_demo.cpp" />
     <ClCompile Include="ActionManager.cpp" />
