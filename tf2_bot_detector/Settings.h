@@ -71,8 +71,8 @@ namespace tf2_bot_detector
 	public:
 		Settings();
 
-		void LoadFile();
-		void SaveFile() const;
+		bool LoadFile();
+		bool SaveFile() const;
 
 		SteamID m_LocalSteamID;
 		bool m_SleepWhenUnfocused = true;

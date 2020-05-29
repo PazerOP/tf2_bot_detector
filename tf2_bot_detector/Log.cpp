@@ -16,6 +16,16 @@ void tf2_bot_detector::Log(std::string msg)
 	return Log(std::move(msg), { 1, 1, 1, 1 });
 }
 
+void tf2_bot_detector::LogWarning(std::string msg)
+{
+	Log(std::move(msg), { 1, 0.5, 0, 1 });
+}
+
+void tf2_bot_detector::LogError(std::string msg)
+{
+	Log(std::move(msg), { 1, 0.25, 0, 1 });
+}
+
 void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 {
 	std::lock_guard lock(s_LogMutex);

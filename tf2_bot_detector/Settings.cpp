@@ -1,6 +1,7 @@
 #include "Settings.h"
-#include "PlayerListJSON.h"
 #include "IPlayer.h"
+#include "Log.h"
+#include "PlayerListJSON.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -216,12 +217,26 @@ Settings::Settings()
 	SaveFile();
 }
 
-void Settings::LoadFile()
+bool Settings::LoadFile()
 {
 	nlohmann::json json;
 	{
 		std::ifstream file(s_SettingsPath);
-		file >> json;
+		if (!file.good())
+		{
+			Log(std::string(__FUNCTION__ ": Failed to open ") << s_SettingsPath, { 1, 0.5, 0, 1 });
+			return false;
+		}
+
+		try
+		{
+			file >> json;
+		}
+		catch (const nlohmann::json::exception& e)
+		{
+			Log(std::string(__FUNCTION__ ": Failed to parse JSON from ") << s_SettingsPath << ": " << e.what(), { 1, 0.25, 0, 1 });
+			return false;
+		}
 	}
 
 	if (auto found = json.find("general"); found != json.end())
@@ -233,11 +248,13 @@ void Settings::LoadFile()
 			m_TFDir = foundDir->get<std::string_view>();
 	}
 
-	m_Theme = json.at("theme");
-	m_Rules = json.at("rules").get<std::vector<ModerationRule>>();
+	try_get_to(json, "theme", m_Theme);
+	try_get_to(json, "rules", m_Rules);
+
+	return true;
 }
 
-void Settings::SaveFile() const
+bool Settings::SaveFile() const
 {
 	nlohmann::json json =
 	{
@@ -258,9 +275,23 @@ void Settings::SaveFile() const
 	// Make sure we successfully serialize BEFORE we destroy our file
 	auto jsonString = json.dump(1, '\t', true);
 	{
+		std::filesystem::create_directories(std::filesystem::path(s_SettingsPath).remove_filename());
 		std::ofstream file(s_SettingsPath);
+		if (!file.good())
+		{
+			LogError(std::string(__FUNCTION__ ": Failed to open settings file for writing: ") << s_SettingsPath);
+			return false;
+		}
+
 		file << jsonString << '\n';
+		if (!file.good())
+		{
+			LogError(std::string(__FUNCTION__ ": Failed to write settings to ") << s_SettingsPath);
+			return false;
+		}
 	}
+
+	return true;
 }
 
 bool TextMatch::Match(const std::string_view& text) const

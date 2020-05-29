@@ -133,7 +133,8 @@ bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t
 		std::ifstream file(filename);
 		if (!file.good())
 		{
-			Log(std::string(__FUNCTION__ ": Failed to open ") << filename, { 1, 0.5, 0, 1 });
+			LogWarning(std::string(__FUNCTION__ ": Failed to open ") << filename);
+			return false;
 		}
 
 		try
@@ -142,7 +143,7 @@ bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t
 		}
 		catch (const std::exception& e)
 		{
-			Log(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what(), { 1, 0.25, 0, 1 });
+			LogError(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
 			return false;
 		}
 	}
@@ -203,18 +204,28 @@ bool PlayerListJSON::LoadFiles()
 	LoadFile("cfg/playerlist.official.json", m_OfficialPlayerList);
 
 	m_OtherPlayerLists.clear();
-	for (const auto& file : std::filesystem::directory_iterator("cfg",
-		std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
+	if (std::filesystem::is_directory("cfg"))
 	{
-		static const std::regex s_PlayerListRegex(R"regex(playerlist\.(.*\.)?json)regex", std::regex::optimize);
-		const auto path = file.path();
-		const auto filename = path.filename().string();
-		if (mh::case_insensitive_compare(filename, "playerlist.json"sv) || mh::case_insensitive_compare(filename, "playerlist.official.json"sv))
-			continue;
-
-		if (std::regex_match(filename.begin(), filename.end(), s_PlayerListRegex))
+		try
 		{
-			LoadFile(path, m_OtherPlayerLists);
+			for (const auto& file : std::filesystem::directory_iterator("cfg",
+				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
+			{
+				static const std::regex s_PlayerListRegex(R"regex(playerlist\.(.*\.)?json)regex", std::regex::optimize);
+				const auto path = file.path();
+				const auto filename = path.filename().string();
+				if (mh::case_insensitive_compare(filename, "playerlist.json"sv) || mh::case_insensitive_compare(filename, "playerlist.official.json"sv))
+					continue;
+
+				if (std::regex_match(filename.begin(), filename.end(), s_PlayerListRegex))
+				{
+					LoadFile(path, m_OtherPlayerLists);
+				}
+			}
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			LogError(std::string(__FUNCTION__ ": Exception when loading playerlist.*.json files from ./cfg/: ") << e.what());
 		}
 	}
 
