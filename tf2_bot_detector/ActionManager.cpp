@@ -94,6 +94,134 @@ void ActionManager::AddPiggybackAction(std::unique_ptr<IAction> action)
 	m_PiggybackActions.push_back(std::move(action));
 }
 
+struct ActionManager::Writer final : ICommandWriter
+{
+	void Write(std::string cmd, std::string args) override
+	{
+		assert(!cmd.empty());
+
+		if (cmd.empty() && !args.empty())
+			throw std::runtime_error("Empty command with non-empty args");
+
+		if (!std::all_of(cmd.begin(), cmd.end(), [](char c) { return c == '_' || isalpha(c) || isdigit(c); }))
+			throw std::runtime_error("Command contains invalid characters");
+
+		if (!m_ComplexCommands && !std::all_of(args.begin(), args.end(), [](char c) { return isalpha(c) || isdigit(c) || isspace(c); }))
+			m_ComplexCommands = true;
+
+		m_CommandArgCount++;
+		if (!args.empty())
+			m_CommandArgCount++;
+
+		m_Commands.push_back({ std::move(cmd), std::move(args) });
+	}
+
+	std::vector<std::pair<std::string, std::string>> m_Commands;
+	bool m_ComplexCommands = false;
+	size_t m_CommandArgCount = 0;
+};
+
+bool ActionManager::ProcessSimpleCommands(const Writer& writer) const
+{
+	std::string cmdLine;
+	bool firstCmd = true;
+
+	for (const auto& cmd : writer.m_Commands)
+	{
+		if (firstCmd)
+			firstCmd = false;
+		else
+			cmdLine << ' ';
+
+		cmdLine << '+' << cmd.first;
+
+		if (!cmd.second.empty())
+		{
+			cmdLine << ' ';
+
+			const bool needsQuotes = !std::all_of(cmd.second.begin(), cmd.second.end(), [](char c) { return isalpha(c) || isdigit(c); });
+			if (needsQuotes)
+				cmdLine << '"';
+
+			cmdLine << cmd.second;
+
+			if (needsQuotes)
+				cmdLine << '"';
+		}
+	}
+
+	// A simple command, we can pass this directly to the engine
+	return SendCommandToGame(cmdLine);
+}
+
+bool ActionManager::ProcessComplexCommands(const Writer& writer)
+{
+	// More complicated, exec commands from a cfg file
+
+	std::string cfgFileContents;
+	for (const auto& cmd : writer.m_Commands)
+		cfgFileContents << cmd.first << ' ' << cmd.second << '\n';
+
+	const auto globalPath = absolute_cfg_temp();
+	std::filesystem::create_directories(globalPath);
+
+	const auto hash = std::hash<std::string>{}(cfgFileContents);
+	std::string cfgFilename;
+	{
+		auto found = m_TempCfgFiles.equal_range(hash);
+		for (auto it = found.first; it != found.second; ++it)
+		{
+			// Make sure file contents are identical
+			std::string localCfgFilename = ""s << it->second << ".cfg";
+			std::filesystem::path path = globalPath / localCfgFilename;
+
+			std::ifstream file(path);
+			size_t comparePos = 0;
+			while (true)
+			{
+				char buf[4096];
+				file.read(buf, std::size(buf));
+				if (file.bad())
+					break;
+
+				const auto bufCount = file.gcount();
+				if (bufCount == 0)
+					break;
+
+				if (cfgFileContents.compare(comparePos, bufCount, buf, bufCount))
+				{
+					// Not equal
+					break;
+				}
+
+				comparePos += file.gcount();
+			}
+
+			if (comparePos == cfgFileContents.size())
+			{
+				cfgFilename = std::move(localCfgFilename);
+				break;
+			}
+		}
+	}
+
+	if (cfgFilename.empty())
+	{
+		// Create a new temp cfg file
+		cfgFilename = ""s << ++m_LastUpdateIndex << ".cfg";
+		Log("Creating new temp cfg file "s << std::quoted(cfgFilename));
+
+		std::ofstream file(globalPath / cfgFilename, std::ios_base::trunc);
+		assert(file.good());
+		file << cfgFileContents;
+		assert(file.good());
+
+		m_TempCfgFiles.emplace(std::hash<std::string>{}(cfgFileContents), m_LastUpdateIndex);
+	}
+
+	return SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
+}
+
 void ActionManager::Update()
 {
 	const auto curTime = clock_t::now();
@@ -123,33 +251,7 @@ void ActionManager::Update()
 	{
 		bool actionTypes[(int)ActionType::COUNT]{};
 
-		struct Writer final : ICommandWriter
-		{
-			void Write(std::string cmd, std::string args) override
-			{
-				assert(!cmd.empty());
-
-				if (cmd.empty() && !args.empty())
-					throw std::runtime_error("Empty command with non-empty args");
-
-				if (!std::all_of(cmd.begin(), cmd.end(), [](char c) { return c == '_' || isalpha(c) || isdigit(c); }))
-					throw std::runtime_error("Command contains invalid characters");
-
-				if (!m_ComplexCommands && !std::all_of(args.begin(), args.end(), [](char c) { return isalpha(c) || isdigit(c) || isspace(c); }))
-					m_ComplexCommands = true;
-
-				m_CommandArgCount++;
-				if (!args.empty())
-					m_CommandArgCount++;
-
-				m_Commands.push_back({ std::move(cmd), std::move(args) });
-			}
-
-			std::vector<std::pair<std::string, std::string>> m_Commands;
-			bool m_ComplexCommands = false;
-			size_t m_CommandArgCount = 0;
-
-		} writer;
+		Writer writer;
 
 		const auto ProcessAction = [&](const IAction* action)
 		{
@@ -190,54 +292,11 @@ void ActionManager::Update()
 		// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?
 		if (!writer.m_ComplexCommands && writer.m_CommandArgCount < 200)
 		{
-			std::string cmdLine;
-			bool firstCmd = true;
-
-			for (const auto& cmd : writer.m_Commands)
-			{
-				if (firstCmd)
-					firstCmd = false;
-				else
-					cmdLine << ' ';
-
-				cmdLine << '+' << cmd.first;
-
-				if (!cmd.second.empty())
-				{
-					cmdLine << ' ';
-
-					const bool needsQuotes = !std::all_of(cmd.second.begin(), cmd.second.end(), [](char c) { return isalpha(c) || isdigit(c); });
-					if (needsQuotes)
-						cmdLine << '"';
-
-					cmdLine << cmd.second;
-
-					if (needsQuotes)
-						cmdLine << '"';
-				}
-			}
-
-			// A simple command, we can pass this directly to the engine
-			SendCommandToGame(cmdLine);
+			ProcessSimpleCommands(writer);
 		}
 		else
 		{
-			// More complicated, write out a file and exec it
-			const std::string cfgFilename = ""s << ++m_LastUpdateIndex << ".cfg";
-			auto globalPath = absolute_cfg_temp();
-			std::filesystem::create_directories(globalPath);
-			globalPath /= cfgFilename;
-			{
-				std::ofstream file(globalPath, std::ios_base::trunc);
-				assert(file.good());
-
-				for (const auto& cmd : writer.m_Commands)
-					file << cmd.first << ' ' << cmd.second << '\n';
-
-				assert(file.good());
-			}
-
-			SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
+			ProcessComplexCommands(writer);
 		}
 	}
 

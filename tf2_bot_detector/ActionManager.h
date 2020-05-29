@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 namespace tf2_bot_detector
@@ -51,6 +52,9 @@ namespace tf2_bot_detector
 		}
 
 	private:
+		struct Writer;
+		bool ProcessSimpleCommands(const Writer& writer) const;
+		bool ProcessComplexCommands(const Writer& writer);
 		bool SendCommandToGame(const std::string_view& cmd) const;
 
 		static constexpr duration_t UPDATE_INTERVAL = std::chrono::seconds(1);
@@ -64,6 +68,10 @@ namespace tf2_bot_detector
 		auto absolute_root() const;
 		auto absolute_cfg() const;
 		auto absolute_cfg_temp() const;
+
+		// Map of temp cfg file content hashes to cfg file name so we don't
+		// create a ton of duplicate files.
+		std::unordered_multimap<size_t, uint32_t> m_TempCfgFiles;
 
 		const Settings* m_Settings = nullptr;
 		time_point_t m_LastUpdateTime{};
