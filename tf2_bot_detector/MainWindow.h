@@ -9,7 +9,6 @@
 #include "Settings.h"
 #include "WorldState.h"
 #include "LobbyMember.h"
-#include "PeriodicActionManager.h"
 #include "PlayerStatus.h"
 #include "TFConstants.h"
 #include "IConsoleLineListener.h"
@@ -170,6 +169,5 @@ namespace tf2_bot_detector
 
 		Settings m_Settings;
 		ActionManager m_ActionManager;
-		PeriodicActionManager m_PeriodicActionManager;
 	};
 }

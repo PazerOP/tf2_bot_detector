@@ -149,7 +149,6 @@
     <ClCompile Include="ModeratorLogic.cpp" />
     <ClCompile Include="NetworkStatus.cpp" />
     <ClCompile Include="PathUtils.cpp" />
-    <ClCompile Include="PeriodicActionManager.cpp" />
     <ClCompile Include="PeriodicActions.cpp" />
     <ClCompile Include="ConsoleLines.cpp" />
     <ClCompile Include="main.cpp" />
@@ -175,7 +174,6 @@
     <ClInclude Include="ModeratorLogic.h" />
     <ClInclude Include="NetworkStatus.h" />
     <ClInclude Include="PathUtils.h" />
-    <ClInclude Include="PeriodicActionManager.h" />
     <ClInclude Include="PeriodicActions.h" />
     <ClInclude Include="ConsoleLines.h" />
     <ClInclude Include="LobbyMember.h" />

@@ -38,3 +38,18 @@ bool StatusUpdateAction::Execute(ActionManager& manager)
 
 	return true;
 }
+
+duration_t ConfigAction::GetInterval() const
+{
+	return 10s;
+}
+
+bool ConfigAction::Execute(ActionManager& manager)
+{
+	if (!manager.QueueAction<GenericCommandAction>("con_logfile", "console.log"))
+		return false;
+	if (!manager.QueueAction<GenericCommandAction>("con_timestamp", "1"))
+		return false;
+
+	return true;
+}

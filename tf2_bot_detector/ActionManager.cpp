@@ -2,6 +2,7 @@
 #include "Actions.h"
 #include "ConsoleLines.h"
 #include "Log.h"
+#include "PeriodicActions.h"
 #include "Settings.h"
 
 #include <mh/text/insertion_conversion.hpp>
@@ -83,6 +84,11 @@ bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 	return true;
 }
 
+void ActionManager::AddPeriodicAction(std::unique_ptr<IPeriodicAction>&& action)
+{
+	m_PeriodicActions.push_back({ std::move(action), {} });
+}
+
 void ActionManager::AddPiggybackAction(std::unique_ptr<IAction> action)
 {
 	m_PiggybackActions.push_back(std::move(action));
@@ -93,6 +99,25 @@ void ActionManager::Update()
 	const auto curTime = clock_t::now();
 	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
 		return;
+
+	// Update periodic actions
+	for (auto& action : m_PeriodicActions)
+	{
+		const auto interval = action.m_Action->GetInterval();
+		if (action.m_LastRunTime == time_point_t{})
+		{
+			const auto delay = action.m_Action->GetInitialDelay();
+			action.m_LastRunTime = curTime - interval + delay;
+		}
+
+		if ((curTime - action.m_LastRunTime) >= interval)
+		{
+			if (action.m_Action->Execute(*this))
+				action.m_LastRunTime = curTime;
+			else
+				Log("Couldn't run periodic action");
+		}
+	}
 
 	if (!m_Actions.empty())
 	{

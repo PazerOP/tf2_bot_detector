@@ -31,4 +31,11 @@ namespace tf2_bot_detector
 		bool m_NextShort = false;
 		bool m_NextPing = false;
 	};
+
+	class ConfigAction final : public IPeriodicAction
+	{
+	public:
+		duration_t GetInterval() const override;
+		bool Execute(ActionManager& manager) override;
+	};
 }

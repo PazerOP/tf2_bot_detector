@@ -13,6 +13,7 @@ namespace tf2_bot_detector
 	class IAction;
 	enum class ActionType;
 	class Settings;
+	class IPeriodicAction;
 
 	class ActionManager final
 	{
@@ -41,6 +42,14 @@ namespace tf2_bot_detector
 			return AddPiggybackAction(std::make_unique<TAction>(std::forward<TArgs>(args)...));
 		}
 
+		void AddPeriodicAction(std::unique_ptr<IPeriodicAction>&& action);
+
+		template<typename TAction, typename... TArgs>
+		void AddPeriodicAction(TArgs&&... args)
+		{
+			return AddPeriodicAction(std::make_unique<TAction>(std::forward<TArgs>(args)...));
+		}
+
 	private:
 		bool SendCommandToGame(const std::string_view& cmd) const;
 
@@ -62,5 +71,12 @@ namespace tf2_bot_detector
 		std::vector<std::unique_ptr<IAction>> m_PiggybackActions;
 		std::map<ActionType, time_point_t> m_LastTriggerTime;
 		uint32_t m_LastUpdateIndex = 0;
+
+		struct PeriodicAction
+		{
+			std::unique_ptr<IPeriodicAction> m_Action;
+			time_point_t m_LastRunTime{};
+		};
+		std::vector<PeriodicAction> m_PeriodicActions;
 	};
 }

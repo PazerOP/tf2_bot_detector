@@ -27,14 +27,13 @@ using namespace std::string_view_literals;
 
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
-	m_ActionManager(m_Settings),
-	m_PeriodicActionManager(m_ActionManager)
+	m_ActionManager(m_Settings)
 {
 	m_OpenTime = clock_t::now();
 
-	m_PeriodicActionManager.Add<StatusUpdateAction>();
-
-	m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
+	m_ActionManager.AddPeriodicAction<StatusUpdateAction>();
+	m_ActionManager.AddPeriodicAction<ConfigAction>();
+	//m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 
 	m_WorldState.emplace(*this, m_Settings, m_Settings.m_TFDir / "console.log");
 }
@@ -670,8 +669,6 @@ void MainWindow::OnUpdate()
 	if (!m_Paused && m_WorldState.has_value())
 	{
 		GetWorld().Update();
-
-		m_PeriodicActionManager.Update();
 		m_ActionManager.Update();
 	}
 }
