@@ -42,7 +42,7 @@ namespace tfbd_paths
 
 auto ActionManager::absolute_root() const
 {
-	return m_Settings->m_TFDir / "custom/tf2_bot_detector";
+	return m_Settings->m_TFDir;// / "custom/tf2_bot_detector";
 }
 auto ActionManager::absolute_cfg() const
 {
