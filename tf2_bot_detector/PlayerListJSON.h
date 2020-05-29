@@ -5,11 +5,14 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <chrono>
+#include <filesystem>
 #include <map>
 #include <optional>
 
 namespace tf2_bot_detector
 {
+	class Settings;
+
 	enum class PlayerAttributes
 	{
 		Cheater,
@@ -75,9 +78,9 @@ namespace tf2_bot_detector
 	class PlayerListJSON final
 	{
 	public:
-		PlayerListJSON();
+		PlayerListJSON(const Settings& settings);
 
-		bool LoadFile();
+		bool LoadFiles();
 		void SaveFile() const;
 
 		const PlayerListData* FindPlayerData(const SteamID& id) const;
@@ -98,7 +101,18 @@ namespace tf2_bot_detector
 			const void* userData = nullptr);
 
 	private:
-		std::map<SteamID, PlayerListData> m_Players;
+		using PlayerMap_t = std::map<SteamID, PlayerListData>;
+
+		bool LoadFile(const std::filesystem::path& filename, PlayerMap_t& map);
+
+		bool IsOfficial() const;
+		PlayerMap_t& GetMutableList();
+		const PlayerMap_t* GetMutableList() const;
+
+		PlayerMap_t m_OfficialPlayerList;
+		PlayerMap_t m_OtherPlayerLists;
+		std::optional<PlayerMap_t> m_UserPlayerList;
+		const Settings* m_Settings = nullptr;
 	};
 
 	void to_json(nlohmann::json& j, const PlayerAttributes& d);

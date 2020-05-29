@@ -286,7 +286,10 @@ TeamShareResult ModeratorLogic::GetTeamShareResult(const SteamID& id) const
 }
 
 ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :
-	m_World(&world), m_Settings(&settings), m_ActionManager(&actionManager)
+	m_World(&world),
+	m_Settings(&settings),
+	m_ActionManager(&actionManager),
+	m_PlayerList(settings)
 {
 	m_World->AddConsoleLineListener(this);
 	m_World->AddWorldEventListener(this);

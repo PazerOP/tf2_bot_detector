@@ -1,11 +1,16 @@
 #include "PlayerListJSON.h"
+#include "Log.h"
+#include "Settings.h"
 
+#include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <regex>
+#include <string>
 
 using namespace tf2_bot_detector;
 using namespace std::string_literals;
@@ -111,65 +116,106 @@ namespace tf2_bot_detector
 	}
 }
 
-PlayerListJSON::PlayerListJSON()
+PlayerListJSON::PlayerListJSON(const Settings& settings) :
+	m_Settings(&settings)
 {
 	// Immediately load and resave to normalize any formatting
-	LoadFile();
+	LoadFiles();
 	SaveFile();
 }
 
-#if 0
-static PlayerListData ParsePlayer(const nlohmann::json& json)
+bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t& map)
 {
-	PlayerListData retVal(SteamID(json.at("steamID").get<std::string>()));
+	Log("Loading player list from "s << filename);
 
-	for (const auto& attribute : json.at("attributes"))
-	{
-		const auto& str = attribute.get<std::string_view>();
-		if (str == "suspicious"sv)
-			retVal.SetAttribute(PlayerAttributes::Suspicious);
-		else if (str == "cheater"sv)
-			retVal.SetAttribute(PlayerAttributes::Cheater);
-		else if (str == "exploiter"sv)
-			retVal.SetAttribute(PlayerAttributes::Exploiter);
-		else if (str == "racist"sv)
-			retVal.SetAttribute(PlayerAttributes::Racist);
-		else
-			throw std::runtime_error("Unknown player attribute type "s << std::quoted(str));
-	}
-
-	if (auto lastSeen = json.find(""); lastSeen != json.end())
-	{
-		using clock = std::chrono::system_clock;
-		using time_point = clock::time_point;
-		using duration = clock::duration;
-		retVal.m_LastSeenTime = clock::time_point(clock::duration(lastSeen->at("time").get<clock::duration::rep>()));
-		retVal.m_LastSeenName = lastSeen->value<std::string>("player_name", "");
-	}
-
-	return retVal;
-}
-#endif
-
-bool PlayerListJSON::LoadFile()
-{
 	nlohmann::json json;
 	{
-		std::ifstream file(s_PlayerListPath);
+		std::ifstream file(filename);
 		if (!file.good())
+		{
+			Log(std::string(__FUNCTION__ ": Failed to open ") << filename, { 1, 0.5, 0, 1 });
+		}
+
+		try
+		{
+			file >> json;
+		}
+		catch (const std::exception& e)
+		{
+			Log(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what(), { 1, 0.25, 0, 1 });
 			return false;
-
-		file >> json;
+		}
 	}
-
-	m_Players.clear();
 
 	for (const auto& player : json.at("players"))
 	{
 		const SteamID steamID(player.at("steamid").get<std::string>());
 		PlayerListData parsed(steamID);
 		player.get_to(parsed);
-		m_Players.emplace(steamID, std::move(parsed));
+		map.emplace(steamID, std::move(parsed));
+	}
+
+	return true;
+}
+
+bool PlayerListJSON::IsOfficial() const
+{
+	// I am magic. I get to mess with playerlist.official.json, while
+	// mere mortals have to use playerlist.json.
+	static constexpr SteamID s_PazerSID(76561198003911389);
+	//return false;
+	return m_Settings->m_LocalSteamID == s_PazerSID;
+}
+
+auto PlayerListJSON::GetMutableList() -> PlayerMap_t&
+{
+	if (IsOfficial())
+		return m_OfficialPlayerList;
+
+	if (!m_UserPlayerList)
+		m_UserPlayerList.emplace();
+
+	return m_UserPlayerList.value();
+}
+
+auto PlayerListJSON::GetMutableList() const -> const PlayerMap_t*
+{
+	if (IsOfficial())
+		return &m_OfficialPlayerList;
+
+	if (!m_UserPlayerList)
+		return nullptr;
+
+	return &m_UserPlayerList.value();
+}
+
+bool PlayerListJSON::LoadFiles()
+{
+	if (!IsOfficial())
+	{
+		if (!m_UserPlayerList.has_value())
+			m_UserPlayerList.emplace();
+
+		LoadFile("cfg/playerlist.json", m_UserPlayerList.value());
+	}
+
+	m_OfficialPlayerList.clear();
+	LoadFile("cfg/playerlist.official.json", m_OfficialPlayerList);
+
+	m_OtherPlayerLists.clear();
+	for (const auto& file : std::filesystem::directory_iterator("cfg",
+		std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
+	{
+		static const std::regex s_PlayerListRegex(R"regex(playerlist\.(.*\.)?json)regex", std::regex::optimize);
+		const auto path = file.path();
+		const auto filename = path.filename().string();
+		if (mh::case_insensitive_compare(filename, "playerlist.json"sv) || mh::case_insensitive_compare(filename, "playerlist.official.json"sv))
+			continue;
+
+		if (std::regex_match(filename.begin(), filename.end(), s_PlayerListRegex))
+		{
+			LoadFile(path, m_OtherPlayerLists);
+		}
 	}
 
 	return true;
@@ -184,20 +230,31 @@ void PlayerListJSON::SaveFile() const
 
 	auto& players = json["players"];
 	players = json.array();
-	for (const auto& pair : m_Players)
-		players.push_back(pair.second);
+
+	if (auto mutableList = GetMutableList())
+	{
+		for (const auto& pair : *mutableList)
+			players.push_back(pair.second);
+	}
 
 	// Make sure we successfully serialize BEFORE we destroy our file
 	auto jsonString = json.dump(1, '\t', true);
 	{
-		std::ofstream file(s_PlayerListPath);
+		std::ofstream file(IsOfficial() ? "cfg/playerlist.official.json" : "cfg/playerlist.json");
 		file << jsonString << '\n';
 	}
 }
 
 const PlayerListData* PlayerListJSON::FindPlayerData(const SteamID& id) const
 {
-	if (auto found = m_Players.find(id); found != m_Players.end())
+	if (m_UserPlayerList.has_value())
+	{
+		if (auto found = m_UserPlayerList->find(id); found != m_UserPlayerList->end())
+			return &found->second;
+	}
+	if (auto found = m_OtherPlayerLists.find(id); found != m_OtherPlayerLists.end())
+		return &found->second;
+	if (auto found = m_OfficialPlayerList.find(id); found != m_OfficialPlayerList.end())
 		return &found->second;
 
 	return nullptr;
@@ -230,10 +287,13 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	ModifyPlayerAction(*func)(PlayerListData& data, const void* userData), const void* userData)
 {
 	PlayerListData* data = nullptr;
-	if (auto found = m_Players.find(id); found != m_Players.end())
+	if (auto found = GetMutableList().find(id); found != GetMutableList().end())
 		data = &found->second;
 	else
-		data = &m_Players.emplace(id, PlayerListData(id)).first->second;
+	{
+		auto existing = FindPlayerData(id);
+		data = &GetMutableList().emplace(id, existing ? *existing : PlayerListData(id)).first->second;
+	}
 
 	const auto action = func(*data, userData);
 	if (action == ModifyPlayerAction::Modified)
