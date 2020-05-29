@@ -135,13 +135,29 @@ void MainWindow::OnDrawScoreboard()
 	forceRecalc |= ImGui::DragFloat("Extra width", &extraWidth, 0.5f);
 #endif
 
-	OnDrawScoreboardColorPicker("You", m_Settings.m_Theme.m_Colors.m_ScoreboardYou); ImGui::SameLine();
-	OnDrawScoreboardColorPicker("Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheater); ImGui::SameLine();
-	OnDrawScoreboardColorPicker("Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious); ImGui::SameLine();
-	OnDrawScoreboardColorPicker("Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter); ImGui::SameLine();
-	OnDrawScoreboardColorPicker("Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacist); ImGui::SameLine();
+	// Horizontal scroller for color pickers
+	{
+		static float s_ColorScrollerHeight = 1;
+		if (ImGui::BeginChild("ColorScroller", { 0, s_ColorScrollerHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
+		{
+			OnDrawScoreboardColorPicker("You", m_Settings.m_Theme.m_Colors.m_ScoreboardYou); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Friendly", m_Settings.m_Theme.m_Colors.m_FriendlyTeam); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Enemy", m_Settings.m_Theme.m_Colors.m_EnemyTeam); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheater); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacist); ImGui::SameLine();
 
-	ImGui::NewLine();
+			const auto xPos = ImGui::GetCursorPosX();
+
+			ImGui::NewLine();
+
+			s_ColorScrollerHeight = ImGui::GetCursorPosY();
+			if (ImGui::GetWindowSize().x < xPos)
+				s_ColorScrollerHeight += ImGui::GetStyle().ScrollbarSize;
+		}
+		ImGui::EndChild();
+	}
 
 	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
 	//ImGui::SetNextWindowContentSize(ImVec2(500, 0));
@@ -278,12 +294,22 @@ void MainWindow::OnDrawScoreboard()
 
 				// Selectable
 				{
-					ImVec4 bgColor = [&]()
+					ImVec4 bgColor = [&]() -> ImVec4
 					{
+						if (IsWorldValid())
+						{
+							auto& modLogic = GetModLogic();
+							switch (modLogic.GetTeamShareResult(player))
+							{
+							case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_FriendlyTeam;
+							case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_EnemyTeam;
+							}
+						}
+
 						switch (player.GetTeam())
 						{
-						case TFTeam::Red: return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
-						case TFTeam::Blue: return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
+						case TFTeam::Red:   return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
+						case TFTeam::Blue:  return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
 						default: return ImVec4(0.5f, 0.5f, 0.5f, 0);
 						}
 					}();

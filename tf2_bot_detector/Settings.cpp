@@ -17,6 +17,18 @@ using namespace std::string_view_literals;
 
 static std::filesystem::path s_SettingsPath("cfg/settings.json");
 
+template<typename T>
+static bool try_get_to(const nlohmann::json& j, const std::string_view& name, T& value)
+{
+	if (auto found = j.find(name); found != j.end())
+	{
+		found->get_to(value);
+		return true;
+	}
+
+	return false;
+}
+
 namespace tf2_bot_detector
 {
 	void to_json(nlohmann::json& j, const TextMatchMode& d)
@@ -56,6 +68,8 @@ namespace tf2_bot_detector
 			{ "scoreboard_exploiter", d.m_ScoreboardExploiter },
 			{ "scoreboard_racism", d.m_ScoreboardRacist },
 			{ "scoreboard_you", d.m_ScoreboardYou },
+			{ "friendly_team", d.m_FriendlyTeam },
+			{ "enemy_team", d.m_EnemyTeam },
 		};
 	}
 
@@ -127,11 +141,13 @@ namespace tf2_bot_detector
 
 	void from_json(const nlohmann::json& j, Settings::Theme::Colors& d)
 	{
-		j.at("scoreboard_cheater").get_to(d.m_ScoreboardCheater);
-		j.at("scoreboard_suspicious").get_to(d.m_ScoreboardSuspicious);
-		j.at("scoreboard_exploiter").get_to(d.m_ScoreboardExploiter);
-		j.at("scoreboard_racism").get_to(d.m_ScoreboardRacist);
-		j.at("scoreboard_you").get_to(d.m_ScoreboardYou);
+		try_get_to(j, "scoreboard_cheater", d.m_ScoreboardCheater);
+		try_get_to(j, "scoreboard_suspicious", d.m_ScoreboardSuspicious);
+		try_get_to(j, "scoreboard_exploiter", d.m_ScoreboardExploiter);
+		try_get_to(j, "scoreboard_racism", d.m_ScoreboardRacist);
+		try_get_to(j, "scoreboard_you", d.m_ScoreboardYou);
+		try_get_to(j, "friendly_team", d.m_FriendlyTeam);
+		try_get_to(j, "enemy_team", d.m_EnemyTeam);
 	}
 
 	void from_json(const nlohmann::json& j, Settings::Theme& d)
@@ -164,9 +180,7 @@ namespace tf2_bot_detector
 		d.m_Mode = j.at("mode");
 		d.m_Patterns = j.at("patterns").get<std::vector<std::string>>();
 
-		if (auto found = j.find("case_sensitive"); found != j.end())
-			d.m_CaseSensitive = *found;
-		else
+		if (!try_get_to(j, "case_sensitive", d.m_CaseSensitive))
 			d.m_CaseSensitive = false;
 	}
 
@@ -183,10 +197,8 @@ namespace tf2_bot_detector
 
 	void from_json(const nlohmann::json& j, ModerationRule::Actions& d)
 	{
-		if (auto found = j.find("mark"); found != j.end())
-			d.m_Mark = found->get<std::vector<PlayerAttributes>>();
-		if (auto found = j.find("unmark"); found != j.end())
-			d.m_Unmark = found->get<std::vector<PlayerAttributes>>();
+		try_get_to(j, "mark", d.m_Mark);
+		try_get_to(j, "unmark", d.m_Unmark);
 	}
 
 	void from_json(const nlohmann::json& j, ModerationRule& d)
@@ -212,11 +224,15 @@ void Settings::LoadFile()
 		file >> json;
 	}
 
-	if (auto found = json.find("local_steamid"); found != json.end())
-		m_LocalSteamID = json.at("local_steamid");
+	if (auto found = json.find("general"); found != json.end())
+	{
+		try_get_to(*found, "local_steamid", m_LocalSteamID);
+		try_get_to(*found, "sleep_when_unfocused", m_SleepWhenUnfocused);
 
-	m_SleepWhenUnfocused = json.at("sleep_when_unfocused");
-	m_TFDir = json.at("tf_game_dir").get<std::string>();
+		if (auto foundDir = found->find("tf_game_dir"); foundDir != found->end())
+			m_TFDir = foundDir->get<std::string_view>();
+	}
+
 	m_Theme = json.at("theme");
 	m_Rules = json.at("rules").get<std::vector<ModerationRule>>();
 }
@@ -226,14 +242,18 @@ void Settings::SaveFile() const
 	nlohmann::json json =
 	{
 		{ "$schema", "./schema/settings.schema.json" },
-		{ "sleep_when_unfocused", m_SleepWhenUnfocused },
-		{ "tf_game_dir", m_TFDir.string() },
 		{ "theme", m_Theme },
 		{ "rules", m_Rules },
+		{ "general",
+			{
+				{ "tf_game_dir", m_TFDir.string() },
+				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
+			}
+		}
 	};
 
 	if (m_LocalSteamID.IsValid())
-		json["local_steamid"] = m_LocalSteamID;
+		json["general"]["local_steamid"] = m_LocalSteamID;
 
 	// Make sure we successfully serialize BEFORE we destroy our file
 	auto jsonString = json.dump(1, '\t', true);

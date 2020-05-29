@@ -280,6 +280,11 @@ std::optional<LobbyMemberTeam> ModeratorLogic::TryGetMyTeam() const
 	return m_World->FindLobbyMemberTeam(m_Settings->m_LocalSteamID);
 }
 
+TeamShareResult ModeratorLogic::GetTeamShareResult(const SteamID& id) const
+{
+	return m_World->GetTeamShareResult(id, m_Settings->m_LocalSteamID);
+}
+
 ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :
 	m_World(&world), m_Settings(&settings), m_ActionManager(&actionManager)
 {
