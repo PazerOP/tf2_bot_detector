@@ -603,13 +603,6 @@ void MainWindow::OnDrawServerStats()
 
 void MainWindow::OnDraw()
 {
-#if 0
-	ImGui::Text("Current application time: %1.2f", std::chrono::duration<float>(std::chrono::steady_clock::now() - m_OpenTime).count());
-	ImGui::NewLine();
-	if (ImGui::Button("Quit"))
-		SetShouldClose(true);
-#endif
-
 	ImGui::Columns(2, "MainWindowSplit");
 
 	ImGui::Checkbox("Pause", &m_Paused);
@@ -880,9 +873,23 @@ size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer*
 
 			// Intentionally reversed, we want descending kill order
 			if (auto killsResult = rhs->GetScores().m_Kills <=> lhs->GetScores().m_Kills; !std::is_eq(killsResult))
-				return killsResult < 0;
+				return std::is_lt(killsResult);
 
-			return lhs->GetScores().m_Deaths < rhs->GetScores().m_Deaths;
+			if (auto deathsResult = lhs->GetScores().m_Deaths <=> rhs->GetScores().m_Deaths; !std::is_eq(deathsResult))
+				return std::is_lt(deathsResult);
+
+			// Sort by ascending userid
+			{
+				auto luid = lhs->GetUserID();
+				auto ruid = rhs->GetUserID();
+				if (luid && ruid)
+				{
+					if (auto result = *luid <=> *ruid; !std::is_eq(result))
+						return std::is_lt(result);
+				}
+			}
+
+			return false;
 		});
 
 	return static_cast<size_t>(end - begin);

@@ -87,23 +87,7 @@ namespace tf2_bot_detector
 
 		std::vector<const IConsoleLine*> m_PrintingLines;  // newest to oldest order
 		static constexpr size_t MAX_PRINTING_LINES = 512;
-
-#if 0
-		struct PlayerPrintData final
-		{
-			std::string m_Name;
-			SteamID m_SteamID;
-			PlayerScores m_Scores;
-			duration_t m_ConnectedTime{};
-			uint16_t m_UserID;
-			uint16_t m_Ping;
-			TFTeam m_Team;
-			PlayerStatusState m_State;
-		};
-		size_t GeneratePlayerPrintData(PlayerPrintData* begin, PlayerPrintData* end) const;
-#else
 		size_t GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const;
-#endif
 
 		struct PingSample
 		{
