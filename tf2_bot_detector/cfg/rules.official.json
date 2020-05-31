@@ -1,0 +1,109 @@
+{
+	"$schema": "./schema/rules.schema.json",
+	"rules": [
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) mygot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "equal",
+					"patterns": [
+						"MYG)T"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) furry-bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"furry-bot \\d+"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) Rick May Was A Pedo Bot ##",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"Rick May Was A Pedo Bot \\d+"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Generic name-stealing bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "ends_with",
+					"patterns": [
+						"\u200f"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Cheater (newlines in chat message)",
+			"triggers": {
+				"chatmsg_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"\n\n",
+						"\r\n\r\n"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"racist"
+				]
+			},
+			"description": "Racism",
+			"triggers": {
+				"chatmsg_text_match": {
+					"case_sensitive": false,
+					"mode": "word",
+					"patterns": [
+						"nigger",
+						"niggers"
+					]
+				}
+			}
+		}
+	]
+}
