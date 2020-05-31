@@ -5,6 +5,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <implot.h>
 
+#include <filesystem>
 #include <string_view>
 #include <type_traits>
 
@@ -97,6 +98,13 @@ namespace ImGui
 
 		return ImGui::InputTextWithHint(label, hint, str, flags, patch, const_cast<void*>(reinterpret_cast<const void*>(&callback)));
 	}
+}
+
+namespace tf2_bot_detector
+{
+	class SteamID;
+	bool InputTextSteamID(const char* label_id, SteamID& steamID, bool requireValid = true);
+	bool InputTextTFDir(const char* label_id, std::filesystem::path& path);
 }
 
 namespace ImPlot

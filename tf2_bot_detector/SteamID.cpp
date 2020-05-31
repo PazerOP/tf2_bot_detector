@@ -10,12 +10,12 @@
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
-static std::regex s_SteamID3Regex(R"regex(\[([a-zA-Z]):(\d):(\d+)(:\d+)?\])regex", std::regex::optimize);
 SteamID::SteamID(const std::string_view& str)
 {
 	ID64 = 0;
 
 	// Steam3
+	static std::regex s_SteamID3Regex(R"regex(\[([a-zA-Z]):(\d):(\d+)(:\d+)?\])regex", std::regex::optimize);
 	if (std::match_results<std::string_view::const_iterator> result;
 		std::regex_match(str.begin(), str.end(), result, s_SteamID3Regex))
 	{
@@ -40,25 +40,31 @@ SteamID::SteamID(const std::string_view& str)
 			Type = SteamAccountType::Invalid; break;
 
 		default:
-			throw std::invalid_argument("Invalid Steam3 ID: Unknown SteamAccountType '"s << firstChar << '\'');
+			throw std::invalid_argument("Invalid SteamID3: Unknown SteamAccountType '"s << firstChar << '\'');
 		}
 
 		{
 			uint32_t universe;
-			from_chars_throw(result[2], universe);
+			if (auto parseResult = from_chars(result[2], universe); !parseResult)
+				throw std::invalid_argument("Out-of-range value for SteamID3 universe: "s << result[2].str());
+
 			Universe = static_cast<SteamAccountUniverse>(universe);
 		}
 
 		{
 			uint32_t id;
-			from_chars_throw(result[3], id);
+			if (auto parseResult = from_chars(result[3], id); !parseResult)
+				throw std::invalid_argument("Out-of-range value for SteamID3 ID: "s << result[3].str());
+
 			ID = id;
 		}
 
 		if (result[4].matched)
 		{
 			uint32_t instance;
-			from_chars_throw(result[4], instance);
+			if (auto parseResult = from_chars(result[4], instance); !parseResult)
+				throw std::invalid_argument("Out-of-range value for SteamID3 account instance: "s << result[4].str());
+
 			Instance = static_cast<SteamAccountInstance>(instance);
 		}
 		else
@@ -70,8 +76,12 @@ SteamID::SteamID(const std::string_view& str)
 	}
 
 	// Steam64
-	if (uint64_t result; std::from_chars(str.data(), str.data() + str.size(), result).ec == std::errc{})
+	if (std::all_of(str.begin(), str.end(), [](char c) { return std::isdigit(c) || std::isspace(c); }))
 	{
+		uint64_t result;
+		if (auto parseResult = mh::from_chars(str, result); !parseResult)
+			throw std::invalid_argument("Out-of-range SteamID64: "s << str);
+
 		ID64 = result;
 		return;
 	}

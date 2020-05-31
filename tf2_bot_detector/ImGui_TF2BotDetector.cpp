@@ -1,8 +1,16 @@
 #include "ImGui_TF2BotDetector.h"
+#include "PathUtils.h"
+#include "SteamID.h"
+
+#include <imgui_desktop/ScopeGuards.h>
 
 #include <cstdarg>
 #include <memory>
 #include <stdexcept>
+
+namespace ScopeGuards = ImGuiDesktop::ScopeGuards;
+
+using namespace std::string_view_literals;
 
 void ImGui::TextUnformatted(const std::string_view& text)
 {
@@ -97,4 +105,114 @@ void ImGui::AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* u
 	}
 
 	ImGui::EndChild();
+}
+
+bool tf2_bot_detector::InputTextSteamID(const char* label, SteamID& steamID, bool requireValid)
+{
+	std::string steamIDStr;
+	if (steamID.IsValid())
+		steamIDStr = steamID.str();
+
+	SteamID newSID;
+	const bool modified = ImGui::InputTextWithHint(label, "[U:1:1234567890]", &steamIDStr);
+	bool modifySuccess = false;
+	{
+		if (steamIDStr.empty())
+		{
+			ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
+			ImGui::TextUnformatted("Cannot be empty"sv);
+		}
+		else
+		{
+			try
+			{
+				const auto CheckValid = [&](const SteamID& id) { return !requireValid || id.IsValid(); };
+				bool valid = false;
+				if (modified)
+				{
+					newSID = SteamID(steamIDStr);
+					if (CheckValid(newSID))
+					{
+						modifySuccess = true;
+						valid = true;
+					}
+				}
+				else
+				{
+					valid = CheckValid(steamID);
+				}
+
+				if (valid)
+				{
+					ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
+					ImGui::TextUnformatted("Looks good!"sv);
+				}
+				else
+				{
+					ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
+					ImGui::TextUnformatted("Invalid SteamID"sv);
+				}
+			}
+			catch (const std::invalid_argument& error)
+			{
+				ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
+				ImGui::TextUnformatted(error.what());
+			}
+		}
+	}
+
+	ImGui::NewLine();
+
+	if (modifySuccess)
+		newSID = newSID;
+
+	return modifySuccess;
+}
+
+bool tf2_bot_detector::InputTextTFDir(const char* label_id, std::filesystem::path& outPath)
+{
+	constexpr char EXAMPLE_TF_DIR[] = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf";
+
+	bool modified = false;
+	std::string pathStr;
+	if (outPath.empty())
+	{
+		pathStr = EXAMPLE_TF_DIR;
+		modified = true;
+	}
+	else
+	{
+		pathStr = outPath.string();
+	}
+
+	modified = ImGui::InputTextWithHint(label_id, EXAMPLE_TF_DIR, &pathStr) || modified;
+	bool modifySuccess = false;
+	{
+		const std::filesystem::path newPath(pathStr);
+		if (newPath.empty())
+		{
+			ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
+			ImGui::TextUnformatted("Cannot be empty"sv);
+		}
+		else if (const TFDirectoryValidator validationResult(newPath); !validationResult)
+		{
+			ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
+			ImGui::TextUnformatted(validationResult.m_Message);
+		}
+		else
+		{
+			ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
+			ImGui::TextUnformatted("Looks good!"sv);
+
+			if (modified)
+			{
+				outPath = newPath;
+				return true;
+			}
+		}
+	}
+
+	ImGui::NewLine();
+
+	return false;
 }

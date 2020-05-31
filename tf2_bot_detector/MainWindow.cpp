@@ -497,59 +497,13 @@ void MainWindow::OnDrawSettingsPopup()
 	//ImGui::SetNextWindowSize()
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open))
 	{
-		const auto PrintErrorMsg = [](const std::string_view& msg)
-		{
-			if (msg.empty())
-				return;
-
-			ImGuiDesktop::ScopeGuards::StyleColor text(ImGuiCol_Text, { 1, 0, 0, 1 });
-			ImGui::TextUnformatted(msg);
-			ImGui::NewLine();
-		};
-
 		// Local steamid
-		{
-			std::string steamID;
-			if (m_Settings.m_LocalSteamID.IsValid())
-				steamID = m_Settings.m_LocalSteamID.str();
-
-			std::string errorMsg;
-			if (ImGui::InputTextWithHint("My Steam ID", "[U:1:1234567890]", &steamID))
-			{
-				try
-				{
-					m_Settings.m_LocalSteamID = SteamID(steamID);
-					m_Settings.SaveFile();
-				}
-				catch (const std::invalid_argument& error)
-				{
-					errorMsg = error.what();
-				}
-			}
-
-			PrintErrorMsg(errorMsg);
-		}
+		if (InputTextSteamID("My Steam ID", m_Settings.m_LocalSteamID))
+			m_Settings.SaveFile();
 
 		// TF game dir
-		{
-			std::string errorMsg;
-			std::string pathStr = m_Settings.m_TFDir.string();
-			if (ImGui::InputText("tf directory", &pathStr))
-			{
-				TFDirectoryValidator validator(pathStr);
-				if (!validator)
-				{
-					errorMsg = std::move(validator.m_Message);
-				}
-				else
-				{
-					m_Settings.m_TFDir = pathStr;
-					m_Settings.SaveFile();
-				}
-			}
-
-			PrintErrorMsg(errorMsg);
-		}
+		if (InputTextTFDir("tf directory", m_Settings.m_TFDir))
+			m_Settings.SaveFile();
 
 		// Sleep when unfocused
 		{
