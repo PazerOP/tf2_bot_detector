@@ -50,6 +50,8 @@ bool ConfigAction::Execute(ActionManager& manager)
 		return false;
 	if (!manager.QueueAction<GenericCommandAction>("con_timestamp", "1"))
 		return false;
+	if (!manager.QueueAction<GenericCommandAction>("tf_mm_debug_level", "4"))
+		return false; // This is defaulted to 4, but mastercom's stupid config turns this off
 
 	return true;
 }
