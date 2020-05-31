@@ -558,7 +558,12 @@ void MainWindow::OnDraw()
 
 	ImGui::Columns(2, "MainWindowSplit");
 
-	ImGui::Checkbox("Pause", &m_Paused);
+	ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
+
+	ImGui::Checkbox("Mute", &m_Settings.m_Muted);
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Suppresses all in-game chat messages.");
+
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
 	if (IsWorldValid())

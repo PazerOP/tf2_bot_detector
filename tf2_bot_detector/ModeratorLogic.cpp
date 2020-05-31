@@ -136,7 +136,7 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 			if (const auto now = m_World->GetCurrentTime(); (now - m_LastCheaterWarningTime) > 10s)
 			{
-				if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+				if (!m_Settings->m_Muted && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
 				{
 					Log(logMsg, { 1, 0, 0, 1 });
 					m_LastCheaterWarningTime = now;
@@ -172,11 +172,14 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 			chatMsg << " unknown until they fully join.";
 
-			Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
-			if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+			if (!m_Settings->m_Muted)
 			{
-				for (IPlayer* cheater : connectingEnemyCheaters)
-					cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
+				Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
+				if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+				{
+					for (IPlayer* cheater : connectingEnemyCheaters)
+						cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
+				}
 			}
 		}
 	}

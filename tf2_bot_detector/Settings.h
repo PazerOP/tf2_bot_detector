@@ -74,6 +74,8 @@ namespace tf2_bot_detector
 		bool LoadFile();
 		bool SaveFile() const;
 
+		bool m_Muted = false;
+
 		SteamID m_LocalSteamID;
 		bool m_SleepWhenUnfocused = true;
 		std::filesystem::path m_TFDir;
