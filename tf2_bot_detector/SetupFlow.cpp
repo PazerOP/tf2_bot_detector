@@ -1,6 +1,6 @@
 #include "SetupFlow.h"
+#include "Config/Settings.h"
 #include "PathUtils.h"
-#include "Settings.h"
 #include "ImGui_TF2BotDetector.h"
 
 #include <imgui.h>

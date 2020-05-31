@@ -56,6 +56,11 @@ namespace tf2_bot_detector
 		constexpr std::strong_ordering operator<=>(const SteamID& other) const { return ID64 <=> other.ID64; }
 		constexpr bool operator==(const SteamID& other) const { return std::is_eq(*this <=> other); }
 
+		constexpr bool IsPazer() const
+		{
+			return *this == SteamID(76561198003911389);
+		}
+
 		constexpr bool IsValid() const { return Type != SteamAccountType::Invalid && Universe != SteamAccountUniverse::Invalid; }
 		std::string str() const;
 

@@ -2,7 +2,8 @@
 
 #include "IConsoleLineListener.h"
 #include "IWorldEventListener.h"
-#include "PlayerListJSON.h"
+#include "Config/PlayerListJSON.h"
+#include "Config/Rules.h"
 
 #include <optional>
 #include <vector>
@@ -71,6 +72,7 @@ namespace tf2_bot_detector
 		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<const IPlayer*>& enemyCheaters,
 			const std::vector<IPlayer*>& connectingEnemyCheaters);
 
+		ModerationRules m_Rules;
 		PlayerListJSON m_PlayerList;
 	};
 }

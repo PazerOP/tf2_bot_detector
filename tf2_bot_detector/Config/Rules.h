@@ -1,7 +1,6 @@
 #pragma once
 
-#include "SteamID.h"
-
+#include <mh/coroutine/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
@@ -10,8 +9,9 @@
 
 namespace tf2_bot_detector
 {
-	enum class PlayerAttributes;
 	class IPlayer;
+	enum class PlayerAttributes;
+	class Settings;
 
 	enum class TriggerMatchMode
 	{
@@ -66,37 +66,28 @@ namespace tf2_bot_detector
 		} m_Actions;
 	};
 
-	class Settings final
+	class ModerationRules
 	{
 	public:
-		Settings();
+		ModerationRules(const Settings& settings);
 
-		bool LoadFile();
-		bool SaveFile() const;
+		bool Load();
+		bool Save() const;
 
-		bool m_Muted = false;
+		mh::generator<const ModerationRule*> GetRules() const;
 
-		SteamID m_LocalSteamID;
-		bool m_SleepWhenUnfocused = true;
-		std::filesystem::path m_TFDir;
+	private:
+		const Settings* m_Settings = nullptr;
+		bool IsOfficial() const;
 
-		struct Theme
-		{
-			struct Colors
-			{
-				float m_ScoreboardCheater[4] = { 1, 0, 1, 1 };
-				float m_ScoreboardSuspicious[4] = { 1, 1, 0, 1 };
-				float m_ScoreboardExploiter[4] = { 0, 1, 1, 1 };
-				float m_ScoreboardRacist[4] = { 1, 1, 1, 1 };
-				float m_ScoreboardYou[4] = { 0, 1, 0, 1 };
-				float m_ScoreboardConnecting[4] = { 1, 1, 0, 0.5f };
+		using RuleList_t = std::vector<ModerationRule>;
+		bool LoadFile(const std::filesystem::path& filename, RuleList_t& rules) const;
 
-				float m_FriendlyTeam[4] = { 0.19704340398311615f, 0.5180000066757202f, 0.25745877623558044f, 0.5f };
-				float m_EnemyTeam[4] = { 0.8270000219345093f, 0.42039787769317627f, 0.38951700925827026f, 0.5f };
-			} m_Colors;
+		RuleList_t& GetMutableList() { return const_cast<RuleList_t&>(std::as_const(*this).GetMutableList()); }
+		const RuleList_t& GetMutableList() const { return IsOfficial() ? m_OfficialRules : m_UserRules; }
 
-		} m_Theme;
-
-		std::vector<ModerationRule> m_Rules;
+		RuleList_t m_OfficialRules;
+		RuleList_t m_UserRules;
+		RuleList_t m_OtherRules;
 	};
 }

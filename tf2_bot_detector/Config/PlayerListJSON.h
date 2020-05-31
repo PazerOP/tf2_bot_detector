@@ -103,7 +103,7 @@ namespace tf2_bot_detector
 	private:
 		using PlayerMap_t = std::map<SteamID, PlayerListData>;
 
-		bool LoadFile(const std::filesystem::path& filename, PlayerMap_t& map);
+		bool LoadFile(const std::filesystem::path& filename, PlayerMap_t& map) const;
 
 		bool IsOfficial() const;
 		PlayerMap_t& GetMutableList();

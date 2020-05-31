@@ -1,9 +1,9 @@
 #include "ActionManager.h"
 #include "Actions.h"
+#include "Config/Settings.h"
 #include "ConsoleLines.h"
 #include "Log.h"
 #include "PeriodicActions.h"
-#include "Settings.h"
 
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>

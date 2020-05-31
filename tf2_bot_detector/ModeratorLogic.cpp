@@ -2,8 +2,9 @@
 #include "Actions.h"
 #include "ActionManager.h"
 #include "Log.h"
-#include "PlayerListJSON.h"
-#include "Settings.h"
+#include "Config/PlayerListJSON.h"
+#include "Config/Rules.h"
+#include "Config/Settings.h"
 #include "WorldState.h"
 
 #include <mh/text/case_insensitive_string.hpp>
@@ -44,23 +45,23 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 	const auto name = player.GetName();
 	const auto steamID = player.GetSteamID();
 
-	for (const auto& rule : m_Settings->m_Rules)
+	for (const ModerationRule* rule : m_Rules.GetRules())
 	{
-		if (!rule.Match(player))
+		if (!rule->Match(player))
 			continue;
 
-		OnRuleMatch(rule, player);
+		OnRuleMatch(*rule, player);
 	}
 }
 
 void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg)
 {
-	for (const auto& rule : m_Settings->m_Rules)
+	for (const ModerationRule* rule : m_Rules.GetRules())
 	{
-		if (!rule.Match(player, msg))
+		if (!rule->Match(player, msg))
 			continue;
 
-		OnRuleMatch(rule, player);
+		OnRuleMatch(*rule, player);
 	}
 }
 
@@ -292,7 +293,8 @@ ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, Acti
 	m_World(&world),
 	m_Settings(&settings),
 	m_ActionManager(&actionManager),
-	m_PlayerList(settings)
+	m_PlayerList(settings),
+	m_Rules(settings)
 {
 	m_World->AddConsoleLineListener(this);
 	m_World->AddWorldEventListener(this);

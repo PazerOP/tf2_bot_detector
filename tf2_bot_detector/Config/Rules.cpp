@@ -1,34 +1,23 @@
-#include "Settings.h"
+#include "Rules.h"
 #include "IPlayer.h"
+#include "JSONHelpers.h"
 #include "Log.h"
 #include "PlayerListJSON.h"
+#include "Settings.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <regex>
+#include <stdexcept>
+#include <string>
 
-using namespace tf2_bot_detector;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
-
-static std::filesystem::path s_SettingsPath("cfg/settings.json");
-
-template<typename T>
-static bool try_get_to(const nlohmann::json& j, const std::string_view& name, T& value)
-{
-	if (auto found = j.find(name); found != j.end())
-	{
-		found->get_to(value);
-		return true;
-	}
-
-	return false;
-}
+using namespace tf2_bot_detector;
 
 namespace tf2_bot_detector
 {
@@ -58,29 +47,6 @@ namespace tf2_bot_detector
 		default:
 			throw std::runtime_error("Unknown TriggerMatchMode value "s << +std::underlying_type_t<TriggerMatchMode>(d));
 		}
-	}
-
-	void to_json(nlohmann::json& j, const Settings::Theme::Colors& d)
-	{
-		j =
-		{
-			{ "scoreboard_cheater", d.m_ScoreboardCheater },
-			{ "scoreboard_suspicious", d.m_ScoreboardSuspicious },
-			{ "scoreboard_exploiter", d.m_ScoreboardExploiter },
-			{ "scoreboard_racism", d.m_ScoreboardRacist },
-			{ "scoreboard_you", d.m_ScoreboardYou },
-			{ "scoreboard_connecting", d.m_ScoreboardConnecting },
-			{ "friendly_team", d.m_FriendlyTeam },
-			{ "enemy_team", d.m_EnemyTeam },
-		};
-	}
-
-	void to_json(nlohmann::json& j, const Settings::Theme& d)
-	{
-		j =
-		{
-			{ "colors", d.m_Colors }
-		};
 	}
 
 	void to_json(nlohmann::json& j, const TextMatch& d)
@@ -140,24 +106,6 @@ namespace tf2_bot_detector
 		else
 			throw std::runtime_error("Invalid value for TriggerMatchMode "s << std::quoted(str));
 	}
-
-	void from_json(const nlohmann::json& j, Settings::Theme::Colors& d)
-	{
-		try_get_to(j, "scoreboard_cheater", d.m_ScoreboardCheater);
-		try_get_to(j, "scoreboard_suspicious", d.m_ScoreboardSuspicious);
-		try_get_to(j, "scoreboard_exploiter", d.m_ScoreboardExploiter);
-		try_get_to(j, "scoreboard_racism", d.m_ScoreboardRacist);
-		try_get_to(j, "scoreboard_you", d.m_ScoreboardYou);
-		try_get_to(j, "scoreboard_connecting", d.m_ScoreboardConnecting);
-		try_get_to(j, "friendly_team", d.m_FriendlyTeam);
-		try_get_to(j, "enemy_team", d.m_EnemyTeam);
-	}
-
-	void from_json(const nlohmann::json& j, Settings::Theme& d)
-	{
-		d.m_Colors = j.at("colors");
-	}
-
 	void from_json(const nlohmann::json& j, TextMatchMode& mode)
 	{
 		const std::string_view str = j;
@@ -212,21 +160,95 @@ namespace tf2_bot_detector
 	}
 }
 
-Settings::Settings()
+ModerationRules::ModerationRules(const Settings& settings) :
+	m_Settings(&settings)
 {
 	// Immediately load and resave to normalize any formatting
-	LoadFile();
-	SaveFile();
+	Load();
+	Save();
 }
 
-bool Settings::LoadFile()
+bool ModerationRules::Load()
 {
+	if (!IsOfficial())
+		LoadFile("cfg/rules.json", m_UserRules);
+
+	LoadFile("cfg/rules.official.json", m_OfficialRules);
+
+	m_OtherRules.clear();
+	if (std::filesystem::is_directory("cfg"))
+	{
+		try
+		{
+			for (const auto& file : std::filesystem::directory_iterator("cfg",
+				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
+			{
+				static const std::regex s_RulesRegex(R"regex(rules\.(.*\.)?json)regex", std::regex::optimize);
+				const auto path = file.path();
+				const auto filename = path.filename().string();
+				if (mh::case_insensitive_compare(filename, "rules.json"sv) || mh::case_insensitive_compare(filename, "rules.official.json"sv))
+					continue;
+
+				if (std::regex_match(filename.begin(), filename.end(), s_RulesRegex))
+				{
+					LoadFile(path, m_OtherRules);
+				}
+			}
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			LogError(std::string(__FUNCTION__ ": Exception when loading rules.*.json files from ./cfg/: ") << e.what());
+		}
+	}
+
+	return true;
+}
+
+bool ModerationRules::Save() const
+{
+	nlohmann::json json =
+	{
+		{ "$schema", "./schema/rules.schema.json" },
+	};
+
+	json["rules"] = GetMutableList();
+
+	// Make sure we successfully serialize BEFORE we destroy our file
+	auto jsonString = json.dump(1, '\t', true);
+	{
+		std::ofstream file(IsOfficial() ? "cfg/rules.official.json" : "cfg/rules.json");
+		file << jsonString << '\n';
+	}
+
+	return true;
+}
+
+mh::generator<const ModerationRule*> tf2_bot_detector::ModerationRules::GetRules() const
+{
+	for (const auto& rule : m_OfficialRules)
+		co_yield &rule;
+	for (const auto& rule : m_UserRules)
+		co_yield &rule;
+	for (const auto& rule : m_OtherRules)
+		co_yield &rule;
+}
+
+bool ModerationRules::IsOfficial() const
+{
+	// I'm special
+	return m_Settings->m_LocalSteamID.IsPazer();
+}
+
+bool ModerationRules::LoadFile(const std::filesystem::path& filename, RuleList_t& rules) const
+{
+	Log("Loading rules list from "s << filename);
+
 	nlohmann::json json;
 	{
-		std::ifstream file(s_SettingsPath);
+		std::ifstream file(filename);
 		if (!file.good())
 		{
-			Log(std::string(__FUNCTION__ ": Failed to open ") << s_SettingsPath, { 1, 0.5, 0, 1 });
+			LogWarning(std::string(__FUNCTION__ ": Failed to open ") << filename);
 			return false;
 		}
 
@@ -234,66 +256,25 @@ bool Settings::LoadFile()
 		{
 			file >> json;
 		}
-		catch (const nlohmann::json::exception& e)
+		catch (const std::exception& e)
 		{
-			Log(std::string(__FUNCTION__ ": Failed to parse JSON from ") << s_SettingsPath << ": " << e.what(), { 1, 0.25, 0, 1 });
+			LogError(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
 			return false;
 		}
 	}
 
-	if (auto found = json.find("general"); found != json.end())
+	bool success = true;
+	if (auto found = json.find("rules"); found != json.end())
 	{
-		try_get_to(*found, "local_steamid", m_LocalSteamID);
-		try_get_to(*found, "sleep_when_unfocused", m_SleepWhenUnfocused);
-
-		if (auto foundDir = found->find("tf_game_dir"); foundDir != found->end())
-			m_TFDir = foundDir->get<std::string_view>();
+		rules = found->get<RuleList_t>();
+	}
+	else
+	{
+		LogError(std::string(__FUNCTION__ ": Failed to find \"rules\" object when parsing JSON from ") << filename);
+		success = false;
 	}
 
-	try_get_to(json, "theme", m_Theme);
-	try_get_to(json, "rules", m_Rules);
-
-	return true;
-}
-
-bool Settings::SaveFile() const
-{
-	nlohmann::json json =
-	{
-		{ "$schema", "./schema/settings.schema.json" },
-		{ "theme", m_Theme },
-		{ "rules", m_Rules },
-		{ "general",
-			{
-				{ "tf_game_dir", m_TFDir.string() },
-				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
-			}
-		}
-	};
-
-	if (m_LocalSteamID.IsValid())
-		json["general"]["local_steamid"] = m_LocalSteamID;
-
-	// Make sure we successfully serialize BEFORE we destroy our file
-	auto jsonString = json.dump(1, '\t', true);
-	{
-		std::filesystem::create_directories(std::filesystem::path(s_SettingsPath).remove_filename());
-		std::ofstream file(s_SettingsPath);
-		if (!file.good())
-		{
-			LogError(std::string(__FUNCTION__ ": Failed to open settings file for writing: ") << s_SettingsPath);
-			return false;
-		}
-
-		file << jsonString << '\n';
-		if (!file.good())
-		{
-			LogError(std::string(__FUNCTION__ ": Failed to write settings to ") << s_SettingsPath);
-			return false;
-		}
-	}
-
-	return true;
+	return success;
 }
 
 bool TextMatch::Match(const std::string_view& text) const

@@ -124,7 +124,7 @@ PlayerListJSON::PlayerListJSON(const Settings& settings) :
 	SaveFile();
 }
 
-bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t& map)
+bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t& map) const
 {
 	Log("Loading player list from "s << filename);
 
@@ -163,9 +163,7 @@ bool PlayerListJSON::IsOfficial() const
 {
 	// I am magic. I get to mess with playerlist.official.json, while
 	// mere mortals have to use playerlist.json.
-	static constexpr SteamID s_PazerSID(76561198003911389);
-	//return false;
-	return m_Settings->m_LocalSteamID == s_PazerSID;
+	return m_Settings->m_LocalSteamID.IsPazer();
 }
 
 auto PlayerListJSON::GetMutableList() -> PlayerMap_t&
