@@ -90,6 +90,16 @@
 								1.0
 							]
 						},
+						"scoreboard_connecting": {
+							"$ref": "./shared.schema.json#definitions/color",
+							"description": "Color to highlight connecting players on the scoreboard.",
+							"default": [
+								1.0,
+								1.0,
+								0.0,
+								0.5
+							]
+						},
 						"friendly_team": {
 							"$ref": "./shared.schema.json#definitions/color",
 							"description": "Color to use for your team.",
@@ -117,6 +127,7 @@
 						"scoreboard_suspicious",
 						"scoreboard_exploiter",
 						"scoreboard_you",
+						"scoreboard_connecting",
 						"friendly_team",
 						"enemy_team"
 					]

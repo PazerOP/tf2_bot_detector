@@ -69,6 +69,7 @@ namespace tf2_bot_detector
 			{ "scoreboard_exploiter", d.m_ScoreboardExploiter },
 			{ "scoreboard_racism", d.m_ScoreboardRacist },
 			{ "scoreboard_you", d.m_ScoreboardYou },
+			{ "scoreboard_connecting", d.m_ScoreboardConnecting },
 			{ "friendly_team", d.m_FriendlyTeam },
 			{ "enemy_team", d.m_EnemyTeam },
 		};
@@ -147,6 +148,7 @@ namespace tf2_bot_detector
 		try_get_to(j, "scoreboard_exploiter", d.m_ScoreboardExploiter);
 		try_get_to(j, "scoreboard_racism", d.m_ScoreboardRacist);
 		try_get_to(j, "scoreboard_you", d.m_ScoreboardYou);
+		try_get_to(j, "scoreboard_connecting", d.m_ScoreboardConnecting);
 		try_get_to(j, "friendly_team", d.m_FriendlyTeam);
 		try_get_to(j, "enemy_team", d.m_EnemyTeam);
 	}

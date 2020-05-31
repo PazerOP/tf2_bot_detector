@@ -111,7 +111,7 @@ void MainWindow::OnDrawScoreboardContextMenu(const IPlayer& player)
 
 void MainWindow::OnDrawScoreboardColorPicker(const char* name, float color[4])
 {
-	if (ImGui::ColorEdit4(name, color, ImGuiColorEditFlags_NoInputs))
+	if (ImGui::ColorEdit4(name, color, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaPreview))
 		m_Settings.SaveFile();
 }
 
@@ -139,6 +139,7 @@ void MainWindow::OnDrawScoreboard()
 		if (ImGui::BeginChild("ColorScroller", { 0, s_ColorScrollerHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
 		{
 			OnDrawScoreboardColorPicker("You", m_Settings.m_Theme.m_Colors.m_ScoreboardYou); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Connecting", m_Settings.m_Theme.m_Colors.m_ScoreboardConnecting); ImGui::SameLine();
 			OnDrawScoreboardColorPicker("Friendly", m_Settings.m_Theme.m_Colors.m_FriendlyTeam); ImGui::SameLine();
 			OnDrawScoreboardColorPicker("Enemy", m_Settings.m_Theme.m_Colors.m_EnemyTeam); ImGui::SameLine();
 			OnDrawScoreboardColorPicker("Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheater); ImGui::SameLine();
