@@ -209,7 +209,7 @@ bool ActionManager::ProcessComplexCommands(const Writer& writer)
 	{
 		// Create a new temp cfg file
 		cfgFilename = ""s << ++m_LastUpdateIndex << ".cfg";
-		Log("Creating new temp cfg file "s << std::quoted(cfgFilename));
+		//Log("Creating new temp cfg file "s << std::quoted(cfgFilename));
 
 		std::ofstream file(globalPath / cfgFilename, std::ios_base::trunc);
 		assert(file.good());
