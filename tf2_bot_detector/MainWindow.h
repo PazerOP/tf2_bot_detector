@@ -7,6 +7,7 @@
 #include "ModeratorLogic.h"
 #include "PlayerListJSON.h"
 #include "Settings.h"
+#include "SetupFlow.h"
 #include "WorldState.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
@@ -38,7 +39,7 @@ namespace tf2_bot_detector
 	private:
 		void OnDraw() override;
 		void OnDrawMenuBar() override;
-		bool HasMenuBar() const override { return true; }
+		bool HasMenuBar() const override;
 		void OnDrawScoreboard();
 		void OnDrawScoreboardColorPicker(const char* name_id, float color[4]);
 		void OnDrawScoreboardContextMenu(const IPlayer& player);
@@ -72,8 +73,14 @@ namespace tf2_bot_detector
 		{
 			WorldStateExtra(MainWindow& window, const Settings& settings, const std::filesystem::path& conLogFile);
 
+			time_point_t m_LastStatusUpdateTime{};
+
 			WorldState m_WorldState;
 			ModeratorLogic m_ModeratorLogic;
+
+			std::vector<const IConsoleLine*> m_PrintingLines;  // newest to oldest order
+			static constexpr size_t MAX_PRINTING_LINES = 512;
+			size_t GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const;
 		};
 		std::optional<WorldStateExtra> m_WorldState;
 		bool IsWorldValid() const { return m_WorldState.has_value(); }
@@ -84,10 +91,6 @@ namespace tf2_bot_detector
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
 		time_point_t GetCurrentTimestampCompensated() const;
-
-		std::vector<const IConsoleLine*> m_PrintingLines;  // newest to oldest order
-		static constexpr size_t MAX_PRINTING_LINES = 512;
-		size_t GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const;
 
 		struct PingSample
 		{
@@ -120,7 +123,6 @@ namespace tf2_bot_detector
 		std::vector<EdictUsageSample> m_EdictUsageSamples;
 
 		time_point_t m_OpenTime;
-		time_point_t m_LastStatusUpdateTime{};
 
 		void UpdateServerPing(time_point_t timestamp);
 		std::vector<PingSample> m_ServerPingSamples;
@@ -153,5 +155,6 @@ namespace tf2_bot_detector
 
 		Settings m_Settings;
 		ActionManager m_ActionManager;
+		SetupFlow m_SetupFlow;
 	};
 }

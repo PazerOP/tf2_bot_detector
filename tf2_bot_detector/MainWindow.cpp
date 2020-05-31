@@ -34,8 +34,6 @@ MainWindow::MainWindow() :
 	m_ActionManager.AddPeriodicAction<StatusUpdateAction>();
 	m_ActionManager.AddPeriodicAction<ConfigAction>();
 	//m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
-
-	m_WorldState.emplace(*this, m_Settings, m_Settings.m_TFDir / "console.log");
 }
 
 MainWindow::~MainWindow()
@@ -177,7 +175,8 @@ void MainWindow::OnDrawScoreboard()
 
 			/*const auto*/ frameWidth = ImGui::GetWorkRectSize().x;
 			const IPlayer* printData[33]{};
-			const size_t playerPrintDataCount = GeneratePlayerPrintData(std::begin(printData), std::end(printData));
+			const size_t playerPrintDataCount =
+				m_WorldState ? m_WorldState->GeneratePlayerPrintData(std::begin(printData), std::end(printData)) : 0;
 
 			/*const auto*/ contentWidth = ImGui::GetContentRegionMax().x;
 			/*const auto*/ windowContentWidth = ImGui::GetWindowContentRegionWidth();
@@ -413,9 +412,12 @@ void MainWindow::OnDrawChat()
 {
 	ImGui::AutoScrollBox("##fileContents", { 0, 0 }, [&]()
 		{
+			if (!IsWorldValid())
+				return;
+
 			ImGui::PushTextWrapPos();
 
-			for (auto it = m_PrintingLines.rbegin(); it != m_PrintingLines.rend(); ++it)
+			for (auto it = m_WorldState->m_PrintingLines.rbegin(); it != m_WorldState->m_PrintingLines.rend(); ++it)
 			{
 				assert(*it);
 				(*it)->Print();
@@ -534,21 +536,15 @@ void MainWindow::OnDrawSettingsPopup()
 			std::string pathStr = m_Settings.m_TFDir.string();
 			if (ImGui::InputText("tf directory", &pathStr))
 			{
-				std::filesystem::path path(pathStr);
-				using Result = ValidateTFDirectoryResult;
-				switch (ValidateTFDirectory(path))
+				TFDirectoryValidator validator(pathStr);
+				if (!validator)
 				{
-				case Result::Valid:
-					break;
-				case Result::DoesNotExist:
-					errorMsg << "Path not found!" << path;
-					break;
-				case Result::NotADirectory:
-					errorMsg << "Not a directory!" << path;
-					break;
-				case Result::InvalidContents:
-					errorMsg << "Doesn't look like a real tf directory!";
-					break;
+					errorMsg = std::move(validator.m_Message);
+				}
+				else
+				{
+					m_Settings.m_TFDir = pathStr;
+					m_Settings.SaveFile();
 				}
 			}
 
@@ -603,6 +599,9 @@ void MainWindow::OnDrawServerStats()
 
 void MainWindow::OnDraw()
 {
+	if (m_SetupFlow.OnDraw(m_Settings))
+		return;
+
 	ImGui::Columns(2, "MainWindowSplit");
 
 	ImGui::Checkbox("Pause", &m_Paused);
@@ -639,6 +638,9 @@ void MainWindow::OnDraw()
 
 void MainWindow::OnDrawMenuBar()
 {
+	if (m_SetupFlow.ShouldDraw())
+		return;
+
 	if (ImGui::BeginMenu("File"))
 	{
 		ImGui::EndMenu();
@@ -683,8 +685,26 @@ void MainWindow::OnDrawMenuBar()
 #endif
 }
 
+bool MainWindow::HasMenuBar() const
+{
+	if (m_SetupFlow.ShouldDraw())
+		return false;
+
+	return true;
+}
+
 void MainWindow::OnUpdate()
 {
+	if (m_SetupFlow.OnUpdate(m_Settings))
+	{
+		m_WorldState.reset();
+		return;
+	}
+	else if (!m_WorldState)
+	{
+		m_WorldState.emplace(*this, m_Settings, m_Settings.m_TFDir / "console.log");
+	}
+
 	if (!m_Paused && m_WorldState.has_value())
 	{
 		GetWorld().Update();
@@ -727,19 +747,13 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 
 void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 {
-	if (parsed.ShouldPrint())
+	if (parsed.ShouldPrint() && m_WorldState)
 	{
-		while (m_PrintingLines.size() > MAX_PRINTING_LINES)
-			m_PrintingLines.pop_back();
+		auto& ws = *m_WorldState;
+		while (ws.m_PrintingLines.size() > ws.MAX_PRINTING_LINES)
+			ws.m_PrintingLines.pop_back();
 
-		m_PrintingLines.insert(m_PrintingLines.begin(), &parsed);
-		//if (m_PrintingLineCount >= std::size(m_PrintingLines))
-		//	std::copy_backward(std::begin(m_PrintingLines), std::end(m_PrintingLines) - 1, std::begin(m_PrintingLines) + 1);
-		//else
-		//	std::copy(&m_PrintingLines[0], &m_PrintingLines[m_PrintingLineCount], &m_PrintingLines[1]);
-
-		//m_PrintingLines[0] = &parsed;
-		//m_PrintingLineCount++;
+		ws.m_PrintingLines.insert(ws.m_PrintingLines.begin(), &parsed);
 	}
 
 	switch (parsed.GetType())
@@ -754,59 +768,6 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 
 		break;
 	}
-
-#if 0
-	case ConsoleLineType::Chat:
-	{
-		auto& chatLine = static_cast<const ChatConsoleLine&>(parsed);
-		if (auto count = std::count(chatLine.GetMessage().begin(), chatLine.GetMessage().end(), '\n'); count > 2)
-		{
-			// Cheater is clearing the chat
-			if (auto steamID = world.FindSteamIDForName(chatLine.GetPlayerName()))
-			{
-				if (SetPlayerAttribute(*steamID, PlayerAttributes::Cheater))
-					Log("Marked "s << *steamID << " as cheater (" << count << " newlines in chat message)");
-			}
-			else
-			{
-				DelayedChatBan ban{};
-				ban.m_Timestamp = chatLine.GetTimestamp();
-				ban.m_PlayerName = chatLine.GetPlayerName();
-				m_DelayedBans.push_back(ban);
-
-				Log("Unable to find steamid for player with name "s << std::quoted(chatLine.GetPlayerName()));
-			}
-		}
-
-		// Kick for racism
-		{
-			auto begin = std::sregex_iterator(chatLine.GetMessage().begin(), chatLine.GetMessage().end(), s_WordRegex);
-			auto end = std::sregex_iterator();
-
-			for (auto it = begin; it != end; ++it)
-			{
-				const std::ssub_match& wordMatch = it->operator[](1);
-				const std::string_view word(&*wordMatch.first, wordMatch.length());
-				if (mh::case_insensitive_compare(word, "nigger"sv) || mh::case_insensitive_compare(word, "niggers"sv))
-				{
-					Log("Detected Bad Word in chat: "s << word);
-					if (auto found = GetWorld().FindSteamIDForName(chatLine.GetPlayerName()))
-					{
-						if (SetPlayerAttribute(*found, PlayerAttributes::Racist))
-							Log("Marked "s << *found << " as racist (" << std::quoted(word) << " in chat message)");
-					}
-					else
-					{
-						Log("Cannot mark "s << std::quoted(chatLine.GetPlayerName()) << " as racist: can't find SteamID for name");
-					}
-				}
-			}
-		}
-
-		break;
-	}
-#endif
-
 	case ConsoleLineType::EdictUsage:
 	{
 		auto& usageLine = static_cast<const EdictUsageLine&>(parsed);
@@ -820,13 +781,10 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 }
 
-size_t MainWindow::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const
+size_t MainWindow::WorldStateExtra::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const
 {
-	if (!IsWorldValid())
-		return 0;
-
 	assert(begin <= end);
-	auto& world = GetWorld();
+	auto& world = m_WorldState;
 	assert(static_cast<size_t>(end - begin) >= world.GetApproxLobbyMemberCount());
 
 	std::fill(begin, end, nullptr);

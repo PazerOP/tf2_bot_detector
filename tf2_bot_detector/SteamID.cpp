@@ -7,6 +7,7 @@
 #include <regex>
 #include <stdexcept>
 
+using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
 static std::regex s_SteamID3Regex(R"regex(\[([a-zA-Z]):(\d):(\d+)(:\d+)?\])regex", std::regex::optimize);
@@ -36,8 +37,10 @@ SteamID::SteamID(const std::string_view& str)
 			Type = SteamAccountType::Chat; break;
 
 		case 'I':
-		default:
 			Type = SteamAccountType::Invalid; break;
+
+		default:
+			throw std::invalid_argument("Invalid Steam3 ID: Unknown SteamAccountType '"s << firstChar << '\'');
 		}
 
 		{
