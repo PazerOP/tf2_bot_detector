@@ -581,12 +581,20 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "raspy  \u200f  \u200f",
+				"time": 1590823443
+			},
 			"steamid": "[U:1:1056966825]"
 		},
 		{
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "raspy   \u200f \u200f",
+				"time": 1590823968
+			},
 			"steamid": "[U:1:1056984731]"
 		},
 		{
@@ -673,6 +681,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "raspy    \u200f\u200f",
+				"time": 1590823519
+			},
 			"steamid": "[U:1:1057288850]"
 		},
 		{
@@ -1475,6 +1487,26 @@
 				"time": 1590734102
 			},
 			"steamid": "[U:1:1100250921]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1590823034
+			},
+			"steamid": "[U:1:1100272491]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1590819088
+			},
+			"steamid": "[U:1:1100317567]"
 		},
 		{
 			"attributes": [
