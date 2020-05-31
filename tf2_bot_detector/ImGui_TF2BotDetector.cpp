@@ -164,7 +164,7 @@ bool tf2_bot_detector::InputTextSteamID(const char* label, SteamID& steamID, boo
 	ImGui::NewLine();
 
 	if (modifySuccess)
-		newSID = newSID;
+		steamID = newSID;
 
 	return modifySuccess;
 }
