@@ -378,6 +378,33 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		//ClearLobbyState();
 		break;
 	}
+	case ConsoleLineType::Chat:
+	{
+		auto& chatLine = static_cast<const ChatConsoleLine&>(parsed);
+		if (auto sid = FindSteamIDForName(chatLine.GetPlayerName()))
+		{
+			if (auto player = FindPlayer(*sid))
+			{
+				m_EventBroadcaster.OnChatMsg(*this, *player, chatLine.GetMessage());
+			}
+			else
+			{
+#ifdef _DEBUG
+				Log("Dropped chat message with unknown IPlayer from "s
+					<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
+#endif
+			}
+		}
+		else
+		{
+#ifdef _DEBUG
+			Log("Dropped chat message with unknown SteamID from "s
+				<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
+#endif
+		}
+
+		break;
+	}
 
 #if 0
 	case ConsoleLineType::VoiceReceive:
