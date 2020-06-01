@@ -495,7 +495,7 @@ void MainWindow::OnDrawSettingsPopup()
 		s_Open = true;
 	}
 
-	//ImGui::SetNextWindowSize()
+	ImGui::SetNextWindowSize({ 400, 400 }, ImGuiCond_Once);
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open))
 	{
 		// Local steamid
@@ -512,6 +512,14 @@ void MainWindow::OnDrawSettingsPopup()
 				m_Settings.SaveFile();
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
+		}
+
+		// Auto temp mute
+		{
+			if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
+				m_Settings.SaveFile();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
 		}
 
 		ImGui::EndPopup();
@@ -561,11 +569,11 @@ void MainWindow::OnDraw()
 
 	ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
 
-	ImGui::Checkbox("Mute", &m_Settings.m_Muted); ImGui::SameLine();
+	ImGui::Checkbox("Mute", &m_Settings.m_Unsaved.m_Muted); ImGui::SameLine();
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Suppresses all in-game chat messages.");
 
-	ImGui::Checkbox("Show Commands", &m_Settings.m_DebugShowCommands);
+	ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands);
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Prints out all game commands to the log.");
 
@@ -605,11 +613,14 @@ void MainWindow::OnDrawMenuBar()
 	if (m_SetupFlow.ShouldDraw())
 		return;
 
+#if 0
 	if (ImGui::BeginMenu("File"))
 	{
 		ImGui::EndMenu();
 	}
+#endif
 
+#ifdef _DEBUG
 #ifdef _DEBUG
 	static bool s_ImGuiDemoWindow = false;
 	static bool s_ImPlotDemoWindow = false;
@@ -629,24 +640,10 @@ void MainWindow::OnDrawMenuBar()
 	if (s_ImPlotDemoWindow)
 		ImPlot::ShowDemoWindow(&s_ImPlotDemoWindow);
 #endif
+#endif
 
 	if (ImGui::MenuItem("Settings"))
 		OpenSettingsPopup();
-
-#if 0
-	if (ImGui::BeginMenu("Settings"))
-	{
-		if (ImGui::MenuItem("Open"))
-
-		if (ImGui::MenuItem("Sleep when unfocused", nullptr, &m_Settings.m_SleepWhenUnfocused))
-			m_Settings.SaveFile();
-
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
-
-		ImGui::EndMenu();
-	}
-#endif
 }
 
 bool MainWindow::HasMenuBar() const

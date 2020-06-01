@@ -349,7 +349,7 @@ bool ActionManager::SendCommandToGame(const std::string_view& cmd) const
 		throw std::runtime_error(msg);
 	}
 
-	if (m_Settings->m_DebugShowCommands)
+	if (m_Settings->m_Unsaved.m_DebugShowCommands)
 		Log("Game command: "s << std::quoted(cmd), { 1, 1, 1, 0.6f });
 
 	//WaitForSingleObject(pi.hProcess, INFINITE);

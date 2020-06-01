@@ -16,11 +16,17 @@ namespace tf2_bot_detector
 		bool LoadFile();
 		bool SaveFile() const;
 
-		bool m_Muted = false;
-		bool m_DebugShowCommands = false;
+		// Settings that are not saved in the config file because we want them to
+		// reset to these defaults when the tool is reopened
+		struct
+		{
+			bool m_Muted = false;
+			bool m_DebugShowCommands = false;
+		} m_Unsaved;
 
 		SteamID m_LocalSteamID;
 		bool m_SleepWhenUnfocused = true;
+		bool m_AutoTempMute = true;
 		std::filesystem::path m_TFDir;
 
 		struct Theme

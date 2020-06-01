@@ -14,6 +14,10 @@
 			"description": "General settings.",
 			"additionalProperties": false,
 			"properties": {
+				"auto_temp_mute": {
+					"description": "Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.",
+					"type": "boolean"
+				},
 				"local_steamid": {
 					"description": "The SteamID of the player running the tool.",
 					"$ref": "./shared.schema.json#definitions/steamid"

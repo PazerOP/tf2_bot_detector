@@ -56,6 +56,29 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 
 void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg)
 {
+	// Check if it is a moderation message from someone else
+	if (m_Settings->m_AutoTempMute)
+	{
+		if (auto localPlayer = GetLocalPlayer();
+			localPlayer && (player.GetSteamID() != localPlayer->GetSteamID()) && (player.GetUserID() < localPlayer->GetUserID()))
+		{
+			static const std::regex s_IngameWarning(
+				R"regex(Attention! There (?:is a|are \d+) cheaters? on the other team named .*\. Please kick them!)regex",
+				std::regex::optimize);
+			static const std::regex s_ConnectingWarning(
+				R"regex(Heads up! There (?:is a|are \d+) known cheaters? joining the other team! Names? unknown until they fully join\.)regex",
+				std::regex::optimize);
+
+			if (std::regex_match(msg.begin(), msg.end(), s_IngameWarning) ||
+				std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning))
+			{
+				Log("Deferring all cheater warnings for a bit because we think "s << player << " is running TF2BD");
+				m_NextCheaterWarningTime = m_NextConnectingCheaterWarningTime =
+					world.GetCurrentTime() + CHEATER_WARNING_INTERVAL_NONLOCAL;
+			}
+		}
+	}
+
 	for (const ModerationRule* rule : m_Rules.GetRules())
 	{
 		if (!rule->Match(player, msg))
@@ -87,6 +110,20 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const s
 	}
 }
 
+template<typename TIter>
+static mh::generator<std::string> GetJoinedStrings(const TIter& begin, const TIter& end, const std::string_view& separator)
+{
+	std::string retVal;
+	for (auto it = begin; it != end; ++it)
+	{
+		if (it != begin)
+			retVal << separator;
+
+		retVal << *it;
+		co_yield retVal;
+	}
+}
+
 void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 	const std::vector<const IPlayer*>& enemyCheaters, const std::vector<IPlayer*>& connectingEnemyCheaters)
 {
@@ -105,8 +142,7 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 		std::string logMsg;
 		logMsg << "Telling the other team about " << enemyCheaters.size() << " cheater(s) named ";
 
-		std::string chatMsgCheaters;
-		size_t chatMsgCheatersCount = 0;
+		std::vector<std::string> chatMsgCheaterNames;
 		for (size_t i = 0; i < enemyCheaters.size(); i++)
 		{
 			const IPlayer* cheaterData = enemyCheaters[i];
@@ -115,71 +151,100 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 				continue; // Theoretically this should never happen, but don't embarass ourselves
 
 			if (i != 0)
-			{
-				chatMsgCheaters << ", ";
 				logMsg << ", ";
-			}
 
-			chatMsgCheaters << std::quoted(cheaterData->GetName());
-			chatMsgCheatersCount++;
+			chatMsgCheaterNames.emplace_back(cheaterData->GetName());
 		}
 
-		if (chatMsgCheatersCount > 0)
+		if (chatMsgCheaterNames.size() > 0)
 		{
+			constexpr char FMT_ONE_CHEATER[] =       "Attention! There is a cheater on the other team named %s. Please kick them!";
+			constexpr char FMT_MULTIPLE_CHEATERS[] = "Attention! There are %u cheaters on the other team named %s. Please kick them!";
+			//constexpr char FMT_MANY_CHEATERS[] =     "Attention! There are %u cheaters on the other team including %s. Please kick them!";
+			constexpr size_t MAX_CHATMSG_LENGTH = 127;
+			constexpr size_t MAX_NAMES_LENGTH_ONE = MAX_CHATMSG_LENGTH - std::size(FMT_ONE_CHEATER) - 1 - 2;
+			constexpr size_t MAX_NAMES_LENGTH_MULTIPLE = MAX_CHATMSG_LENGTH - std::size(FMT_MULTIPLE_CHEATERS) - 1 - 1 - 2;
+			//constexpr size_t MAX_NAMES_LENGTH_MANY = MAX_CHATMSG_LENGTH - std::size(FMT_MANY_CHEATERS) - 1 - 1 - 2;
+
+			static_assert(MAX_NAMES_LENGTH_ONE >= 32);
 			std::string chatMsg;
-			chatMsg << "Attention! There ";
-			if (chatMsgCheatersCount == 1)
-				chatMsg << "is a cheater ";
-			else
-				chatMsg << "are " << chatMsgCheatersCount << " cheaters ";
-
-			chatMsg << "on the other team named " << chatMsgCheaters << ". Please kick them!";
-
-			if (const auto now = m_World->GetCurrentTime(); (now - m_LastCheaterWarningTime) > 10s)
+			if (chatMsgCheaterNames.size() == 1)
 			{
-				if (!m_Settings->m_Muted && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+				chatMsg.resize(256);
+				chatMsg.resize(sprintf_s(chatMsg.data(), 256, FMT_ONE_CHEATER, chatMsgCheaterNames.front().c_str()));
+			}
+			else
+			{
+				assert(chatMsgCheaterNames.size() > 0);
+				std::string cheaters;
+
+				for (std::string cheaterNameStr : GetJoinedStrings(chatMsgCheaterNames.begin(), chatMsgCheaterNames.end(), ", "sv))
+				{
+					if (cheaters.empty() || cheaterNameStr.size() <= MAX_NAMES_LENGTH_MULTIPLE)
+						cheaters = std::move(cheaterNameStr);
+					else if (cheaterNameStr.size() > MAX_NAMES_LENGTH_MULTIPLE)
+						break;
+				}
+
+				chatMsg.resize(256);
+				chatMsg.resize(sprintf_s(chatMsg.data(), 256, FMT_MULTIPLE_CHEATERS, chatMsgCheaterNames.size(), cheaters.c_str()));
+			}
+
+			assert(chatMsg.size() <= 127);
+
+			if (const auto now = m_World->GetCurrentTime(); now >= m_NextCheaterWarningTime)
+			{
+				if (!m_Settings->m_Unsaved.m_Muted && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
 				{
 					Log(logMsg, { 1, 0, 0, 1 });
-					m_LastCheaterWarningTime = now;
+					m_NextCheaterWarningTime = now + CHEATER_WARNING_INTERVAL;
 				}
 			}
 		}
 	}
 	else if (!connectingEnemyCheaters.empty())
 	{
-		bool needsWarning = false;
-		for (const IPlayer* cheater : connectingEnemyCheaters)
+		if (const auto now = m_World->GetCurrentTime(); now < m_NextConnectingCheaterWarningTime)
 		{
-			auto cheaterData = cheater->GetData<PlayerExtraData>();
-			if (!cheaterData || !cheaterData->m_PreWarnedOtherTeam)
-			{
-				needsWarning = true;
-				break;
-			}
+			// Assume someone else with a lower userid is in charge, discard warnings about
+			// connecting enemy cheaters while it looks like they are doing stuff
+			for (IPlayer* cheater : connectingEnemyCheaters)
+				cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
 		}
-
-		if (needsWarning)
+		else
 		{
-			std::string chatMsg;
-			chatMsg << "Heads up! There ";
-			if (connectingEnemyCheaters.size() == 1)
-				chatMsg << "is a known cheater ";
-			else
-				chatMsg << "are " << connectingEnemyCheaters.size() << " known cheaters ";
-
-			chatMsg << "joining the other team! Name";
-			if (connectingEnemyCheaters.size() > 1)
-				chatMsg << 's';
-
-			chatMsg << " unknown until they fully join.";
-
-			if (!m_Settings->m_Muted)
+			bool needsWarning = false;
+			for (const IPlayer* cheater : connectingEnemyCheaters)
 			{
-				Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
-				if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+				auto cheaterData = cheater->GetData<PlayerExtraData>();
+				if (!cheaterData || !cheaterData->m_PreWarnedOtherTeam)
 				{
-					for (IPlayer* cheater : connectingEnemyCheaters)
-						cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
+					needsWarning = true;
+					break;
+				}
+			}
+
+			if (needsWarning)
+			{
+				char chatMsg[128];
+				if (connectingEnemyCheaters.size() == 1)
+				{
+					strcpy_s(chatMsg, "Heads up! There is a known cheater joining the other team! Name unknown until they fully join.");
+				}
+				else
+				{
+					sprintf_s(chatMsg, "Heads up! There are %zu known cheaters joining the other team! Names unknown until they fully join.",
+						connectingEnemyCheaters.size());
+				}
+
+				if (!m_Settings->m_Unsaved.m_Muted)
+				{
+					Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
+					if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+					{
+						for (IPlayer* cheater : connectingEnemyCheaters)
+							cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
+					}
 				}
 			}
 		}
@@ -287,6 +352,11 @@ std::optional<LobbyMemberTeam> ModeratorLogic::TryGetMyTeam() const
 TeamShareResult ModeratorLogic::GetTeamShareResult(const SteamID& id) const
 {
 	return m_World->GetTeamShareResult(id, m_Settings->m_LocalSteamID);
+}
+
+const IPlayer* ModeratorLogic::GetLocalPlayer() const
+{
+	return m_World->FindPlayer(m_Settings->m_LocalSteamID);
 }
 
 ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :

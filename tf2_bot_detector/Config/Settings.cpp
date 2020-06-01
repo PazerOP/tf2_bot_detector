@@ -95,6 +95,7 @@ bool Settings::LoadFile()
 	{
 		try_get_to(*found, "local_steamid", m_LocalSteamID);
 		try_get_to(*found, "sleep_when_unfocused", m_SleepWhenUnfocused);
+		try_get_to(*found, "auto_temp_mute", m_AutoTempMute);
 
 		if (auto foundDir = found->find("tf_game_dir"); foundDir != found->end())
 			m_TFDir = foundDir->get<std::string_view>();
@@ -115,6 +116,7 @@ bool Settings::SaveFile() const
 			{
 				{ "tf_game_dir", m_TFDir.string() },
 				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
+				{ "auto_temp_mute", m_AutoTempMute },
 			}
 		}
 	};

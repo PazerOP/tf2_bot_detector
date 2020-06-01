@@ -32,6 +32,7 @@ namespace tf2_bot_detector
 
 		std::optional<LobbyMemberTeam> TryGetMyTeam() const;
 		TeamShareResult GetTeamShareResult(const SteamID& id) const;
+		const IPlayer* GetLocalPlayer() const;
 
 	private:
 		WorldState* m_World = nullptr;
@@ -65,7 +66,11 @@ namespace tf2_bot_detector
 		std::vector<DelayedChatBan> m_DelayedBans;
 		void ProcessDelayedBans(time_point_t timestamp, const IPlayer& updatedStatus);
 
-		time_point_t m_LastCheaterWarningTime{};
+		static constexpr duration_t CHEATER_WARNING_INTERVAL = std::chrono::seconds(10);
+		static constexpr duration_t CHEATER_WARNING_INTERVAL_NONLOCAL = std::chrono::seconds(20);
+
+		time_point_t m_NextConnectingCheaterWarningTime{};
+		time_point_t m_NextCheaterWarningTime{};
 		time_point_t m_LastPlayerActionsUpdate{};
 		void ProcessPlayerActions();
 		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<const IPlayer*>& friendlyCheaters);
