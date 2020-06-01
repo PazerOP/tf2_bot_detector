@@ -6,6 +6,7 @@
 
 #include <any>
 #include <cstdint>
+#include <optional>
 #include <ostream>
 #include <typeindex>
 
@@ -45,6 +46,7 @@ namespace tf2_bot_detector
 		virtual uint16_t GetPing() const = 0;
 
 		virtual time_point_t GetLastStatusUpdateTime() const = 0;
+		duration_t GetTimeSinceLastStatusUpdate() const;
 
 		operator SteamID() const { return GetSteamID(); }
 

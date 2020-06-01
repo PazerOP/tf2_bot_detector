@@ -54,13 +54,13 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 	}
 }
 
-void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg)
+void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg)
 {
 	// Check if it is a moderation message from someone else
 	if (m_Settings->m_AutoTempMute)
 	{
 		if (auto localPlayer = GetLocalPlayer();
-			localPlayer && (player.GetSteamID() != localPlayer->GetSteamID()) && (player.GetUserID() < localPlayer->GetUserID()))
+			localPlayer && (player.GetSteamID() != localPlayer->GetSteamID()))
 		{
 			static const std::regex s_IngameWarning(
 				R"regex(Attention! There (?:is a|are \d+) cheaters? on the other team named .*\. Please kick them!)regex",
@@ -72,9 +72,15 @@ void ModeratorLogic::OnChatMsg(WorldState& world, const IPlayer& player, const s
 			if (std::regex_match(msg.begin(), msg.end(), s_IngameWarning) ||
 				std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning))
 			{
-				Log("Deferring all cheater warnings for a bit because we think "s << player << " is running TF2BD");
-				m_NextCheaterWarningTime = m_NextConnectingCheaterWarningTime =
-					world.GetCurrentTime() + CHEATER_WARNING_INTERVAL_NONLOCAL;
+				Log("Detected message from "s << player << " as another instance of TF2BD: "s << std::quoted(msg));
+				player.GetOrCreateData<PlayerExtraData>().m_IsRunningTool = true;
+
+				if (player.GetUserID() < localPlayer->GetUserID())
+				{
+					Log("Deferring all cheater warnings for a bit because we think "s << player << " is running TF2BD");
+					m_NextCheaterWarningTime = m_NextConnectingCheaterWarningTime =
+						world.GetCurrentTime() + CHEATER_WARNING_INTERVAL_NONLOCAL;
+				}
 			}
 		}
 	}
@@ -125,7 +131,7 @@ static mh::generator<std::string> GetJoinedStrings(const TIter& begin, const TIt
 }
 
 void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
-	const std::vector<const IPlayer*>& enemyCheaters, const std::vector<IPlayer*>& connectingEnemyCheaters)
+	const std::vector<IPlayer*>& enemyCheaters, const std::vector<IPlayer*>& connectingEnemyCheaters)
 {
 	if (enemyCheaters.empty() && connectingEnemyCheaters.empty())
 		return;
@@ -136,6 +142,8 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 		return;
 	}
 
+	const auto now = m_World->GetCurrentTime();
+
 	if (!enemyCheaters.empty())
 	{
 		// There are enough people on the other team to votekick the cheater(s)
@@ -145,15 +153,15 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 		std::vector<std::string> chatMsgCheaterNames;
 		for (size_t i = 0; i < enemyCheaters.size(); i++)
 		{
-			const IPlayer* cheaterData = enemyCheaters[i];
+			const IPlayer* cheater = enemyCheaters[i];
 			logMsg << enemyCheaters[i];
-			if (cheaterData->GetName().empty())
+			if (cheater->GetName().empty())
 				continue; // Theoretically this should never happen, but don't embarass ourselves
 
 			if (i != 0)
 				logMsg << ", ";
 
-			chatMsgCheaterNames.emplace_back(cheaterData->GetName());
+			chatMsgCheaterNames.emplace_back(cheater->GetName());
 		}
 
 		if (chatMsgCheaterNames.size() > 0)
@@ -192,7 +200,7 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 			assert(chatMsg.size() <= 127);
 
-			if (const auto now = m_World->GetCurrentTime(); now >= m_NextCheaterWarningTime)
+			if (now >= m_NextCheaterWarningTime)
 			{
 				if (!m_Settings->m_Unsaved.m_Muted && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
 				{
@@ -200,12 +208,19 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 					m_NextCheaterWarningTime = now + CHEATER_WARNING_INTERVAL;
 				}
 			}
+			else
+			{
+				Log("HandleEnemyCheaters(): Skipping cheater warnings for "s << to_seconds(m_NextCheaterWarningTime - now) << " seconds");
+			}
 		}
 	}
 	else if (!connectingEnemyCheaters.empty())
 	{
-		if (const auto now = m_World->GetCurrentTime(); now < m_NextConnectingCheaterWarningTime)
+		if (now < m_NextConnectingCheaterWarningTime)
 		{
+			Log("HandleEnemyCheaters(): Discarding connection warnings ("s
+				<< to_seconds(m_NextConnectingCheaterWarningTime - now) << " seconds left)");
+
 			// Assume someone else with a lower userid is in charge, discard warnings about
 			// connecting enemy cheaters while it looks like they are doing stuff
 			for (IPlayer* cheater : connectingEnemyCheaters)
@@ -274,10 +289,12 @@ void ModeratorLogic::ProcessPlayerActions()
 
 	uint8_t totalEnemyPlayers = 0;
 	uint8_t totalFriendlyPlayers = 0;
-	std::vector<const IPlayer*> enemyCheaters;
+	std::vector<IPlayer*> enemyCheaters;
 	std::vector<const IPlayer*> friendlyCheaters;
 	std::vector<IPlayer*> connectingEnemyCheaters;
 
+	const bool isBotLeader = IsBotLeader();
+	bool needsEnemyWarning = false;
 	for (IPlayer* playerPtr : m_World->GetLobbyMembers())
 	{
 		assert(playerPtr);
@@ -293,6 +310,15 @@ void ModeratorLogic::ProcessPlayerActions()
 
 		if (HasPlayerAttribute(steamID, PlayerAttributes::Cheater))
 		{
+			auto data = player.GetOrCreateData<PlayerExtraData>();
+			if (isBotLeader || (now >= data.m_WarningDelayEnd))
+				needsEnemyWarning = true;
+			else if (!isBotLeader && !data.m_WarningDelayEnd.has_value())
+			{
+				data.m_WarningDelayEnd = now + CHEATER_WARNING_DELAY;
+				Log("Not bot leader: set delay for "s << player << " to " << to_seconds(CHEATER_WARNING_DELAY) << " from now");
+			}
+
 			switch (teamShareResult)
 			{
 			case TeamShareResult::SameTeams:
@@ -309,7 +335,9 @@ void ModeratorLogic::ProcessPlayerActions()
 		}
 	}
 
-	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
+	if (needsEnemyWarning)
+		HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
+
 	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
 }
 
@@ -357,6 +385,37 @@ TeamShareResult ModeratorLogic::GetTeamShareResult(const SteamID& id) const
 const IPlayer* ModeratorLogic::GetLocalPlayer() const
 {
 	return m_World->FindPlayer(m_Settings->m_LocalSteamID);
+}
+
+bool ModeratorLogic::IsBotLeader() const
+{
+	auto localPlayer = GetLocalPlayer();
+	if (!localPlayer)
+		return false;
+
+	UserID_t localUserID;
+	if (auto id = localPlayer->GetUserID())
+		localUserID = *id;
+	else
+		return false;
+
+	const auto now = m_World->GetCurrentTime();
+	for (const IPlayer* player : m_World->GetPlayers())
+	{
+		if (player->GetTimeSinceLastStatusUpdate() > 20s)
+			continue;
+
+		if (player->GetSteamID() == localPlayer->GetSteamID())
+			continue;
+
+		if (player->GetUserID() >= localUserID)
+			continue;
+
+		if (auto data = player->GetData<PlayerExtraData>(); data && data->m_IsRunningTool)
+			return false;
+	}
+
+	return true;
 }
 
 ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :

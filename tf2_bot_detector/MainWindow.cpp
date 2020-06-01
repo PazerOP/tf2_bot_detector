@@ -579,6 +579,8 @@ void MainWindow::OnDraw()
 
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
+	ImGui::Value("Is Bot Leader", IsWorldValid() ? GetModLogic().IsBotLeader() : false);
+
 	if (IsWorldValid())
 	{
 		auto& world = GetWorld();

@@ -190,7 +190,7 @@ void WorldState::EventBroadcaster::OnPlayerStatusUpdate(WorldState& world, const
 }
 
 void WorldState::EventBroadcaster::OnChatMsg(WorldState& world,
-	const IPlayer& player, const std::string_view& msg)
+	IPlayer& player, const std::string_view& msg)
 {
 	for (auto listener : m_EventListeners)
 		listener->OnChatMsg(world, player, msg);
