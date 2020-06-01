@@ -23,12 +23,20 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "woody\u200f",
+				"time": 1591048914
+			},
 			"steamid": "[U:1:62294582]"
 		},
 		{
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "Markusha\u200f",
+				"time": 1591048908
+			},
 			"steamid": "[U:1:63972737]"
 		},
 		{
@@ -67,6 +75,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "Soup Time\u200f",
+				"time": 1591048908
+			},
 			"steamid": "[U:1:103694693]"
 		},
 		{
@@ -89,6 +101,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "::\u200f",
+				"time": 1591048920
+			},
 			"steamid": "[U:1:113829888]"
 		},
 		{
@@ -96,8 +112,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "purplemonkeydishwasher\u200f",
-				"time": 1590736675
+				"player_name": "Zakum\u200f",
+				"time": 1591048914
 			},
 			"steamid": "[U:1:116453236]"
 		},
@@ -116,6 +132,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "camp\u200f",
+				"time": 1591048920
+			},
 			"steamid": "[U:1:157010330]"
 		},
 		{
@@ -196,15 +216,17 @@
 				"suspicious"
 			],
 			"last_seen": {
-				"player_name": "furry-bot 127",
-				"time": 1590736675
+				"player_name": "furry-bot 5",
+				"time": 1591048920
 			},
 			"steamid": "[U:1:336435847]"
 		},
 		{
-			"attributes": [
-				"suspicious"
-			],
+			"attributes": [],
+			"last_seen": {
+				"player_name": "percyjackoff69",
+				"time": 1591046216
+			},
 			"steamid": "[U:1:337739489]"
 		},
 		{
@@ -271,8 +293,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "CA\u200fN YOU QUACK\u200f\u200f",
-				"time": 1590653984
+				"player_name": "/id/raspy_o\u200fn_osu\u200f\u200f",
+				"time": 1591049669
 			},
 			"steamid": "[U:1:1001858013]"
 		},
@@ -299,8 +321,8 @@
 				"suspicious"
 			],
 			"last_seen": {
-				"player_name": "ras\u200fpy upset bot makers\u200f",
-				"time": 1590737769
+				"player_name": "/id/ras\u200fpy_on_osu\u200f\u200f",
+				"time": 1591047100
 			},
 			"steamid": "[U:1:1002031425]"
 		},
@@ -602,8 +624,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "CAN YOU QU\u200fACK\u200f",
-				"time": 1590654186
+				"player_name": "/id/raspy_on_osu\u200f\u200f",
+				"time": 1591047069
 			},
 			"steamid": "[U:1:1057067437]"
 		},
@@ -1171,6 +1193,56 @@
 				"time": 1590624934
 			},
 			"steamid": "[U:1:1093844463]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 4",
+				"time": 1591048745
+			},
+			"steamid": "[U:1:1096583386]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 1",
+				"time": 1591048745
+			},
+			"steamid": "[U:1:1096687238]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 0",
+				"time": 1591048745
+			},
+			"steamid": "[U:1:1096691661]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 3",
+				"time": 1591048745
+			},
+			"steamid": "[U:1:1096707337]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 2",
+				"time": 1591048745
+			},
+			"steamid": "[U:1:1096842965]"
 		},
 		{
 			"attributes": [
