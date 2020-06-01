@@ -17,6 +17,7 @@ namespace tf2_bot_detector
 		bool SaveFile() const;
 
 		bool m_Muted = false;
+		bool m_DebugShowCommands = false;
 
 		SteamID m_LocalSteamID;
 		bool m_SleepWhenUnfocused = true;

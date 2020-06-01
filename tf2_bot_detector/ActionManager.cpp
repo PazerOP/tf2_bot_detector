@@ -106,8 +106,11 @@ struct ActionManager::Writer final : ICommandWriter
 		if (!std::all_of(cmd.begin(), cmd.end(), [](char c) { return c == '_' || isalpha(c) || isdigit(c); }))
 			throw std::runtime_error("Command contains invalid characters");
 
-		if (!m_ComplexCommands && !std::all_of(args.begin(), args.end(), [](char c) { return isalpha(c) || isdigit(c) || isspace(c); }))
+		if (!m_ComplexCommands && !std::all_of(args.begin(), args.end(),
+			[](char c) { return isalpha(c) || isdigit(c) || isspace(c) || c == '.'; }))
+		{
 			m_ComplexCommands = true;
+		}
 
 		m_CommandArgCount++;
 		if (!args.empty())
@@ -345,6 +348,9 @@ bool ActionManager::SendCommandToGame(const std::string_view& cmd) const
 			<< result << ", GetLastError returned " << error;
 		throw std::runtime_error(msg);
 	}
+
+	if (m_Settings->m_DebugShowCommands)
+		Log("Game command: "s << std::quoted(cmd), { 1, 1, 1, 0.6f });
 
 	//WaitForSingleObject(pi.hProcess, INFINITE);
 

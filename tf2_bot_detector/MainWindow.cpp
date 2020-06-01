@@ -561,9 +561,13 @@ void MainWindow::OnDraw()
 
 	ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
 
-	ImGui::Checkbox("Mute", &m_Settings.m_Muted);
+	ImGui::Checkbox("Mute", &m_Settings.m_Muted); ImGui::SameLine();
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Suppresses all in-game chat messages.");
+
+	ImGui::Checkbox("Show Commands", &m_Settings.m_DebugShowCommands);
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Prints out all game commands to the log.");
 
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
