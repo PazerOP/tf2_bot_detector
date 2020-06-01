@@ -1,6 +1,7 @@
 #include "WorldState.h"
 #include "Actions.h"
 #include "ConsoleLines.h"
+#include "Log.h"
 #include "RegexHelpers.h"
 
 #include <mh/text/string_insertion.hpp>
@@ -22,6 +23,20 @@ void WorldState::Update()
 {
 	if (!m_File)
 	{
+		// Try to truncate
+		{
+			std::error_code ec;
+			const auto filesize = std::filesystem::file_size(m_FileName, ec);
+			if (!ec)
+			{
+				std::filesystem::resize_file(m_FileName, 0, ec);
+				if (ec)
+					Log("Unable to truncate console log file, current size is "s << filesize);
+				else
+					Log("Truncated console log file");
+			}
+		}
+
 		{
 			FILE* temp = _fsopen(m_FileName.string().c_str(), "r", _SH_DENYNO);
 			m_File.reset(temp);
