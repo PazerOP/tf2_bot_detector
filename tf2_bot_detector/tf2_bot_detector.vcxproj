@@ -156,6 +156,7 @@
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="Config\PlayerListJSON.cpp" />
     <ClCompile Include="Config\Settings.cpp" />
+    <ClCompile Include="PlatformSpecific\Windows.cpp" />
     <ClCompile Include="SetupFlow.cpp" />
     <ClCompile Include="SteamID.cpp" />
     <ClCompile Include="WorldState.cpp" />
@@ -183,6 +184,7 @@
     <ClInclude Include="LobbyMember.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="Config\PlayerListJSON.h" />
+    <ClInclude Include="PlatformSpecific\Windows.h" />
     <ClInclude Include="PlayerStatus.h" />
     <ClInclude Include="RegexHelpers.h" />
     <ClInclude Include="Config\Settings.h" />

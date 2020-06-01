@@ -98,13 +98,15 @@ namespace ImGui
 
 		return ImGui::InputTextWithHint(label, hint, str, flags, patch, const_cast<void*>(reinterpret_cast<const void*>(&callback)));
 	}
+
+	ImVec2 CalcButtonSize(const char* label);
 }
 
 namespace tf2_bot_detector
 {
 	class SteamID;
 	bool InputTextSteamID(const char* label_id, SteamID& steamID, bool requireValid = true);
-	bool InputTextTFDir(const char* label_id, std::filesystem::path& path);
+	bool InputTextTFDir(const std::string_view& label_id, std::filesystem::path& path, bool requireValid = false);
 }
 
 namespace ImPlot

@@ -1,8 +1,10 @@
 #include "ImGui_TF2BotDetector.h"
 #include "PathUtils.h"
 #include "SteamID.h"
+#include "PlatformSpecific/Windows.h"
 
 #include <imgui_desktop/ScopeGuards.h>
+#include <mh/text/string_insertion.hpp>
 
 #include <cstdarg>
 #include <memory>
@@ -10,6 +12,7 @@
 
 namespace ScopeGuards = ImGuiDesktop::ScopeGuards;
 
+using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 void ImGui::TextUnformatted(const std::string_view& text)
@@ -169,8 +172,10 @@ bool tf2_bot_detector::InputTextSteamID(const char* label, SteamID& steamID, boo
 	return modifySuccess;
 }
 
-bool tf2_bot_detector::InputTextTFDir(const char* label_id, std::filesystem::path& outPath)
+bool tf2_bot_detector::InputTextTFDir(const std::string_view& label_id, std::filesystem::path& outPath, bool requireValid)
 {
+	ScopeGuards::ID idScope(label_id);
+
 	constexpr char EXAMPLE_TF_DIR[] = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf";
 
 	bool modified = false;
@@ -185,34 +190,69 @@ bool tf2_bot_detector::InputTextTFDir(const char* label_id, std::filesystem::pat
 		pathStr = outPath.string();
 	}
 
-	modified = ImGui::InputTextWithHint(label_id, EXAMPLE_TF_DIR, &pathStr) || modified;
-	bool modifySuccess = false;
-	{
-		const std::filesystem::path newPath(pathStr);
-		if (newPath.empty())
-		{
-			ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
-			ImGui::TextUnformatted("Cannot be empty"sv);
-		}
-		else if (const TFDirectoryValidator validationResult(newPath); !validationResult)
-		{
-			ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
-			ImGui::TextUnformatted(validationResult.m_Message);
-		}
-		else
-		{
-			ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
-			ImGui::TextUnformatted("Looks good!"sv);
+	constexpr char BROWSE_BTN_LABEL[] = "Browse...";
+	const auto browseBtnSize = ImGui::CalcButtonSize(BROWSE_BTN_LABEL).x;
 
-			if (modified)
-			{
-				outPath = newPath;
-				return true;
-			}
+	ImGui::SetNextItemWidth(ImGui::CalcItemWidth() - browseBtnSize - 8);
+	modified = ImGui::InputTextWithHint("##input", EXAMPLE_TF_DIR, &pathStr) || modified;
+	ImGui::SameLine();
+	if (ImGui::Button("Browse..."))
+	{
+		if (auto result = BrowseForFolderDialog(); !result.empty())
+		{
+			pathStr = result.string();
+			modified = true;
 		}
+	}
+
+	if (!label_id.empty())
+	{
+		auto hashIdx = label_id.find("##"sv);
+		if (hashIdx != 0)
+		{
+			ImGui::SameLine(0, 4);
+
+			if (hashIdx == label_id.npos)
+				ImGui::TextUnformatted(label_id);
+			else
+				ImGui::TextUnformatted(label_id.substr(0, hashIdx));
+		}
+	}
+
+	bool modifySuccess = false;
+	const std::filesystem::path newPath(pathStr);
+	if (newPath.empty())
+	{
+		ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
+		ImGui::TextUnformatted("Cannot be empty"sv);
+	}
+	else if (const TFDirectoryValidator validationResult(newPath); !validationResult)
+	{
+		ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
+		ImGui::TextUnformatted("Doesn't look like a real tf directory: "s << validationResult.m_Message);
+	}
+	else
+	{
+		ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
+		ImGui::TextUnformatted("Looks good!"sv);
+
+		if (modified)
+			modifySuccess = true;
 	}
 
 	ImGui::NewLine();
 
-	return false;
+	if (!requireValid)
+		modifySuccess = modified;
+
+	if (modifySuccess)
+		outPath = newPath;
+
+	return modifySuccess;
+}
+
+ImVec2 ImGui::CalcButtonSize(const char* label)
+{
+	const auto& style = ImGui::GetStyle();
+	return (ImVec2(style.FramePadding) * 2) + CalcTextSize(label);
 }
