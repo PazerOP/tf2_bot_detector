@@ -418,6 +418,16 @@ bool ModeratorLogic::IsBotLeader() const
 	return true;
 }
 
+duration_t ModeratorLogic::TimeToConnectingCheaterWarning() const
+{
+	return m_NextConnectingCheaterWarningTime - m_World->GetCurrentTime();
+}
+
+duration_t ModeratorLogic::TimeToCheaterWarning() const
+{
+	return m_NextCheaterWarningTime - m_World->GetCurrentTime();
+}
+
 ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :
 	m_World(&world),
 	m_Settings(&settings),

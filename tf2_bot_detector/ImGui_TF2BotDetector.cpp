@@ -256,3 +256,8 @@ ImVec2 ImGui::CalcButtonSize(const char* label)
 	const auto& style = ImGui::GetStyle();
 	return (ImVec2(style.FramePadding) * 2) + CalcTextSize(label);
 }
+
+void ImGui::Value(const char* prefix, double v, const char* float_format)
+{
+	return Value(prefix, float(v), float_format);
+}

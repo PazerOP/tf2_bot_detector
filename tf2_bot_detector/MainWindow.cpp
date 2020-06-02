@@ -579,7 +579,13 @@ void MainWindow::OnDraw()
 
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
-	ImGui::Value("Is Bot Leader", IsWorldValid() ? GetModLogic().IsBotLeader() : false);
+	if (IsWorldValid())
+	{
+		auto& modLogic = GetModLogic();
+		ImGui::Value("Is Bot Leader", modLogic.IsBotLeader());
+		ImGui::Value("Time to next connecting cheater warning", to_seconds(modLogic.TimeToConnectingCheaterWarning()));
+		ImGui::Value("Time to next cheater warning", to_seconds(modLogic.TimeToCheaterWarning()));
+	}
 
 	if (IsWorldValid())
 	{

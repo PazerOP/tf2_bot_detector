@@ -38,6 +38,9 @@ namespace tf2_bot_detector
 		// the pool of players we think are running the bot?
 		bool IsBotLeader() const;
 
+		duration_t TimeToConnectingCheaterWarning() const;
+		duration_t TimeToCheaterWarning() const;
+
 	private:
 		WorldState* m_World = nullptr;
 		const Settings* m_Settings = nullptr;

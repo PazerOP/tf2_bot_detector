@@ -100,6 +100,8 @@ namespace ImGui
 	}
 
 	ImVec2 CalcButtonSize(const char* label);
+
+	void Value(const char* prefix, double v, const char* float_format = nullptr);
 }
 
 namespace tf2_bot_detector
