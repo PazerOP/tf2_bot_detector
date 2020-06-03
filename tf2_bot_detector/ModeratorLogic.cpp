@@ -78,6 +78,7 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 
 				if (player.GetUserID() < localPlayer->GetUserID())
 				{
+					assert(!IsBotLeader());
 					Log("Deferring all cheater warnings for a bit because we think "s << player << " is running TF2BD");
 					m_NextCheaterWarningTime = m_NextConnectingCheaterWarningTime =
 						world.GetCurrentTime() + CHEATER_WARNING_INTERVAL_NONLOCAL;

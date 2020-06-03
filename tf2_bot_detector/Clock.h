@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <ctime>
 
 namespace tf2_bot_detector
 {
@@ -32,4 +33,6 @@ namespace tf2_bot_detector
 		else
 			return ret_t(floored + roundDuration);
 	}
+
+	tm ToTM(const time_point_t& ts);
 }

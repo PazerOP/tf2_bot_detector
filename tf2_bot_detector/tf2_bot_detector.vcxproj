@@ -84,6 +84,7 @@
     <ClCompile Include="..\implot\repo\implot_demo.cpp" />
     <ClCompile Include="ActionManager.cpp" />
     <ClCompile Include="Actions.cpp" />
+    <ClCompile Include="Clock.cpp" />
     <ClCompile Include="CompensatedTS.cpp" />
     <ClCompile Include="Config\Rules.cpp" />
     <ClCompile Include="ImGui_TF2BotDetector.cpp" />

@@ -434,18 +434,17 @@ void MainWindow::OnDrawAppLog()
 		{
 			ImGui::PushTextWrapPos();
 
-			ForEachLogMsg([&](const LogMessage& msg)
-				{
-					const auto timestampRaw = clock_t::to_time_t(msg.m_Timestamp);
-					std::tm timestamp{};
-					localtime_s(&timestamp, &timestampRaw);
+			for (const LogMessage* msgPtr : GetLogMsgs())
+			{
+				const LogMessage& msg = *msgPtr;
+				const std::tm timestamp = ToTM(msg.m_Timestamp);
 
-					ImGui::TextColored({ 0.25f, 1.0f, 0.25f, 0.25f }, "[%02i:%02i:%02i]",
-						timestamp.tm_hour, timestamp.tm_min, timestamp.tm_sec);
+				ImGui::TextColored({ 0.25f, 1.0f, 0.25f, 0.25f }, "[%02i:%02i:%02i]",
+					timestamp.tm_hour, timestamp.tm_min, timestamp.tm_sec);
 
-					ImGui::SameLine();
-					ImGui::TextColoredUnformatted({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a }, msg.m_Text);
-				});
+				ImGui::SameLine();
+				ImGui::TextColoredUnformatted({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a }, msg.m_Text);
+			}
 
 			ImGui::PopTextWrapPos();
 		});
