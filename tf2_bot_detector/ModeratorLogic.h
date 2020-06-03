@@ -37,6 +37,7 @@ namespace tf2_bot_detector
 		// Are we the leader of the bots? AKA do we have the lowest userID of
 		// the pool of players we think are running the bot?
 		bool IsBotLeader() const;
+		const IPlayer* GetBotLeader() const;
 
 		duration_t TimeToConnectingCheaterWarning() const;
 		duration_t TimeToCheaterWarning() const;

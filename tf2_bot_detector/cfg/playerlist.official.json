@@ -24,8 +24,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "woody\u200f",
-				"time": 1591048914
+				"player_name": "Foxy The Pirate Fox\u200f",
+				"time": 1591155577
 			},
 			"steamid": "[U:1:62294582]"
 		},
@@ -76,8 +76,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "Soup Time\u200f",
-				"time": 1591048908
+				"player_name": "ThatBarney\u200f",
+				"time": 1591155577
 			},
 			"steamid": "[U:1:103694693]"
 		},
@@ -102,8 +102,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "::\u200f",
-				"time": 1591048920
+				"player_name": "Dunkarama\u200f",
+				"time": 1591155577
 			},
 			"steamid": "[U:1:113829888]"
 		},
@@ -112,8 +112,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "Zakum\u200f",
-				"time": 1591048914
+				"player_name": "JoyfulRam\u200f",
+				"time": 1591155508
 			},
 			"steamid": "[U:1:116453236]"
 		},
@@ -209,6 +209,14 @@
 				"suspicious"
 			],
 			"steamid": "[U:1:325792672]"
+		},
+		{
+			"attributes": [],
+			"last_seen": {
+				"player_name": "ThatBarney",
+				"time": 1591155531
+			},
+			"steamid": "[U:1:326798964]"
 		},
 		{
 			"attributes": [
@@ -364,8 +372,8 @@
 				"suspicious"
 			],
 			"last_seen": {
-				"player_name": "raspy but \u200freal??\u200f\u200f",
-				"time": 1590734322
+				"player_name": "/id/raspy_\u200fon_osu\u200f\u200f",
+				"time": 1591144800
 			},
 			"steamid": "[U:1:1002142831]"
 		},
@@ -430,8 +438,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "CAN \u200fYOU QUACK\u200f\u200f",
-				"time": 1590654551
+				"player_name": "/id/raspy_on_\u200fosu\u200f\u200f",
+				"time": 1591147887
 			},
 			"steamid": "[U:1:1002292552]"
 		},
@@ -440,8 +448,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "CAN\u200f YOU QUACK\u200f\u200f",
-				"time": 1590227317
+				"player_name": "/id/raspy_on\u200f_osu\u200f\u200f",
+				"time": 1591151664
 			},
 			"steamid": "[U:1:1002344275]"
 		},
@@ -450,8 +458,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "r\u200faspy upset bot makers\u200f",
-				"time": 1590737041
+				"player_name": "/id/r\u200faspy_on_osu\u200f\u200f",
+				"time": 1591151714
 			},
 			"steamid": "[U:1:1002346104]"
 		},
@@ -467,8 +475,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "CAN YOU\u200f QUACK\u200f\u200f\u200f",
-				"time": 1590313775
+				"player_name": "/id\u200f/raspy_on_osu\u200f\u200f",
+				"time": 1591158972
 			},
 			"steamid": "[U:1:1002545563]"
 		},
@@ -1532,6 +1540,17 @@
 		},
 		{
 			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1591150603
+			},
+			"steamid": "[U:1:1099738387]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -1679,6 +1698,16 @@
 				"time": 1590647837
 			},
 			"steamid": "[U:1:1101441894]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]AntiMuslim",
+				"time": 1591151882
+			},
+			"steamid": "[U:1:1102819207]"
 		}
 	]
 }

@@ -9,6 +9,14 @@
 			},
 			"description": "(catbot) mygot",
 			"triggers": {
+				"chatmsg_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"www.myg0t.gg"
+					]
+				},
+				"mode": "match_any",
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "equal",

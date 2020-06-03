@@ -70,7 +70,8 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 				std::regex::optimize);
 
 			if (std::regex_match(msg.begin(), msg.end(), s_IngameWarning) ||
-				std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning))
+				std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning) ||
+				msg == "gamers are an important part of our society")
 			{
 				Log("Detected message from "s << player << " as another instance of TF2BD: "s << std::quoted(msg));
 				player.GetOrCreateData<PlayerExtraData>().m_IsRunningTool = true;
@@ -311,8 +312,18 @@ void ModeratorLogic::ProcessPlayerActions()
 		if (HasPlayerAttribute(steamID, PlayerAttributes::Cheater))
 		{
 			auto data = player.GetOrCreateData<PlayerExtraData>();
-			if (isBotLeader || (now >= data.m_WarningDelayEnd))
-				needsEnemyWarning = true;
+			if (isBotLeader)
+			{
+				if (!needsEnemyWarning)
+				{
+					needsEnemyWarning = true;
+					Log("We are bot leader");
+				}
+			}
+			else if (now >= data.m_WarningDelayEnd)
+			{
+				Log("Not bot leader: Warning delay for "s << player << " expired");
+			}
 			else if (!isBotLeader && !data.m_WarningDelayEnd.has_value())
 			{
 				data.m_WarningDelayEnd = now + CHEATER_WARNING_DELAY;
@@ -389,15 +400,21 @@ const IPlayer* ModeratorLogic::GetLocalPlayer() const
 
 bool ModeratorLogic::IsBotLeader() const
 {
+	auto leader = GetBotLeader();
+	return !leader || (leader->GetSteamID() != m_Settings->m_LocalSteamID);
+}
+
+const IPlayer* ModeratorLogic::GetBotLeader() const
+{
 	auto localPlayer = GetLocalPlayer();
 	if (!localPlayer)
-		return false;
+		return nullptr;
 
 	UserID_t localUserID;
 	if (auto id = localPlayer->GetUserID())
 		localUserID = *id;
 	else
-		return false;
+		return nullptr;
 
 	const auto now = m_World->GetCurrentTime();
 	for (const IPlayer* player : m_World->GetPlayers())
@@ -412,10 +429,10 @@ bool ModeratorLogic::IsBotLeader() const
 			continue;
 
 		if (auto data = player->GetData<PlayerExtraData>(); data && data->m_IsRunningTool)
-			return false;
+			return player;
 	}
 
-	return true;
+	return localPlayer;
 }
 
 duration_t ModeratorLogic::TimeToConnectingCheaterWarning() const

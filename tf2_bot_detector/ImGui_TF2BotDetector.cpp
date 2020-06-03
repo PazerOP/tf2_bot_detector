@@ -261,3 +261,8 @@ void ImGui::Value(const char* prefix, double v, const char* float_format)
 {
 	return Value(prefix, float(v), float_format);
 }
+
+void ImGui::Value(const char* prefix, const char* str)
+{
+	Text("%s: %s", prefix, str ? str : "<NULL>");
+}

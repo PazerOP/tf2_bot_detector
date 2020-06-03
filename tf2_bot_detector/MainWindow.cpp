@@ -582,7 +582,8 @@ void MainWindow::OnDraw()
 	if (IsWorldValid())
 	{
 		auto& modLogic = GetModLogic();
-		ImGui::Value("Is Bot Leader", modLogic.IsBotLeader());
+		auto leader = modLogic.GetBotLeader();
+		ImGui::Value("Bot Leader", leader ? (""s << *leader).c_str() : "");
 		ImGui::Value("Time to next connecting cheater warning", to_seconds(modLogic.TimeToConnectingCheaterWarning()));
 		ImGui::Value("Time to next cheater warning", to_seconds(modLogic.TimeToCheaterWarning()));
 	}
