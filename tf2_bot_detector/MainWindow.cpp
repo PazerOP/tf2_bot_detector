@@ -583,6 +583,7 @@ void MainWindow::OnDraw()
 
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
+#ifdef _DEBUG
 	if (IsWorldValid())
 	{
 		auto& modLogic = GetModLogic();
@@ -591,6 +592,7 @@ void MainWindow::OnDraw()
 		ImGui::Value("Time to next connecting cheater warning", to_seconds(modLogic.TimeToConnectingCheaterWarning()));
 		ImGui::Value("Time to next cheater warning", to_seconds(modLogic.TimeToCheaterWarning()));
 	}
+#endif
 
 	if (IsWorldValid())
 	{
@@ -609,7 +611,7 @@ void MainWindow::OnDraw()
 		ImGui::Text("Parsed line count: %zu", parsedLineCount);
 	}
 
-	OnDrawServerStats();
+	//OnDrawServerStats();
 	OnDrawChat();
 
 	ImGui::NextColumn();
