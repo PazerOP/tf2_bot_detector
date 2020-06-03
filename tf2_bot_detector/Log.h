@@ -35,7 +35,11 @@ namespace tf2_bot_detector
 	void Log(std::string msg);
 	void LogWarning(std::string msg);
 	void LogError(std::string msg);
+
 	void Log(std::string msg, const LogMessageColor& color);
+
+	void DebugLog(std::string msg, const LogMessageColor& color = {});
+
 	void SetLogTimestamp(time_point_t timestamp);
 
 	mh::generator<const LogMessage*> GetLogMsgs();

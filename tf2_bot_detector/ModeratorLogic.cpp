@@ -175,25 +175,25 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& e
 		if (isBotLeader)
 		{
 			// We're supposedly in charge
-			Log("We're bot leader: Triggered ACTIVE warning for "s << cheater);
+			DebugLog("We're bot leader: Triggered ACTIVE warning for "s << cheater);
 			needsWarning = true;
 		}
 		else if (cheaterData.m_WarningDelayEnd.has_value())
 		{
 			if (now >= cheaterData.m_WarningDelayEnd)
 			{
-				Log("We're not bot leader: Delay expired for ACTIVE cheater "s << cheater);
+				DebugLog("We're not bot leader: Delay expired for ACTIVE cheater "s << cheater);
 				needsWarning = true;
 			}
 			else
 			{
-				Log("We're not bot leader: "s << to_seconds(cheaterData.m_WarningDelayEnd.value() - now)
+				DebugLog("We're not bot leader: "s << to_seconds(cheaterData.m_WarningDelayEnd.value() - now)
 					<< " seconds remaining for ACTIVE cheater " << cheater);
 			}
 		}
 		else if (!cheaterData.m_WarningDelayEnd.has_value())
 		{
-			Log("We're not bot leader: Starting delay for ACTIVE cheater "s << cheater);
+			DebugLog("We're not bot leader: Starting delay for ACTIVE cheater "s << cheater);
 			cheaterData.m_WarningDelayEnd = now + CHEATER_WARNING_DELAY;
 		}
 	}
@@ -247,7 +247,7 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& e
 		}
 		else
 		{
-			Log("HandleEnemyCheaters(): Skipping cheater warnings for "s << to_seconds(m_NextCheaterWarningTime - now) << " seconds");
+			DebugLog("HandleEnemyCheaters(): Skipping cheater warnings for "s << to_seconds(m_NextCheaterWarningTime - now) << " seconds");
 		}
 	}
 }
@@ -257,7 +257,7 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& 
 	const auto now = clock_t::now();
 	if (now < m_NextConnectingCheaterWarningTime)
 	{
-		Log("HandleEnemyCheaters(): Discarding connection warnings ("s
+		DebugLog("HandleEnemyCheaters(): Discarding connection warnings ("s
 			<< to_seconds(m_NextConnectingCheaterWarningTime - now) << " seconds left)");
 
 		// Assume someone else with a lower userid is in charge, discard warnings about
@@ -279,7 +279,7 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& 
 		if (isBotLeader)
 		{
 			// We're supposedly in charge
-			Log("We're bot leader: Triggered connecting warning for "s << cheater);
+			DebugLog("We're bot leader: Triggered connecting warning for "s << cheater);
 			needsWarning = true;
 			break;
 		}
@@ -287,19 +287,19 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& 
 		{
 			if (now >= cheaterData.m_ConnectingWarningDelayEnd)
 			{
-				Log("We're not bot leader: Delay expired for connecting cheater "s << cheater);
+				DebugLog("We're not bot leader: Delay expired for connecting cheater "s << cheater);
 				needsWarning = true;
 				break;
 			}
 			else
 			{
-				Log("We're not bot leader: "s << to_seconds(cheaterData.m_ConnectingWarningDelayEnd.value() - now)
+				DebugLog("We're not bot leader: "s << to_seconds(cheaterData.m_ConnectingWarningDelayEnd.value() - now)
 					<< " seconds remaining for connecting cheater " << cheater);
 			}
 		}
 		else if (!cheaterData.m_ConnectingWarningDelayEnd.has_value())
 		{
-			Log("We're not bot leader: Starting delay for connecting cheater "s << cheater);
+			DebugLog("We're not bot leader: Starting delay for connecting cheater "s << cheater);
 			cheaterData.m_ConnectingWarningDelayEnd = now + CHEATER_WARNING_DELAY;
 		}
 

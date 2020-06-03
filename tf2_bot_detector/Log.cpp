@@ -18,12 +18,14 @@ static std::vector<LogMessage> s_LogMessages;
 
 namespace tf2_bot_detector
 {
-	static void LogInternal(std::string msg, const LogMessageColor& color, std::ostream& output)
+	static void LogInternal(std::string msg, const LogMessageColor& color, std::ostream* output)
 	{
 		tm t = ToTM(s_LogTimestamp);
 
 		std::lock_guard lock(s_LogMutex);
-		output << '[' << std::put_time(&t, "%T") << "] " << msg << std::endl;
+
+		if (output)
+			*output << '[' << std::put_time(&t, "%T") << "] " << msg << std::endl;
 
 		s_LogMessages.push_back({ s_LogTimestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 	}
@@ -38,7 +40,7 @@ namespace tf2_bot_detector
 			std::filesystem::create_directories(logPath, ec);
 			if (ec)
 			{
-				LogInternal("Failed to create directory "s << logPath << ". Log output will go to stdout.", {}, std::cout);
+				LogInternal("Failed to create directory "s << logPath << ". Log output will go to stdout.", {}, &std::cout);
 				return std::cout;
 			}
 
@@ -47,7 +49,7 @@ namespace tf2_bot_detector
 			static std::ofstream s_LogFileLocal(logPath, std::ofstream::ate | std::ofstream::app | std::ofstream::out);
 			if (!s_LogFileLocal.good())
 			{
-				LogInternal("Failed to open log file "s << logPath << ". Log output will go to stdout.", {}, std::cout);
+				LogInternal("Failed to open log file "s << logPath << ". Log output will go to stdout.", {}, &std::cout);
 				return std::cout;
 			}
 
@@ -75,7 +77,16 @@ void tf2_bot_detector::LogError(std::string msg)
 
 void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 {
-	LogInternal(std::move(msg), color, GetLogFile());
+	LogInternal(std::move(msg), color, &GetLogFile());
+}
+
+void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
+{
+#ifdef _DEBUG
+	Log(std::move(msg), color);
+#else
+	LogInternal(std::move(msg), color, nullptr);
+#endif
 }
 
 void tf2_bot_detector::SetLogTimestamp(time_point_t timestamp)
