@@ -42,7 +42,7 @@ namespace tf2_bot_detector
 		bool HasMenuBar() const override;
 		void OnDrawScoreboard();
 		void OnDrawScoreboardColorPicker(const char* name_id, float color[4]);
-		void OnDrawScoreboardContextMenu(const IPlayer& player);
+		void OnDrawScoreboardContextMenu(IPlayer& player);
 		void OnDrawChat();
 		void OnDrawAppLog();
 		void OnDrawServerStats();
@@ -80,7 +80,7 @@ namespace tf2_bot_detector
 
 			std::vector<const IConsoleLine*> m_PrintingLines;  // newest to oldest order
 			static constexpr size_t MAX_PRINTING_LINES = 512;
-			size_t GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const;
+			mh::generator<IPlayer*> GeneratePlayerPrintData();
 		};
 		std::optional<WorldStateExtra> m_WorldState;
 		bool IsWorldValid() const { return m_WorldState.has_value(); }

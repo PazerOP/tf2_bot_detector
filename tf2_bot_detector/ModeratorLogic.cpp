@@ -57,7 +57,8 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg)
 {
 	// Check if it is a moderation message from someone else
-	if (m_Settings->m_AutoTempMute)
+	if (m_Settings->m_AutoTempMute &&
+		!m_PlayerList.HasPlayerAttribute(player, { PlayerAttributes::Cheater, PlayerAttributes::Exploiter }))
 	{
 		if (auto localPlayer = GetLocalPlayer();
 			localPlayer && (player.GetSteamID() != localPlayer->GetSteamID()))
@@ -144,127 +145,189 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 		return;
 	}
 
-	const auto now = m_World->GetCurrentTime();
-
 	if (!enemyCheaters.empty())
+		HandleConnectedEnemyCheaters(enemyCheaters);
+	else if (!connectingEnemyCheaters.empty())
+		HandleConnectingEnemyCheaters(connectingEnemyCheaters);
+}
+
+void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& enemyCheaters)
+{
+	const auto now = clock_t::now();
+
+	// There are enough people on the other team to votekick the cheater(s)
+	std::string logMsg;
+	logMsg << "Telling the other team about " << enemyCheaters.size() << " cheater(s) named ";
+
+	const bool isBotLeader = IsBotLeader();
+	bool needsWarning = false;
+	std::vector<std::string> chatMsgCheaterNames;
+	for (IPlayer* cheater : enemyCheaters)
 	{
-		// There are enough people on the other team to votekick the cheater(s)
-		std::string logMsg;
-		logMsg << "Telling the other team about " << enemyCheaters.size() << " cheater(s) named ";
+		if (cheater->GetName().empty())
+			continue; // Theoretically this should never happen, but don't embarass ourselves
 
-		std::vector<std::string> chatMsgCheaterNames;
-		for (size_t i = 0; i < enemyCheaters.size(); i++)
+		logMsg << "\n\t" << cheater;
+		chatMsgCheaterNames.emplace_back(cheater->GetName());
+
+		auto& cheaterData = cheater->GetOrCreateData<PlayerExtraData>();
+
+		if (isBotLeader)
 		{
-			const IPlayer* cheater = enemyCheaters[i];
-			logMsg << enemyCheaters[i];
-			if (cheater->GetName().empty())
-				continue; // Theoretically this should never happen, but don't embarass ourselves
-
-			if (i != 0)
-				logMsg << ", ";
-
-			chatMsgCheaterNames.emplace_back(cheater->GetName());
+			// We're supposedly in charge
+			Log("We're bot leader: Triggered ACTIVE warning for "s << cheater);
+			needsWarning = true;
 		}
-
-		if (chatMsgCheaterNames.size() > 0)
+		else if (cheaterData.m_WarningDelayEnd.has_value())
 		{
-			constexpr char FMT_ONE_CHEATER[] =       "Attention! There is a cheater on the other team named %s. Please kick them!";
-			constexpr char FMT_MULTIPLE_CHEATERS[] = "Attention! There are %u cheaters on the other team named %s. Please kick them!";
-			//constexpr char FMT_MANY_CHEATERS[] =     "Attention! There are %u cheaters on the other team including %s. Please kick them!";
-			constexpr size_t MAX_CHATMSG_LENGTH = 127;
-			constexpr size_t MAX_NAMES_LENGTH_ONE = MAX_CHATMSG_LENGTH - std::size(FMT_ONE_CHEATER) - 1 - 2;
-			constexpr size_t MAX_NAMES_LENGTH_MULTIPLE = MAX_CHATMSG_LENGTH - std::size(FMT_MULTIPLE_CHEATERS) - 1 - 1 - 2;
-			//constexpr size_t MAX_NAMES_LENGTH_MANY = MAX_CHATMSG_LENGTH - std::size(FMT_MANY_CHEATERS) - 1 - 1 - 2;
-
-			static_assert(MAX_NAMES_LENGTH_ONE >= 32);
-			std::string chatMsg;
-			if (chatMsgCheaterNames.size() == 1)
+			if (now >= cheaterData.m_WarningDelayEnd)
 			{
-				chatMsg.resize(256);
-				chatMsg.resize(sprintf_s(chatMsg.data(), 256, FMT_ONE_CHEATER, chatMsgCheaterNames.front().c_str()));
+				Log("We're not bot leader: Delay expired for ACTIVE cheater "s << cheater);
+				needsWarning = true;
 			}
 			else
 			{
-				assert(chatMsgCheaterNames.size() > 0);
-				std::string cheaters;
-
-				for (std::string cheaterNameStr : GetJoinedStrings(chatMsgCheaterNames.begin(), chatMsgCheaterNames.end(), ", "sv))
-				{
-					if (cheaters.empty() || cheaterNameStr.size() <= MAX_NAMES_LENGTH_MULTIPLE)
-						cheaters = std::move(cheaterNameStr);
-					else if (cheaterNameStr.size() > MAX_NAMES_LENGTH_MULTIPLE)
-						break;
-				}
-
-				chatMsg.resize(256);
-				chatMsg.resize(sprintf_s(chatMsg.data(), 256, FMT_MULTIPLE_CHEATERS, chatMsgCheaterNames.size(), cheaters.c_str()));
+				Log("We're not bot leader: "s << to_seconds(cheaterData.m_WarningDelayEnd.value() - now)
+					<< " seconds remaining for ACTIVE cheater " << cheater);
 			}
-
-			assert(chatMsg.size() <= 127);
-
-			if (now >= m_NextCheaterWarningTime)
-			{
-				if (!m_Settings->m_Unsaved.m_Muted && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
-				{
-					Log(logMsg, { 1, 0, 0, 1 });
-					m_NextCheaterWarningTime = now + CHEATER_WARNING_INTERVAL;
-				}
-			}
-			else
-			{
-				Log("HandleEnemyCheaters(): Skipping cheater warnings for "s << to_seconds(m_NextCheaterWarningTime - now) << " seconds");
-			}
+		}
+		else if (!cheaterData.m_WarningDelayEnd.has_value())
+		{
+			Log("We're not bot leader: Starting delay for ACTIVE cheater "s << cheater);
+			cheaterData.m_WarningDelayEnd = now + CHEATER_WARNING_DELAY;
 		}
 	}
-	else if (!connectingEnemyCheaters.empty())
-	{
-		if (now < m_NextConnectingCheaterWarningTime)
-		{
-			Log("HandleEnemyCheaters(): Discarding connection warnings ("s
-				<< to_seconds(m_NextConnectingCheaterWarningTime - now) << " seconds left)");
 
-			// Assume someone else with a lower userid is in charge, discard warnings about
-			// connecting enemy cheaters while it looks like they are doing stuff
-			for (IPlayer* cheater : connectingEnemyCheaters)
-				cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
+	if (!needsWarning)
+		return;
+
+	if (chatMsgCheaterNames.size() > 0)
+	{
+		constexpr char FMT_ONE_CHEATER[] = "Attention! There is a cheater on the other team named %s. Please kick them!";
+		constexpr char FMT_MULTIPLE_CHEATERS[] = "Attention! There are %u cheaters on the other team named %s. Please kick them!";
+		//constexpr char FMT_MANY_CHEATERS[] =     "Attention! There are %u cheaters on the other team including %s. Please kick them!";
+		constexpr size_t MAX_CHATMSG_LENGTH = 127;
+		constexpr size_t MAX_NAMES_LENGTH_ONE = MAX_CHATMSG_LENGTH - std::size(FMT_ONE_CHEATER) - 1 - 2;
+		constexpr size_t MAX_NAMES_LENGTH_MULTIPLE = MAX_CHATMSG_LENGTH - std::size(FMT_MULTIPLE_CHEATERS) - 1 - 1 - 2;
+		//constexpr size_t MAX_NAMES_LENGTH_MANY = MAX_CHATMSG_LENGTH - std::size(FMT_MANY_CHEATERS) - 1 - 1 - 2;
+
+		static_assert(MAX_NAMES_LENGTH_ONE >= 32);
+		std::string chatMsg;
+		if (chatMsgCheaterNames.size() == 1)
+		{
+			chatMsg.resize(256);
+			chatMsg.resize(sprintf_s(chatMsg.data(), 256, FMT_ONE_CHEATER, chatMsgCheaterNames.front().c_str()));
 		}
 		else
 		{
-			bool needsWarning = false;
-			for (const IPlayer* cheater : connectingEnemyCheaters)
+			assert(chatMsgCheaterNames.size() > 0);
+			std::string cheaters;
+
+			for (std::string cheaterNameStr : GetJoinedStrings(chatMsgCheaterNames.begin(), chatMsgCheaterNames.end(), ", "sv))
 			{
-				auto cheaterData = cheater->GetData<PlayerExtraData>();
-				if (!cheaterData || !cheaterData->m_PreWarnedOtherTeam)
-				{
-					needsWarning = true;
+				if (cheaters.empty() || cheaterNameStr.size() <= MAX_NAMES_LENGTH_MULTIPLE)
+					cheaters = std::move(cheaterNameStr);
+				else if (cheaterNameStr.size() > MAX_NAMES_LENGTH_MULTIPLE)
 					break;
-				}
 			}
 
-			if (needsWarning)
-			{
-				char chatMsg[128];
-				if (connectingEnemyCheaters.size() == 1)
-				{
-					strcpy_s(chatMsg, "Heads up! There is a known cheater joining the other team! Name unknown until they fully join.");
-				}
-				else
-				{
-					sprintf_s(chatMsg, "Heads up! There are %zu known cheaters joining the other team! Names unknown until they fully join.",
-						connectingEnemyCheaters.size());
-				}
+			chatMsg.resize(256);
+			chatMsg.resize(sprintf_s(chatMsg.data(), 256, FMT_MULTIPLE_CHEATERS, chatMsgCheaterNames.size(), cheaters.c_str()));
+		}
 
-				if (!m_Settings->m_Unsaved.m_Muted)
-				{
-					Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
-					if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
-					{
-						for (IPlayer* cheater : connectingEnemyCheaters)
-							cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
-					}
-				}
+		assert(chatMsg.size() <= 127);
+
+		if (now >= m_NextCheaterWarningTime)
+		{
+			if (!m_Settings->m_Unsaved.m_Muted && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+			{
+				Log(logMsg, { 1, 0, 0, 1 });
+				m_NextCheaterWarningTime = now + CHEATER_WARNING_INTERVAL;
 			}
 		}
+		else
+		{
+			Log("HandleEnemyCheaters(): Skipping cheater warnings for "s << to_seconds(m_NextCheaterWarningTime - now) << " seconds");
+		}
+	}
+}
+
+void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& connectingEnemyCheaters)
+{
+	const auto now = clock_t::now();
+	if (now < m_NextConnectingCheaterWarningTime)
+	{
+		Log("HandleEnemyCheaters(): Discarding connection warnings ("s
+			<< to_seconds(m_NextConnectingCheaterWarningTime - now) << " seconds left)");
+
+		// Assume someone else with a lower userid is in charge, discard warnings about
+		// connecting enemy cheaters while it looks like they are doing stuff
+		for (IPlayer* cheater : connectingEnemyCheaters)
+			cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
+
+		return;
+	}
+
+	const bool isBotLeader = IsBotLeader();
+	bool needsWarning = false;
+	for (IPlayer* cheater : connectingEnemyCheaters)
+	{
+		auto& cheaterData = cheater->GetOrCreateData<PlayerExtraData>();
+		if (cheaterData.m_PreWarnedOtherTeam)
+			continue; // Already included in a warning
+
+		if (isBotLeader)
+		{
+			// We're supposedly in charge
+			Log("We're bot leader: Triggered connecting warning for "s << cheater);
+			needsWarning = true;
+			break;
+		}
+		else if (cheaterData.m_ConnectingWarningDelayEnd.has_value())
+		{
+			if (now >= cheaterData.m_ConnectingWarningDelayEnd)
+			{
+				Log("We're not bot leader: Delay expired for connecting cheater "s << cheater);
+				needsWarning = true;
+				break;
+			}
+			else
+			{
+				Log("We're not bot leader: "s << to_seconds(cheaterData.m_ConnectingWarningDelayEnd.value() - now)
+					<< " seconds remaining for connecting cheater " << cheater);
+			}
+		}
+		else if (!cheaterData.m_ConnectingWarningDelayEnd.has_value())
+		{
+			Log("We're not bot leader: Starting delay for connecting cheater "s << cheater);
+			cheaterData.m_ConnectingWarningDelayEnd = now + CHEATER_WARNING_DELAY;
+		}
+
+		{
+			needsWarning = true;
+			break;
+		}
+	}
+
+	if (!needsWarning || m_Settings->m_Unsaved.m_Muted)
+		return;
+
+	char chatMsg[128];
+	if (connectingEnemyCheaters.size() == 1)
+	{
+		strcpy_s(chatMsg, "Heads up! There is a known cheater joining the other team! Name unknown until they fully join.");
+	}
+	else
+	{
+		sprintf_s(chatMsg, "Heads up! There are %zu known cheaters joining the other team! Names unknown until they fully join.",
+			connectingEnemyCheaters.size());
+	}
+
+	Log("Telling other team about "s << connectingEnemyCheaters.size() << " cheaters currently connecting");
+	if (m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+	{
+		for (IPlayer* cheater : connectingEnemyCheaters)
+			cheater->GetOrCreateData<PlayerExtraData>().m_PreWarnedOtherTeam = true;
 	}
 }
 
@@ -312,25 +375,6 @@ void ModeratorLogic::ProcessPlayerActions()
 
 		if (HasPlayerAttribute(steamID, PlayerAttributes::Cheater))
 		{
-			auto data = player.GetOrCreateData<PlayerExtraData>();
-			if (isBotLeader)
-			{
-				if (!needsEnemyWarning)
-				{
-					needsEnemyWarning = true;
-					Log("We are bot leader");
-				}
-			}
-			else if (now >= data.m_WarningDelayEnd)
-			{
-				Log("Not bot leader: Warning delay for "s << player << " expired");
-			}
-			else if (!isBotLeader && !data.m_WarningDelayEnd.has_value())
-			{
-				data.m_WarningDelayEnd = now + CHEATER_WARNING_DELAY;
-				Log("Not bot leader: set delay for "s << player << " to " << to_seconds(CHEATER_WARNING_DELAY) << " from now");
-			}
-
 			switch (teamShareResult)
 			{
 			case TeamShareResult::SameTeams:
@@ -347,9 +391,7 @@ void ModeratorLogic::ProcessPlayerActions()
 		}
 	}
 
-	if (needsEnemyWarning)
-		HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
-
+	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
 	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
 }
 
@@ -402,7 +444,7 @@ const IPlayer* ModeratorLogic::GetLocalPlayer() const
 bool ModeratorLogic::IsBotLeader() const
 {
 	auto leader = GetBotLeader();
-	return !leader || (leader->GetSteamID() != m_Settings->m_LocalSteamID);
+	return leader && (leader->GetSteamID() == m_Settings->m_LocalSteamID);
 }
 
 const IPlayer* ModeratorLogic::GetBotLeader() const
@@ -445,6 +487,13 @@ duration_t ModeratorLogic::TimeToCheaterWarning() const
 {
 	return m_NextCheaterWarningTime - m_World->GetCurrentTime();
 }
+
+#ifdef _DEBUG
+bool& ModeratorLogic::GetIsTFBDUser(IPlayer& player)
+{
+	return player.GetOrCreateData<PlayerExtraData>().m_IsRunningTool;
+}
+#endif
 
 ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :
 	m_World(&world),

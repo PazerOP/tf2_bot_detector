@@ -42,6 +42,10 @@ namespace tf2_bot_detector
 		duration_t TimeToConnectingCheaterWarning() const;
 		duration_t TimeToCheaterWarning() const;
 
+#ifdef _DEBUG
+		static bool& GetIsTFBDUser(IPlayer& player);
+#endif
+
 	private:
 		WorldState* m_World = nullptr;
 		const Settings* m_Settings = nullptr;
@@ -57,6 +61,7 @@ namespace tf2_bot_detector
 
 			// If we're not the bot leader, prevent this player from triggering
 			// any warnings (but still participates in other warnings!!!)
+			std::optional<time_point_t> m_ConnectingWarningDelayEnd;
 			std::optional<time_point_t> m_WarningDelayEnd;
 
 			struct
@@ -80,16 +85,16 @@ namespace tf2_bot_detector
 		std::vector<DelayedChatBan> m_DelayedBans;
 		void ProcessDelayedBans(time_point_t timestamp, const IPlayer& updatedStatus);
 
-		// How long we wait between determining someone is cheating and actually accusing them.
-		// This delay exists to give a bot leader a chance to make an accusation.
-		static constexpr duration_t CHEATER_WARNING_DELAY = std::chrono::seconds(10);
-
 		// How long inbetween accusations
 		static constexpr duration_t CHEATER_WARNING_INTERVAL = std::chrono::seconds(20);
 
 		// The soonest we can make an accusation after having seen an accusation in chat from a bot leader.
 		// This must be longer than CHEATER_WARNING_INTERVAL.
 		static constexpr duration_t CHEATER_WARNING_INTERVAL_NONLOCAL = CHEATER_WARNING_INTERVAL + std::chrono::seconds(10);
+
+		// How long we wait between determining someone is cheating and actually accusing them.
+		// This delay exists to give a bot leader a chance to make an accusation.
+		static constexpr duration_t CHEATER_WARNING_DELAY = std::chrono::seconds(10);
 
 		time_point_t m_NextConnectingCheaterWarningTime{};  // The soonest we can warn about cheaters connecting to the server
 		time_point_t m_NextCheaterWarningTime{};            // The soonest we can warn about connected cheaters on the other team
@@ -98,6 +103,8 @@ namespace tf2_bot_detector
 		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<const IPlayer*>& friendlyCheaters);
 		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<IPlayer*>& enemyCheaters,
 			const std::vector<IPlayer*>& connectingEnemyCheaters);
+		void HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& enemyCheaters);
+		void HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& connectingEnemyCheaters);
 
 		ModerationRules m_Rules;
 		PlayerListJSON m_PlayerList;

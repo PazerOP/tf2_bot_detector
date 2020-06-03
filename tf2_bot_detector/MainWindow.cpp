@@ -59,7 +59,7 @@ static float GetRemainingColumnWidth(float contentRegionWidth, int column_index 
 	return contentRegionWidth - 3;//ImGui::GetStyle().ItemSpacing.x;
 }
 
-void MainWindow::OnDrawScoreboardContextMenu(const IPlayer& player)
+void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 {
 	if (auto popupScope = ImGui::BeginPopupContextItemScope("PlayerContextMenu"))
 	{
@@ -106,6 +106,12 @@ void MainWindow::OnDrawScoreboardContextMenu(const IPlayer& player)
 
 			ImGui::EndMenu();
 		}
+
+#ifdef _DEBUG
+		ImGui::Separator();
+
+		ImGui::MenuItem("Is TFBD User", nullptr, &ModeratorLogic::GetIsTFBDUser(player));
+#endif
 	}
 }
 
@@ -175,10 +181,6 @@ void MainWindow::OnDrawScoreboard()
 			}();
 
 			/*const auto*/ frameWidth = ImGui::GetWorkRectSize().x;
-			const IPlayer* printData[33]{};
-			const size_t playerPrintDataCount =
-				m_WorldState ? m_WorldState->GeneratePlayerPrintData(std::begin(printData), std::end(printData)) : 0;
-
 			/*const auto*/ contentWidth = ImGui::GetContentRegionMax().x;
 			/*const auto*/ windowContentWidth = ImGui::GetWindowContentRegionWidth();
 			/*const auto*/ windowWidth = ImGui::GetWindowWidth();
@@ -269,137 +271,140 @@ void MainWindow::OnDrawScoreboard()
 				ImGui::Separator();
 			}
 
-			for (size_t i = 0; i < playerPrintDataCount; i++)
+			if (m_WorldState)
 			{
-				const auto& player = *printData[i];
-				ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
-				ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
-
-				std::optional<ImGuiDesktop::ScopeGuards::StyleColor> textColor;
-				if (player.GetConnectionState() != PlayerStatusState::Active || player.GetName().empty())
-					textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
-				else if (player.GetSteamID() == m_Settings.m_LocalSteamID)
-					textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYou);
-
-				char buf[32];
-				if (!player.GetUserID().has_value())
+				for (IPlayer* playerPtr : m_WorldState->GeneratePlayerPrintData())
 				{
-					buf[0] = '?';
-					buf[1] = '\0';
-				}
-				else if (auto result = mh::to_chars(buf, player.GetUserID().value()))
-					*result.ptr = '\0';
-				else
-					continue;
+					IPlayer& player = *playerPtr;
+					ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
+					ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
 
-				// Selectable
-				{
-					ImVec4 bgColor = [&]() -> ImVec4
+					std::optional<ImGuiDesktop::ScopeGuards::StyleColor> textColor;
+					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetName().empty())
+						textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
+					else if (player.GetSteamID() == m_Settings.m_LocalSteamID)
+						textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYou);
+
+					char buf[32];
+					if (!player.GetUserID().has_value())
 					{
-						if (IsWorldValid())
+						buf[0] = '?';
+						buf[1] = '\0';
+					}
+					else if (auto result = mh::to_chars(buf, player.GetUserID().value()))
+						*result.ptr = '\0';
+					else
+						continue;
+
+					// Selectable
+					{
+						ImVec4 bgColor = [&]() -> ImVec4
 						{
-							auto& modLogic = GetModLogic();
-							switch (modLogic.GetTeamShareResult(player))
+							if (IsWorldValid())
 							{
-							case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_FriendlyTeam;
-							case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_EnemyTeam;
+								auto& modLogic = GetModLogic();
+								switch (modLogic.GetTeamShareResult(player))
+								{
+								case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_FriendlyTeam;
+								case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_EnemyTeam;
+								}
 							}
-						}
 
-						switch (player.GetTeam())
+							switch (player.GetTeam())
+							{
+							case TFTeam::Red:   return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
+							case TFTeam::Blue:  return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
+							default: return ImVec4(0.5f, 0.5f, 0.5f, 0);
+							}
+						}();
+
+						const auto& modLogic = GetModLogic();
+						if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Cheater))
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheater));
+						else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Suspicious))
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious));
+						else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Exploiter))
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter));
+						else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Racist))
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacist));
+
+						ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
+
+						bgColor.w = std::min(bgColor.w + 0.25f, 0.8f);
+						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeHovered(ImGuiCol_HeaderHovered, bgColor);
+
+						bgColor.w = std::min(bgColor.w + 0.5f, 1.0f);
+						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
+						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
+						ImGui::NextColumn();
+					}
+
+					OnDrawScoreboardContextMenu(player);
+
+					// player names column
+					{
+						if (player.GetName().empty())
+							ImGui::TextUnformatted("<Unknown>");
+						else
+							ImGui::TextUnformatted(player.GetName());
+
+						ImGui::NextColumn();
+					}
+
+					// Kills column
+					{
+						if (player.GetName().empty())
+							ImGui::TextRightAligned("?");
+						else
+							ImGui::TextRightAlignedF("%u", player.GetScores().m_Kills);
+
+						ImGui::NextColumn();
+					}
+
+					// Deaths column
+					{
+						if (player.GetName().empty())
+							ImGui::TextRightAligned("?");
+						else
+							ImGui::TextRightAlignedF("%u", player.GetScores().m_Deaths);
+
+						ImGui::NextColumn();
+					}
+
+					// Connected time column
+					{
+						if (player.GetName().empty())
 						{
-						case TFTeam::Red:   return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
-						case TFTeam::Blue:  return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
-						default: return ImVec4(0.5f, 0.5f, 0.5f, 0);
+							ImGui::TextRightAligned("?");
 						}
-					}();
+						else
+						{
+							ImGui::TextRightAlignedF("%u:%02u",
+								std::chrono::duration_cast<std::chrono::minutes>(player.GetConnectedTime()).count(),
+								std::chrono::duration_cast<std::chrono::seconds>(player.GetConnectedTime()).count() % 60);
+						}
 
-					const auto& modLogic = GetModLogic();
-					if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Cheater))
-						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheater));
-					else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Suspicious))
-						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious));
-					else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Exploiter))
-						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter));
-					else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Racist))
-						bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacist));
-
-					ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
-
-					bgColor.w = std::min(bgColor.w + 0.25f, 0.8f);
-					ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeHovered(ImGuiCol_HeaderHovered, bgColor);
-
-					bgColor.w = std::min(bgColor.w + 0.5f, 1.0f);
-					ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
-					ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
-					ImGui::NextColumn();
-				}
-
-				OnDrawScoreboardContextMenu(player);
-
-				// player names column
-				{
-					if (player.GetName().empty())
-						ImGui::TextUnformatted("<Unknown>");
-					else
-						ImGui::TextUnformatted(player.GetName());
-
-					ImGui::NextColumn();
-				}
-
-				// Kills column
-				{
-					if (player.GetName().empty())
-						ImGui::TextRightAligned("?");
-					else
-						ImGui::TextRightAlignedF("%u", player.GetScores().m_Kills);
-
-					ImGui::NextColumn();
-				}
-
-				// Deaths column
-				{
-					if (player.GetName().empty())
-						ImGui::TextRightAligned("?");
-					else
-						ImGui::TextRightAlignedF("%u", player.GetScores().m_Deaths);
-
-					ImGui::NextColumn();
-				}
-
-				// Connected time column
-				{
-					if (player.GetName().empty())
-					{
-						ImGui::TextRightAligned("?");
-					}
-					else
-					{
-						ImGui::TextRightAlignedF("%u:%02u",
-							std::chrono::duration_cast<std::chrono::minutes>(player.GetConnectedTime()).count(),
-							std::chrono::duration_cast<std::chrono::seconds>(player.GetConnectedTime()).count() % 60);
+						ImGui::NextColumn();
 					}
 
-					ImGui::NextColumn();
-				}
+					// Ping column
+					{
+						if (player.GetName().empty())
+							ImGui::TextRightAligned("?");
+						else
+							ImGui::TextRightAlignedF("%u", player.GetPing());
 
-				// Ping column
-				{
-					if (player.GetName().empty())
-						ImGui::TextRightAligned("?");
-					else
-						ImGui::TextRightAlignedF("%u", player.GetPing());
+						ImGui::NextColumn();
+					}
 
-					ImGui::NextColumn();
-				}
+					// Steam ID column
+					{
+						if (player.GetSteamID().Type != SteamAccountType::Invalid)
+							textColor.reset(); // Draw steamid in normal color
 
-				// Steam ID column
-				{
-					if (player.GetSteamID().Type != SteamAccountType::Invalid)
-						textColor.reset(); // Draw steamid in normal color
-
-					ImGui::TextUnformatted(player.GetSteamID().str());
-					ImGui::NextColumn();
+						ImGui::TextUnformatted(player.GetSteamID().str());
+						ImGui::NextColumn();
+					}
 				}
 			}
 		}
@@ -750,8 +755,11 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 }
 
-size_t MainWindow::WorldStateExtra::GeneratePlayerPrintData(const IPlayer** begin, const IPlayer** end) const
+mh::generator<IPlayer*> MainWindow::WorldStateExtra::GeneratePlayerPrintData()
 {
+	IPlayer* printData[33]{};
+	auto begin = std::begin(printData);
+	auto end = std::end(printData);
 	assert(begin <= end);
 	auto& world = m_WorldState;
 	assert(static_cast<size_t>(end - begin) >= world.GetApproxLobbyMemberCount());
@@ -760,7 +768,7 @@ size_t MainWindow::WorldStateExtra::GeneratePlayerPrintData(const IPlayer** begi
 
 	{
 		auto* current = begin;
-		for (const IPlayer* member : world.GetLobbyMembers())
+		for (IPlayer* member : world.GetLobbyMembers())
 		{
 			assert(member);
 			*current = member;
@@ -772,7 +780,7 @@ size_t MainWindow::WorldStateExtra::GeneratePlayerPrintData(const IPlayer** begi
 		{
 			// We seem to have either an empty lobby or we're playing on a community server.
 			// Just find the most recent status updates.
-			for (const IPlayer* playerData : world.GetPlayers())
+			for (IPlayer* playerData : world.GetPlayers())
 			{
 				assert(playerData);
 				if (playerData->GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
@@ -819,7 +827,8 @@ size_t MainWindow::WorldStateExtra::GeneratePlayerPrintData(const IPlayer** begi
 			return false;
 		});
 
-	return static_cast<size_t>(end - begin);
+	for (auto it = begin; it != end; ++it)
+		co_yield *it;
 }
 
 void MainWindow::UpdateServerPing(time_point_t timestamp)

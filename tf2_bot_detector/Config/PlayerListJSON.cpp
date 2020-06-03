@@ -279,8 +279,19 @@ const PlayerAttributesList* PlayerListJSON::FindPlayerAttributes(const SteamID& 
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const
 {
+	return HasPlayerAttribute(id, { attribute });
+}
+
+bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const
+{
 	if (auto found = FindPlayerAttributes(id))
-		return found->HasAttribute(attribute);
+	{
+		for (auto attr : attributes)
+		{
+			if (found->HasAttribute(attr))
+				return true;
+		}
+	}
 
 	return false;
 }

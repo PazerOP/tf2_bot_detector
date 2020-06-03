@@ -71,8 +71,10 @@ namespace tf2_bot_detector
 
 	template<typename T> concept ModifyPlayerCallback = requires(T x)
 	{
+#ifndef __INTELLISENSE__
 		std::invocable<T, PlayerListData&>;
 		{ x(std::declval<PlayerListData>()) } -> std::same_as<ModifyPlayerAction>;
+#endif
 	};
 
 	class PlayerListJSON final
@@ -86,6 +88,7 @@ namespace tf2_bot_detector
 		const PlayerListData* FindPlayerData(const SteamID& id) const;
 		const PlayerAttributesList* FindPlayerAttributes(const SteamID& id) const;
 		bool HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const;
+		bool HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const;
 
 		template<typename TFunc>
 		ModifyPlayerResult ModifyPlayer(const SteamID& id, TFunc&& func)
