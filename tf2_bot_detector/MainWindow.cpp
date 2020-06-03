@@ -636,6 +636,21 @@ void MainWindow::OnDrawMenuBar()
 #endif
 
 #ifdef _DEBUG
+	if (ImGui::BeginMenu("Debug"))
+	{
+		if (ImGui::MenuItem("Crash"))
+		{
+			struct Test
+			{
+				int i;
+			};
+
+			Test* testPtr = nullptr;
+			testPtr->i = 42;
+		}
+		ImGui::EndMenu();
+	}
+
 #ifdef _DEBUG
 	static bool s_ImGuiDemoWindow = false;
 	static bool s_ImPlotDemoWindow = false;

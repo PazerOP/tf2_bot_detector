@@ -1,8 +1,9 @@
-#include "Windows.h"
+#include "../Shell.h"
 #include "Log.h"
 
 #include <mh/text/string_insertion.hpp>
 
+#include <filesystem>
 #include <memory>
 
 #include <wrl/client.h>
