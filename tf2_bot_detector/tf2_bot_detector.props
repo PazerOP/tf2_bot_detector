@@ -3,7 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>../imgui_desktop/repo/imgui_desktop/include;../imgui_desktop/repo/imgui/repo/;../mh_stuff/cpp/include;../implot/repo/;../submodules/nlohmann_json/include;$(IncludePath)</IncludePath>
+    <IncludePath>../submodules/imgui_desktop/imgui_desktop/include;../submodules/imgui_desktop/imgui/repo/;../submodules/mh_stuff/cpp/include;../submodules/implot/;../submodules/nlohmann_json/include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>

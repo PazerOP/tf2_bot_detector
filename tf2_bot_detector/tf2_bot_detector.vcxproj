@@ -75,13 +75,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\imgui_desktop\repo\imgui_desktop\imgui_desktop.vcxproj">
-      <Project>{331f564c-1ca1-4c0c-9352-a2e51c7a9603}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\implot\repo\implot.cpp" />
-    <ClCompile Include="..\implot\repo\implot_demo.cpp" />
+    <ClCompile Include="..\submodules\implot\implot.cpp" />
+    <ClCompile Include="..\submodules\implot\implot_demo.cpp" />
     <ClCompile Include="ActionManager.cpp" />
     <ClCompile Include="Actions.cpp" />
     <ClCompile Include="Clock.cpp" />
@@ -106,7 +101,7 @@
     <ClCompile Include="WorldState.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\implot\repo\implot.h" />
+    <ClInclude Include="..\submodules\implot\implot.h" />
     <ClInclude Include="ActionManager.h" />
     <ClInclude Include="Actions.h" />
     <ClInclude Include="Clock.h" />
@@ -139,6 +134,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\submodules\imgui_desktop\imgui_desktop\imgui_desktop.vcxproj">
+      <Project>{331f564c-1ca1-4c0c-9352-a2e51c7a9603}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
