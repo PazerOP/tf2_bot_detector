@@ -86,7 +86,6 @@ namespace
 		s_ExceptionHandlerThread.join();
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
-
 }
 
 #endif
