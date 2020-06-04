@@ -108,9 +108,15 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		}
 
 #ifdef _DEBUG
-		ImGui::Separator();
+		if (IsWorldValid())
+		{
+			ImGui::Separator();
 
-		ImGui::MenuItem("Is TFBD User", nullptr, &ModeratorLogic::GetIsTFBDUser(player));
+			auto& modLogic = GetModLogic();
+			bool isRunning = modLogic.IsUserRunningTool(player);
+			if (ImGui::MenuItem("Is Running TFBD", nullptr, isRunning))
+				modLogic.SetUserRunningTool(player, !isRunning);
+		}
 #endif
 	}
 }

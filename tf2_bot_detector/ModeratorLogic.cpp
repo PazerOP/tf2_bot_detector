@@ -71,11 +71,10 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 				std::regex::optimize);
 
 			if (std::regex_match(msg.begin(), msg.end(), s_IngameWarning) ||
-				std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning) ||
-				msg == "gamers are an important part of our society")
+				std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning))
 			{
 				Log("Detected message from "s << player << " as another instance of TF2BD: "s << std::quoted(msg));
-				player.GetOrCreateData<PlayerExtraData>().m_IsRunningTool = true;
+				SetUserRunningTool(player, true);
 
 				if (player.GetUserID() < localPlayer->GetUserID())
 				{
@@ -469,7 +468,7 @@ const IPlayer* ModeratorLogic::GetBotLeader() const
 		if (player->GetUserID() >= localUserID)
 			continue;
 
-		if (auto data = player->GetData<PlayerExtraData>(); data && data->m_IsRunningTool)
+		if (IsUserRunningTool(*player))
 			return player;
 	}
 
@@ -486,12 +485,17 @@ duration_t ModeratorLogic::TimeToCheaterWarning() const
 	return m_NextCheaterWarningTime - m_World->GetCurrentTime();
 }
 
-#ifdef _DEBUG
-bool& ModeratorLogic::GetIsTFBDUser(IPlayer& player)
+bool ModeratorLogic::IsUserRunningTool(const SteamID& id) const
 {
-	return player.GetOrCreateData<PlayerExtraData>().m_IsRunningTool;
+	return m_PlayersRunningTool.contains(id);
 }
-#endif
+void ModeratorLogic::SetUserRunningTool(const SteamID& id, bool isRunningTool)
+{
+	if (isRunningTool)
+		m_PlayersRunningTool.insert(id);
+	else
+		m_PlayersRunningTool.erase(id);
+}
 
 ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :
 	m_World(&world),

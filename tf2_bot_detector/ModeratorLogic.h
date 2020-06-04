@@ -6,6 +6,7 @@
 #include "Config/Rules.h"
 
 #include <optional>
+#include <unordered_set>
 #include <vector>
 
 namespace tf2_bot_detector
@@ -42,9 +43,8 @@ namespace tf2_bot_detector
 		duration_t TimeToConnectingCheaterWarning() const;
 		duration_t TimeToCheaterWarning() const;
 
-#ifdef _DEBUG
-		static bool& GetIsTFBDUser(IPlayer& player);
-#endif
+		bool IsUserRunningTool(const SteamID& id) const;
+		void SetUserRunningTool(const SteamID& id, bool isRunningTool = true);
 
 	private:
 		WorldState* m_World = nullptr;
@@ -57,8 +57,6 @@ namespace tf2_bot_detector
 			// (we don't know the cheater's name yet, so don't spam if they can't do anything about it yet)
 			bool m_PreWarnedOtherTeam = false;
 
-			bool m_IsRunningTool = false;
-
 			// If we're not the bot leader, prevent this player from triggering
 			// any warnings (but still participates in other warnings!!!)
 			std::optional<time_point_t> m_ConnectingWarningDelayEnd;
@@ -70,6 +68,9 @@ namespace tf2_bot_detector
 				duration_t m_TotalTransmissions{};
 			} m_Voice;
 		};
+
+		// Steam IDs of players that we think are running the tool.
+		std::unordered_set<SteamID> m_PlayersRunningTool;
 
 		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 		void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
