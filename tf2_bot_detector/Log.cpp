@@ -20,6 +20,7 @@ namespace tf2_bot_detector
 {
 	static void LogToStream(const std::string_view& msg, std::ostream& output)
 	{
+		std::lock_guard lock(s_LogMutex);
 		tm t = ToTM(s_LogTimestamp);
 		output << '[' << std::put_time(&t, "%T") << "] " << msg << std::endl;
 	}
@@ -27,7 +28,6 @@ namespace tf2_bot_detector
 	static void LogInternal(std::string msg, const LogMessageColor& color, std::ostream& output)
 	{
 		std::lock_guard lock(s_LogMutex);
-
 		LogToStream(msg, output);
 		s_LogMessages.push_back({ s_LogTimestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 	}
@@ -79,7 +79,7 @@ void tf2_bot_detector::LogError(std::string msg)
 
 void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 {
-	LogInternal(std::move(msg), color, &GetLogFile());
+	LogInternal(std::move(msg), color, GetLogFile());
 }
 
 void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
@@ -88,7 +88,6 @@ void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 	Log(std::move(msg), color);
 #else
 	LogToStream(msg, GetLogFile());
-	LogInternal(std::move(msg), color, nullptr);
 #endif
 }
 

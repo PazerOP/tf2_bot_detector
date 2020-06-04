@@ -302,11 +302,6 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& 
 			DebugLog("We're not bot leader: Starting delay for connecting cheater "s << cheater);
 			cheaterData.m_ConnectingWarningDelayEnd = now + CHEATER_WARNING_DELAY;
 		}
-
-		{
-			needsWarning = true;
-			break;
-		}
 	}
 
 	if (!needsWarning || m_Settings->m_Unsaved.m_Muted)
