@@ -120,17 +120,20 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const s
 }
 
 template<typename TIter>
-static mh::generator<std::string> GetJoinedStrings(const TIter& begin, const TIter& end, const std::string_view& separator)
+static std::vector<std::string> GetJoinedStrings(const TIter& begin, const TIter& end, const std::string_view& separator)
 {
-	std::string retVal;
+	std::vector<std::string> retVal;
+	std::string strBuf;
 	for (auto it = begin; it != end; ++it)
 	{
 		if (it != begin)
-			retVal << separator;
+			strBuf << separator;
 
-		retVal << *it;
-		co_yield retVal;
+		strBuf << *it;
+		retVal.push_back(strBuf);
 	}
+
+	return retVal;
 }
 
 void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
