@@ -1,5 +1,5 @@
 # TF2 Bot Detector
-Automatically detects and votekicks cheaters/bots in TF2 casual.
+Automatically detects and votekicks cheaters/bots in TF2 casual. https://discord.gg/W8ZSh3Z
 
 ![Example Screenshot](https://user-images.githubusercontent.com/6569500/83914141-7e21e300-a725-11ea-9686-1b38cbbc35af.png)
 
@@ -16,6 +16,8 @@ No. It does not modify the game or OS memory in any way. It is only using built-
 Just download the latest release and extract it somewhere (preferably not in your tf folder) and open the tool. It will prompt you to enter your Steam ID and the path to your tf folder. After that, running the tool and the game at the same time is all you need to do.
 
 ## Troubleshooting
+
+You can always visit the discord to get support or suggest new features: https://discord.gg/W8ZSh3Z
 
 ### Sometimes I get these popups!
 
