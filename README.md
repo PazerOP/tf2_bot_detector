@@ -9,6 +9,11 @@ Support and chat discord: https://discord.gg/W8ZSh3Z
 
 ![Example Screenshot](https://user-images.githubusercontent.com/6569500/83914141-7e21e300-a725-11ea-9686-1b38cbbc35af.png)
 
+### Gta san andreas HOMER SIMPSON
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=WLiglYqHlkI
+" target="_blank"><img src="http://img.youtube.com/vi/WLiglYqHlkI/0.jpg" 
+ width="240" height="180" border="10" /></a>
+
 ### What does it do?
 If a cheater is on your team, calls a votekick against them. If a cheater is on the other team, sends a chat message telling the other team to kick their cheater.
 
