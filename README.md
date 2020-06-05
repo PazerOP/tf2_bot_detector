@@ -22,6 +22,10 @@ It monitors the console output (saved to a log file) to get information about th
 
 This tool does not currently update automatically. Future releases may support that. For now, the latest release can always be found at https://github.com/PazerOP/tf2_bot_detector/releases/latest. New versions can simply be extracted over top of an existing version, overwriting all conflicting files. Your personal settings are stored in different files and will not be overwritten.
 
+### Customization
+
+Info about customizing the tool can be found here: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization.
+
 ## Troubleshooting
 
 You can always visit the discord to get support or suggest new features: https://discord.gg/W8ZSh3Z
