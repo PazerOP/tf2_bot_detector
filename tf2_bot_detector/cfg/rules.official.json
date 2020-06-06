@@ -23,7 +23,42 @@
 					"patterns": [
 						"MYG)T"
 					]
-				}
+				},
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"Church of G0T"
+					]
+				},
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"g0tb0t"
+					]
+				},
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"myg0t"
+					]
+				},
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"t0gym"
+					]
+				},
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"myg()t"
+					]
+				},
 			}
 		},
 		{
@@ -56,6 +91,109 @@
 					"mode": "regex",
 					"patterns": [
 						"Rick May Was A Pedo Bot \\d+"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) Engineering Gaming bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"engineer gaming"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) Engineering Gaming bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"engineer gaming"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) Donation scam bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"Matt is Donating!"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) /id/raspy_on_osu bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "equal",
+					"patterns": [
+						"/id/raspy_on_osu"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot) bible micspam bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "equal",
+					"patterns": [
+						"youtube.com/watch?v=KDhsaKzXcuo"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "(catbot?) Medicbots",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "equal",
+					"patterns": [
+						"potatonator",
+						"BIG CHUNGUS"
 					]
 				}
 			}
