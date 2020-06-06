@@ -105,6 +105,4 @@ auto tf2_bot_detector::GetLogMsgs() -> mh::generator<const LogMessage*>
 }
 
 LogMessageColor::LogMessageColor(const ImVec4& vec) :
-	LogMessageColor(vec.x, vec.y, vec.z, vec.w)
-{
-}
+	LogMessageColor(vec.x, vec.y, vec.z, vec.w) {}
