@@ -136,7 +136,7 @@ bool ActionManager::ProcessSimpleCommands(const Writer& writer) const
 		else
 			cmdLine << ' ';
 
-		cmdLine << '+' << cmd.first;
+		cmdLine << cmd.first;
 
 		if (!cmd.second.empty())
 		{
@@ -151,6 +151,8 @@ bool ActionManager::ProcessSimpleCommands(const Writer& writer) const
 			if (needsQuotes)
 				cmdLine << '"';
 		}
+
+		cmdLine << ";";
 	}
 
 	// A simple command, we can pass this directly to the engine
@@ -222,7 +224,7 @@ bool ActionManager::ProcessComplexCommands(const Writer& writer)
 		m_TempCfgFiles.emplace(std::hash<std::string>{}(cfgFileContents), m_LastUpdateIndex);
 	}
 
-	return SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
+	return SendCommandToGame("exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
 }
 
 void ActionManager::Update()
@@ -311,54 +313,30 @@ bool ActionManager::SendCommandToGame(const std::string_view& cmd) const
 	if (cmd.empty())
 		return true;
 
-	if (!FindWindowA("Valve001", nullptr))
+	HWND engineHWND;
+
+	if (!(engineHWND = FindWindowA("Valve001", nullptr)))
 	{
 		Log("Attempted to send command \""s << cmd << "\" to game, but game is not running", { 1, 1, 0.8f });
 		return false;
 	}
 
-	const std::filesystem::path hl2Dir = m_Settings->m_TFDir / "..";
-	const std::filesystem::path hl2ExePath = hl2Dir / "hl2.exe";
+	// This is how "-hijack" works internally. No sense in launching a new instance
+	// of the game to accomplish something so simple.
 
-	std::wstring cmdLine;
-	cmdLine << hl2ExePath << " -game tf -hijack " << cmd;
+	COPYDATASTRUCT copyData;
+	copyData.cbData = (DWORD)cmd.length();
+	copyData.dwData = 0;
+	copyData.lpData = (void*)cmd.data();
 
-	STARTUPINFOW si{};
-	si.cb = sizeof(si);
-
-	PROCESS_INFORMATION pi{};
-
-	auto result = CreateProcessW(
-		nullptr,             // application/module name
-		cmdLine.data(),      // command line
-		nullptr,             // process attributes
-		nullptr,             // thread attributes
-		FALSE,               // inherit handles
-		IDLE_PRIORITY_CLASS, // creation flags
-		nullptr,             // environment
-		hl2Dir.c_str(),      // working directory
-		&si,                 // STARTUPINFO
-		&pi                  // PROCESS_INFORMATION
-		);
-
-	if (!result)
+	if (!SendMessage(engineHWND, WM_COPYDATA, 0, (LPARAM)&copyData))
 	{
-		const auto error = GetLastError();
-		std::string msg = "Failed to send command to hl2.exe: CreateProcess returned "s
-			<< result << ", GetLastError returned " << error;
-		throw std::runtime_error(msg);
+		Log("Attempted to send command \""s << cmd << "\" to game, but the message failed to send", { 1, 1, 0.8f });
+		return false;
 	}
 
 	if (m_Settings->m_Unsaved.m_DebugShowCommands)
 		Log("Game command: "s << std::quoted(cmd), { 1, 1, 1, 0.6f });
-
-	//WaitForSingleObject(pi.hProcess, INFINITE);
-
-	// We will never need these, close them now
-	if (!CloseHandle(pi.hProcess))
-		throw std::runtime_error(__FUNCTION__ ": Failed to close process");
-	if (!CloseHandle(pi.hThread))
-		throw std::runtime_error(__FUNCTION__ ": Failed to close process thread");
 
 	return true;
 }
