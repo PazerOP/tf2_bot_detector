@@ -68,7 +68,7 @@ bool VoiceBanUtils::WriteVoiceBans()
 bool VoiceBanUtils::IsBanned(const tf2_bot_detector::SteamID& id)
 {
     char searchString[SIGNED_GUID_LEN] = {0};
-    strcpy_s(searchString, SIGNED_GUID_LEN, id.str().c_str());
+    memcpy(searchString, id.str().c_str(), id.str().length());
 
     for (VoiceBanPlayerID playerId : m_BanList) {
         if (strcmp(searchString, playerId.guid) == 0)
@@ -85,7 +85,7 @@ bool VoiceBanUtils::MarkBan(const tf2_bot_detector::SteamID& id)
     VoiceBanPlayerID playerId;
 
     memset(playerId.guid, 0, SIGNED_GUID_LEN);
-    strcpy_s(playerId.guid, SIGNED_GUID_LEN, id.str().c_str());
+    memcpy(playerId.guid, id.str().c_str(), id.str().length());
 
     m_BanList.push_back(playerId);
 
