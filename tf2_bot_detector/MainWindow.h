@@ -13,6 +13,7 @@
 #include "PlayerStatus.h"
 #include "TFConstants.h"
 #include "IConsoleLineListener.h"
+#include "VoiceBanUtils.h"
 
 #include <imgui_desktop/Window.h>
 
@@ -156,5 +157,6 @@ namespace tf2_bot_detector
 		Settings m_Settings;
 		ActionManager m_ActionManager;
 		SetupFlow m_SetupFlow;
+                VoiceBanUtils m_VoiceBanUtils;
 	};
 }

@@ -80,7 +80,9 @@ namespace tf2_bot_detector
 	class PlayerListJSON final
 	{
 	public:
-		PlayerListJSON(const Settings& settings);
+		using PlayerMap_t = std::map<SteamID, PlayerListData>;
+		
+                PlayerListJSON(const Settings& settings);
 
 		bool LoadFiles();
 		void SaveFile() const;
@@ -103,9 +105,9 @@ namespace tf2_bot_detector
 		ModifyPlayerResult ModifyPlayer(const SteamID& id, ModifyPlayerAction(*func)(PlayerListData& data, const void* userData),
 			const void* userData = nullptr);
 
+                const PlayerMap_t& GetOfficialPlayerList() const { return m_OfficialPlayerList; };
+                const PlayerMap_t& GetOtherPlayerLists() const { return m_OtherPlayerLists; };
 	private:
-		using PlayerMap_t = std::map<SteamID, PlayerListData>;
-
 		bool LoadFile(const std::filesystem::path& filename, PlayerMap_t& map) const;
 
 		bool IsOfficial() const;

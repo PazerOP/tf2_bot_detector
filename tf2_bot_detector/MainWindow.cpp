@@ -6,6 +6,7 @@
 #include "PeriodicActions.h"
 #include "Log.h"
 #include "PathUtils.h"
+#include "VoiceBanUtils.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -27,7 +28,8 @@ using namespace std::string_view_literals;
 
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
-	m_ActionManager(m_Settings)
+	m_ActionManager(m_Settings),
+        m_VoiceBanUtils(m_Settings)
 {
 	m_OpenTime = clock_t::now();
 
@@ -531,6 +533,34 @@ void MainWindow::OnDrawSettingsPopup()
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
 		}
+
+                // Add cheaters to mute list
+                {
+                        ImGui::Separator();
+
+                        if(ImGui::Button("Voice ban known cheaters in TF2")) {
+                            ImGui::OpenPopup("Voice Ban Warning");
+                        }
+
+                        if (ImGui::BeginPopupModal("Voice Ban Warning"))
+                        {
+                            ImGui::Text("This button must be used before starting TF2; it will have no effect while TF2 is running. Continue?");
+                            
+                            if (ImGui::Button("Continue")) {
+                                m_VoiceBanUtils.ReadVoiceBans();
+                                m_VoiceBanUtils.BanCheaters();
+                                m_VoiceBanUtils.WriteVoiceBans();
+
+                                ImGui::CloseCurrentPopup();
+                            }
+
+                            if (ImGui::Button("Cancel"))
+                                ImGui::CloseCurrentPopup();
+
+                            ImGui::EndPopup();
+                        }
+
+                }
 
 		ImGui::EndPopup();
 	}

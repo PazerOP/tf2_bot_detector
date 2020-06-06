@@ -6,6 +6,7 @@ using namespace tf2_bot_detector;
 VoiceBanUtils::VoiceBanUtils(const Settings& settings)
     : m_Settings(&settings)
     , m_BanList()
+	, m_PlayerList(settings)
 {
     m_VoiceDataPath = m_Settings->m_TFDir / "voice_ban.dt";
 }
@@ -29,7 +30,7 @@ bool VoiceBanUtils::ReadVoiceBans()
     int contentSize = std::filesystem::file_size(m_VoiceDataPath) - sizeof(version);
     int idsToRead = contentSize / SIGNED_GUID_LEN;
 
-    m_BanList = std::vector<VoiceBanPlayerID>();
+    m_BanList = std::list<VoiceBanPlayerID>();
 
     while (idsToRead > 0) {
         VoiceBanPlayerID playerId;
@@ -66,8 +67,8 @@ bool VoiceBanUtils::WriteVoiceBans()
 
 bool VoiceBanUtils::IsBanned(const tf2_bot_detector::SteamID& id)
 {
-    char searchString[32] = {0};
-    strcpy_s(searchString, id.str().c_str());
+    char searchString[SIGNED_GUID_LEN] = {0};
+    strcpy_s(searchString, SIGNED_GUID_LEN, id.str().c_str());
 
     for (VoiceBanPlayerID playerId : m_BanList) {
         if (strcmp(searchString, playerId.guid) == 0)
@@ -82,13 +83,33 @@ bool VoiceBanUtils::MarkBan(const tf2_bot_detector::SteamID& id)
     if (IsBanned(id)) return false;
 
     VoiceBanPlayerID playerId;
-    const char* guid = id.str().c_str();
 
     memset(playerId.guid, 0, SIGNED_GUID_LEN);
-    strcpy_s(playerId.guid, guid);
+    strcpy_s(playerId.guid, SIGNED_GUID_LEN, id.str().c_str());
 
     m_BanList.push_back(playerId);
 
     return true;
 }
 
+void VoiceBanUtils::BanCheaters()
+{
+    m_PlayerList.LoadFiles();
+
+    Log(std::string("Muting cheaters from saved list ..."));
+
+    #define BAN_FROM_LIST(LIST)                                                 \
+    for (const auto& [steamID, player]: LIST)                                   \
+    {                                                                           \
+        if (player.m_Attributes.HasAttribute(PlayerAttributes::Cheater)) {      \
+            if (MarkBan(steamID)) {                                             \
+                Log(std::string("Muted ") << steamID);                          \
+            } else {                                                            \
+                LogWarning(std::string("Already muted ") << steamID);           \
+            }                                                                   \
+        }                                                                       \
+    }                                                                           
+
+    BAN_FROM_LIST(m_PlayerList.GetOfficialPlayerList())
+    BAN_FROM_LIST(m_PlayerList.GetOtherPlayerLists())
+}
