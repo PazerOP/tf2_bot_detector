@@ -1,6 +1,7 @@
 #include "PlayerListJSON.h"
 #include "Log.h"
 #include "Settings.h"
+#include "JSONHelpers.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -148,6 +149,12 @@ bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t
 		}
 	}
 
+	if (int version; !try_get_to(json, "version", version) || version < 2)
+	{
+		// Discard the file. Can't trust the bans due to an exploit.
+		return true;
+	}
+
 	for (const auto& player : json.at("players"))
 	{
 		const SteamID steamID(player.at("steamid").get<std::string>());
@@ -236,6 +243,8 @@ void PlayerListJSON::SaveFile() const
 	{
 		{ "$schema", "./schema/playerlist.schema.json" }
 	};
+
+	json["version"] = VERSION;
 
 	auto& players = json["players"];
 	players = json.array();

@@ -13,7 +13,7 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"www.myg0t.gg"
+						"myg0t.gg"
 					]
 				},
 				"mode": "match_any",

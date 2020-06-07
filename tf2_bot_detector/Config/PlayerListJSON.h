@@ -112,6 +112,8 @@ namespace tf2_bot_detector
 		PlayerMap_t& GetMutableList();
 		const PlayerMap_t* GetMutableList() const;
 
+		static constexpr int VERSION = 2;
+
 		PlayerMap_t m_OfficialPlayerList;
 		PlayerMap_t m_OtherPlayerLists;
 		std::optional<PlayerMap_t> m_UserPlayerList;

@@ -3,6 +3,7 @@
 
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <imgui_desktop/ScopeGuards.h>
 #include "ImGui_TF2BotDetector.h"
 
 #include <regex>
@@ -29,7 +30,7 @@ void GenericConsoleLine::Print() const
 	ImGui::TextUnformatted(m_Text.data(), m_Text.data() + m_Text.size());
 }
 
-ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string&& playerName, std::string&& message, bool isDead, bool isTeam) :
+ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead, bool isTeam) :
 	ConsoleLineBase(timestamp), m_PlayerName(std::move(playerName)), m_Message(std::move(message)), m_IsDead(isDead), m_IsTeam(isTeam)
 {
 	m_PlayerName.shrink_to_fit();
@@ -38,7 +39,7 @@ ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string&& playerNam
 
 std::unique_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
-	static const std::regex s_Regex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,32}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
+	static const std::regex s_Regex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,33}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
 
 	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
 	{
@@ -51,23 +52,28 @@ std::unique_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& 
 
 void ChatConsoleLine::Print() const
 {
-	if (m_IsDead)
+	const auto PrintLHS = [&]
 	{
-		ImGui::TextColoredUnformatted(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "*DEAD*");
+		if (m_IsDead)
+		{
+			ImGui::TextColoredUnformatted(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "*DEAD*");
+			ImGui::SameLine();
+		}
+
+		if (m_IsTeam)
+		{
+			ImGui::TextColoredUnformatted(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(TEAM)");
+			ImGui::SameLine();
+		}
+
+		ImGui::TextColoredUnformatted(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), m_PlayerName);
 		ImGui::SameLine();
-	}
 
-	if (m_IsTeam)
-	{
-		ImGui::TextColoredUnformatted(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(TEAM)");
+		ImGui::TextColoredUnformatted(ImVec4(1, 1, 1, 1), ": ");
 		ImGui::SameLine();
-	}
+	};
 
-	ImGui::TextColoredUnformatted(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), m_PlayerName);
-	ImGui::SameLine();
-
-	ImGui::TextColoredUnformatted(ImVec4(1, 1, 1, 1), ": ");
-	ImGui::SameLine();
+	PrintLHS();
 
 	const ImVec4 msgColor(0.8f, 0.8f, 0.8f, 1.0f);
 	if (m_Message.find('\n') == m_Message.npos)
@@ -77,18 +83,28 @@ void ChatConsoleLine::Print() const
 	else
 	{
 		// collapse groups of newlines in the message into red "(\n x <count>)" text
-		ImGui::NewLine();
+		bool firstLine = true;
 		for (size_t i = 0; i < m_Message.size(); )
 		{
+			if (!firstLine)
+			{
+				ImGuiDesktop::ScopeGuards::GlobalAlpha alpha(0.5f);
+				PrintLHS();
+			}
+
 			size_t nonNewlineEnd = std::min(m_Message.find('\n', i), m_Message.size());
-			ImGui::SameLine();
 			ImGui::TextUnformatted(m_Message.data() + i, m_Message.data() + nonNewlineEnd);
 
 			size_t newlineEnd = std::min(m_Message.find_first_not_of('\n', nonNewlineEnd), m_Message.size());
-			ImGui::SameLine();
-			ImGui::TextColored(ImVec4(1, 0.5f, 0.5f, 1.0f), "(\\n x %i)", (newlineEnd - i));
+
+			if (newlineEnd > nonNewlineEnd)
+			{
+				ImGui::SameLine();
+				ImGui::TextColored(ImVec4(1, 0.5f, 0.5f, 1.0f), "(\\n x %i)", (newlineEnd - nonNewlineEnd));
+			}
 
 			i = newlineEnd;
+			firstLine = false;
 		}
 	}
 }
@@ -533,4 +549,35 @@ std::unique_ptr<IConsoleLine> PingLine::TryParse(const std::string_view& text, t
 void PingLine::Print() const
 {
 	ImGui::Text("%4u : %s", m_Ping, m_PlayerName.c_str());
+}
+
+SVCUserMessageLine::SVCUserMessageLine(time_point_t timestamp, std::string address, uint16_t type, uint16_t bytes) :
+	BaseClass(timestamp), m_Address(std::move(address)), m_MsgType(type), m_MsgBytes(bytes)
+{
+}
+
+std::unique_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(Msg from (\d+\.\d+\.\d+\.\d+:\d+): svc_UserMessage: type (\d+), bytes (\d+))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		uint16_t type, bytes;
+		from_chars_throw(result[2], type);
+
+		// for now, we only care about SayText2
+		if (type != 4)
+			return nullptr;
+
+		from_chars_throw(result[3], bytes);
+
+		return std::make_unique<SVCUserMessageLine>(timestamp, result[1].str(), type, bytes);
+	}
+
+	return nullptr;
+}
+
+void SVCUserMessageLine::Print() const
+{
+	ImGui::Text("Msg from %s: svc_UserMessage: type %u, bytes %u", m_Address.c_str(), m_MsgType, m_MsgBytes);
 }

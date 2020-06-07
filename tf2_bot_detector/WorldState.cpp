@@ -19,6 +19,255 @@ WorldState::WorldState(const std::filesystem::path& conLogFile) :
 	m_ConsoleLineListeners.insert(this);
 }
 
+void WorldState::Parse(bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated)
+{
+	char buf[4096];
+	size_t readCount;
+	using clock = std::chrono::steady_clock;
+	const auto startTime = clock::now();
+	do
+	{
+		readCount = fread(buf, sizeof(buf[0]), std::size(buf), m_File.get());
+		if (readCount > 0)
+		{
+			m_FileLineBuf.append(buf, readCount);
+
+			auto parseEnd = m_FileLineBuf.cbegin();
+			ParseChunk(parseEnd, linesProcessed, snapshotUpdated, consoleLinesUpdated);
+
+			m_ParsedLineCount += std::count(m_FileLineBuf.cbegin(), parseEnd, '\n');
+			m_FileLineBuf.erase(m_FileLineBuf.begin(), parseEnd);
+		}
+
+		if (auto elapsed = clock::now() - startTime; elapsed >= 50ms)
+			break;
+
+	} while (readCount > 0);
+}
+
+auto WorldState::ParseLine(striter& regexBegin, std::unique_ptr<IConsoleLine>& parsed) -> ParseLineResult
+{
+	auto retVal = ParseLineResult::Success;
+
+	const auto parsedType = parsed->GetType();
+	if (parsedType == ConsoleLineType::SVC_UserMessage)
+	{
+		auto& usrMsg = static_cast<const SVCUserMessageLine&>(*parsed);
+		if (usrMsg.GetUserMessageType() == 4)
+		{
+			// SayText2
+			//Log("Detected usermsg type "s << usrMsg.GetUserMessageType()
+			//	<< ", " << usrMsg.GetUserMessageBytes() << " bytes, expected "
+			//	<< CalcCharacters(usrMsg) << " characters");
+
+			//assert(!m_LastUserMsgLine);
+			m_LastUserMsgLine = &usrMsg;
+		}
+	}
+	else if (parsedType == ConsoleLineType::Chat)
+	{
+		auto& chatMsg = static_cast<const ChatConsoleLine&>(*parsed);
+		if (!m_LastUserMsgLine)
+		{
+			LogWarning("Skipping chat message line "s << chatMsg.GetPlayerName() << " :  "
+				<< std::quoted(chatMsg.GetMessage()) << " because there was no previous svc_UserMessage line.");
+			return ParseLineResult::Discard;
+		}
+
+		const auto expectedChars = CalcChatMessageCharacters(*m_LastUserMsgLine, chatMsg);
+
+		const auto charCount = chatMsg.GetPlayerName().size() + chatMsg.GetMessage().size();
+
+		if (expectedChars > charCount)
+		{
+			auto messageChars = expectedChars - chatMsg.GetPlayerName().size();
+
+			const auto msgBegin = regexBegin
+				+ GetChatMsgDecorationLength(chatMsg)
+				+ chatMsg.GetPlayerName().size()
+				+ 4 // " :  "
+				;
+
+			if (ptrdiff_t(messageChars) >= (m_FileLineBuf.cend() - msgBegin))
+			{
+				LogWarning("Attempted to seek past the end of the available regex area");
+				return ParseLineResult::Defer;
+			}
+			else
+			{
+				if (*(msgBegin + messageChars) != '\n')
+				{
+					if (messageChars > 0)
+						messageChars--;
+
+					if (*(msgBegin + messageChars) != '\n')
+						LogError("Failed to find a newline at the end of a chat message from "s << chatMsg.GetPlayerName());
+				}
+
+				auto parsed2 = std::make_unique<ChatConsoleLine>(chatMsg.GetTimestamp(), chatMsg.GetPlayerName(),
+					std::string(&*msgBegin, messageChars), chatMsg.IsDead(), chatMsg.IsTeam());
+				parsed = std::move(parsed2);
+				regexBegin = msgBegin + messageChars;
+				retVal = ParseLineResult::Modified;
+			}
+
+			Log("Used svc_UserMessage to expand chat message ("s << charCount
+				<< " chars -> " << expectedChars << " chars)");
+		}
+
+		if (parsed)
+		{
+			auto& chatMsg2 = static_cast<const ChatConsoleLine&>(*parsed);
+			DebugLog("Matched "s << std::quoted(chatMsg2.GetMessage()) << " with svc_UserMessage (" <<
+				m_LastUserMsgLine->GetUserMessageBytes() << " bytes)");
+		}
+		m_LastUserMsgLine = nullptr;
+	}
+
+	return retVal;
+}
+
+void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated)
+{
+	static const std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d):[ \n])regex", std::regex::optimize);
+
+	auto regexBegin = parseEnd;
+	std::smatch match;
+	while (std::regex_search(regexBegin, m_FileLineBuf.cend(), match, s_TimestampRegex))
+	{
+		ParseLineResult result{};
+		bool skipTimestampParse = false;
+		if (m_CurrentTimestamp.IsRecordedValid())
+		{
+			// If we have a valid snapshot, that means that there was a previously parsed
+			// timestamp. The contents of that line is the current timestamp match's prefix
+			// (the previous timestamp match was erased from the string)
+
+			TrySnapshot(snapshotUpdated);
+			linesProcessed = true;
+
+			const auto prefix = match.prefix();
+			//const auto suffix = match.suffix();
+			const std::string_view lineStr(&*prefix.first, prefix.length());
+			auto parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
+
+			if (parsed)
+			{
+				bool shouldProcess = true;
+				result = ParseLine(regexBegin, parsed);
+				if (result == ParseLineResult::Defer)
+				{
+					// Try again later
+					return;
+				}
+				else if (result == ParseLineResult::Success || result == ParseLineResult::Modified)
+				{
+					for (auto listener : m_ConsoleLineListeners)
+						listener->OnConsoleLineParsed(*this, *parsed);
+
+					m_ConsoleLines.push_back(std::move(parsed));
+					consoleLinesUpdated = true;
+				}
+			}
+			else
+			{
+				for (auto listener : m_ConsoleLineListeners)
+					listener->OnConsoleLineUnparsed(*this, lineStr);
+			}
+		}
+
+		if (result != ParseLineResult::Modified)
+		{
+			std::tm time{};
+			time.tm_isdst = -1;
+			from_chars_throw(match[1], time.tm_mon);
+			time.tm_mon -= 1;
+
+			from_chars_throw(match[2], time.tm_mday);
+			from_chars_throw(match[3], time.tm_year);
+			time.tm_year -= 1900;
+
+			from_chars_throw(match[4], time.tm_hour);
+			from_chars_throw(match[5], time.tm_min);
+			from_chars_throw(match[6], time.tm_sec);
+
+			m_CurrentTimestamp.SetRecorded(clock_t::from_time_t(std::mktime(&time)));
+			regexBegin = match[0].second;
+		}
+		else
+		{
+			m_CurrentTimestamp.InvalidateRecorded();
+		}
+
+		parseEnd = regexBegin;
+	}
+}
+
+size_t WorldState::CalcChatMessageCharacters(const SVCUserMessageLine& usrMsg, const ChatConsoleLine& chatMsg)
+{
+	if (usrMsg.GetUserMessageType() != 4)
+		return 0;
+
+	int msgBytes = usrMsg.GetUserMessageBytes();
+	if (msgBytes < 3)
+	{
+		LogWarning(std::string(__FUNCTION__ "(): GetUserMessageBytes() returned ") << msgBytes);
+		return 0;
+	}
+
+	msgBytes -= 1; // speaker entindex
+	msgBytes -= 1; // bChat
+	msgBytes -= 1; // null terminator for string1
+	msgBytes -= 1; // null terminator for string2
+	msgBytes -= 1; // null terminator for string3
+	msgBytes -= 1; // null terminator for string4
+
+	//msgBytes -= 1; // Mystery???
+
+	if (chatMsg.IsDead())
+	{
+		if (chatMsg.IsTeam())
+			return msgBytes - std::size("TF_Chat_Team_Dead");
+		else
+			return msgBytes - std::size("TF_Chat_AllDead");
+	}
+	else
+	{
+		if (chatMsg.IsTeam())
+			return msgBytes - std::size("TF_Chat_Team");
+		else
+			return msgBytes - std::size("TF_Chat_All");
+	}
+}
+
+size_t WorldState::GetChatMsgDecorationLength(const ChatConsoleLine& chatMsg)
+{
+	if (chatMsg.IsDead())
+	{
+		if (chatMsg.IsTeam())
+			return std::size("*DEAD*(TEAM) ") - 1;
+		else
+			return std::size("*DEAD* ") - 1;
+	}
+	else
+	{
+		if (chatMsg.IsTeam())
+			return std::size("(TEAM) ") - 1;
+		else
+			return 0;
+	}
+}
+
+void WorldState::TrySnapshot(bool& snapshotUpdated)
+{
+	if ((!snapshotUpdated || !m_CurrentTimestamp.IsSnapshotValid()) && m_CurrentTimestamp.IsRecordedValid())
+	{
+		m_CurrentTimestamp.Snapshot();
+		snapshotUpdated = true;
+		m_EventBroadcaster.OnTimestampUpdate(*this);
+	}
+}
+
 void WorldState::Update()
 {
 	if (!m_File)
@@ -47,90 +296,12 @@ void WorldState::Update()
 	}
 
 	bool snapshotUpdated = false;
-	const auto TrySnapshot = [&]()
-	{
-		if ((!snapshotUpdated || !m_CurrentTimestamp.IsSnapshotValid()) && m_CurrentTimestamp.IsRecordedValid())
-		{
-			m_CurrentTimestamp.Snapshot();
-			snapshotUpdated = true;
-			m_EventBroadcaster.OnTimestampUpdate(*this);
-		}
-	};
 
 	bool linesProcessed = false;
 	bool consoleLinesUpdated = false;
 	if (m_File)
 	{
-		char buf[4096];
-		size_t readCount;
-		using clock = std::chrono::steady_clock;
-		const auto startTime = clock::now();
-		static const std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d):[ \n])regex", std::regex::optimize);
-		do
-		{
-			readCount = fread(buf, sizeof(buf[0]), std::size(buf), m_File.get());
-			if (readCount > 0)
-			{
-				m_FileLineBuf.append(buf, readCount);
-
-				auto regexBegin = m_FileLineBuf.cbegin();
-				std::smatch match;
-				while (std::regex_search(regexBegin, m_FileLineBuf.cend(), match, s_TimestampRegex))
-				{
-					if (m_CurrentTimestamp.IsRecordedValid())
-					{
-						// If we have a valid snapshot, that means that there was a previously parsed
-						// timestamp. The contents of that line is the current timestamp match's prefix
-						// (the previous timestamp match was erased from the string)
-
-						TrySnapshot();
-						linesProcessed = true;
-
-						const auto prefix = match.prefix();
-						//const auto suffix = match.suffix();
-						const std::string_view lineStr(&*prefix.first, prefix.length());
-						auto parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
-
-						if (parsed)
-						{
-							for (auto listener : m_ConsoleLineListeners)
-								listener->OnConsoleLineParsed(*this, *parsed);
-
-							m_ConsoleLines.push_back(std::move(parsed));
-							consoleLinesUpdated = true;
-						}
-						else
-						{
-							for (auto listener : m_ConsoleLineListeners)
-								listener->OnConsoleLineUnparsed(*this, lineStr);
-						}
-					}
-
-					std::tm time{};
-					time.tm_isdst = -1;
-					from_chars_throw(match[1], time.tm_mon);
-					time.tm_mon -= 1;
-
-					from_chars_throw(match[2], time.tm_mday);
-					from_chars_throw(match[3], time.tm_year);
-					time.tm_year -= 1900;
-
-					from_chars_throw(match[4], time.tm_hour);
-					from_chars_throw(match[5], time.tm_min);
-					from_chars_throw(match[6], time.tm_sec);
-
-					m_CurrentTimestamp.SetRecorded(clock_t::from_time_t(std::mktime(&time)));
-					regexBegin = match[0].second;
-				}
-
-				m_ParsedLineCount += std::count(m_FileLineBuf.cbegin(), regexBegin, '\n');
-				m_FileLineBuf.erase(m_FileLineBuf.begin(), regexBegin);
-			}
-
-			if (auto elapsed = clock::now() - startTime; elapsed >= 50ms)
-				break;
-
-		} while (readCount > 0);
+		Parse(linesProcessed, snapshotUpdated, consoleLinesUpdated);
 
 		// Parse progress
 		{
@@ -140,7 +311,7 @@ void WorldState::Update()
 		}
 	}
 
-	TrySnapshot();
+	TrySnapshot(snapshotUpdated);
 
 	if (linesProcessed)
 		m_EventBroadcaster.OnUpdate(*this, consoleLinesUpdated);

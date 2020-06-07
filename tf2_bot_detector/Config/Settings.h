@@ -21,6 +21,8 @@ namespace tf2_bot_detector
 		struct
 		{
 			bool m_Muted = false;
+			bool m_EnableVotekick = true;
+			bool m_EnableAutoMark = true;
 			bool m_DebugShowCommands = false;
 		} m_Unsaved;
 

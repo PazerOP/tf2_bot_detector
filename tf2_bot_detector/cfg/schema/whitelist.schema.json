@@ -1,0 +1,31 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "whitelist.schema.json",
+	"title": "TF2 Bot Detector Player Whitelist Schema",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"description": "The JSON schema to validate this file against.",
+			"type": "string"
+		},
+		"players": {
+			"description": "List of players who are trusted",
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"nickname": {
+						"type": "string",
+						"description": "Nickname for this player."
+					},
+					"steamid": {
+						"description": "SteamID of the player.",
+						"$ref": "./shared.schema.json#definitions/steamid"
+					}
+				}
+			}
+		}
+	}
+}

@@ -45,17 +45,21 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 	const auto name = player.GetName();
 	const auto steamID = player.GetSteamID();
 
-	for (const ModerationRule* rule : m_Rules.GetRules())
+	if (m_Settings->m_Unsaved.m_EnableAutoMark && !m_PlayerWhitelist.HasPlayer(player))
 	{
-		if (!rule->Match(player))
-			continue;
+		for (const ModerationRule* rule : m_Rules.GetRules())
+		{
+			if (!rule->Match(player))
+				continue;
 
-		OnRuleMatch(*rule, player);
+			OnRuleMatch(*rule, player);
+		}
 	}
 }
 
 void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg)
 {
+	bool botMsgDetected = false;
 	// Check if it is a moderation message from someone else
 	if (m_Settings->m_AutoTempMute &&
 		!m_PlayerList.HasPlayerAttribute(player, { PlayerAttributes::Cheater, PlayerAttributes::Exploiter }))
@@ -73,6 +77,7 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 			if (std::regex_match(msg.begin(), msg.end(), s_IngameWarning) ||
 				std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning))
 			{
+				botMsgDetected = true;
 				Log("Detected message from "s << player << " as another instance of TF2BD: "s << std::quoted(msg));
 				SetUserRunningTool(player, true);
 
@@ -87,17 +92,23 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 		}
 	}
 
-	for (const ModerationRule* rule : m_Rules.GetRules())
+	if (m_Settings->m_Unsaved.m_EnableAutoMark && !m_PlayerWhitelist.HasPlayer(player) && !botMsgDetected)
 	{
-		if (!rule->Match(player, msg))
-			continue;
+		for (const ModerationRule* rule : m_Rules.GetRules())
+		{
+			if (!rule->Match(player, msg))
+				continue;
 
-		OnRuleMatch(*rule, player);
+			OnRuleMatch(*rule, player);
+		}
 	}
 }
 
 void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<const IPlayer*>& friendlyCheaters)
 {
+	if (!m_Settings->m_Unsaved.m_EnableVotekick)
+		return;
+
 	if (friendlyCheaters.empty())
 		return; // Nothing to do
 

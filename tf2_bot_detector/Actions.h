@@ -92,7 +92,7 @@ namespace tf2_bot_detector
 
 	private:
 		static std::string_view GetCommand(ChatMessageType type);
-		static std::string ScrubMessage(const std::string_view& msg);
+		static std::string ScrubMessage(std::string msg);
 	};
 
 #if 0

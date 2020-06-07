@@ -12,6 +12,7 @@ namespace tf2_bot_detector
 	struct CompensatedTS
 	{
 	public:
+		void InvalidateRecorded() { m_Recorded.reset(); }
 		bool IsRecordedValid() const { return m_Recorded.has_value(); }
 		void SetRecorded(time_point_t recorded);
 

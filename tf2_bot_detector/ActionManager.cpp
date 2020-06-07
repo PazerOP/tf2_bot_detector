@@ -344,9 +344,10 @@ bool ActionManager::SendCommandToGame(const std::string_view& cmd) const
 	if (!result)
 	{
 		const auto error = GetLastError();
-		std::string msg = "Failed to send command to hl2.exe: CreateProcess returned "s
-			<< result << ", GetLastError returned " << error;
-		throw std::runtime_error(msg);
+		Log("Failed to send command to hl2.exe: CreateProcess returned "s
+			<< result << ", GetLastError returned " << error);
+
+		return false;
 	}
 
 	if (m_Settings->m_Unsaved.m_DebugShowCommands)

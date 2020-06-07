@@ -18,7 +18,9 @@
 
 namespace tf2_bot_detector
 {
+	class ChatConsoleLine;
 	enum class LobbyMemberTeam : uint8_t;
+	class SVCUserMessageLine;
 
 	enum class TeamShareResult
 	{
@@ -72,10 +74,27 @@ namespace tf2_bot_detector
 		size_t m_ParsedLineCount = 0;
 		float m_ParseProgress = 0;
 		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
+		const SVCUserMessageLine* m_LastUserMsgLine = nullptr;
 		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
+
+		using striter = std::string::const_iterator;
+		void Parse(bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated);
+		void ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated);
+
+		enum class ParseLineResult
+		{
+			Discard,
+			Defer,
+			Success,
+			Modified,
+		};
+		[[nodiscard]] ParseLineResult ParseLine(striter& regexBegin, std::unique_ptr<IConsoleLine>& parsed);
+		static size_t CalcChatMessageCharacters(const SVCUserMessageLine& usrMsg, const ChatConsoleLine& chatMsg);
+		static size_t GetChatMsgDecorationLength(const ChatConsoleLine& chatMsg);
 
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed) override;
 
+		void TrySnapshot(bool& snapshotUpdated);
 		CompensatedTS m_CurrentTimestamp;
 
 		struct PlayerExtraData final : IPlayer

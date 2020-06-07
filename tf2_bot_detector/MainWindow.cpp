@@ -99,8 +99,15 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 				name << PlayerAttributes(i);
 				if (ImGui::MenuItem(name.c_str(), nullptr, existingMarked))
 				{
-					if (modLogic.SetPlayerAttribute(player, PlayerAttributes(i), !existingMarked))
-						Log("Manually marked "s << player << (existingMarked ? "NOT " : "") << PlayerAttributes(i));
+					if (!existingMarked && modLogic.GetPlayerWhitelist().HasPlayer(player))
+					{
+						LogWarning("Cannot mark "s << player << " with " << PlayerAttributes(i) << " because they are whitelisted.");
+					}
+					else
+					{
+						if (modLogic.SetPlayerAttribute(player, PlayerAttributes(i), !existingMarked))
+							Log("Manually marked "s << player << ' ' << (existingMarked ? "NOT " : "") << ' ' << PlayerAttributes(i));
+					}
 				}
 			}
 
@@ -577,15 +584,38 @@ void MainWindow::OnDraw()
 
 	ImGui::Columns(2, "MainWindowSplit");
 
-	ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
+	{
+		static float s_SettingsScrollerHeight = 1;
+		if (ImGui::BeginChild("SettingsScroller", { 0, s_SettingsScrollerHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
+		{
+			ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
 
-	ImGui::Checkbox("Mute", &m_Settings.m_Unsaved.m_Muted); ImGui::SameLine();
-	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Suppresses all in-game chat messages.");
+			ImGui::Checkbox("Mute", &m_Settings.m_Unsaved.m_Muted); ImGui::SameLine();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Suppresses all in-game chat messages.");
 
-	ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands);
-	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Prints out all game commands to the log.");
+			ImGui::Checkbox("Enable Votekick", &m_Settings.m_Unsaved.m_EnableVotekick); ImGui::SameLine();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Votekicks cheaters on your team.");
+
+			ImGui::Checkbox("Enable Auto-mark", &m_Settings.m_Unsaved.m_EnableAutoMark); ImGui::SameLine();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Automatically marks players matching the detection rules.");
+
+			ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands); ImGui::SameLine();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Prints out all game commands to the log.");
+
+			const auto xPos = ImGui::GetCursorPosX();
+
+			ImGui::NewLine();
+
+			s_SettingsScrollerHeight = ImGui::GetCursorPosY();
+			if (ImGui::GetWindowSize().x < xPos)
+				s_SettingsScrollerHeight += ImGui::GetStyle().ScrollbarSize;
+		}
+		ImGui::EndChild();
+	}
 
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
@@ -680,6 +710,13 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::MenuItem("Settings"))
 		OpenSettingsPopup();
+
+	if (ImGui::BeginMenu("About"))
+	{
+		ImGui::MenuItem("Version: 1.1 preview 3", nullptr, false, false);
+
+		ImGui::EndMenu();
+	}
 }
 
 bool MainWindow::HasMenuBar() const

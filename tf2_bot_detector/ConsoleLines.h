@@ -31,7 +31,7 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase;
 
 	public:
-		ChatConsoleLine(time_point_t timestamp, std::string&& playerName, std::string&& message, bool isDead, bool isTeam);
+		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead, bool isTeam);
 		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Chat; }
@@ -290,5 +290,26 @@ namespace tf2_bot_detector
 	private:
 		uint16_t m_Ping{};
 		std::string m_PlayerName;
+	};
+
+	class SVCUserMessageLine final : public ConsoleLineBase<SVCUserMessageLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		SVCUserMessageLine(time_point_t timestamp, std::string address, uint16_t type, uint16_t bytes);
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::SVC_UserMessage; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+		uint16_t GetUserMessageType() const { return m_MsgType; }
+		uint16_t GetUserMessageBytes() const { return m_MsgBytes; }
+
+	private:
+		std::string m_Address{};
+		uint16_t m_MsgType{};
+		uint16_t m_MsgBytes{};
 	};
 }

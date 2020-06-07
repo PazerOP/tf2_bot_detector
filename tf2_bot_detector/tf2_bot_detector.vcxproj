@@ -81,7 +81,9 @@
     <ClCompile Include="Actions.cpp" />
     <ClCompile Include="Clock.cpp" />
     <ClCompile Include="CompensatedTS.cpp" />
+    <ClCompile Include="Config\ConfigHelpers.cpp" />
     <ClCompile Include="Config\Rules.cpp" />
+    <ClCompile Include="Config\Whitelist.cpp" />
     <ClCompile Include="ImGui_TF2BotDetector.cpp" />
     <ClCompile Include="IPlayer.cpp" />
     <ClCompile Include="Log.cpp" />
@@ -106,8 +108,10 @@
     <ClInclude Include="Actions.h" />
     <ClInclude Include="Clock.h" />
     <ClInclude Include="CompensatedTS.h" />
+    <ClInclude Include="Config\ConfigHelpers.h" />
     <ClInclude Include="Config\JSONHelpers.h" />
     <ClInclude Include="Config\Rules.h" />
+    <ClInclude Include="Config\Whitelist.h" />
     <ClInclude Include="ICommandSource.h" />
     <ClInclude Include="IConsoleLine.h" />
     <ClInclude Include="IConsoleLineListener.h" />

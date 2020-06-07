@@ -49,7 +49,7 @@ void GenericCommandAction::WriteCommands(ICommandWriter& writer) const
 }
 
 ChatMessageAction::ChatMessageAction(const std::string_view& message, ChatMessageType type) :
-	GenericCommandAction(std::string(GetCommand(type)), ScrubMessage(message))
+	GenericCommandAction(std::string(GetCommand(type)), ScrubMessage(std::string(message)))
 {
 }
 
@@ -71,9 +71,17 @@ std::string_view ChatMessageAction::GetCommand(ChatMessageType type)
 	}
 }
 
-std::string ChatMessageAction::ScrubMessage(const std::string_view& msg)
+std::string ChatMessageAction::ScrubMessage(std::string msg)
 {
-	return "\""s << mh::find_and_replace(msg, "\""sv, "'"sv) << '"';
+	for (auto& c : msg)
+	{
+		if (c == '\n')
+			c = ' ';
+		else if (c == '"')
+			c = '\'';
+	}
+
+	return "\""s << msg << '"';
 }
 
 duration_t LobbyUpdateAction::GetMinInterval() const

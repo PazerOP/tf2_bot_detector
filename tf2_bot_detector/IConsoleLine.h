@@ -25,6 +25,7 @@ namespace tf2_bot_detector
 		VoiceReceive,
 		EdictUsage,
 		SplitPacket,
+		SVC_UserMessage,
 
 		NetLatency,
 		NetLoss,
