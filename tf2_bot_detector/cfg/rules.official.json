@@ -72,7 +72,9 @@
 					"case_sensitive": false,
 					"mode": "ends_with",
 					"patterns": [
-						"\u200f"
+						"\u200f",
+						// nullcore uses this for namestealing
+						"\u0E4A"
 					]
 				}
 			}
