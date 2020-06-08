@@ -88,9 +88,11 @@ namespace tf2_bot_detector
 			Success,
 			Modified,
 		};
-		[[nodiscard]] ParseLineResult ParseLine(striter& regexBegin, std::unique_ptr<IConsoleLine>& parsed);
+		[[nodiscard]] ParseLineResult ParseLine(striter& regexBegin, const std::string_view& lineStr, std::unique_ptr<IConsoleLine>& parsed);
+		[[nodiscard]] ParseLineResult ParseChatLine(striter& regexBegin, std::unique_ptr<IConsoleLine>& parsed);
 		static size_t CalcChatMessageCharacters(const SVCUserMessageLine& usrMsg, const ChatConsoleLine& chatMsg);
 		static size_t GetChatMsgDecorationLength(const ChatConsoleLine& chatMsg);
+		static size_t GetChatMsgSuffixLength(const ChatConsoleLine& chatMsg, const std::string_view& lineStr);
 
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed) override;
 

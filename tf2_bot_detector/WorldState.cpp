@@ -45,7 +45,7 @@ void WorldState::Parse(bool& linesProcessed, bool& snapshotUpdated, bool& consol
 	} while (readCount > 0);
 }
 
-auto WorldState::ParseLine(striter& regexBegin, std::unique_ptr<IConsoleLine>& parsed) -> ParseLineResult
+auto WorldState::ParseLine(striter& regexBegin, const std::string_view& lineStr, std::unique_ptr<IConsoleLine>& parsed) -> ParseLineResult
 {
 	auto retVal = ParseLineResult::Success;
 
@@ -85,8 +85,7 @@ auto WorldState::ParseLine(striter& regexBegin, std::unique_ptr<IConsoleLine>& p
 			const auto msgBegin = regexBegin
 				+ GetChatMsgDecorationLength(chatMsg)
 				+ chatMsg.GetPlayerName().size()
-				+ 4 // " :  "
-				;
+				+ GetChatMsgSuffixLength(chatMsg, lineStr);
 
 			if (ptrdiff_t(messageChars) >= (m_FileLineBuf.cend() - msgBegin))
 			{
@@ -95,14 +94,19 @@ auto WorldState::ParseLine(striter& regexBegin, std::unique_ptr<IConsoleLine>& p
 			}
 			else
 			{
-				if (*(msgBegin + messageChars) != '\n')
+				for (size_t i = 0; i < 3; i++)
 				{
+					if (*(msgBegin + messageChars) == '\n')
+						break;
+
 					if (messageChars > 0)
 						messageChars--;
-
-					if (*(msgBegin + messageChars) != '\n')
-						LogError("Failed to find a newline at the end of a chat message from "s << chatMsg.GetPlayerName());
+					else
+						break;
 				}
+
+				if (*(msgBegin + messageChars) != '\n')
+					LogError("Failed to find a newline at the end of a chat message from "s << chatMsg.GetPlayerName());
 
 				auto parsed2 = std::make_unique<ChatConsoleLine>(chatMsg.GetTimestamp(), chatMsg.GetPlayerName(),
 					std::string(&*msgBegin, messageChars), chatMsg.IsDead(), chatMsg.IsTeam());
@@ -149,12 +153,18 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 			const auto prefix = match.prefix();
 			//const auto suffix = match.suffix();
 			const std::string_view lineStr(&*prefix.first, prefix.length());
-			auto parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
+
+			std::unique_ptr<IConsoleLine> parsed;
+
+			if (m_LastUserMsgLine && m_LastUserMsgLine->GetUserMessageType() == 4)
+				parsed = ChatConsoleLine::TryParseFlexible(lineStr, m_CurrentTimestamp.GetSnapshot());
+			else
+				parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
 
 			if (parsed)
 			{
 				bool shouldProcess = true;
-				result = ParseLine(regexBegin, parsed);
+				result = ParseLine(regexBegin, lineStr, parsed);
 				if (result == ParseLineResult::Defer)
 				{
 					// Try again later
@@ -256,6 +266,23 @@ size_t WorldState::GetChatMsgDecorationLength(const ChatConsoleLine& chatMsg)
 		else
 			return 0;
 	}
+}
+
+size_t WorldState::GetChatMsgSuffixLength(const ChatConsoleLine& chatMsg, const std::string_view& lineStr)
+{
+	const auto& name = chatMsg.GetPlayerName();
+	const auto decorLength = GetChatMsgDecorationLength(chatMsg);
+
+	if ((decorLength + name.size() + 1) >= lineStr.size())
+	{
+		LogError(__FUNCTION__ "(): player name was longer than input line?");
+		return 0;
+	}
+
+	if (lineStr[decorLength + name.size() + 1] == ':')
+		return std::size(" :  ") - 1;
+	else
+		return std::size(": ") - 1;
 }
 
 void WorldState::TrySnapshot(bool& snapshotUpdated)
@@ -560,18 +587,14 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 			}
 			else
 			{
-#ifdef _DEBUG
-				Log("Dropped chat message with unknown IPlayer from "s
+				LogWarning("Dropped chat message with unknown IPlayer from "s
 					<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
-#endif
 			}
 		}
 		else
 		{
-#ifdef _DEBUG
-			Log("Dropped chat message with unknown SteamID from "s
+			LogWarning("Dropped chat message with unknown SteamID from "s
 				<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
-#endif
 		}
 
 		break;

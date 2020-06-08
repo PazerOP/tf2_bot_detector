@@ -39,9 +39,20 @@ ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName,
 
 std::unique_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
-	static const std::regex s_Regex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,33}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
+	return TryParse(text, timestamp, false);
+}
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+std::unique_ptr<IConsoleLine> tf2_bot_detector::ChatConsoleLine::TryParseFlexible(const std::string_view& text, time_point_t timestamp)
+{
+	return TryParse(text, timestamp, true);
+}
+
+std::unique_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp, bool flexible)
+{
+	static const std::regex s_Regex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,33}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
+	static const std::regex s_RegexFlexible(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,33}?)(?:(?: :  )|(?:: ))((?:.|[\r\n])*))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, flexible ? s_RegexFlexible : s_Regex))
 	{
 		return std::make_unique<ChatConsoleLine>(timestamp, result[3].str(), result[4].str(),
 			result[1].matched, result[2].matched);

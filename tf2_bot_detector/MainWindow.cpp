@@ -713,7 +713,7 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::BeginMenu("About"))
 	{
-		ImGui::MenuItem("Version: 1.1 preview 3", nullptr, false, false);
+		ImGui::MenuItem("Version: 1.1 preview 4", nullptr, false, false);
 
 		ImGui::EndMenu();
 	}

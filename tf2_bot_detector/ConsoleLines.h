@@ -33,6 +33,7 @@ namespace tf2_bot_detector
 	public:
 		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead, bool isTeam);
 		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::unique_ptr<IConsoleLine> TryParseFlexible(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Chat; }
 		void Print() const override;
@@ -43,6 +44,8 @@ namespace tf2_bot_detector
 		bool IsTeam() const { return m_IsTeam; }
 
 	private:
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp, bool flexible);
+
 		std::string m_PlayerName;
 		std::string m_Message;
 		bool m_IsDead : 1;
