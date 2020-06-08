@@ -100,6 +100,7 @@
     <ClCompile Include="PlatformSpecific\Windows\Shell.cpp" />
     <ClCompile Include="SetupFlow.cpp" />
     <ClCompile Include="SteamID.cpp" />
+    <ClCompile Include="TextUtils.cpp" />
     <ClCompile Include="WorldState.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -133,6 +134,7 @@
     <ClInclude Include="Config\Settings.h" />
     <ClInclude Include="SetupFlow.h" />
     <ClInclude Include="SteamID.h" />
+    <ClInclude Include="TextUtils.h" />
     <ClInclude Include="TFConstants.h" />
     <ClInclude Include="WorldState.h" />
   </ItemGroup>

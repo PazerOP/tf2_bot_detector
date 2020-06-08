@@ -1,11 +1,14 @@
 #include "WorldState.h"
 #include "Actions.h"
+#include "Config/Settings.h"
 #include "ConsoleLines.h"
 #include "Log.h"
 #include "RegexHelpers.h"
+#include "TextUtils.h"
 
 #include <mh/text/string_insertion.hpp>
 
+#include <random>
 #include <regex>
 
 using namespace std::chrono_literals;
@@ -13,10 +16,18 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 
-WorldState::WorldState(const std::filesystem::path& conLogFile) :
-	m_FileName(conLogFile)
+WorldState::WorldState(const Settings& settings, const std::filesystem::path& conLogFile) :
+	m_Settings(&settings), m_FileName(conLogFile)
 {
 	m_ConsoleLineListeners.insert(this);
+
+	m_ChatMsgWrappers = RandomizeChatWrappers(m_Settings->m_TFDir);
+	//const char8_t c1[] = u8"        ";
+	//char c2[sizeof(c1)];
+	//memcpy(c2, c1, sizeof(c1));
+	//const auto test = ToU8(c2);
+	//m_ChatMsgWrappers.first = ToMB(L"        ");
+	//m_ChatMsgWrappers.second = ToMB(L"        ");
 }
 
 void WorldState::Parse(bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated)
@@ -150,27 +161,60 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 			TrySnapshot(snapshotUpdated);
 			linesProcessed = true;
 
+			std::unique_ptr<IConsoleLine> parsed;
+
 			const auto prefix = match.prefix();
 			//const auto suffix = match.suffix();
 			const std::string_view lineStr(&*prefix.first, prefix.length());
+			if (lineStr.starts_with(m_ChatMsgWrappers.first))
+			{
+				const auto searchBuf = std::string_view(m_FileLineBuf).substr(
+					&*prefix.first - m_FileLineBuf.data() + m_ChatMsgWrappers.first.size());
 
-			std::unique_ptr<IConsoleLine> parsed;
+				if (auto found = searchBuf.find(m_ChatMsgWrappers.second); found != lineStr.npos)
+				{
+					if (found > 128)
+					{
+						LogError("Searched more than 128 characters for the end of the chat msg string, something is terribly wrong!");
+					}
+					else
+					{
+						parsed = ChatConsoleLine::TryParse(searchBuf.substr(0, found), m_CurrentTimestamp.GetSnapshot());
+						if (!parsed)
+						{
+							LogError("Somehow failed to parse chat message surrounded by markers: "s << std::quoted(searchBuf.substr(0, found)));
+						}
+						else
+						{
+							regexBegin = prefix.first + m_ChatMsgWrappers.first.size() + found + m_ChatMsgWrappers.second.size();
+							result = ParseLineResult::Modified;
+						}
+					}
+				}
+				else
+				{
+					LogError("Failed to locate chat message wrapper end");
+				}
+			}
 
-			if (m_LastUserMsgLine && m_LastUserMsgLine->GetUserMessageType() == 4)
-				parsed = ChatConsoleLine::TryParseFlexible(lineStr, m_CurrentTimestamp.GetSnapshot());
-			else
+			if (!parsed)
+			{
 				parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
+				if (parsed && parsed->GetType() == ConsoleLineType::Chat)
+					LogError("Line was parsed as a chat message via old code path, this should never happen!");
+
+				result = ParseLineResult::Success;
+			}
 
 			if (parsed)
 			{
-				bool shouldProcess = true;
-				result = ParseLine(regexBegin, lineStr, parsed);
-				if (result == ParseLineResult::Defer)
-				{
-					// Try again later
-					return;
-				}
-				else if (result == ParseLineResult::Success || result == ParseLineResult::Modified)
+				//result = ParseLine(regexBegin, lineStr, parsed);
+				//if (result == ParseLineResult::Defer)
+				//{
+				//	// Try again later
+				//	return;
+				//}
+				/*else*/ if (result == ParseLineResult::Success || result == ParseLineResult::Modified)
 				{
 					for (auto listener : m_ConsoleLineListeners)
 						listener->OnConsoleLineParsed(*this, *parsed);
@@ -791,4 +835,88 @@ const std::any* WorldState::PlayerExtraData::FindDataStorage(const std::type_ind
 std::any& WorldState::PlayerExtraData::GetOrCreateDataStorage(const std::type_index& type)
 {
 	return m_UserData[type];
+}
+
+#ifdef _DEBUG
+namespace tf2_bot_detector
+{
+	extern bool g_StaticRandomSeed;
+}
+#endif
+
+std::pair<std::string, std::string> WorldState::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
+{
+	// http://emptycharacter.com/
+	static constexpr const char8_t* WRAP_CHARS[] =
+	{
+		u8"\u0020",
+		u8"\u00A0",
+		u8"\u2000",
+		u8"\u2001",
+		u8"\u2002",
+		u8"\u2003",
+		u8"\u2004",
+		u8"\u2005",
+		u8"\u2006",
+		u8"\u2007",
+		u8"\u2008",
+		u8"\u2009",
+		u8"\u200A",
+		//u8"\u2028",
+		u8"\u205F",
+		u8"\u3000",
+	};
+
+	const auto GenerateCharSequence = [&](std::string& narrow, std::u16string& wide, int offset)
+	{
+		narrow.clear();
+		wide.clear();
+
+		std::string seq;
+
+		std::mt19937 random;
+#ifdef _DEBUG
+		if (g_StaticRandomSeed)
+		{
+			random.seed(unsigned(1011 + offset));
+		}
+		else
+#endif
+		{
+			random.seed(unsigned(std::chrono::high_resolution_clock::now().time_since_epoch().count() + offset));
+		}
+		std::uniform_int_distribution<size_t> dist(0, std::size(WRAP_CHARS) - 1);
+		for (size_t i = 0; i < wrapChars; i++)
+		{
+			//std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+			const auto randomIndex = dist(random);
+			const char* bytes = reinterpret_cast<const char*>(WRAP_CHARS[randomIndex]);
+			narrow += bytes;
+			wide += ToU16(bytes);
+		}
+	};
+
+	std::string beginNarrow, endNarrow;
+	std::u16string beginWide, endWide;
+	GenerateCharSequence(beginNarrow, beginWide, 0);
+	do
+	{
+		GenerateCharSequence(endNarrow, endWide, 1);
+	} while (endWide == beginWide);
+
+	std::filesystem::create_directories(tfdir / "custom/tf2_bot_detector/resource");
+	std::filesystem::copy_file(tfdir / "resource/tf_english.txt", tfdir / "custom/tf2_bot_detector/resource/tf_english.txt",
+		std::filesystem::copy_options::overwrite_existing);
+
+	const auto filename = tfdir / "custom/tf2_bot_detector/resource/tf_english.txt";
+	auto translations = ToMB(ReadWideFile(filename));
+
+	const auto replaceStr = "\"TF_Chat_$1\" \"$2"s << beginNarrow << "$3" << endNarrow << '"';
+
+	translations = std::regex_replace(translations.c_str(),
+		std::basic_regex(R"regex("TF_Chat_(.*?)"\s+"(.)(.*)")regex"), replaceStr.c_str());
+
+	WriteWideFile(filename, ToU8(translations));
+
+	return { beginNarrow, endNarrow };
 }

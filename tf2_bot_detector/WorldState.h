@@ -20,6 +20,7 @@ namespace tf2_bot_detector
 {
 	class ChatConsoleLine;
 	enum class LobbyMemberTeam : uint8_t;
+	class Settings;
 	class SVCUserMessageLine;
 
 	enum class TeamShareResult
@@ -32,7 +33,7 @@ namespace tf2_bot_detector
 	class WorldState : IConsoleLineListener
 	{
 	public:
-		WorldState(const std::filesystem::path& conLogFile);
+		WorldState(const Settings& settings, const std::filesystem::path& conLogFile);
 
 		void Update();
 		time_point_t GetCurrentTime() const { return m_CurrentTimestamp.GetSnapshot(); }
@@ -64,6 +65,8 @@ namespace tf2_bot_detector
 		mh::generator<IPlayer*> GetPlayers();
 
 	private:
+		const Settings* m_Settings = nullptr;
+
 		struct CustomDeleters
 		{
 			void operator()(FILE*) const;
@@ -89,12 +92,14 @@ namespace tf2_bot_detector
 			Modified,
 		};
 		[[nodiscard]] ParseLineResult ParseLine(striter& regexBegin, const std::string_view& lineStr, std::unique_ptr<IConsoleLine>& parsed);
-		[[nodiscard]] ParseLineResult ParseChatLine(striter& regexBegin, std::unique_ptr<IConsoleLine>& parsed);
 		static size_t CalcChatMessageCharacters(const SVCUserMessageLine& usrMsg, const ChatConsoleLine& chatMsg);
 		static size_t GetChatMsgDecorationLength(const ChatConsoleLine& chatMsg);
 		static size_t GetChatMsgSuffixLength(const ChatConsoleLine& chatMsg, const std::string_view& lineStr);
 
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed) override;
+
+		static std::pair<std::string, std::string> RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars = 8);
+		std::pair<std::string, std::string> m_ChatMsgWrappers;
 
 		void TrySnapshot(bool& snapshotUpdated);
 		CompensatedTS m_CurrentTimestamp;

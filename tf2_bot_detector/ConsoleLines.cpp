@@ -42,12 +42,12 @@ std::unique_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& 
 	return TryParse(text, timestamp, false);
 }
 
-std::unique_ptr<IConsoleLine> tf2_bot_detector::ChatConsoleLine::TryParseFlexible(const std::string_view& text, time_point_t timestamp)
+std::unique_ptr<ChatConsoleLine> ChatConsoleLine::TryParseFlexible(const std::string_view& text, time_point_t timestamp)
 {
 	return TryParse(text, timestamp, true);
 }
 
-std::unique_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp, bool flexible)
+std::unique_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp, bool flexible)
 {
 	static const std::regex s_Regex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,33}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
 	static const std::regex s_RegexFlexible(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,33}?)(?:(?: :  )|(?:: ))((?:.|[\r\n])*))regex", std::regex::optimize);

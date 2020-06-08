@@ -713,7 +713,7 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::BeginMenu("About"))
 	{
-		ImGui::MenuItem("Version: 1.1 preview 4", nullptr, false, false);
+		ImGui::MenuItem("Version: 1.1 preview 5", nullptr, false, false);
 
 		ImGui::EndMenu();
 	}
@@ -1044,7 +1044,7 @@ void MainWindow::AvgSample::AddSample(float value)
 
 MainWindow::WorldStateExtra::WorldStateExtra(MainWindow& window,
 	const Settings& settings, const std::filesystem::path& conLogFile) :
-	m_WorldState(conLogFile),
+	m_WorldState(settings, conLogFile),
 	m_ModeratorLogic(m_WorldState, settings, window.m_ActionManager)
 {
 	m_WorldState.AddConsoleLineListener(&window);

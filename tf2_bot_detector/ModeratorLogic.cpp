@@ -10,7 +10,12 @@
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 
+#include <codecvt>
+#include <cuchar>
+#include <fstream>
 #include <iomanip>
+#include <locale>
+#include <random>
 #include <regex>
 
 using namespace tf2_bot_detector;
