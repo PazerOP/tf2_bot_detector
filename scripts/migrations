@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+# $1 TUI 
+# $2 INIT
+# $3 Pre update
+
+CURR_VERSION=4
+
+TUI=${1:-false}
+INIT=${2:-false}
+PRE_UPDATE=${3:-false}
+
+set -e
+
+configfile="./scripts/updater-preferences"
+. ./scripts/config.shlib
+
+tui=true
+if [ ! -x "$(command -v dialog)" ]; then
+    tui=false
+    echo -e "\033[1;31mTerminal UI NOT supported! Install \"dialog\"! \033[0m"
+fi
+if [ ! -t 0 ]; then
+    tui=false
+fi
+
+#
+# Git check, migrate users from .zip to git repos
+#
+if [ "$PRE_UPDATE" == "true" ]; then
+if [ ! -x "$(command -v git)" ]; then
+    # install only git
+    echo git not installed!
+    ./scripts/dependencycheck true
+fi
+if [ ! -d "./.git" ]; then
+    git init
+    git remote add origin https://github.com/nullworks/cathook
+fi
+fi
+
+#
+# Init goes here
+#
+function init() {
+    if [ "$INIT" == true ]; then
+        cfg_write $configfile update_channel stable
+        cfg_write $configfile version $CURR_VERSION
+    fi
+}
+
+#
+# Migrations go here
+#
+function migrations() {
+    exists=true
+    cfg_haskey $configfile version || exists=false
+    if [ "$exists" == true ]; then
+        version="$(cfg_read $configfile version)"
+    else
+        # No version string. Nothing we can do.
+        return 0
+    fi
+    
+    if (( $version > $CURR_VERSION )); then
+        cfg_write $configfile version $CURR_VERSION
+    fi
+
+    # Hack to fix compile error in version 1 to 3 caused by CoTiRe.
+    if [ "$version" -lt 4 ]; then
+        cfg_write $configfile version 4
+        if [ -d "./build/CMakeFiles/cathook.dir" ]; then
+            rm -r ./build/CMakeFiles/cathook.dir
+        fi
+    fi
+}
+
+if [ "$PRE_UPDATE" == "true" ] && [ "$INIT" == "true" ]; then
+    # Our job is done here. We dont want to set a config version here yet.
+    exit
+fi
+
+if [ "$INIT" == true ]; then
+    init
+else
+    migrations
+fi
