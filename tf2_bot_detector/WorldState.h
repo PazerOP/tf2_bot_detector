@@ -98,7 +98,6 @@ namespace tf2_bot_detector
 
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed) override;
 
-		static std::pair<std::string, std::string> RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars = 16);
 		std::pair<std::string, std::string> m_ChatMsgWrappers;
 
 		void TrySnapshot(bool& snapshotUpdated);

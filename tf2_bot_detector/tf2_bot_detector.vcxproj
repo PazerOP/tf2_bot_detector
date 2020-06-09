@@ -84,6 +84,7 @@
     <ClCompile Include="Config\ConfigHelpers.cpp" />
     <ClCompile Include="Config\Rules.cpp" />
     <ClCompile Include="Config\Whitelist.cpp" />
+    <ClCompile Include="FileMods.cpp" />
     <ClCompile Include="ImGui_TF2BotDetector.cpp" />
     <ClCompile Include="IPlayer.cpp" />
     <ClCompile Include="Log.cpp" />
@@ -114,6 +115,7 @@
     <ClInclude Include="Config\JSONHelpers.h" />
     <ClInclude Include="Config\Rules.h" />
     <ClInclude Include="Config\Whitelist.h" />
+    <ClInclude Include="FileMods.h" />
     <ClInclude Include="ICommandSource.h" />
     <ClInclude Include="IConsoleLine.h" />
     <ClInclude Include="IConsoleLineListener.h" />
