@@ -158,6 +158,16 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "wobbli\u200fngbiscuit",
+				"time": 1591661567
+			},
+			"steamid": "[U:1:173024603]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:174554111]"
 		},
 		{
@@ -280,6 +290,16 @@
 				"exploiter"
 			],
 			"steamid": "[U:1:380403143]"
+		},
+		{
+			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "p5r_hope",
+				"time": 1591656926
+			},
+			"steamid": "[U:1:381696088]"
 		},
 		{
 			"attributes": [
@@ -2021,8 +2041,19 @@
 				"racist"
 			],
 			"last_seen": {
-				"player_name": "(1)MYG)T",
-				"time": 1591516620
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1591651950
+			},
+			"steamid": "[U:1:1104004982]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1591651707
 			},
 			"steamid": "[U:1:1104033643]"
 		},
@@ -2086,6 +2117,17 @@
 			],
 			"last_seen": {
 				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1591652238
+			},
+			"steamid": "[U:1:1104179053]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
 				"time": 1591587556
 			},
 			"steamid": "[U:1:1104253688]"
@@ -2111,6 +2153,27 @@
 				"time": 1591516618
 			},
 			"steamid": "[U:1:1104328864]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "cum",
+				"time": 1591660371
+			},
+			"steamid": "[U:1:1104442002]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1591658963
+			},
+			"steamid": "[U:1:1104600287]"
 		}
 	],
 	"version": 2
