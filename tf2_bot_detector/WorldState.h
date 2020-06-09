@@ -86,12 +86,11 @@ namespace tf2_bot_detector
 
 		enum class ParseLineResult
 		{
-			Discard,
+			Unparsed,
 			Defer,
 			Success,
 			Modified,
 		};
-		[[nodiscard]] ParseLineResult ParseLine(striter& regexBegin, const std::string_view& lineStr, std::unique_ptr<IConsoleLine>& parsed);
 		static size_t CalcChatMessageCharacters(const SVCUserMessageLine& usrMsg, const ChatConsoleLine& chatMsg);
 		static size_t GetChatMsgDecorationLength(const ChatConsoleLine& chatMsg);
 		static size_t GetChatMsgSuffixLength(const ChatConsoleLine& chatMsg, const std::string_view& lineStr);

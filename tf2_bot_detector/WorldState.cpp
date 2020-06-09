@@ -54,101 +54,16 @@ void WorldState::Parse(bool& linesProcessed, bool& snapshotUpdated, bool& consol
 	} while (readCount > 0);
 }
 
-auto WorldState::ParseLine(striter& regexBegin, const std::string_view& lineStr, std::unique_ptr<IConsoleLine>& parsed) -> ParseLineResult
-{
-	auto retVal = ParseLineResult::Success;
-
-	const auto parsedType = parsed->GetType();
-	if (parsedType == ConsoleLineType::SVC_UserMessage)
-	{
-		auto& usrMsg = static_cast<const SVCUserMessageLine&>(*parsed);
-		if (usrMsg.GetUserMessageType() == 4)
-		{
-			// SayText2
-			//Log("Detected usermsg type "s << usrMsg.GetUserMessageType()
-			//	<< ", " << usrMsg.GetUserMessageBytes() << " bytes, expected "
-			//	<< CalcCharacters(usrMsg) << " characters");
-
-			//assert(!m_LastUserMsgLine);
-			m_LastUserMsgLine = &usrMsg;
-		}
-	}
-	else if (parsedType == ConsoleLineType::Chat)
-	{
-		auto& chatMsg = static_cast<const ChatConsoleLine&>(*parsed);
-		if (!m_LastUserMsgLine)
-		{
-			LogWarning("Skipping chat message line "s << chatMsg.GetPlayerName() << " :  "
-				<< std::quoted(chatMsg.GetMessage()) << " because there was no previous svc_UserMessage line.");
-			return ParseLineResult::Discard;
-		}
-
-		const auto expectedChars = CalcChatMessageCharacters(*m_LastUserMsgLine, chatMsg);
-
-		const auto charCount = chatMsg.GetPlayerName().size() + chatMsg.GetMessage().size();
-
-		if (expectedChars > charCount)
-		{
-			auto messageChars = expectedChars - chatMsg.GetPlayerName().size();
-
-			const auto msgBegin = regexBegin
-				+ GetChatMsgDecorationLength(chatMsg)
-				+ chatMsg.GetPlayerName().size()
-				+ GetChatMsgSuffixLength(chatMsg, lineStr);
-
-			if (ptrdiff_t(messageChars) >= (m_FileLineBuf.cend() - msgBegin))
-			{
-				LogWarning("Attempted to seek past the end of the available regex area");
-				return ParseLineResult::Defer;
-			}
-			else
-			{
-				for (size_t i = 0; i < 3; i++)
-				{
-					if (*(msgBegin + messageChars) == '\n')
-						break;
-
-					if (messageChars > 0)
-						messageChars--;
-					else
-						break;
-				}
-
-				if (*(msgBegin + messageChars) != '\n')
-					LogError("Failed to find a newline at the end of a chat message from "s << chatMsg.GetPlayerName());
-
-				auto parsed2 = std::make_unique<ChatConsoleLine>(chatMsg.GetTimestamp(), chatMsg.GetPlayerName(),
-					std::string(&*msgBegin, messageChars), chatMsg.IsDead(), chatMsg.IsTeam());
-				parsed = std::move(parsed2);
-				regexBegin = msgBegin + messageChars;
-				retVal = ParseLineResult::Modified;
-			}
-
-			Log("Used svc_UserMessage to expand chat message ("s << charCount
-				<< " chars -> " << expectedChars << " chars)");
-		}
-
-		if (parsed)
-		{
-			auto& chatMsg2 = static_cast<const ChatConsoleLine&>(*parsed);
-			DebugLog("Matched "s << std::quoted(chatMsg2.GetMessage()) << " with svc_UserMessage (" <<
-				m_LastUserMsgLine->GetUserMessageBytes() << " bytes)");
-		}
-		m_LastUserMsgLine = nullptr;
-	}
-
-	return retVal;
-}
-
 void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated)
 {
 	static const std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d):[ \n])regex", std::regex::optimize);
 
-	auto regexBegin = parseEnd;
 	std::smatch match;
-	while (std::regex_search(regexBegin, m_FileLineBuf.cend(), match, s_TimestampRegex))
+	while (std::regex_search(parseEnd, m_FileLineBuf.cend(), match, s_TimestampRegex))
 	{
-		ParseLineResult result{};
+		auto regexBegin = parseEnd;
+
+		ParseLineResult result = ParseLineResult::Unparsed;
 		bool skipTimestampParse = false;
 		if (m_CurrentTimestamp.IsRecordedValid())
 		{
@@ -176,23 +91,22 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 						LogError("Searched more than 256 characters ("s << found
 							<< ") for the end of the chat msg string, something is terribly wrong!");
 					}
-					else
-					{
-						parsed = ChatConsoleLine::TryParse(searchBuf.substr(0, found), m_CurrentTimestamp.GetSnapshot());
-						if (!parsed)
-							LogError("Somehow failed to parse chat message surrounded by markers: "s << std::quoted(searchBuf.substr(0, found)));
 
-						regexBegin = prefix.first + m_ChatMsgWrappers.first.size() + found + m_ChatMsgWrappers.second.size();
-						result = ParseLineResult::Modified;
-					}
+					parsed = ChatConsoleLine::TryParseFlexible(searchBuf.substr(0, found), m_CurrentTimestamp.GetSnapshot());
+					if (!parsed)
+						LogError("Somehow failed to parse chat message surrounded by markers: "s << std::quoted(searchBuf.substr(0, found)));
+
+					regexBegin = prefix.first + m_ChatMsgWrappers.first.size() + found + m_ChatMsgWrappers.second.size();
+					result = ParseLineResult::Modified;
 				}
 				else
 				{
 					LogError("Failed to locate chat message wrapper end");
+					return; // Not enough characters in m_FileLineBuf. Try again later.
 				}
 			}
 
-			if (!parsed)
+			if (!parsed && result == ParseLineResult::Unparsed)
 			{
 				parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
 				if (parsed && parsed->GetType() == ConsoleLineType::Chat)
@@ -203,13 +117,7 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 
 			if (parsed)
 			{
-				//result = ParseLine(regexBegin, lineStr, parsed);
-				//if (result == ParseLineResult::Defer)
-				//{
-				//	// Try again later
-				//	return;
-				//}
-				/*else*/ if (result == ParseLineResult::Success || result == ParseLineResult::Modified)
+				if (result == ParseLineResult::Success || result == ParseLineResult::Modified)
 				{
 					for (auto listener : m_ConsoleLineListeners)
 						listener->OnConsoleLineParsed(*this, *parsed);

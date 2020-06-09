@@ -1,4 +1,5 @@
 #include "ConsoleLines.h"
+#include "Log.h"
 #include "RegexHelpers.h"
 
 #include <mh/text/charconv_helper.hpp>
@@ -49,8 +50,11 @@ std::unique_ptr<ChatConsoleLine> ChatConsoleLine::TryParseFlexible(const std::st
 
 std::unique_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp, bool flexible)
 {
+	if (!flexible)
+		LogWarning("Found ourselves searching chat message "s << std::quoted(text) << " in non-flexible mode");
+
 	static const std::regex s_Regex(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,33}) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
-	static const std::regex s_RegexFlexible(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*(.{1,33}?)(?:(?: :  )|(?:: ))((?:.|[\r\n])*))regex", std::regex::optimize);
+	static const std::regex s_RegexFlexible(R"regex((\*DEAD\*)?\s*(\(TEAM\))?\s*((?:.|\s){1,33}?) :  ((?:.|[\r\n])*))regex", std::regex::optimize);
 
 	if (svmatch result; std::regex_match(text.begin(), text.end(), result, flexible ? s_RegexFlexible : s_Regex))
 	{
@@ -252,8 +256,8 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 		return parsed;
 	}
 
-	if (auto chatLine = ChatConsoleLine::TryParse(text, timestamp))
-		return chatLine;
+	//if (auto chatLine = ChatConsoleLine::TryParse(text, timestamp))
+	//	return chatLine;
 
 	return nullptr;
 	//return std::make_unique<GenericConsoleLine>(timestamp, std::string(text));
