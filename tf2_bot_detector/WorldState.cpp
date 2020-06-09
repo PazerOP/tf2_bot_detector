@@ -9,6 +9,7 @@
 
 #include <mh/text/string_insertion.hpp>
 
+#include <execution>
 #include <random>
 #include <regex>
 
@@ -185,14 +186,10 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 					{
 						parsed = ChatConsoleLine::TryParse(searchBuf.substr(0, found), m_CurrentTimestamp.GetSnapshot());
 						if (!parsed)
-						{
 							LogError("Somehow failed to parse chat message surrounded by markers: "s << std::quoted(searchBuf.substr(0, found)));
-						}
-						else
-						{
-							regexBegin = prefix.first + m_ChatMsgWrappers.first.size() + found + m_ChatMsgWrappers.second.size();
-							result = ParseLineResult::Modified;
-						}
+
+						regexBegin = prefix.first + m_ChatMsgWrappers.first.size() + found + m_ChatMsgWrappers.second.size();
+						result = ParseLineResult::Modified;
 					}
 				}
 				else
@@ -848,6 +845,34 @@ namespace tf2_bot_detector
 }
 #endif
 
+namespace
+{
+	template<typename CharT> struct MyRegexTraits;
+
+	template<> struct MyRegexTraits<char16_t>
+	{
+		using char_type = char16_t;
+		using string_type = std::u16string;
+		using locale_type = std::locale;
+
+		enum class char_class_type
+		{
+
+		};
+
+		static size_t length(const char_type* str)
+		{
+			return std::char_traits<char_type>::length(str);
+		}
+
+		char_type translate(char_type c) const
+		{
+			return c;
+		}
+	};
+}
+
+#include <fstream>
 std::pair<std::string, std::string> WorldState::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
 {
 	// http://emptycharacter.com/
@@ -915,19 +940,80 @@ std::pair<std::string, std::string> WorldState::RandomizeChatWrappers(const std:
 		GenerateCharSequence(endNarrow, endWide, 1);
 	} while (endWide == beginWide);
 
-	std::filesystem::create_directories(tfdir / "custom/tf2_bot_detector/resource");
-	std::filesystem::copy_file(tfdir / "resource/tf_english.txt", tfdir / "custom/tf2_bot_detector/resource/tf_english.txt",
-		std::filesystem::copy_options::overwrite_existing);
+	const auto inputDir = tfdir / "resource";
+	const auto outputDir = tfdir / "custom/zzzzzzzz_loadlast_tf2_bot_detector/resource";
+	std::filesystem::create_directories(outputDir);
 
-	const auto filename = tfdir / "custom/tf2_bot_detector/resource/tf_english.txt";
-	auto translations = ToMB(ReadWideFile(filename));
+	static constexpr const char* FILENAMES[] =
+	{
+		"brazilian",
+		"bulgarian",
+		"czech",
+		"danish",
+		"dutch",
+		"english",
+		"finnish",
+		"french",
+		"german",
+		"greek",
+		"hungarian",
+		"italian",
+		"japanese",
+		"korean",
+		"koreana",
+		"norwegian",
+		"pirate",
+		"polish",
+		"portuguese",
+		"romanian",
+		"russian",
+		"schinese",
+		"spanish",
+		"swedish",
+		"tchinese",
+		"thai",
+		"turkish",
+		"ukrainian",
+	};
 
-	const auto replaceStr = "\"TF_Chat_$1\" \"$2"s << beginNarrow << "$3" << endNarrow << '"';
+	static const std::basic_regex s_Regex(R"regex("(\[english\])?TF_Chat_(.*?)"\s+"([\x01-\x05]?)(.*)")regex",
+		std::regex::optimize | std::regex::icase);
 
-	translations = std::regex_replace(translations.c_str(),
-		std::basic_regex(R"regex("TF_Chat_(.*?)"\s+"(.)(.*)")regex"), replaceStr.c_str());
+	std::for_each(std::execution::par_unseq, std::begin(FILENAMES), std::end(FILENAMES),
+		[&](const char* language)
+		{
+			const auto translationFilename = "tf_"s << language << ".txt";
+			const auto outputFile = outputDir / translationFilename;
+			DebugLog("Writing modified "s << translationFilename << " to " << outputFile);
 
-	WriteWideFile(filename, ToU8(translations));
+			auto translations = ToMB(ReadWideFile(inputDir / translationFilename));
+
+			const auto replaceStr = "\"$1TF_Chat_$2\" \"$3"s << beginNarrow << "$4" << endNarrow << '"';
+
+#if 1
+			translations = std::regex_replace(translations.c_str(), s_Regex, replaceStr.c_str());
+#else
+			const char16_t searchStr[] = u"\"TF_Chat_";
+			for (auto found = translations.find(searchStr);
+				found != translations.npos;
+				found = translations.find(searchStr, found + std::size(searchStr) - 1))
+			{
+				__debugbreak();
+			}
+
+#endif
+
+#if 0
+			{
+				std::ofstream dump(outputDir / (std::string(translationFilename) << "_dump.txt"), std::ios::binary);
+				dump.write(reinterpret_cast<const char*>(translations.c_str()), translations.size());
+			}
+#endif
+
+			WriteWideFile(outputFile, ToU16(translations));
+		});
+
+	Log("Wrote "s << std::size(FILENAMES) << " modified translations to " << outputDir);
 
 	return { beginNarrow, endNarrow };
 }

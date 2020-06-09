@@ -57,31 +57,39 @@ std::string tf2_bot_detector::ToMB(const std::wstring_view& input)
 	return ToMB(ToU16(input));
 }
 
-std::u8string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filename)
+std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filename)
 {
 	std::u16string wideFileData;
 	{
 		std::ifstream file(filename, std::ios::binary);
+		if (!file.good())
+			return {};
+
 		file.seekg(0, std::ios::end);
+		if (!file.good())
+			return {};
+
 		const auto length = file.tellg();
 
 		// Skip BOM
 		file.seekg(2, std::ios::beg);
+		if (!file.good())
+			return {};
+
 		wideFileData.resize(length / 2 - 1);
 
 		file.read(reinterpret_cast<char*>(wideFileData.data()), length);
+		if (file.bad())
+			return {};
 	}
-	const auto end = wideFileData.data() + wideFileData.size() - 100;
 
-	return ToU8(wideFileData);
+	return wideFileData;
 }
 
-void tf2_bot_detector::WriteWideFile(const std::filesystem::path& filename, const std::u8string_view& text)
+void tf2_bot_detector::WriteWideFile(const std::filesystem::path& filename, const std::u16string_view& text)
 {
 	std::ofstream file(filename, std::ios::binary);
-	//file << '\xFE' << '\xFF'; // BOM - UTF16LE
 	file << '\xFF' << '\xFE'; // BOM - UTF16LE
 
-	const auto converted = ToU16(text);
-	file.write(reinterpret_cast<const char*>(converted.data()), converted.size() * sizeof(converted[0]));
+	file.write(reinterpret_cast<const char*>(text.data()), text.size() * sizeof(text[0]));
 }
