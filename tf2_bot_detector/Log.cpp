@@ -9,6 +9,10 @@
 #include <mutex>
 #include <vector>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
@@ -23,6 +27,13 @@ namespace tf2_bot_detector
 		std::lock_guard lock(s_LogMutex);
 		tm t = ToTM(s_LogTimestamp);
 		output << '[' << std::put_time(&t, "%T") << "] " << msg << std::endl;
+
+#ifdef _WIN32
+		{
+			std::string dbgMsg = "Log: "s << msg << '\n';
+			OutputDebugStringA(dbgMsg.c_str());
+		}
+#endif
 	}
 
 	static void LogInternal(std::string msg, const LogMessageColor& color, std::ostream& output)
