@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "RegexHelpers.h"
 #include "TextUtils.h"
+#include "PlatformSpecific/Shitty.h"
 
 #include <mh/text/string_insertion.hpp>
 
@@ -19,6 +20,8 @@ using namespace tf2_bot_detector;
 WorldState::WorldState(const Settings& settings, const std::filesystem::path& conLogFile) :
 	m_Settings(&settings), m_FileName(conLogFile)
 {
+	RequireTF2NotRunning();
+
 	m_ConsoleLineListeners.insert(this);
 
 	m_ChatMsgWrappers = RandomizeChatWrappers(m_Settings->m_TFDir);
@@ -173,9 +176,10 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 
 				if (auto found = searchBuf.find(m_ChatMsgWrappers.second); found != lineStr.npos)
 				{
-					if (found > 128)
+					if (found > 256)
 					{
-						LogError("Searched more than 128 characters for the end of the chat msg string, something is terribly wrong!");
+						LogError("Searched more than 256 characters ("s << found
+							<< ") for the end of the chat msg string, something is terribly wrong!");
 					}
 					else
 					{
