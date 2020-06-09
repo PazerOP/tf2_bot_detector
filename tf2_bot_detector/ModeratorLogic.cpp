@@ -126,6 +126,9 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const s
 	// Votekick the first one that is actually connected
 	for (const IPlayer* cheater : friendlyCheaters)
 	{
+		if (cheater->GetSteamID() == m_Settings->m_LocalSteamID)
+			continue;
+
 		if (cheater->GetConnectionState() == PlayerStatusState::Active)
 		{
 			if (InitiateVotekick(*cheater, KickReason::Cheating))

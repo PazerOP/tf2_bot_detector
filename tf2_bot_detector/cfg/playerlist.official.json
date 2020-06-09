@@ -1112,6 +1112,16 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "pazer",
+				"time": 1591678944
+			},
+			"steamid": "[U:1:1087394410]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:1087408810]"
 		},
 		{
@@ -1346,6 +1356,16 @@
 				"time": 1590624934
 			},
 			"steamid": "[U:1:1093844463]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "N bomb",
+				"time": 1591680349
+			},
+			"steamid": "[U:1:1094342572]"
 		},
 		{
 			"attributes": [
@@ -2094,10 +2114,32 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "[g0tb0t]CoonSlayer",
+				"time": 1591681402
+			},
+			"steamid": "[U:1:1104086131]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "MYG)T",
 				"time": 1591501158
 			},
 			"steamid": "[U:1:1104104760]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1591680142
+			},
+			"steamid": "[U:1:1104127239]"
 		},
 		{
 			"attributes": [
