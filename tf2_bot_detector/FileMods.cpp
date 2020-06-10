@@ -5,6 +5,7 @@
 #include <mh/coroutine/generator.hpp>
 #include <mh/text/string_insertion.hpp>
 
+#include <array>
 #include <execution>
 #include <random>
 #include <regex>
@@ -61,64 +62,17 @@ static constexpr const char8_t* INVISIBLE_CHARS[] =
 	u8"\u2060",
 };
 
-static constexpr char TF2BD_LOCALIZATION_DIR[] = "zzzzzzzz_loadlast_tf2_bot_detector";
+static constexpr char TF2BD_LOCALIZATION_DIR[] = "aaaaaaaaaa_loadfirst_tf2_bot_detector";
 
-#if 0
 namespace
 {
-	struct ChatMsgFormat final
+	struct ChatFormatStrings
 	{
-		ChatCategory m_Category{};
-		bool m_Location = false;
-
-		char m_PrePrefix = 0;
-		std::string m_Prefix;
-		std::string m_Mid;
-		std::string m_Suffix;
+		using array_t = std::array<std::string, (size_t)ChatCategory::COUNT>;
+		array_t m_English;
+		array_t m_Localized;
 	};
-
-	struct ChatMsgFormats final
-	{
-		ChatMsgFormats(const std::string_view& translations);
-
-		ChatMsgFormat& GetFormat(bool localized, const std::string_view& chatType);
-
-		struct Language
-		{
-			ChatMsgFormat& GetFormat(const std::string_view& chatType);
-
-			ChatMsgFormat m_TeamLoc;
-			ChatMsgFormat m_Team;
-			ChatMsgFormat m_TeamDead;
-			ChatMsgFormat m_Spec;
-			ChatMsgFormat m_All;
-			ChatMsgFormat m_AllDead;
-			ChatMsgFormat m_AllSpec;
-			ChatMsgFormat m_Coach;
-
-		} m_English, m_Localized;
-	};
-
-	ChatMsgFormats::ChatMsgFormats(const std::string_view& translations)
-	{
-		using it_t = std::regex_iterator<std::string_view::iterator>;
-		auto it = it_t(translations.begin(), translations.end(), s_ChatMsgLocalizationRegex);
-		const auto endIt = it_t{};
-		for (; it != endIt; ++it)
-		{
-			const auto& match = *it;
-
-			auto& format = GetFormat(match[1].matched, match[2].str());
-			if (match[3].matched)
-				format.m_PrePrefix = *match[3].first;
-
-			format.m_Prefix = match[4].str();
-			format.m_Mid = match[5].str();
-			format.m_Suffix = match[6].str();
-		}
-	}
 }
-#endif
 
 static std::string GenerateInvisibleCharSequence(int offset, size_t wrapChars)
 {
@@ -196,17 +150,70 @@ static void RegexSmartReplace(std::string& str, const std::regex& regex, TFunc&&
 	}
 }
 
-static std::vector<std::string> GetChatMsgFormats(const std::string_view& translations)
+static bool GetChatCategory(const std::string_view& name, ChatCategory& category)
 {
-	std::vector<std::string> retVal;
+	if (name == "Team")
+	{
+		category = ChatCategory::Team;
+		return true;
+	}
+	else if (name == "Team_Dead")
+	{
+		category = ChatCategory::TeamDead;
+		return true;
+	}
+	else if (name == "Spec")
+	{
+		category = ChatCategory::TeamSpec;
+		return true;
+	}
+	else if (name == "AllSpec")
+	{
+		category = ChatCategory::AllSpec;
+		return true;
+	}
+	else if (name == "All")
+	{
+		category = ChatCategory::All;
+		return true;
+	}
+	else if (name == "AllDead")
+	{
+		category = ChatCategory::AllDead;
+		return true;
+	}
+	else if (name == "Coach")
+	{
+		category = ChatCategory::Coach;
+		return true;
+	}
+	else if (name == "Team_Loc")
+	{
+		return false;
+	}
+	else
+	{
+		LogError("Unknown chat type localization string "s << std::quoted(name));
+		return false;
+	}
+}
 
+static void GetChatMsgFormats(const std::string_view& translations, ChatFormatStrings& strings)
+{
 	using it_t = std::regex_iterator<std::string_view::iterator>;
 	auto it = it_t(translations.begin(), translations.end(), s_ChatMsgLocalizationRegex);
 	const auto endIt = it_t{};
 	for (; it != endIt; ++it)
-		retVal.push_back((*it)[0]);
-
-	return retVal;
+	{
+		const auto& match = *it;
+		if (ChatCategory cat; GetChatCategory(match[2].str(), cat))
+		{
+			if (match[1].matched)
+				strings.m_English[(size_t)cat] = match[0].str();
+			else
+				strings.m_Localized[(size_t)cat] = match[0].str();
+		}
+	}
 }
 
 static void ApplyChatWrappers(std::string& translations, const ChatWrappers& wrappers)
@@ -219,25 +226,10 @@ static void ApplyChatWrappers(std::string& translations, const ChatWrappers& wra
 			const Wrapper* wrapper = nullptr;
 
 			auto name = std::string_view(&*match[2].first, match[2].length());
-			if (name == "Team_Loc")
-				return match[0].str();
-			else if (name == "Team")
-				wrapper = &wrappers.m_Types[(int)ChatCategory::Team];
-			else if (name == "Team_Dead")
-				wrapper = &wrappers.m_Types[(int)ChatCategory::TeamDead];
-			else if (name == "Spec")
-				wrapper = &wrappers.m_Types[(int)ChatCategory::TeamSpec];
-			else if (name == "AllSpec")
-				wrapper = &wrappers.m_Types[(int)ChatCategory::AllSpec];
-			else if (name == "All")
-				wrapper = &wrappers.m_Types[(int)ChatCategory::All];
-			else if (name == "AllDead")
-				wrapper = &wrappers.m_Types[(int)ChatCategory::AllDead];
+			if (ChatCategory cat; GetChatCategory(std::string_view(&*match[2].first, match[2].length()), cat))
+				wrapper = &wrappers.m_Types[(int)cat];
 			else
-			{
-				LogError("Unknown chat type localization string "s << std::quoted(name));
 				return match[0].str();
-			}
 
 			std::string retVal = "\""s << match[1].str() << "TF_Chat_" << match[2].str() << "\" \"" << match[3].str();
 
@@ -298,16 +290,43 @@ namespace
 	};
 }
 
-namespace
+static mh::generator<std::filesystem::path> GetLocalizationFiles(
+	const std::filesystem::path& tfDir, const std::string_view& language)
 {
-	struct ChatFormatStrings final
-	{
+	if (auto path = tfDir / "resource" / ("tf_"s << language << ".txt"); std::filesystem::exists(path))
+		co_yield path;
+	if (auto path = tfDir / "resource" / ("chat_"s << language << ".txt"); std::filesystem::exists(path))
+		co_yield path;
 
-	};
+	for (const auto& customDirEntry : std::filesystem::directory_iterator(tfDir / "custom"))
+	{
+		if (!customDirEntry.is_directory())
+			continue;
+
+		const auto customDir = customDirEntry.path();
+		if (!std::filesystem::exists(customDir / "resource"))
+			continue;
+
+		if (customDir.filename() == TF2BD_LOCALIZATION_DIR)
+			continue;
+
+		if (auto path = customDir / "resource" / ("tf_"s << language << ".txt"); std::filesystem::exists(path))
+			co_yield path;
+		if (auto path = customDir / "resource" / ("chat_"s << language << ".txt"); std::filesystem::exists(path))
+			co_yield path;
+	}
 }
 
-static std::set<ResourceFilePath> FindExistingTranslations(const std::filesystem::path& tfdir)
+static ChatFormatStrings FindExistingTranslations(const std::filesystem::path& tfdir, const std::string_view& language)
 {
+	ChatFormatStrings retVal;
+
+	for (const auto& filename : GetLocalizationFiles(tfdir, language))
+		GetChatMsgFormats(ToMB(ReadWideFile(filename)), retVal);
+
+	return retVal;
+
+#if 0
 	std::set<ResourceFilePath> retVal;
 
 	const auto CheckResourceFolder = [&retVal](const std::filesystem::path& dir)
@@ -347,36 +366,21 @@ static std::set<ResourceFilePath> FindExistingTranslations(const std::filesystem
 	}
 
 	return retVal;
+#endif
 }
 
 ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
 {
 	ChatWrappers wrappers(wrapChars);
 
-	const auto translationsSet = FindExistingTranslations(tfdir);
-
-	const auto outputDir = tfdir / "custom/zzzzzzzz_loadlast_tf2_bot_detector/resource";
+	const auto outputDir = tfdir / "custom" / TF2BD_LOCALIZATION_DIR / "resource";
 	std::filesystem::create_directories(outputDir);
 
-	const auto FindLanguage = [&](const std::string_view& language)
-	{
-		for (auto it = translationsSet.begin(); it != translationsSet.end(); ++it)
+	std::for_each(std::execution::par_unseq, std::begin(LANGUAGES), std::end(LANGUAGES),
+		[&](const std::string_view& lang)
 		{
-			if (it->m_Language == language)
-				return it;
-		}
+			auto translationsSet = FindExistingTranslations(tfdir, lang);
 
-		return translationsSet.end();
-	};
-
-	for (const auto& lang : LANGUAGES)
-	{
-		if (auto found = FindLanguage(lang); found != translationsSet.end())
-		{
-			ApplyChatWrappersToFiles(found->m_FullPath, outputDir / found->m_RelativePath, wrappers);
-		}
-		else
-		{
 			// Create our own chat localization file
 			std::string file;
 			file << R"(
@@ -387,22 +391,29 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 {
 )";
 
-			GetChatMsgFormats()
+			for (auto& str : translationsSet.m_English)
+			{
+				if (str.empty())
+					continue;
 
+				ApplyChatWrappers(str, wrappers);
+				file << str << '\n';
+			}
+			for (auto& str : translationsSet.m_Localized)
+			{
+				if (str.empty())
+					continue;
 
-			file << "\n}\n";
+				ApplyChatWrappers(str, wrappers);
+				file << str << '\n';
+			}
+
+			file << "\n}\n}\n";
 
 			WriteWideFile(outputDir / ("chat_"s << lang << ".txt"), ToU16(file));
-		}
-	}
-
-	std::for_each(std::execution::par_unseq, std::begin(translationsSet), std::end(translationsSet),
-		[&](const ResourceFilePath& file)
-		{
-			ApplyChatWrappersToFiles(file.m_FullPath, outputDir / file.m_RelativePath, wrappers);
 		});
 
-	Log("Wrote "s << std::size(translationsSet) << " modified translations to " << outputDir);
+	Log("Wrote "s << std::size(LANGUAGES) << " modified translations to " << outputDir);
 
 	return std::move(wrappers);
 }
