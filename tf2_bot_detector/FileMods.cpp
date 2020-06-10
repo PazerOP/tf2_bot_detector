@@ -204,12 +204,18 @@ static bool GetChatCategory(const std::string_view& name, ChatCategory& category
 	}
 }
 
-static void GetChatMsgFormats(const std::string_view& translations, ChatFormatStrings& strings)
+static void GetChatMsgFormats(const std::string_view& debugInfo, const std::string_view& translations, ChatFormatStrings& strings)
 {
 	const char* begin = translations.data();
 	const char* end = begin + translations.size();
 	std::error_code ec;
 	auto parsed = tyti::vdf::read(begin, end, ec);
+	if (ec)
+	{
+		LogError("Failed to parse translations from "s << std::quoted(debugInfo) << ": " << ec);
+		return;
+	}
+
 	if (auto tokens = parsed.childs["Tokens"])
 	{
 		std::string_view chatType;
@@ -250,23 +256,6 @@ static void GetChatMsgFormats(const std::string_view& translations, ChatFormatSt
 			str << "TF_Chat_" << chatType << "\" " << std::quoted(attrib.second);
 		}
 	}
-
-#if 0
-	using it_t = std::regex_iterator<std::string_view::iterator>;
-	auto it = it_t(translations.begin(), translations.end(), s_ChatMsgLocalizationRegex);
-	const auto endIt = it_t{};
-	for (; it != endIt; ++it)
-	{
-		const auto& match = *it;
-		if (ChatCategory cat; GetChatCategory(match[2].str(), cat))
-		{
-			if (match[1].matched)
-				strings.m_English[(size_t)cat] = match[0].str();
-			else
-				strings.m_Localized[(size_t)cat] = match[0].str();
-		}
-	}
-#endif
 }
 
 static void ApplyChatWrappers(std::string& translations, const ChatWrappers& wrappers)
@@ -400,7 +389,7 @@ static ChatFormatStrings FindExistingTranslations(const std::filesystem::path& t
 	ChatFormatStrings retVal;
 
 	for (const auto& filename : GetLocalizationFiles(tfdir, language))
-		GetChatMsgFormats(ToMB(ReadWideFile(filename)), retVal);
+		GetChatMsgFormats(filename.string(), ToMB(ReadWideFile(filename)), retVal);
 
 	return retVal;
 }
