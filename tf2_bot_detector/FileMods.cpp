@@ -9,12 +9,15 @@
 #include <mh/text/string_insertion.hpp>
 
 #include <array>
+#include <compare>
+#include <concepts>
 #include <execution>
 #include <random>
 #include <regex>
 #include <set>
 
 using namespace std::string_literals;
+using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 
 #ifdef _DEBUG
@@ -190,7 +193,7 @@ static bool GetChatCategory(const std::string_view& name, ChatCategory& category
 		category = ChatCategory::Coach;
 		return true;
 	}
-	else if (name == "Team_Loc")
+	else if (name == "Team_Loc" || name == "Party")
 	{
 		return false;
 	}
@@ -203,6 +206,52 @@ static bool GetChatCategory(const std::string_view& name, ChatCategory& category
 
 static void GetChatMsgFormats(const std::string_view& translations, ChatFormatStrings& strings)
 {
+	const char* begin = translations.data();
+	const char* end = begin + translations.size();
+	std::error_code ec;
+	auto parsed = tyti::vdf::read(begin, end, ec);
+	if (auto tokens = parsed.childs["Tokens"])
+	{
+		std::string_view chatType;
+		bool isEnglish;
+
+		static constexpr auto TF_CHAT_ROOT = "TF_Chat_"sv;
+		static constexpr auto ENGLISH_TF_CHAT_ROOT = "[english]TF_Chat_"sv;
+
+		for (const auto& attrib : tokens->attribs)
+		{
+			if (attrib.first.starts_with(TF_CHAT_ROOT))
+			{
+				chatType = std::string_view(attrib.first).substr(TF_CHAT_ROOT.size());
+				isEnglish = false;
+			}
+			else if (attrib.first.starts_with(ENGLISH_TF_CHAT_ROOT))
+			{
+				chatType = std::string_view(attrib.first).substr(ENGLISH_TF_CHAT_ROOT.size());
+				isEnglish = true;
+			}
+			else
+			{
+				continue;
+			}
+
+			ChatCategory cat;
+			if (!GetChatCategory(chatType, cat))
+				continue;
+
+			auto& str = (isEnglish ? strings.m_English : strings.m_Localized)[(int)cat];
+			str.clear();
+
+			str << '"';
+
+			if (isEnglish)
+				str << "[english]";
+
+			str << "TF_Chat_" << chatType << "\" " << std::quoted(attrib.second);
+		}
+	}
+
+#if 0
 	using it_t = std::regex_iterator<std::string_view::iterator>;
 	auto it = it_t(translations.begin(), translations.end(), s_ChatMsgLocalizationRegex);
 	const auto endIt = it_t{};
@@ -217,6 +266,7 @@ static void GetChatMsgFormats(const std::string_view& translations, ChatFormatSt
 				strings.m_Localized[(size_t)cat] = match[0].str();
 		}
 	}
+#endif
 }
 
 static void ApplyChatWrappers(std::string& translations, const ChatWrappers& wrappers)
