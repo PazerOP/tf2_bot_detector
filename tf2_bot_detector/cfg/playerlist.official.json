@@ -327,6 +327,26 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "Eld\u0247rVoid",
+				"time": 1591769066
+			},
+			"steamid": "[U:1:452757225]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Eld\u0247rVoid Bot #1",
+				"time": 1591768992
+			},
+			"steamid": "[U:1:470923236]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:477738533]"
 		},
 		{
@@ -590,6 +610,46 @@
 				"cheater"
 			],
 			"steamid": "[U:1:1017705916]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Eld\u0247rVoid Bot #2",
+				"time": 1591768991
+			},
+			"steamid": "[U:1:1020718223]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Eld\u0247rVoid Bot #3",
+				"time": 1591768991
+			},
+			"steamid": "[U:1:1020842794]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Eld\u0247rVoid Bot #5",
+				"time": 1591768990
+			},
+			"steamid": "[U:1:1022530028]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Eld\u0247rVoid Bot #4",
+				"time": 1591768990
+			},
+			"steamid": "[U:1:1022783893]"
 		},
 		{
 			"attributes": [
@@ -1048,6 +1108,16 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "[VAC] OneTrick",
+				"time": 1591769248
+			},
+			"steamid": "[U:1:1087265353]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:1087318293]"
 		},
 		{
@@ -1141,6 +1211,16 @@
 				"cheater"
 			],
 			"steamid": "[U:1:1087476365]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "pazer",
+				"time": 1591768952
+			},
+			"steamid": "[U:1:1087497349]"
 		},
 		{
 			"attributes": [
@@ -2079,6 +2159,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1591769468
+			},
+			"steamid": "[U:1:1104045302]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -2107,6 +2197,17 @@
 				"time": 1591516631
 			},
 			"steamid": "[U:1:1104070775]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1591770504
+			},
+			"steamid": "[U:1:1104078019]"
 		},
 		{
 			"attributes": [
