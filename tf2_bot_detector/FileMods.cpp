@@ -137,9 +137,6 @@ ChatWrappers::ChatWrappers(size_t wrapChars)
 	}
 }
 
-static const std::basic_regex s_ChatMsgLocalizationRegex(R"regex("(\[english\])?TF_Chat_(.*?)"\s+"([\x01-\x05]?)(.*)%s1(.*)%s2(.*)")regex",
-	std::regex::optimize | std::regex::icase);
-
 template<typename TFunc>
 static void RegexSmartReplace(std::string& str, const std::regex& regex, TFunc&& func)
 {
@@ -156,52 +153,65 @@ static void RegexSmartReplace(std::string& str, const std::regex& regex, TFunc&&
 	}
 }
 
-static bool GetChatCategory(const std::string_view& name, ChatCategory& category)
+static bool GetChatCategory(const std::string* src, std::string_view* name, ChatCategory* category, bool* isEnglish)
 {
-	if (name == "Team")
+	if (!src)
 	{
-		category = ChatCategory::Team;
-		return true;
-	}
-	else if (name == "Team_Dead")
-	{
-		category = ChatCategory::TeamDead;
-		return true;
-	}
-	else if (name == "Spec")
-	{
-		category = ChatCategory::TeamSpec;
-		return true;
-	}
-	else if (name == "AllSpec")
-	{
-		category = ChatCategory::AllSpec;
-		return true;
-	}
-	else if (name == "All")
-	{
-		category = ChatCategory::All;
-		return true;
-	}
-	else if (name == "AllDead")
-	{
-		category = ChatCategory::AllDead;
-		return true;
-	}
-	else if (name == "Coach")
-	{
-		category = ChatCategory::Coach;
-		return true;
-	}
-	else if (name == "Team_Loc" || name == "Party")
-	{
+		LogError("nullptr passed to "s << __FUNCTION__);
 		return false;
+	}
+
+	static constexpr auto TF_CHAT_ROOT = "TF_Chat_"sv;
+	static constexpr auto ENGLISH_TF_CHAT_ROOT = "[english]TF_Chat_"sv;
+
+	std::string_view localName;
+	if (!name)
+		name = &localName;
+
+	if (src->starts_with(TF_CHAT_ROOT))
+	{
+		*name = std::string_view(*src).substr(TF_CHAT_ROOT.size());
+		if (isEnglish)
+			*isEnglish = false;
+	}
+	else if (src->starts_with(ENGLISH_TF_CHAT_ROOT))
+	{
+		*name = std::string_view(*src).substr(ENGLISH_TF_CHAT_ROOT.size());
+		if (isEnglish)
+			*isEnglish = true;
 	}
 	else
 	{
-		LogError("Unknown chat type localization string "s << std::quoted(name));
 		return false;
 	}
+
+	ChatCategory localCategory;
+	if (!category)
+		category = &localCategory;
+
+	if (*name == "Team")
+		*category = ChatCategory::Team;
+	else if (*name == "Team_Dead")
+		*category = ChatCategory::TeamDead;
+	else if (*name == "Spec")
+		*category = ChatCategory::TeamSpec;
+	else if (*name == "AllSpec")
+		*category = ChatCategory::AllSpec;
+	else if (*name == "All")
+		*category = ChatCategory::All;
+	else if (*name == "AllDead")
+		*category = ChatCategory::AllDead;
+	else if (*name == "Coach")
+		*category = ChatCategory::Coach;
+	else if (*name == "Team_Loc" || *name == "Party")
+		return false;
+	else
+	{
+		LogError("Unknown chat type localization string "s << std::quoted(*name));
+		return false;
+	}
+
+	return true;
 }
 
 static void GetChatMsgFormats(const std::string_view& debugInfo, const std::string_view& translations, ChatFormatStrings& strings)
@@ -221,79 +231,70 @@ static void GetChatMsgFormats(const std::string_view& debugInfo, const std::stri
 		std::string_view chatType;
 		bool isEnglish;
 
-		static constexpr auto TF_CHAT_ROOT = "TF_Chat_"sv;
-		static constexpr auto ENGLISH_TF_CHAT_ROOT = "[english]TF_Chat_"sv;
-
 		for (const auto& attrib : tokens->attribs)
 		{
-			if (attrib.first.starts_with(TF_CHAT_ROOT))
-			{
-				chatType = std::string_view(attrib.first).substr(TF_CHAT_ROOT.size());
-				isEnglish = false;
-			}
-			else if (attrib.first.starts_with(ENGLISH_TF_CHAT_ROOT))
-			{
-				chatType = std::string_view(attrib.first).substr(ENGLISH_TF_CHAT_ROOT.size());
-				isEnglish = true;
-			}
-			else
-			{
-				continue;
-			}
-
 			ChatCategory cat;
-			if (!GetChatCategory(chatType, cat))
+			if (!GetChatCategory(&attrib.first, &chatType, &cat, &isEnglish))
 				continue;
 
-			auto& str = (isEnglish ? strings.m_English : strings.m_Localized)[(int)cat];
-			str.clear();
-
-			str << '"';
-
-			if (isEnglish)
-				str << "[english]";
-
-			str << "TF_Chat_" << chatType << "\" " << std::quoted(attrib.second);
+			(isEnglish ? strings.m_English : strings.m_Localized)[(int)cat] = attrib.second;
 		}
 	}
 }
 
-static void ApplyChatWrappers(std::string& translations, const ChatWrappers& wrappers)
+static void ApplyChatWrappers(ChatCategory cat, std::string& translation, const ChatWrappers& wrappers)
 {
-	using Wrapper = ChatWrappers::Type;
+	static const std::basic_regex s_Regex(R"regex(([\x01-\x05]?)(.*)%s1(.*)%s2(.*))regex",
+		std::regex::optimize | std::regex::icase);
 
-	RegexSmartReplace(translations, s_ChatMsgLocalizationRegex,
-		[&](const std::match_results<std::string::iterator>& match)
-		{
-			const Wrapper* wrapper = nullptr;
+	const auto& wrapper = wrappers.m_Types[(int)cat];
+	const auto replaceStr = "$1"s << wrapper.m_Full.first << "$2"
+		<< wrapper.m_Name.first << "%s1" << wrapper.m_Name.second
+		<< "$3"
+		<< wrapper.m_Message.first << "%s2" << wrapper.m_Message.second
+		<< "$4"
+		<< wrapper.m_Full.second;
 
-			auto name = std::string_view(&*match[2].first, match[2].length());
-			if (ChatCategory cat; GetChatCategory(std::string_view(&*match[2].first, match[2].length()), cat))
-				wrapper = &wrappers.m_Types[(int)cat];
-			else
-				return match[0].str();
+	auto replaced = std::regex_replace(translation, s_Regex, replaceStr);
+	if (replaced == translation)
+	{
+		LogError("Failed to apply chat message regex to "s << std::quoted(translation));
+		return;
+	}
 
-			std::string retVal = "\""s << match[1].str() << "TF_Chat_" << match[2].str() << "\" \"" << match[3].str();
-
-			retVal << wrapper->m_Full.first << match[4].str()
-				<< wrapper->m_Name.first << "%s1" << wrapper->m_Name.second
-				<< match[5].str()
-				<< wrapper->m_Message.first << "%s2" << wrapper->m_Message.second
-				<< wrapper->m_Full.second;
-
-			retVal << '"';
-
-			return retVal;
-		});
+	translation = std::move(replaced);
 }
 
-static void ApplyChatWrappersToFiles(const std::filesystem::path& src, const std::filesystem::path& dest, const ChatWrappers& wrappers)
+[[nodiscard]] static bool ApplyChatWrappersToFiles(const std::filesystem::path& src,
+	const std::filesystem::path& dest, const ChatWrappers& wrappers)
 {
 	DebugLog("Writing modified "s << src << " to " << dest);
 
 	auto translations = ToMB(ReadWideFile(src));
-	ApplyChatWrappers(translations, wrappers);
-	WriteWideFile(dest, ToU16(translations));
+
+	auto begin = translations.data();
+	auto end = begin + translations.size();
+	auto values = tyti::vdf::read(begin, end);
+
+	if (auto tokens = values.childs["Tokens"])
+	{
+		for (auto& token : tokens->attribs)
+		{
+			ChatCategory cat;
+			if (!GetChatCategory(&token.first, nullptr, &cat, nullptr))
+				continue;
+
+			ApplyChatWrappers(cat, token.second, wrappers);
+		}
+	}
+	else
+	{
+		LogError(std::string(__FUNCTION__ ": No tokens found in ") << src);
+	}
+
+	translations.clear();
+	mh::strwrapperstream stream(translations);
+	tyti::vdf::write(stream, values);
 }
 
 static std::string_view IsLocalizationFile(const std::filesystem::path& file)
@@ -394,6 +395,39 @@ static ChatFormatStrings FindExistingTranslations(const std::filesystem::path& t
 	return retVal;
 }
 
+static constexpr std::string_view GetChatCategoryKey(ChatCategory cat, bool isEnglish)
+{
+	if (isEnglish)
+	{
+		switch (cat)
+		{
+		case ChatCategory::All:       return "[english]TF_Chat_All"sv;
+		case ChatCategory::AllDead:   return "[english]TF_Chat_AllDead"sv;
+		case ChatCategory::Team:      return "[english]TF_Chat_Team"sv;
+		case ChatCategory::TeamDead:  return "[english]TF_Chat_Team_Dead"sv;
+		case ChatCategory::AllSpec:   return "[english]TF_Chat_AllSpec"sv;
+		case ChatCategory::TeamSpec:  return "[english]TF_Chat_Spec"sv;
+		case ChatCategory::Coach:     return "[english]TF_Chat_Coach"sv;
+		}
+	}
+	else
+	{
+		switch (cat)
+		{
+		case ChatCategory::All:       return "TF_Chat_All"sv;
+		case ChatCategory::AllDead:   return "TF_Chat_AllDead"sv;
+		case ChatCategory::Team:      return "TF_Chat_Team"sv;
+		case ChatCategory::TeamDead:  return "TF_Chat_Team_Dead"sv;
+		case ChatCategory::AllSpec:   return "TF_Chat_AllSpec"sv;
+		case ChatCategory::TeamSpec:  return "TF_Chat_Spec"sv;
+		case ChatCategory::Coach:     return "TF_Chat_Coach"sv;
+		}
+	}
+
+	LogError(std::string(__FUNCTION__ ": Unknown key for ") << cat << " with isEnglish = " << isEnglish);
+	return "TF_Chat_UNKNOWN"sv;
+}
+
 ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
 {
 	ChatWrappers wrappers(wrapChars);
@@ -407,47 +441,56 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 			auto translationsSet = FindExistingTranslations(tfdir, lang);
 
 			// Create our own chat localization file
-			std::string file;
-			file << R"(
-"lang"
-{
-"Language" ")" << lang << R"("
-"Tokens"
-{
-)";
+			using obj = tyti::vdf::object;
+			obj file;
+			file.name = "lang";
+			file.add_attribute("Language", std::string(lang));
+			auto& tokens = file.childs["Tokens"] = std::make_shared<obj>();
+			tokens->name = "Tokens";
+
 			// Copy all from existing
 			if (auto existing = FindExistingChatTranslationFile(tfdir, lang); !existing.empty())
 			{
 				auto baseFile = ToMB(ReadWideFile(existing));
 
-				auto values = tyti::vdf::read(baseFile.begin(), baseFile.end());
-				if (auto tokens = values.childs["Tokens"])
+				std::error_code ec;
+				auto values = tyti::vdf::read(baseFile.begin(), baseFile.end(), ec);
+				if (ec)
 				{
-					for (auto& attrib : tokens->attribs)
-						file << std::quoted(attrib.first) << ' ' << std::quoted(attrib.second) << '\n';
+					LogError("Failed to parse keyvalues from "s << existing);
+				}
+				else if (auto existingTokens = values.childs["Tokens"])
+				{
+					for (auto& attrib : existingTokens->attribs)
+						tokens->attribs[attrib.first] = attrib.second;
+				}
+				else
+				{
+					LogError("Missing \"Tokens\" key in "s << existing);
 				}
 			}
 
-			for (auto& str : translationsSet.m_English)
+			for (size_t i = 0; i < translationsSet.m_Localized.size(); i++)
 			{
-				if (str.empty())
+				ApplyChatWrappers(ChatCategory(i), translationsSet.m_Localized[i], wrappers);
+				const auto key = GetChatCategoryKey(ChatCategory(i), false);
+				tokens->attribs[std::string(key)] = translationsSet.m_Localized[i];
+			}
+			for (size_t i = 0; i < translationsSet.m_English.size(); i++)
+			{
+				if (translationsSet.m_English[i].empty())
 					continue;
 
-				ApplyChatWrappers(str, wrappers);
-				file << str << '\n';
-			}
-			for (auto& str : translationsSet.m_Localized)
-			{
-				if (str.empty())
-					continue;
-
-				ApplyChatWrappers(str, wrappers);
-				file << str << '\n';
+				ApplyChatWrappers(ChatCategory(i), translationsSet.m_English[i], wrappers);
+				const auto key = GetChatCategoryKey(ChatCategory(i), false);
+				tokens->attribs[std::string(key)] = translationsSet.m_English[i];
 			}
 
-			file << "\n}\n}\n";
+			std::string outFile;
+			mh::strwrapperstream stream(outFile);
+			tyti::vdf::write(stream, file);
 
-			WriteWideFile(outputDir / ("chat_"s << lang << ".txt"), ToU16(file));
+			WriteWideFile(outputDir / ("chat_"s << lang << ".txt"), ToU16(outFile));
 		});
 
 	Log("Wrote "s << std::size(LANGUAGES) << " modified translations to " << outputDir);

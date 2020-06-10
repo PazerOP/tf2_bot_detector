@@ -2,9 +2,14 @@
 #define _SILENCE_CXX20_CODECVT_FACETS_DEPRECATION_WARNING 1
 
 #include "TextUtils.h"
+#include "Log.h"
+
+#include <mh/text/string_insertion.hpp>
 
 #include <codecvt>
 #include <fstream>
+
+using namespace std::string_literals;
 
 std::u16string tf2_bot_detector::ToU16(const std::u8string_view& input)
 {
@@ -59,6 +64,8 @@ std::string tf2_bot_detector::ToMB(const std::wstring_view& input)
 
 std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filename)
 {
+	DebugLog("ReadWideFile("s << filename << ')');
+
 	std::u16string wideFileData;
 	{
 		std::ifstream file(filename, std::ios::binary);
