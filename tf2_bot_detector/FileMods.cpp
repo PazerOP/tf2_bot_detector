@@ -1,7 +1,10 @@
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING 1
+
 #include "FileMods.h"
 #include "Log.h"
 #include "TextUtils.h"
 
+#include <vdf_parser.hpp>
 #include <mh/coroutine/generator.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -291,12 +294,15 @@ namespace
 }
 
 static mh::generator<std::filesystem::path> GetLocalizationFiles(
-	const std::filesystem::path& tfDir, const std::string_view& language)
+	const std::filesystem::path& tfDir, const std::string_view& language, bool baseFirst = true)
 {
-	if (auto path = tfDir / "resource" / ("tf_"s << language << ".txt"); std::filesystem::exists(path))
-		co_yield path;
-	if (auto path = tfDir / "resource" / ("chat_"s << language << ".txt"); std::filesystem::exists(path))
-		co_yield path;
+	if (baseFirst)
+	{
+		if (auto path = tfDir / "resource" / ("tf_"s << language << ".txt"); std::filesystem::exists(path))
+			co_yield path;
+		if (auto path = tfDir / "resource" / ("chat_"s << language << ".txt"); std::filesystem::exists(path))
+			co_yield path;
+	}
 
 	for (const auto& customDirEntry : std::filesystem::directory_iterator(tfDir / "custom"))
 	{
@@ -315,6 +321,28 @@ static mh::generator<std::filesystem::path> GetLocalizationFiles(
 		if (auto path = customDir / "resource" / ("chat_"s << language << ".txt"); std::filesystem::exists(path))
 			co_yield path;
 	}
+
+	if (!baseFirst)
+	{
+		if (auto path = tfDir / "resource" / ("tf_"s << language << ".txt"); std::filesystem::exists(path))
+			co_yield path;
+		if (auto path = tfDir / "resource" / ("chat_"s << language << ".txt"); std::filesystem::exists(path))
+			co_yield path;
+	}
+}
+
+static std::filesystem::path FindExistingChatTranslationFile(
+	const std::filesystem::path& tfDir, const std::string_view& language)
+{
+	const auto desiredFilename = "chat_"s << language << ".txt";
+	for (const auto& path : GetLocalizationFiles(tfDir, language, false))
+	{
+		//Log("Filename: "s << path.filename());
+		if (path.filename() == desiredFilename)
+			return path;
+	}
+
+	return {};
 }
 
 static ChatFormatStrings FindExistingTranslations(const std::filesystem::path& tfdir, const std::string_view& language)
@@ -325,48 +353,6 @@ static ChatFormatStrings FindExistingTranslations(const std::filesystem::path& t
 		GetChatMsgFormats(ToMB(ReadWideFile(filename)), retVal);
 
 	return retVal;
-
-#if 0
-	std::set<ResourceFilePath> retVal;
-
-	const auto CheckResourceFolder = [&retVal](const std::filesystem::path& dir)
-	{
-		for (const auto& entry : std::filesystem::directory_iterator(dir))
-		{
-			if (!entry.is_regular_file())
-				continue;
-
-			if (auto lang = IsLocalizationFile(entry); !lang.empty())
-			{
-				retVal.insert(
-					{
-						.m_Language = lang,
-						.m_RelativePath = std::filesystem::relative(entry, dir),
-						.m_FullPath = entry,
-					});
-			}
-		}
-	};
-
-	CheckResourceFolder(tfdir / "resource");
-
-	for (const auto& entry : std::filesystem::directory_iterator(tfdir / "custom"))
-	{
-		if (!entry.is_directory())
-			continue;
-
-		const auto path = entry.path();
-		if (!std::filesystem::exists(path / "resource"))
-			continue;
-
-		if (path.filename() == TF2BD_LOCALIZATION_DIR)
-			continue;
-
-		CheckResourceFolder(path / "resource");
-	}
-
-	return retVal;
-#endif
 }
 
 ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
@@ -390,6 +376,18 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 "Tokens"
 {
 )";
+			// Copy all from existing
+			if (auto existing = FindExistingChatTranslationFile(tfdir, lang); !existing.empty())
+			{
+				auto baseFile = ToMB(ReadWideFile(existing));
+
+				auto values = tyti::vdf::read(baseFile.begin(), baseFile.end());
+				if (auto tokens = values.childs["Tokens"])
+				{
+					for (auto& attrib : tokens->attribs)
+						file << std::quoted(attrib.first) << ' ' << std::quoted(attrib.second) << '\n';
+				}
+			}
 
 			for (auto& str : translationsSet.m_English)
 			{

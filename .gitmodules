@@ -10,3 +10,6 @@
 [submodule "nlohmann_json"]
 	path = submodules/nlohmann_json
 	url = https://github.com/nlohmann/json.git
+[submodule "submodules/ValveFileVDF"]
+	path = submodules/ValveFileVDF
+	url = https://github.com/TinyTinni/ValveFileVDF.git

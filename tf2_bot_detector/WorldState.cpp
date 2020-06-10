@@ -84,8 +84,8 @@ bool WorldState::ParseChatMessage(const std::string_view& lineStr, striter& pars
 				if (nameBegin != searchBuf.npos && nameEnd != searchBuf.npos && msgBegin != searchBuf.npos && msgEnd != searchBuf.npos)
 				{
 					parsed = std::make_unique<ChatConsoleLine>(m_CurrentTimestamp.GetSnapshot(),
-						std::string(searchBuf.substr(nameBegin, nameEnd - nameBegin)),
-						std::string(searchBuf.substr(msgBegin, msgEnd - msgBegin)),
+						std::string(searchBuf.substr(nameBegin + type.m_Name.first.size(), nameEnd - nameBegin - type.m_Name.first.size())),
+						std::string(searchBuf.substr(msgBegin + type.m_Message.first.size(), msgEnd - msgBegin - type.m_Message.first.size())),
 						IsDead(category), IsTeam(category));
 				}
 				else
@@ -100,7 +100,7 @@ bool WorldState::ParseChatMessage(const std::string_view& lineStr, striter& pars
 						LogError("Failed to find message end sequence in chat message of type "s << category);
 				}
 
-				parseEnd += found + type.m_Full.second.size();
+				parseEnd += type.m_Full.first.size() + found + type.m_Full.second.size();
 				return true;
 			}
 			else
@@ -142,7 +142,8 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 
 			if (ParseChatMessage(lineStr, regexBegin, parsed))
 			{
-				result = ParseLineResult::Modified;
+				if (parsed)
+					result = ParseLineResult::Modified;
 			}
 			else
 			{
