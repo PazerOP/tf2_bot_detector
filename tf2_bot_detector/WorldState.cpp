@@ -54,6 +54,66 @@ void WorldState::Parse(bool& linesProcessed, bool& snapshotUpdated, bool& consol
 	} while (readCount > 0);
 }
 
+bool WorldState::ParseChatMessage(const std::string_view& lineStr, striter& parseEnd, std::unique_ptr<IConsoleLine>& parsed)
+{
+	for (int i = 0; i < (int)ChatCategory::COUNT; i++)
+	{
+		const auto category = ChatCategory(i);
+
+		auto& type = m_ChatMsgWrappers.m_Types[i];
+		if (lineStr.starts_with(type.m_Full.first))
+		{
+			auto searchBuf = std::string_view(m_FileLineBuf).substr(
+				&*lineStr.begin() - m_FileLineBuf.data() + type.m_Full.first.size());
+
+			if (auto found = searchBuf.find(type.m_Full.second); found != lineStr.npos)
+			{
+				if (found > 256)
+				{
+					LogError("Searched more than 256 characters ("s << found
+						<< ") for the end of the chat msg string, something is terribly wrong!");
+				}
+
+				searchBuf = searchBuf.substr(0, found);
+
+				auto nameBegin = searchBuf.find(type.m_Name.first);
+				auto nameEnd = searchBuf.find(type.m_Name.second);
+				auto msgBegin = searchBuf.find(type.m_Message.first);
+				auto msgEnd = searchBuf.find(type.m_Message.second);
+
+				if (nameBegin != searchBuf.npos && nameEnd != searchBuf.npos && msgBegin != searchBuf.npos && msgEnd != searchBuf.npos)
+				{
+					parsed = std::make_unique<ChatConsoleLine>(m_CurrentTimestamp.GetSnapshot(),
+						std::string(searchBuf.substr(nameBegin, nameEnd - nameBegin)),
+						std::string(searchBuf.substr(msgBegin, msgEnd - msgBegin)),
+						IsDead(category), IsTeam(category));
+				}
+				else
+				{
+					if (nameBegin == searchBuf.npos)
+						LogError("Failed to find name begin sequence in chat message of type "s << category);
+					if (nameEnd == searchBuf.npos)
+						LogError("Failed to find name end sequence in chat message of type "s << category);
+					if (msgBegin == searchBuf.npos)
+						LogError("Failed to find message begin sequence in chat message of type "s << category);
+					if (msgEnd == searchBuf.npos)
+						LogError("Failed to find message end sequence in chat message of type "s << category);
+				}
+
+				parseEnd += found + type.m_Full.second.size();
+				return true;
+			}
+			else
+			{
+				LogError("Failed to locate chat message wrapper end");
+				return false; // Not enough characters in m_FileLineBuf. Try again later.
+			}
+		}
+	}
+
+	return true;
+}
+
 void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated)
 {
 	static const std::regex s_TimestampRegex(R"regex(\n(\d\d)\/(\d\d)\/(\d\d\d\d) - (\d\d):(\d\d):(\d\d):[ \n])regex", std::regex::optimize);
@@ -79,31 +139,14 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 			const auto prefix = match.prefix();
 			//const auto suffix = match.suffix();
 			const std::string_view lineStr(&*prefix.first, prefix.length());
-			if (lineStr.starts_with(m_ChatMsgWrappers.first))
+
+			if (ParseChatMessage(lineStr, regexBegin, parsed))
 			{
-				const auto searchBuf = std::string_view(m_FileLineBuf).substr(
-					&*prefix.first - m_FileLineBuf.data() + m_ChatMsgWrappers.first.size());
-
-				if (auto found = searchBuf.find(m_ChatMsgWrappers.second); found != lineStr.npos)
-				{
-					if (found > 256)
-					{
-						LogError("Searched more than 256 characters ("s << found
-							<< ") for the end of the chat msg string, something is terribly wrong!");
-					}
-
-					parsed = ChatConsoleLine::TryParseFlexible(searchBuf.substr(0, found), m_CurrentTimestamp.GetSnapshot());
-					if (!parsed)
-						LogError("Somehow failed to parse chat message surrounded by markers: "s << std::quoted(searchBuf.substr(0, found)));
-
-					regexBegin = prefix.first + m_ChatMsgWrappers.first.size() + found + m_ChatMsgWrappers.second.size();
-					result = ParseLineResult::Modified;
-				}
-				else
-				{
-					LogError("Failed to locate chat message wrapper end");
-					return; // Not enough characters in m_FileLineBuf. Try again later.
-				}
+				result = ParseLineResult::Modified;
+			}
+			else
+			{
+				return; // Try again later (not enough chars in buffer)
 			}
 
 			if (!parsed && result == ParseLineResult::Unparsed)
@@ -158,78 +201,6 @@ void WorldState::ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snaps
 
 		parseEnd = regexBegin;
 	}
-}
-
-size_t WorldState::CalcChatMessageCharacters(const SVCUserMessageLine& usrMsg, const ChatConsoleLine& chatMsg)
-{
-	if (usrMsg.GetUserMessageType() != 4)
-		return 0;
-
-	int msgBytes = usrMsg.GetUserMessageBytes();
-	if (msgBytes < 3)
-	{
-		LogWarning(std::string(__FUNCTION__ "(): GetUserMessageBytes() returned ") << msgBytes);
-		return 0;
-	}
-
-	msgBytes -= 1; // speaker entindex
-	msgBytes -= 1; // bChat
-	msgBytes -= 1; // null terminator for string1
-	msgBytes -= 1; // null terminator for string2
-	msgBytes -= 1; // null terminator for string3
-	msgBytes -= 1; // null terminator for string4
-
-	//msgBytes -= 1; // Mystery???
-
-	if (chatMsg.IsDead())
-	{
-		if (chatMsg.IsTeam())
-			return msgBytes - std::size("TF_Chat_Team_Dead");
-		else
-			return msgBytes - std::size("TF_Chat_AllDead");
-	}
-	else
-	{
-		if (chatMsg.IsTeam())
-			return msgBytes - std::size("TF_Chat_Team");
-		else
-			return msgBytes - std::size("TF_Chat_All");
-	}
-}
-
-size_t WorldState::GetChatMsgDecorationLength(const ChatConsoleLine& chatMsg)
-{
-	if (chatMsg.IsDead())
-	{
-		if (chatMsg.IsTeam())
-			return std::size("*DEAD*(TEAM) ") - 1;
-		else
-			return std::size("*DEAD* ") - 1;
-	}
-	else
-	{
-		if (chatMsg.IsTeam())
-			return std::size("(TEAM) ") - 1;
-		else
-			return 0;
-	}
-}
-
-size_t WorldState::GetChatMsgSuffixLength(const ChatConsoleLine& chatMsg, const std::string_view& lineStr)
-{
-	const auto& name = chatMsg.GetPlayerName();
-	const auto decorLength = GetChatMsgDecorationLength(chatMsg);
-
-	if ((decorLength + name.size() + 1) >= lineStr.size())
-	{
-		LogError(__FUNCTION__ "(): player name was longer than input line?");
-		return 0;
-	}
-
-	if (lineStr[decorLength + name.size() + 1] == ':')
-		return std::size(" :  ") - 1;
-	else
-		return std::size(": ") - 1;
 }
 
 void WorldState::TrySnapshot(bool& snapshotUpdated)

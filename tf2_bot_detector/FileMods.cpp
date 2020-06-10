@@ -2,6 +2,7 @@
 #include "Log.h"
 #include "TextUtils.h"
 
+#include <mh/coroutine/generator.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <execution>
@@ -19,7 +20,7 @@ namespace tf2_bot_detector
 }
 #endif
 
-static constexpr const char* LANGUAGES[] =
+static constexpr std::string_view LANGUAGES[] =
 {
 	"brazilian",
 	"bulgarian",
@@ -51,27 +52,8 @@ static constexpr const char* LANGUAGES[] =
 	"ukrainian",
 };
 
-// http://emptycharacter.com/
-static constexpr const char8_t* WRAP_CHARS[] =
+static constexpr const char8_t* INVISIBLE_CHARS[] =
 {
-	//u8"\u0020",
-	//u8"\u00A0",
-	//u8"\u2000",
-	//u8"\u2001",
-	//u8"\u2002",
-	//u8"\u2003",
-	//u8"\u2004",
-	//u8"\u2005",
-	//u8"\u2006",
-	//u8"\u2007",
-	//u8"\u2008",
-	//u8"\u2009",
-	//u8"\u200A",
-	////u8"\u2028",
-	//u8"\u205F",
-	//u8"\u3000",
-	//u8"\uFEFF",
-
 	//u8"\u180E",
 	u8"\u200B",
 	u8"\u200C",
@@ -81,104 +63,246 @@ static constexpr const char8_t* WRAP_CHARS[] =
 
 static constexpr char TF2BD_LOCALIZATION_DIR[] = "zzzzzzzz_loadlast_tf2_bot_detector";
 
+#if 0
 namespace
 {
-	struct ChatWrappers final
+	struct ChatMsgFormat final
 	{
-		ChatWrappers(size_t wrapChars = 16)
-		{
-			GenerateCharSequence(m_BeginNarrow, m_BeginWide, 0, wrapChars);
-			do
-			{
-				GenerateCharSequence(m_EndNarrow, m_EndWide, 1, wrapChars);
-			} while (m_EndWide == m_BeginWide);
-		}
+		ChatCategory m_Category{};
+		bool m_Location = false;
 
-		std::string m_BeginNarrow, m_EndNarrow;
-		std::u16string m_BeginWide, m_EndWide;
-
-	private:
-		static void GenerateCharSequence(std::string& narrow, std::u16string& wide, int offset, size_t wrapChars)
-		{
-			narrow.clear();
-			wide.clear();
-
-			std::string seq;
-
-			std::mt19937 random;
-#ifdef _DEBUG
-			if (g_StaticRandomSeed)
-			{
-				random.seed(unsigned(1011 + offset));
-			}
-			else
-#endif
-			{
-				random.seed(unsigned(std::chrono::high_resolution_clock::now().time_since_epoch().count() + offset));
-			}
-			std::uniform_int_distribution<size_t> dist(0, std::size(WRAP_CHARS) - 1);
-			for (size_t i = 0; i < wrapChars; i++)
-			{
-				//std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
-				const auto randomIndex = dist(random);
-				const char* bytes = reinterpret_cast<const char*>(WRAP_CHARS[randomIndex]);
-				narrow += bytes;
-				wide += ToU16(bytes);
-			}
-		}
+		char m_PrePrefix = 0;
+		std::string m_Prefix;
+		std::string m_Mid;
+		std::string m_Suffix;
 	};
+
+	struct ChatMsgFormats final
+	{
+		ChatMsgFormats(const std::string_view& translations);
+
+		ChatMsgFormat& GetFormat(bool localized, const std::string_view& chatType);
+
+		struct Language
+		{
+			ChatMsgFormat& GetFormat(const std::string_view& chatType);
+
+			ChatMsgFormat m_TeamLoc;
+			ChatMsgFormat m_Team;
+			ChatMsgFormat m_TeamDead;
+			ChatMsgFormat m_Spec;
+			ChatMsgFormat m_All;
+			ChatMsgFormat m_AllDead;
+			ChatMsgFormat m_AllSpec;
+			ChatMsgFormat m_Coach;
+
+		} m_English, m_Localized;
+	};
+
+	ChatMsgFormats::ChatMsgFormats(const std::string_view& translations)
+	{
+		using it_t = std::regex_iterator<std::string_view::iterator>;
+		auto it = it_t(translations.begin(), translations.end(), s_ChatMsgLocalizationRegex);
+		const auto endIt = it_t{};
+		for (; it != endIt; ++it)
+		{
+			const auto& match = *it;
+
+			auto& format = GetFormat(match[1].matched, match[2].str());
+			if (match[3].matched)
+				format.m_PrePrefix = *match[3].first;
+
+			format.m_Prefix = match[4].str();
+			format.m_Mid = match[5].str();
+			format.m_Suffix = match[6].str();
+		}
+	}
+}
+#endif
+
+static std::string GenerateInvisibleCharSequence(int offset, size_t wrapChars)
+{
+	std::mt19937 random;
+#ifdef _DEBUG
+	if (g_StaticRandomSeed)
+	{
+		random.seed(unsigned(1011 + offset));
+	}
+	else
+#endif
+	{
+		random.seed(unsigned(std::chrono::high_resolution_clock::now().time_since_epoch().count() + offset));
+	}
+
+	std::uniform_int_distribution<size_t> dist(0, std::size(INVISIBLE_CHARS) - 1);
+
+	std::string narrow;
+	for (size_t i = 0; i < wrapChars; i++)
+	{
+		const auto randomIndex = dist(random);
+		const char* bytes = reinterpret_cast<const char*>(INVISIBLE_CHARS[randomIndex]);
+		narrow += bytes;
+		//wide += ToU16(bytes);
+	}
+
+	return narrow;
 }
 
-static void ApplyChatWrappers(const std::filesystem::path& src, const std::filesystem::path& dest, const ChatWrappers& wrappers)
+ChatWrappers::ChatWrappers(size_t wrapChars)
 {
-	static const std::basic_regex s_Regex(R"regex("(\[english\])?TF_Chat_(.*?)"\s+"([\x01-\x05]?)(.*)")regex",
-		std::regex::optimize | std::regex::icase);
+	std::set<wrapper_t> generated;
 
+	int i = 0;
+	const auto ProcessWrapper = [&](wrapper_t& wrapper)
+	{
+		std::string seq;
+		do
+		{
+			seq = GenerateInvisibleCharSequence(i++, wrapChars);
+
+		} while (generated.contains(seq));
+
+		generated.insert(seq);
+		wrapper = std::move(seq);
+	};
+
+	for (Type& type : m_Types)
+	{
+		ProcessWrapper(type.m_Full.first);
+		ProcessWrapper(type.m_Full.second);
+		ProcessWrapper(type.m_Name.first);
+		ProcessWrapper(type.m_Name.second);
+		ProcessWrapper(type.m_Message.first);
+		ProcessWrapper(type.m_Message.second);
+	}
+}
+
+static const std::basic_regex s_ChatMsgLocalizationRegex(R"regex("(\[english\])?TF_Chat_(.*?)"\s+"([\x01-\x05]?)(.*)%s1(.*)%s2(.*)")regex",
+	std::regex::optimize | std::regex::icase);
+
+template<typename TFunc>
+static void RegexSmartReplace(std::string& str, const std::regex& regex, TFunc&& func)
+{
+	auto it = str.begin();
+	std::match_results<std::string::iterator> match;
+	while (std::regex_search(it, str.end(), match, regex))
+	{
+		const auto& cmatch = match;
+		std::string newStr = func(cmatch);
+
+		size_t offs = match[0].first - str.begin();
+		str.replace(match[0].first, match[0].second, newStr);
+		it = str.begin() + offs + newStr.size();
+	}
+}
+
+static std::vector<std::string> GetChatMsgFormats(const std::string_view& translations)
+{
+	std::vector<std::string> retVal;
+
+	using it_t = std::regex_iterator<std::string_view::iterator>;
+	auto it = it_t(translations.begin(), translations.end(), s_ChatMsgLocalizationRegex);
+	const auto endIt = it_t{};
+	for (; it != endIt; ++it)
+		retVal.push_back((*it)[0]);
+
+	return retVal;
+}
+
+static void ApplyChatWrappers(std::string& translations, const ChatWrappers& wrappers)
+{
+	using Wrapper = ChatWrappers::Type;
+
+	RegexSmartReplace(translations, s_ChatMsgLocalizationRegex,
+		[&](const std::match_results<std::string::iterator>& match)
+		{
+			const Wrapper* wrapper = nullptr;
+
+			auto name = std::string_view(&*match[2].first, match[2].length());
+			if (name == "Team_Loc")
+				return match[0].str();
+			else if (name == "Team")
+				wrapper = &wrappers.m_Types[(int)ChatCategory::Team];
+			else if (name == "Team_Dead")
+				wrapper = &wrappers.m_Types[(int)ChatCategory::TeamDead];
+			else if (name == "Spec")
+				wrapper = &wrappers.m_Types[(int)ChatCategory::TeamSpec];
+			else if (name == "AllSpec")
+				wrapper = &wrappers.m_Types[(int)ChatCategory::AllSpec];
+			else if (name == "All")
+				wrapper = &wrappers.m_Types[(int)ChatCategory::All];
+			else if (name == "AllDead")
+				wrapper = &wrappers.m_Types[(int)ChatCategory::AllDead];
+			else
+			{
+				LogError("Unknown chat type localization string "s << std::quoted(name));
+				return match[0].str();
+			}
+
+			std::string retVal = "\""s << match[1].str() << "TF_Chat_" << match[2].str() << "\" \"" << match[3].str();
+
+			retVal << wrapper->m_Full.first << match[4].str()
+				<< wrapper->m_Name.first << "%s1" << wrapper->m_Name.second
+				<< match[5].str()
+				<< wrapper->m_Message.first << "%s2" << wrapper->m_Message.second
+				<< wrapper->m_Full.second;
+
+			retVal << '"';
+
+			return retVal;
+		});
+}
+
+static void ApplyChatWrappersToFiles(const std::filesystem::path& src, const std::filesystem::path& dest, const ChatWrappers& wrappers)
+{
 	DebugLog("Writing modified "s << src << " to " << dest);
 
 	auto translations = ToMB(ReadWideFile(src));
-
-	const auto replaceStr = "\"$1TF_Chat_$2\" \"$3"s << wrappers.m_BeginNarrow << "$4" << wrappers.m_EndNarrow << '"';
-
-	translations = std::regex_replace(translations.c_str(), s_Regex, replaceStr.c_str());
-
+	ApplyChatWrappers(translations, wrappers);
 	WriteWideFile(dest, ToU16(translations));
 }
 
-static bool IsLocalizationFile(const std::filesystem::path& file)
+static std::string_view IsLocalizationFile(const std::filesystem::path& file)
 {
 	auto filename = file.filename();
 
 	const auto ext = filename.extension();
 	if (ext != ".txt")
-		return false;
+		return {};
 
 	auto filenameStr = std::filesystem::path(filename).replace_extension().string();
 	if (filenameStr.starts_with("chat_"))
 		filenameStr.erase(0, 5);
-	else if (filenameStr.starts_with("tf_"))
-		filenameStr.erase(0, 3);
 	else
-		return false;
+		return {};
 
 	for (const auto& lang : LANGUAGES)
 	{
 		if (filenameStr == lang)
-			return true;
+			return lang;
 	}
 
-	return false;
+	return {};
 }
 
 namespace
 {
 	struct ResourceFilePath
 	{
+		std::string_view m_Language;
 		std::filesystem::path m_RelativePath;
 		std::filesystem::path m_FullPath;
 
-		bool operator<(const ResourceFilePath& other) const { return m_RelativePath < other.m_RelativePath; }
-		bool operator==(const ResourceFilePath& other) const { return m_RelativePath == other.m_RelativePath; }
+		bool operator<(const ResourceFilePath& other) const { return m_Language < other.m_Language; }
+		bool operator==(const ResourceFilePath& other) const { return m_Language == other.m_Language; }
+	};
+}
+
+namespace
+{
+	struct ChatFormatStrings final
+	{
+
 	};
 }
 
@@ -193,8 +317,15 @@ static std::set<ResourceFilePath> FindExistingTranslations(const std::filesystem
 			if (!entry.is_regular_file())
 				continue;
 
-			if (IsLocalizationFile(entry))
-				retVal.insert({ .m_RelativePath = std::filesystem::relative(entry, dir), .m_FullPath = entry });
+			if (auto lang = IsLocalizationFile(entry); !lang.empty())
+			{
+				retVal.insert(
+					{
+						.m_Language = lang,
+						.m_RelativePath = std::filesystem::relative(entry, dir),
+						.m_FullPath = entry,
+					});
+			}
 		}
 	};
 
@@ -218,23 +349,60 @@ static std::set<ResourceFilePath> FindExistingTranslations(const std::filesystem
 	return retVal;
 }
 
-std::pair<std::string, std::string> tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
+ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
 {
-	ChatWrappers wrappers;
+	ChatWrappers wrappers(wrapChars);
 
 	const auto translationsSet = FindExistingTranslations(tfdir);
 
-	const auto inputDir = tfdir / "resource";
 	const auto outputDir = tfdir / "custom/zzzzzzzz_loadlast_tf2_bot_detector/resource";
 	std::filesystem::create_directories(outputDir);
+
+	const auto FindLanguage = [&](const std::string_view& language)
+	{
+		for (auto it = translationsSet.begin(); it != translationsSet.end(); ++it)
+		{
+			if (it->m_Language == language)
+				return it;
+		}
+
+		return translationsSet.end();
+	};
+
+	for (const auto& lang : LANGUAGES)
+	{
+		if (auto found = FindLanguage(lang); found != translationsSet.end())
+		{
+			ApplyChatWrappersToFiles(found->m_FullPath, outputDir / found->m_RelativePath, wrappers);
+		}
+		else
+		{
+			// Create our own chat localization file
+			std::string file;
+			file << R"(
+"lang"
+{
+"Language" ")" << lang << R"("
+"Tokens"
+{
+)";
+
+			GetChatMsgFormats()
+
+
+			file << "\n}\n";
+
+			WriteWideFile(outputDir / ("chat_"s << lang << ".txt"), ToU16(file));
+		}
+	}
 
 	std::for_each(std::execution::par_unseq, std::begin(translationsSet), std::end(translationsSet),
 		[&](const ResourceFilePath& file)
 		{
-			ApplyChatWrappers(file.m_FullPath, outputDir / file.m_RelativePath, wrappers);
+			ApplyChatWrappersToFiles(file.m_FullPath, outputDir / file.m_RelativePath, wrappers);
 		});
 
 	Log("Wrote "s << std::size(translationsSet) << " modified translations to " << outputDir);
 
-	return { std::move(wrappers.m_BeginNarrow), std::move(wrappers.m_EndNarrow) };
+	return std::move(wrappers);
 }
