@@ -1929,6 +1929,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "sansic",
+				"time": 1591850188
+			},
+			"steamid": "[U:1:1100370739]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "furry-bot 24",
 				"time": 1590553142
 			},
@@ -2036,6 +2046,16 @@
 				"time": 1591516837
 			},
 			"steamid": "[U:1:1102862479]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Church of G0T",
+				"time": 1591852362
+			},
+			"steamid": "[U:1:1102877706]"
 		},
 		{
 			"attributes": [
@@ -2190,6 +2210,17 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "76561199064290800",
+				"time": 1591853000
+			},
+			"steamid": "[U:1:1104025072]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "MYG)T",
 				"time": 1591651707
 			},
@@ -2286,6 +2317,17 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1591853207
+			},
+			"steamid": "[U:1:1104093500]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "(1)MYG)T",
 				"time": 1591841915
 			},
@@ -2352,10 +2394,32 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "[g0tb0t]Church-of-myg0t",
+				"time": 1591853057
+			},
+			"steamid": "[U:1:1104208525]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "[g0tb0t]CatholicGod",
 				"time": 1591845647
 			},
 			"steamid": "[U:1:1104212435]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1591850888
+			},
+			"steamid": "[U:1:1104239429]"
 		},
 		{
 			"attributes": [
@@ -2431,6 +2495,16 @@
 				"time": 1591838015
 			},
 			"steamid": "[U:1:1105071909]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[VAC] OneTrick",
+				"time": 1591850077
+			},
+			"steamid": "[U:1:1105233397]"
 		}
 	],
 	"version": 2
