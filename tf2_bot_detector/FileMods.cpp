@@ -23,7 +23,7 @@ using namespace tf2_bot_detector;
 #ifdef _DEBUG
 namespace tf2_bot_detector
 {
-	extern bool g_StaticRandomSeed;
+	extern uint32_t g_StaticRandomSeed;
 }
 #endif
 
@@ -86,7 +86,7 @@ static std::string GenerateInvisibleCharSequence(int offset, size_t wrapChars)
 #ifdef _DEBUG
 	if (g_StaticRandomSeed)
 	{
-		random.seed(unsigned(1011 + offset));
+		random.seed(unsigned(g_StaticRandomSeed + offset));
 	}
 	else
 #endif

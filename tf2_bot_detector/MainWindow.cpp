@@ -655,6 +655,11 @@ void MainWindow::OnDrawMenuBar()
 #ifdef _DEBUG
 	if (ImGui::BeginMenu("Debug"))
 	{
+		if (ImGui::MenuItem("Reload Localization Files"))
+			m_ActionManager.QueueAction<GenericCommandAction>("cl_reload_localization_files");
+
+		ImGui::Separator();
+
 		if (ImGui::MenuItem("Crash"))
 		{
 			struct Test
