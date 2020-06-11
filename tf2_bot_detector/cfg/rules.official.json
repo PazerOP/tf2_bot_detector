@@ -32,6 +32,23 @@
 					"cheater"
 				]
 			},
+			"description": "[VAC] OneTrick",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "equal",
+					"patterns": [
+						"[VAC] OneTrick"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "(catbot) furry-bot",
 			"triggers": {
 				"username_text_match": {
