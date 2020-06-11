@@ -46,7 +46,7 @@ namespace
 			wcsftime(filename, std::size(filename), L"tfbd_crash_%F-%H-%M-%S.mdmp", &localTS);
 		}
 
-		HANDLE file = CreateFile(
+		HANDLE file = CreateFileW(
 			filename,
 			GENERIC_WRITE,          // write perms
 			0,                      // don't share

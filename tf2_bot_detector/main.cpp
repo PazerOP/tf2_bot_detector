@@ -8,7 +8,7 @@ namespace tf2_bot_detector
 }
 #endif
 
-extern "C" int SDL_main(int argc, const char** argv)
+int main(int argc, const char** argv)
 {
 	for (int i = 1; i < argc; i++)
 	{
