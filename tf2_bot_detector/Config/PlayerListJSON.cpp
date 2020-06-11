@@ -252,7 +252,12 @@ void PlayerListJSON::SaveFile() const
 	if (auto mutableList = GetMutableList())
 	{
 		for (const auto& pair : *mutableList)
+		{
+			if (pair.second.m_Attributes.empty())
+				continue;
+
 			players.push_back(pair.second);
+		}
 	}
 
 	// Make sure we successfully serialize BEFORE we destroy our file
@@ -378,4 +383,9 @@ bool PlayerAttributesList::SetAttribute(PlayerAttributes attribute, bool set)
 	default:
 		throw std::runtime_error("Unknown PlayerAttributes value "s << +std::underlying_type_t<PlayerAttributes>(attribute));
 	}
+}
+
+bool PlayerAttributesList::empty() const
+{
+	return !m_Cheater && !m_Suspicious && !m_Exploiter && !m_Racist;
 }

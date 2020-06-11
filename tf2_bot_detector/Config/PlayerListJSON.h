@@ -30,6 +30,8 @@ namespace tf2_bot_detector
 		bool HasAttribute(PlayerAttributes attribute) const;
 		bool SetAttribute(PlayerAttributes attribute, bool set = true);
 
+		bool empty() const;
+
 	private:
 		// For now... just implemented with bools for simplicity
 		bool m_Cheater : 1 = false;
