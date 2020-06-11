@@ -68,9 +68,9 @@ bool WorldState::ParseChatMessage(const std::string_view& lineStr, striter& pars
 
 			if (auto found = searchBuf.find(type.m_Full.second); found != lineStr.npos)
 			{
-				if (found > 256)
+				if (found > 512)
 				{
-					LogError("Searched more than 256 characters ("s << found
+					LogError("Searched more than 512 characters ("s << found
 						<< ") for the end of the chat msg string, something is terribly wrong!");
 				}
 
@@ -315,13 +315,19 @@ void WorldState::EventBroadcaster::OnChatMsg(WorldState& world,
 
 std::optional<SteamID> WorldState::FindSteamIDForName(const std::string_view& playerName) const
 {
+	std::optional<SteamID> retVal;
+	time_point_t lastUpdated{};
+
 	for (const auto& data : m_CurrentPlayerData)
 	{
-		if (data.second.m_Status.m_Name == playerName)
-			return data.first;
+		if (data.second.m_Status.m_Name == playerName && data.second.m_LastStatusUpdateTime > lastUpdated)
+		{
+			retVal = data.second.GetSteamID();
+			lastUpdated = data.second.m_LastStatusUpdateTime;
+		}
 	}
 
-	return std::nullopt;
+	return retVal;
 }
 
 std::optional<LobbyMemberTeam> WorldState::FindLobbyMemberTeam(const SteamID& id) const
