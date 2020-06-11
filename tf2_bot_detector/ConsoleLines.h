@@ -52,6 +52,19 @@ namespace tf2_bot_detector
 		bool m_IsTeam : 1;
 	};
 
+	class LobbyStatusFailedLine final : public ConsoleLineBase<LobbyStatusFailedLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		using ConsoleLineBase::ConsoleLineBase;
+		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyStatusFailed; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+	};
+
 	class LobbyHeaderLine final : public ConsoleLineBase<LobbyHeaderLine>
 	{
 		using BaseClass = ConsoleLineBase;

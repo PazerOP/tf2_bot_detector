@@ -477,6 +477,12 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		m_PendingLobbyMembers.resize(headerLine.GetPendingCount());
 		break;
 	}
+	case ConsoleLineType::LobbyStatusFailed:
+	{
+		m_CurrentLobbyMembers.clear();
+		m_PendingLobbyMembers.clear();
+		break;
+	}
 	case ConsoleLineType::LobbyChanged:
 	{
 		auto& lobbyChangedLine = static_cast<const LobbyChangedLine&>(parsed);

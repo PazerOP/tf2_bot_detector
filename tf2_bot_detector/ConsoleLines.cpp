@@ -596,3 +596,16 @@ void SVCUserMessageLine::Print() const
 {
 	ImGui::Text("Msg from %s: svc_UserMessage: type %u, bytes %u", m_Address.c_str(), m_MsgType, m_MsgBytes);
 }
+
+std::unique_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	if (text == "Failed to find lobby shared object"sv)
+		return std::make_unique<LobbyStatusFailedLine>(timestamp);
+
+	return nullptr;
+}
+
+void LobbyStatusFailedLine::Print() const
+{
+	ImGui::Text("Failed to find lobby shared object");
+}
