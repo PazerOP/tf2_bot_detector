@@ -40,25 +40,6 @@ MainWindow::~MainWindow()
 {
 }
 
-static float GetRemainingColumnWidth(float contentRegionWidth, int column_index = -1)
-{
-	const auto origContentWidth = contentRegionWidth;
-
-	if (column_index == -1)
-		column_index = ImGui::GetColumnIndex();
-
-	assert(column_index >= 0);
-
-	const auto columnCount = ImGui::GetColumnsCount();
-	for (int i = 0; i < columnCount; i++)
-	{
-		if (i != column_index)
-			contentRegionWidth -= ImGui::GetColumnWidth(i);
-	}
-
-	return contentRegionWidth - 3;//ImGui::GetStyle().ItemSpacing.x;
-}
-
 void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 {
 	if (auto popupScope = ImGui::BeginPopupContextItemScope("PlayerContextMenu"))
