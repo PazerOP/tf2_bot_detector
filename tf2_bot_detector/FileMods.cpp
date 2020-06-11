@@ -430,6 +430,12 @@ static constexpr std::string_view GetChatCategoryKey(ChatCategory cat, bool isEn
 
 ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
 {
+	if (auto path = tfdir / "custom" / "tf2_bot_detector"; std::filesystem::exists(path))
+	{
+		Log("Deleting "s << path);
+		std::filesystem::remove(path);
+	}
+
 	ChatWrappers wrappers(wrapChars);
 
 	const auto outputDir = tfdir / "custom" / TF2BD_LOCALIZATION_DIR / "resource";
