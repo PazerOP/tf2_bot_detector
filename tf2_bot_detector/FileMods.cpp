@@ -365,7 +365,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 	if (auto path = tfdir / "custom" / "tf2_bot_detector"; std::filesystem::exists(path))
 	{
 		Log("Deleting "s << path);
-		std::filesystem::remove(path);
+		std::filesystem::remove_all(path);
 	}
 
 	ChatWrappers wrappers(wrapChars);
