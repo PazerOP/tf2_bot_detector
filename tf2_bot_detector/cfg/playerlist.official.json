@@ -2173,6 +2173,17 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "[g0tb0t]CoonSlayer",
+				"time": 1591839752
+			},
+			"steamid": "[U:1:1104053011]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "(2)MYG)T",
 				"time": 1591516552
 			},
@@ -2187,6 +2198,16 @@
 				"time": 1591508388
 			},
 			"steamid": "[U:1:1104065403]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CoonSlayer",
+				"time": 1591839743
+			},
+			"steamid": "[U:1:1104068972]"
 		},
 		{
 			"attributes": [
@@ -2317,6 +2338,16 @@
 				"time": 1591658963
 			},
 			"steamid": "[U:1:1104600287]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[VAC] OneTrick",
+				"time": 1591838015
+			},
+			"steamid": "[U:1:1105071909]"
 		}
 	],
 	"version": 2
