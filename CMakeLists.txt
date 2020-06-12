@@ -3,6 +3,15 @@ project(tf2_bot_detector VERSION 1.0.9)
 
 set(JSON_BuildTests OFF)
 
+# Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
+if (MSVC)
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
+	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
+	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
+endif()
+
+# set(VCPKG_APPLOCAL_DEPS ON)
+
 add_subdirectory(submodules/imgui_desktop)
 add_subdirectory(submodules/implot)
 add_subdirectory(submodules/mh_stuff)
@@ -88,7 +97,7 @@ target_link_libraries(tf2_bot_detector
 )
 
 set_property(TARGET tf2_bot_detector PROPERTY CXX_STANDARD 20)
-if (WIN32)
+if (MSVC)
 	add_definitions(/await)
 endif()
 
