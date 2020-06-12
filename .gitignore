@@ -339,7 +339,7 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 tf2_bot_detector/imgui.ini
-tf2_bot_detector/cfg/settings.json
 build/
 CMakeFiles/
 .vscode/
+staging/cfg/settings.json

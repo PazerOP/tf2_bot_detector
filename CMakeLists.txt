@@ -18,7 +18,7 @@ add_subdirectory(submodules/mh_stuff)
 # add_subdirectory(submodules/nlohmann_json)
 add_subdirectory(submodules/ValveFileVDF)
 
-add_executable(tf2_bot_detector
+add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/Config/ConfigHelpers.cpp
 	tf2_bot_detector/Config/ConfigHelpers.h
 	tf2_bot_detector/Config/JSONHelpers.h
@@ -101,6 +101,48 @@ if (MSVC)
 	add_definitions(/await)
 endif()
 
+# message("CMAKE_ARCHIVE_OUTPUT_DIRECTORY = ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+# message("CMAKE_RUNTIME_OUTPUT_DIRECTORY = ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+# message("CMAKE_LIBRARY_OUTPUT_DIRECTORY = ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+# message("CMAKE_CFG_INTDIR = ${CMAKE_CFG_INTDIR}")
+# message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+# message("ARCHIVE_OUTPUT_DIRECTORY = ${ARCHIVE_OUTPUT_DIRECTORY}")
+# message("LIBRARY_OUTPUT_DIRECTORY = ${LIBRARY_OUTPUT_DIRECTORY}")
+# message("RUNTIME_OUTPUT_DIRECTORY = ${RUNTIME_OUTPUT_DIRECTORY}")
+# message("CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
+# message("TARGET_FILE_DIR:tf2_bot_detector = $<TARGET_FILE_DIR:tf2_bot_detector>")
+
+# set(TF2BD_INSTALL_DIR "${CMAKE_CURRENT_LIST_DIR}/output")
+# set(TF2BD_PDB_PATH "$<TARGET_PDB_FILE:tf2_bot_detector>")
+
+# message("TF2BD_INSTALL_DIR = ${TF2BD_INSTALL_DIR}")
+# message("TF2BD_PDB_PATH = ${TF2BD_PDB_PATH}")
+
+# add_custom_command(TARGET tf2_bot_detector POST_BUILD
+# 	COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_CURRENT_LIST_DIR}/output/*.ilk"
+# 	COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:tf2_bot_detector> "${CMAKE_CURRENT_LIST_DIR}/output"
+# )
+
+# install(
+# 	DIRECTORY "$<TARGET_FILE_DIR:tf2_bot_detector>"
+# 	DESTINATION ${TF2BD_INSTALL_DIR}
+# )
+
+# install(
+# 	TARGETS tf2_bot_detector
+# 	DESTINATION ${TF2BD_INSTALL_DIR}
+# )
+# install(
+# 	FILES $<TARGET_PDB_FILE:tf2_bot_detector>
+# 	DESTINATION ${TF2BD_INSTALL_DIR}
+# )
+
 # set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 # set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 # include(CPack)
+
+# get_cmake_property(_variableNames VARIABLES)
+# list (SORT _variableNames)
+# foreach (_variableName ${_variableNames})
+#     message(STATUS "${_variableName}=${${_variableName}}")
+# endforeach()

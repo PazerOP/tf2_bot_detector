@@ -27,3 +27,25 @@ int main(int argc, const char** argv)
 
 	return 0;
 }
+
+#ifdef _WIN32
+#include <Windows.h>
+#include "TextUtils.h"
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+{
+	int argc;
+	auto argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+	std::vector<std::string> argvStrings;
+	std::vector<const char*> argv;
+
+	for (int i = 0; i < argc; i++)
+	{
+		argvStrings.push_back(tf2_bot_detector::ToMB(argvw[i]));
+		argv.push_back(argvStrings.back().c_str());
+	}
+
+	return main(argc, argv.data());
+}
+#endif
