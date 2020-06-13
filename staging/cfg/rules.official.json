@@ -1,5 +1,13 @@
 {
-	"$schema": "./schema/rules.schema.json",
+	"$schema": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/autoupdate/schemas/v3/rules.schema.json",
+	"file_info": {
+		"authors": [
+			"pazer"
+		],
+		"title": "Official rules list",
+		"description": "Official rules list for TF2 Bot Detector.",
+		"update_url": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/staging/cfg/rules.official.json"
+	},
 	"rules": [
 		{
 			"actions": {
