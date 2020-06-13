@@ -1,5 +1,13 @@
 {
-	"$schema": "./schema/playerlist.schema.json",
+	"$schema": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/autoupdate/schemas/v3/playerlist.schema.json",
+	"file_info": {
+		"authors": [
+			"pazer"
+		],
+		"title": "Official player blacklist",
+		"description": "Official player blacklist for TF2 Bot Detector.",
+		"update_url": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/staging/cfg/playerlist.official.json"
+	},
 	"players": [
 		{
 			"attributes": [
@@ -2748,6 +2756,5 @@
 			},
 			"steamid": "[U:1:1106031176]"
 		}
-	],
-	"version": 2
+	]
 }

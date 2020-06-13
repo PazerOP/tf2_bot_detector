@@ -71,17 +71,6 @@
 					},
 					"minItems": 1
 				},
-				"type": {
-					"type": "string",
-					"oneOf": [
-						{
-							"const": "rules"
-						},
-						{
-							"const": "playerlist"
-						}
-					]
-				},
 				"title": {
 					"type": "string",
 					"description": "A friendly name for this file.",
@@ -95,19 +84,11 @@
 				"update_url": {
 					"type": "string",
 					"description": "A URL to fetch updated versions of this list from."
-				},
-				"version": {
-					"type": "integer",
-					"description": "The version of this file.",
-					"minimum": 3,
-					"maximum": 3
 				}
 			},
 			"required": [
 				"authors",
-				"type",
-				"title",
-				"version"
+				"title"
 			]
 		}
 	}
