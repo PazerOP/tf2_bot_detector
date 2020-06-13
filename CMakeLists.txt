@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1.0)
-project(tf2_bot_detector VERSION 1.0.9)
+project(tf2_bot_detector VERSION 1.0.0.9)
 
 set(JSON_BuildTests OFF)
 
@@ -44,6 +44,8 @@ add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/ConsoleLines.h
 	tf2_bot_detector/FileMods.cpp
 	tf2_bot_detector/FileMods.h
+	tf2_bot_detector/GithubAPI.h
+	tf2_bot_detector/GithubAPI.cpp
 	tf2_bot_detector/ICommandSource.h
 	tf2_bot_detector/IConsoleLine.h
 	tf2_bot_detector/IConsoleLineListener.h
@@ -74,7 +76,15 @@ add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/TFConstants.h
 	tf2_bot_detector/WorldState.cpp
 	tf2_bot_detector/WorldState.h
+	tf2_bot_detector/Version.h
 )
+
+set_target_properties(tf2_bot_detector PROPERTIES
+	CMAKE_PROJECT_VERSION_MINOR 1
+	CMAKE_PROJECT_VERSION_PATCH "preview9"
+)
+configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
+target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
 
 if(WIN32)
 	target_sources(tf2_bot_detector PRIVATE
@@ -89,7 +99,14 @@ target_include_directories(tf2_bot_detector
 	PRIVATE submodules/nlohmann_json/include
 )
 
-target_link_libraries(tf2_bot_detector
+# cpp-httplib requires openssl
+find_package(OpenSSL REQUIRED)
+target_link_libraries(tf2_bot_detector PRIVATE OpenSSL::SSL)
+
+find_path(HTTPLIB_PATH NAMES httplib.h)
+target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
+
+target_link_libraries(tf2_bot_detector PRIVATE
 	imgui_desktop
 	implot
 	mh_stuff

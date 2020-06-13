@@ -1,11 +1,14 @@
 #include "MainWindow.h"
 #include "ConsoleLines.h"
+#include "GithubAPI.h"
 #include "NetworkStatus.h"
 #include "RegexHelpers.h"
+#include "PlatformSpecific/Shell.h"
 #include "ImGui_TF2BotDetector.h"
 #include "PeriodicActions.h"
 #include "Log.h"
 #include "PathUtils.h"
+#include "Version.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -699,7 +702,44 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::BeginMenu("About"))
 	{
-		ImGui::MenuItem("Version: 1.1 preview 8", nullptr, false, false);
+		if (ImGui::MenuItem("Open GitHub"))
+			OpenURL("https://github.com/PazerOP/tf2_bot_detector");
+		if (ImGui::MenuItem("Open Discord"))
+			OpenURL("https://discord.gg/W8ZSh3Z");
+
+		ImGui::Separator();
+
+		char buf[128];
+		sprintf_s(buf, "Version: %s", VERSION_STRING);
+		ImGui::MenuItem(buf, nullptr, false, false);
+
+		{
+			auto newVersion = GithubAPI::CheckForNewVersion();
+			using Result = GithubAPI::NewVersionResult::Status;
+			switch (newVersion.m_Status)
+			{
+			case Result::Error:
+				ImGui::MenuItem("Error occurred checking for new version.", nullptr, nullptr, false);
+				break;
+			case Result::Loading:
+				ImGui::MenuItem("Checking for new version...", nullptr, nullptr, false);
+				break;
+			case Result::NoNewVersion:
+				ImGui::MenuItem("Up to date!", nullptr, nullptr, false);
+				break;
+			case Result::PreviewAvailable:
+				if (ImGui::MenuItem("A new preview is available"))
+					OpenURL(newVersion.m_URL.c_str());
+
+				break;
+			case Result::ReleaseAvailable:
+				ImGuiDesktop::ScopeGuards::TextColor green({ 0, 1, 0, 1 });
+				if (ImGui::MenuItem("A new version is available"))
+					OpenURL(newVersion.m_URL.c_str());
+
+				break;
+			}
+		}
 
 		ImGui::EndMenu();
 	}
