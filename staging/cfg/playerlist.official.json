@@ -1769,6 +1769,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "GyroBot",
+				"time": 1592032454
+			},
+			"steamid": "[U:1:1099397092]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "MYG)T",
 				"time": 1590298236
 			},
@@ -2386,6 +2396,17 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "[g0tb0t]CoonSlayer",
+				"time": 1592026291
+			},
+			"steamid": "[U:1:1104104761]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "(2)MYG)T",
 				"time": 1591868867
 			},
@@ -2518,6 +2539,17 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "(1)MYG)T",
+				"time": 1592028740
+			},
+			"steamid": "[U:1:1104224512]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "[g0tb0t]CatholicGod",
 				"time": 1591850888
 			},
@@ -2604,6 +2636,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "[t0gym]OGBADGER",
+				"time": 1592028814
+			},
+			"steamid": "[U:1:1104990152]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "[VAC] OneTrick",
 				"time": 1591838015
 			},
@@ -2628,6 +2670,83 @@
 				"time": 1591868380
 			},
 			"steamid": "[U:1:1105260061]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592031524
+			},
+			"steamid": "[U:1:1105639690]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592031357
+			},
+			"steamid": "[U:1:1105939612]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592028768
+			},
+			"steamid": "[U:1:1105950857]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592031981
+			},
+			"steamid": "[U:1:1105954707]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592030818
+			},
+			"steamid": "[U:1:1105979839]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592031251
+			},
+			"steamid": "[U:1:1105985840]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592031679
+			},
+			"steamid": "[U:1:1106031176]"
 		}
 	],
 	"version": 2
