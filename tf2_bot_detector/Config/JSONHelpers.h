@@ -7,7 +7,7 @@
 namespace tf2_bot_detector
 {
 	template<typename T>
-	static bool try_get_to(const nlohmann::json& j, const std::string_view& name, T& value)
+	bool try_get_to(const nlohmann::json& j, const std::string_view& name, T& value)
 	{
 		if (auto found = j.find(name); found != j.end())
 		{

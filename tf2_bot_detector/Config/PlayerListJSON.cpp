@@ -154,64 +154,46 @@ auto PlayerListJSON::ParsePlayerlist(const nlohmann::json& json) -> PlayerListFi
 	return retVal;
 }
 
-struct PlayerListJSON::FileHandler : IConfigFileHandler
+void PlayerListJSON::PlayerListFile::ValidateSchema(const ConfigSchemaInfo& schema) const
 {
-	FileHandler(PlayerListFile& file) : m_File(&file) {}
-	PlayerListFile* m_File = nullptr;
+	if (schema.m_Type != "playerlist")
+		throw std::runtime_error("Schema is not a playerlist");
+	if (schema.m_Version != 3)
+		throw std::runtime_error("Schema must be version 3");
+}
 
-	void ValidateSchema(const std::string_view& schema) const override
+void PlayerListJSON::PlayerListFile::Deserialize(const nlohmann::json& json)
+{
+	SharedConfigFileBase::Deserialize(json);
+
+	PlayerMap_t& map = m_Players;
+	for (const auto& player : json.at("players"))
 	{
-		const ConfigSchemaInfo schemaInfo(schema);
-		if (schemaInfo.m_Type != ConfigSchemaInfo::Type::Playerlist)
-			throw std::runtime_error("Schema is not a playerlist");
+		const SteamID steamID(player.at("steamid").get<std::string>());
+		PlayerListData parsed(steamID);
+		player.get_to(parsed);
+		map.emplace(steamID, std::move(parsed));
 	}
+}
 
-	bool Deserialize(const nlohmann::json& json) override
+void PlayerListJSON::PlayerListFile::Serialize(nlohmann::json& json) const
+{
+	SharedConfigFileBase::Serialize(json);
+
+	if (m_Schema.m_Version != PLAYERLIST_SCHEMA_VERSION)
+		json["$schema"] = ConfigSchemaInfo("playerlist", PLAYERLIST_SCHEMA_VERSION);
+
+	auto& players = json["players"];
+	players = json.array();
+
+	for (const auto& pair : m_Players)
 	{
-		*m_File = {};
+		if (pair.second.m_Attributes.empty())
+			continue;
 
-		if (auto found = json.find("file_info"); found != json.end())
-		{
-			m_File->m_FileInfo = *found;
-		}
-		else
-		{
-			m_File->m_FileInfo.m_Authors.push_back("Me!");
-			m_File->m_FileInfo.m_Title = "My List of Morons";
-		}
-
-		PlayerMap_t& map = m_File->m_Players;
-		for (const auto& player : json.at("players"))
-		{
-			const SteamID steamID(player.at("steamid").get<std::string>());
-			PlayerListData parsed(steamID);
-			player.get_to(parsed);
-			map.emplace(steamID, std::move(parsed));
-		}
-
-		return true;
+		players.push_back(pair.second);
 	}
-
-	void Serialize(nlohmann::json& json) const override
-	{
-		json =
-		{
-			{ "$schema", "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/playerlist.schema.json" },
-			{ "file_info", m_File->m_FileInfo },
-		};
-
-		auto& players = json["players"];
-		players = json.array();
-
-		for (const auto& pair : m_File->m_Players)
-		{
-			if (pair.second.m_Attributes.empty())
-				continue;
-
-			players.push_back(pair.second);
-		}
-	}
-};
+}
 
 auto PlayerListJSON::LoadFile(const std::filesystem::path& filename, bool autoUpdate) -> AsyncObject<PlayerListFile>
 {
@@ -219,8 +201,7 @@ auto PlayerListJSON::LoadFile(const std::filesystem::path& filename, bool autoUp
 	return std::async([filenameCopy, autoUpdate]
 		{
 			PlayerListFile file;
-			FileHandler handler(file);
-			if (LoadConfigFile(filenameCopy, handler, autoUpdate))
+			if (file.LoadFile(filenameCopy))
 				return file;
 
 			return PlayerListFile{};
@@ -302,10 +283,7 @@ void PlayerListJSON::SaveFile() const
 	if (!mutableList)
 		return; // Nothing to save
 
-	// FIXME this is stupid
-	auto mutableListCopyFIXME = *mutableList;
-	FileHandler handler(mutableListCopyFIXME);
-	SaveConfigFile(IsOfficial() ? "cfg/playerlist.official.json" : "cfg/playerlist.json", handler);
+	mutableList->SaveFile(IsOfficial() ? "cfg/playerlist.official.json" : "cfg/playerlist.json");
 }
 
 const PlayerListData* PlayerListJSON::FindPlayerData(const SteamID& id) const

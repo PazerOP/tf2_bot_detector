@@ -73,24 +73,23 @@ namespace tf2_bot_detector
 	}
 }
 
-void tf2_bot_detector::Log(std::string msg)
-{
-	return Log(std::move(msg), { 1, 1, 1, 1 });
-}
-
-void tf2_bot_detector::LogWarning(std::string msg)
-{
-	Log(std::move(msg), { 1, 0.5, 0, 1 });
-}
-
-void tf2_bot_detector::LogError(std::string msg)
-{
-	Log(std::move(msg), { 1, 0.25, 0, 1 });
-}
+static constexpr LogMessageColor COLOR_DEFAULT = { 1, 1, 1, 1 };
+static constexpr LogMessageColor COLOR_WARNING = { 1, 0.5, 0, 1 };
+static constexpr LogMessageColor COLOR_ERROR =   { 1, 0.25, 0, 1 };
 
 void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 {
 	LogInternal(std::move(msg), color, GetLogFile());
+}
+
+void tf2_bot_detector::LogWarning(std::string msg)
+{
+	Log(std::move(msg), COLOR_WARNING);
+}
+
+void tf2_bot_detector::LogError(std::string msg)
+{
+	Log(std::move(msg), COLOR_ERROR);
 }
 
 void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
@@ -100,6 +99,11 @@ void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 #else
 	LogToStream(msg, GetLogFile());
 #endif
+}
+
+void tf2_bot_detector::DebugLogWarning(std::string msg)
+{
+	Log(std::move(msg), COLOR_WARNING);
 }
 
 void tf2_bot_detector::SetLogTimestamp(time_point_t timestamp)

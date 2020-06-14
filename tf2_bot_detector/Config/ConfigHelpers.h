@@ -29,20 +29,15 @@ namespace tf2_bot_detector
 	{
 		ConfigSchemaInfo() = default;
 		ConfigSchemaInfo(const std::string_view& schema);
+		ConfigSchemaInfo(std::string type, unsigned version, std::string branch = "master");
 
-		enum class Type
-		{
-			Invalid,
-
-			Settings,
-			Playerlist,
-			Rules,
-			Whitelist,
-
-		} m_Type{};
-
+		std::string m_Branch;
+		std::string m_Type;
 		unsigned m_Version{};
 	};
+
+	void to_json(nlohmann::json& j, const ConfigSchemaInfo& d);
+	void from_json(const nlohmann::json& j, ConfigSchemaInfo& d);
 
 	struct ConfigFileInfo
 	{
@@ -55,15 +50,36 @@ namespace tf2_bot_detector
 	void to_json(nlohmann::json& j, const ConfigFileInfo& d);
 	void from_json(const nlohmann::json& j, ConfigFileInfo& d);
 
-	class IConfigFileHandler
+	class ConfigFileBase
 	{
 	public:
-		virtual ~IConfigFileHandler() = default;
+		virtual ~ConfigFileBase() = default;
 
-		virtual void ValidateSchema(const std::string_view& schema) const = 0;
-		virtual bool Deserialize(const nlohmann::json& json) = 0;
+		bool LoadFile(const std::filesystem::path& filename);
+		bool SaveFile(const std::filesystem::path& filename) const;
+
+		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0;
+		virtual void Deserialize(const nlohmann::json& json) = 0 {}
 		virtual void Serialize(nlohmann::json& json) const = 0;
+
+		ConfigSchemaInfo m_Schema;
 	};
-	bool LoadConfigFile(const std::filesystem::path& filename, IConfigFileHandler& handler, bool autoUpdate);
-	bool SaveConfigFile(const std::filesystem::path& filename, IConfigFileHandler& handler);
+
+	class SharedConfigFileBase : public ConfigFileBase
+	{
+	public:
+		void Deserialize(const nlohmann::json& json) override = 0;
+		void Serialize(nlohmann::json& json) const override = 0;
+
+		std::optional<ConfigFileInfo> m_FileInfo;
+	};
+}
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::ConfigSchemaInfo& info)
+{
+	return os << "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/"
+		<< info.m_Branch << "/schemas/v"
+		<< info.m_Version << '/'
+		<< info.m_Type << ".schema.json";
 }

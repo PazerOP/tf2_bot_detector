@@ -26,7 +26,10 @@ std::string HTTP::GetString(const URL& url)
 
 	auto response = client.Get(url.m_Path.c_str(), headers);
 	if (!response)
-		throw std::runtime_error("Failed to HTTP GET "s << url);
+		throw http_error("Failed to HTTP GET "s << url);
+
+	if (response->status >= 400 && response->status < 600)
+		throw http_error(response->status);
 
 	return response->body;
 }
@@ -78,4 +81,14 @@ URL::URL(const std::string_view& url)
 	}
 
 	m_Path = std::string(url.substr(firstSlash));
+}
+
+http_error::http_error(int statusCode) :
+	http_error("HTTP error "s << statusCode)
+{
+}
+
+http_error::http_error(std::string msg) :
+	std::runtime_error(std::move(msg))
+{
 }

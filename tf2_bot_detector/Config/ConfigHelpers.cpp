@@ -61,7 +61,31 @@ static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann
 		throw std::runtime_error("Failed to write json to file");
 }
 
-static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann::json& existingJson, IConfigFileHandler& loader)
+static void LoadAndValidateSchema(ConfigFileBase& config, const nlohmann::json& json)
+{
+	if (auto found = json.find("$schema"); found != json.end())
+	{
+		ConfigSchemaInfo schema;
+
+		try
+		{
+			schema = found->get<ConfigSchemaInfo>();
+		}
+		catch (const std::exception& e)
+		{
+			throw std::runtime_error("Failed to parse schema: "s << e.what());
+		}
+
+		config.ValidateSchema(schema);
+		config.m_Schema = std::move(schema);
+	}
+	else
+	{
+		throw std::runtime_error("JSON missing $schema property");
+	}
+}
+
+static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann::json& existingJson, SharedConfigFileBase& config)
 {
 	auto fileInfoJson = existingJson.find("file_info");
 	if (fileInfoJson == existingJson.end())
@@ -89,46 +113,50 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 		return false;
 	}
 
-	if (auto found = newJson.find("$schema"); found != newJson.end())
+	try
 	{
-		try
-		{
-			loader.ValidateSchema(found->get<std::string>());
-		}
-		catch (const std::exception& e)
-		{
-			LogError("Failed to auto-update "s << filename << " from " << info.m_UpdateURL
-				<< ": new json failed schema validation: " << e.what());
-			return false;
-		}
+		LoadAndValidateSchema(config, newJson);
 	}
-	else
+	catch (const std::exception& e)
 	{
-		LogError("Failed to auto-update "s << filename << ": new json missing $schema property");
+		LogError("Failed to auto-update "s << filename << " from " << info.m_UpdateURL
+			<< ": new json failed schema validation: " << e.what());
 		return false;
 	}
 
-	if (loader.Deserialize(newJson))
+	try
 	{
-		try
-		{
-			SaveJSONToFile(filename, newJson);
-			DebugLog("Wrote auto-updated config file from "s << info.m_UpdateURL << " to " << filename);
-		}
-		catch (const std::exception& e)
-		{
-			LogError("Successfully downloaded and deserialized new version of "s
-				<< filename << " from " << info.m_UpdateURL
-				<< ", but couldn't write it back to disk. Reason: " << e.what());
-		}
+		config.Deserialize(newJson);
+	}
+	catch (const std::exception& e)
+	{
+		LogError("Skipping auto-update of "s << filename << ": failed to deserialize response from "
+			<< info.m_UpdateURL << ": " << e.what());
+		return false;
+	}
 
-		return true;
+	if (!config.SaveFile(filename))
+	{
+		LogError("Successfully downloaded and deserialized new version of "s
+			<< filename << " from " << info.m_UpdateURL
+			<< ", but couldn't write it back to disk.");
 	}
 	else
 	{
-		LogError("Skipping auto-update of "s << filename << ": failed to deserialize response from " << info.m_UpdateURL);
-		return false;
+		DebugLog("Wrote auto-updated config file from "s << info.m_UpdateURL << " to " << filename);
 	}
+
+	return true;
+}
+
+void tf2_bot_detector::to_json(nlohmann::json& j, const ConfigSchemaInfo& d)
+{
+	j = ""s << d;
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigSchemaInfo& d)
+{
+	d = ConfigSchemaInfo(j.get<std::string_view>());
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const ConfigFileInfo& d)
@@ -163,7 +191,7 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 		d.m_UpdateURL.clear();
 }
 
-bool tf2_bot_detector::LoadConfigFile(const std::filesystem::path& filename, IConfigFileHandler& loader, bool autoUpdate)
+bool tf2_bot_detector::ConfigFileBase::LoadFile(const std::filesystem::path& filename)
 {
 	nlohmann::json json;
 	{
@@ -186,58 +214,112 @@ bool tf2_bot_detector::LoadConfigFile(const std::filesystem::path& filename, ICo
 		}
 	}
 
-	if (auto found = json.find("$schema"); found != json.end())
+	try
 	{
+		LoadAndValidateSchema(*this, json);
+	}
+	catch (const std::exception& e)
+	{
+		LogError("Failed to load "s << filename << ": existing json failed schema validation: " << e.what());
+		return false;
+	}
+
+	if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
+	{
+		bool fileInfoParsed = false;
+
 		try
 		{
-			loader.ValidateSchema(found->get<std::string>());
+			if (ConfigFileInfo info; try_get_to(json, "file_info", info))
+			{
+				shared->m_FileInfo = std::move(info);
+				fileInfoParsed = true;
+			}
+			else
+			{
+				shared->m_FileInfo.reset();
+			}
 		}
 		catch (const std::exception& e)
 		{
-			LogError("Failed to load "s << filename << ": existing file failed schema validation: " << e.what());
-			return false;
+			LogWarning("Skipping auto-update for "s << filename << ": failed to parse file_info: " << e.what());
 		}
-	}
-	else
-	{
-		LogError("Failed to load "s << filename << ": existing json missing $schema property");
-		return false;
-	}
 
-	if (autoUpdate && TryAutoUpdate(filename, json, loader))
-		return true;
-
-	if (!loader.Deserialize(json))
-	{
-		LogError("Failed to load "s << filename << ": existing file failed to deserialize, and auto-update did not occur");
-		return false;
+		if (fileInfoParsed && TryAutoUpdate(filename, json, *shared))
+			return true;
 	}
 
 	try
 	{
-		json.clear();
-		loader.Serialize(json);
-		SaveJSONToFile(filename, json);
+		Deserialize(json);
 	}
 	catch (const std::exception& e)
 	{
-		LogWarning("Successfully deserialized "s << filename << ", but failed to resave: " << e.what());
+		LogError("Failed to load "s << filename
+			<< ": existing file failed to deserialize, and auto-update did not occur. Reason: " << e.what());
+		return false;
 	}
+
+	if (!SaveFile(filename))
+		LogWarning("Successfully deserialized "s << filename << ", but failed to resave.");
 
 	return true;
 }
 
-bool tf2_bot_detector::SaveConfigFile(const std::filesystem::path& filename, IConfigFileHandler& handler)
+bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& filename) const
 {
 	nlohmann::json json;
 
 	try
 	{
-		handler.Serialize(json);
+		ValidateSchema(m_Schema);
+		json["$schema"] = m_Schema;
+	}
+	catch (const std::exception& e)
+	{
+		LogError("Failed to serialize "s << filename << ": schema failed to validate: " << e.what());
+		return false;
+	}
+
+	try
+	{
+		Serialize(json);
 	}
 	catch (const std::exception& e)
 	{
 		LogError("Failed to serialize "s << filename << ": " << e.what());
+		return false;
+	}
+
+	if (auto found = json.find("$schema"); found != json.end())
+	{
+		ConfigSchemaInfo schema;
+
+		try
+		{
+			schema = found->get<ConfigSchemaInfo>();
+		}
+		catch (const std::exception& e)
+		{
+			LogError("Failed to serialize "s << filename << ": new $schema "
+				<< std::quoted(found->get<std::string_view>()) << " failed to parse: " << e.what());
+			return false;
+		}
+
+		try
+		{
+			ValidateSchema(schema);
+		}
+		catch (const std::exception& e)
+		{
+			LogError("Failed to serialize "s << filename << ": new $schema "
+				<< schema << " did not pass validation: " << e.what());
+			return false;
+		}
+	}
+	else
+	{
+		LogError("Failed to serialize "s << filename << ": $schema property missing.");
 		return false;
 	}
 
@@ -254,6 +336,14 @@ bool tf2_bot_detector::SaveConfigFile(const std::filesystem::path& filename, ICo
 	return true;
 }
 
+void ConfigFileBase::Serialize(nlohmann::json& json) const
+{
+	json =
+	{
+		{ "$schema", m_Schema }
+	};
+}
+
 ConfigSchemaInfo::ConfigSchemaInfo(const std::string_view& schema)
 {
 	std::match_results<std::string_view::iterator> match;
@@ -264,26 +354,28 @@ ConfigSchemaInfo::ConfigSchemaInfo(const std::string_view& schema)
 
 	from_chars_throw(match[2], m_Version);
 
-	{
-		const std::string_view branchsv(&*match[1].first, match[1].length());
-		if (!mh::case_insensitive_compare(branchsv, "autoupdate"sv) &&
-			!mh::case_insensitive_compare(branchsv, "master"sv))
-		{
-			throw std::runtime_error("Invalid branch "s << std::quoted(branchsv));
-		}
-	}
+	m_Branch = match[1].str();
+	m_Type = match[3].str();
+}
 
-	{
-		const std::string_view typesv(&*match[3].first, match[3].length());
-		if (mh::case_insensitive_compare(typesv, "playerlist"sv))
-			m_Type = Type::Playerlist;
-		else if (mh::case_insensitive_compare(typesv, "settings"sv))
-			m_Type = Type::Settings;
-		else if (mh::case_insensitive_compare(typesv, "rules"sv))
-			m_Type = Type::Rules;
-		else if (mh::case_insensitive_compare(typesv, "whitelist"sv))
-			m_Type = Type::Whitelist;
-		else
-			throw std::runtime_error("Unknown schema type "s << std::quoted(typesv));
-	}
+ConfigSchemaInfo::ConfigSchemaInfo(std::string type, unsigned version, std::string branch) :
+	m_Type(std::move(type)), m_Version(version), m_Branch(std::move(branch))
+{
+}
+
+void SharedConfigFileBase::Deserialize(const nlohmann::json& json)
+{
+	ConfigFileBase::Deserialize(json);
+
+	if (ConfigFileInfo info; try_get_to(json, "file_info", info))
+		m_FileInfo = std::move(info);
+	else
+		m_FileInfo.reset();
+}
+
+void SharedConfigFileBase::Serialize(nlohmann::json& json) const
+{
+	ConfigFileBase::Serialize(json);
+	if (m_FileInfo)
+		json["file_info"] = m_FileInfo.value();
 }

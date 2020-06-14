@@ -114,12 +114,13 @@ namespace tf2_bot_detector
 	private:
 		using PlayerMap_t = std::map<SteamID, PlayerListData>;
 
-		struct FileHandler;
-
-		struct PlayerListFile
+		struct PlayerListFile final : public SharedConfigFileBase
 		{
+			void ValidateSchema(const ConfigSchemaInfo& schema) const override;
+			void Deserialize(const nlohmann::json& json) override;
+			void Serialize(nlohmann::json& json) const override;
+
 			PlayerMap_t m_Players;
-			ConfigFileInfo m_FileInfo;
 		};
 
 		[[nodiscard]] static PlayerListFile ParsePlayerlist(const nlohmann::json& json);
@@ -130,7 +131,7 @@ namespace tf2_bot_detector
 		PlayerListFile& GetMutableList();
 		const PlayerListFile* GetMutableList() const;
 
-		static constexpr int VERSION = 3;
+		static constexpr int PLAYERLIST_SCHEMA_VERSION = 3;
 
 		AsyncObject<PlayerListFile> m_OfficialPlayerList;
 		AsyncObject<PlayerMap_t> m_OtherPlayerLists;

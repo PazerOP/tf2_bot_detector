@@ -25,6 +25,13 @@ namespace tf2_bot_detector
 		std::string m_Path;
 	};
 
+	class http_error : public std::runtime_error
+	{
+	public:
+		http_error(int statusCode);
+		http_error(std::string msg);
+	};
+
 	namespace HTTP
 	{
 		std::string GetString(const URL& url);
