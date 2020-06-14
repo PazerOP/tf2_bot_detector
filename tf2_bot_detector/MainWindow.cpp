@@ -53,6 +53,22 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		if (ImGui::MenuItem("Copy SteamID", nullptr, false, steamID.IsValid()))
 			ImGui::SetClipboardText(steamID.str().c_str());
 
+		if (ImGui::BeginMenu("Go To"))
+		{
+			if (ImGui::MenuItem("Steam Community"))
+				OpenURL("https://steamcommunity.com/profiles/"s << player.GetSteamID().ID64);
+			if (ImGui::MenuItem("logs.tf"))
+				OpenURL("http://logs.tf/profile/"s << player.GetSteamID().ID64);
+			if (ImGui::MenuItem("RGL"))
+				OpenURL("https://rgl.gg/Public/PlayerProfile.aspx?p="s << player.GetSteamID().ID64);
+			if (ImGui::MenuItem("SteamRep"))
+				OpenURL("https://steamrep.com/profiles/"s << player.GetSteamID().ID64);
+			if (ImGui::MenuItem("UGC League"))
+				OpenURL("https://www.ugcleague.com/players_page.cfm?player_id="s << player.GetSteamID().ID64);
+
+			ImGui::EndMenu();
+		}
+
 		const auto& world = GetWorld();
 		auto& modLogic = GetModLogic();
 
