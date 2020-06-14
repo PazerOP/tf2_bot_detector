@@ -44,7 +44,7 @@
 			"triggers": {
 				"username_text_match": {
 					"case_sensitive": false,
-					"mode": "equal",
+					"mode": "contains",
 					"patterns": [
 						"[VAC] OneTrick"
 					]
