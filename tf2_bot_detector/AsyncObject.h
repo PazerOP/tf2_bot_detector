@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Log.h"
+
 #include <mh/text/string_insertion.hpp>
 
 #include <chrono>
@@ -38,6 +40,7 @@ namespace tf2_bot_detector
 				{
 					auto delta = clock_t::now() - m_StartTime;
 					using namespace std::chrono_literals;
+					using namespace std::string_literals;
 
 					if (delta > 10ms)
 					{

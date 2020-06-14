@@ -25,10 +25,11 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 	{
 		try
 		{
+			const std::regex s_PlayerListRegex(std::string(basename) << R"regex(\.(.*\.)?json)regex", std::regex::optimize);
+
 			for (const auto& file : std::filesystem::directory_iterator(cfg,
 				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
 			{
-				static const std::regex s_PlayerListRegex(std::string(basename) << R"regex(\.(.*\.)?json)regex", std::regex::optimize);
 				const auto path = file.path();
 				const auto filename = path.filename().string();
 				if (mh::case_insensitive_compare(filename, std::string(basename) << ".json"sv))

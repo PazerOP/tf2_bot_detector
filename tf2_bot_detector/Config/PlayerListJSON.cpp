@@ -120,7 +120,7 @@ namespace tf2_bot_detector
 }
 
 PlayerListJSON::PlayerListJSON(const Settings& settings) :
-	m_Settings(&settings)
+	m_CFGGroup(settings)
 {
 	// Immediately load and resave to normalize any formatting
 	LoadFiles();
@@ -195,57 +195,16 @@ void PlayerListJSON::PlayerListFile::Serialize(nlohmann::json& json) const
 	}
 }
 
-auto PlayerListJSON::LoadFile(const std::filesystem::path& filename, bool autoUpdate) -> AsyncObject<PlayerListFile>
-{
-	auto filenameCopy = filename;
-	return std::async([filenameCopy, autoUpdate]
-		{
-			PlayerListFile file;
-			if (file.LoadFile(filenameCopy))
-				return file;
-
-			return PlayerListFile{};
-		});
-}
-
-bool PlayerListJSON::IsOfficial() const
-{
-	// I am magic. I get to mess with playerlist.official.json, while
-	// mere mortals have to use playerlist.json.
-	return m_Settings->m_LocalSteamID.IsPazer();
-}
-
-auto PlayerListJSON::GetMutableList() -> PlayerListFile&
-{
-	if (IsOfficial())
-		return *m_OfficialPlayerList;
-
-	if (!m_UserPlayerList)
-		m_UserPlayerList.emplace();
-
-	return *m_UserPlayerList;
-}
-
-auto PlayerListJSON::GetMutableList() const -> const PlayerListFile*
-{
-	if (IsOfficial())
-		return &m_OfficialPlayerList.get();
-
-	if (!m_UserPlayerList)
-		return nullptr;
-
-	return &m_UserPlayerList.value();
-}
-
 bool PlayerListJSON::LoadFiles()
 {
+#if 0
 	const auto paths = GetConfigFilePaths("playerlist");
 
 	if (!IsOfficial() && !paths.m_User.empty())
-		m_UserPlayerList = *LoadFile(paths.m_User, false);
+		m_UserPlayerList = LoadConfigFile<PlayerListFile>(paths.m_User);
 
 	if (!paths.m_Official.empty())
-		m_OfficialPlayerList = LoadFile(paths.m_Official, true);
+		m_OfficialPlayerList = LoadConfigFileAsync<PlayerListFile>(paths.m_Official);
 	else
 		m_OfficialPlayerList = {};
 
@@ -257,7 +216,7 @@ bool PlayerListJSON::LoadFiles()
 			{
 				try
 				{
-					for (auto& otherEntry : LoadFile(file, true)->m_Players)
+					for (auto& otherEntry : LoadConfigFile<PlayerListFile>(file).m_Players)
 					{
 						auto& newEntry = map.emplace(otherEntry.first, otherEntry.first).first->second;
 						newEntry.m_Attributes |= otherEntry.second.m_Attributes;
@@ -273,17 +232,22 @@ bool PlayerListJSON::LoadFiles()
 
 			return map;
 		});
+#endif
+	m_CFGGroup.LoadFiles();
 
 	return true;
 }
 
 void PlayerListJSON::SaveFile() const
 {
+#if 0
 	auto mutableList = GetMutableList();
 	if (!mutableList)
 		return; // Nothing to save
 
 	mutableList->SaveFile(IsOfficial() ? "cfg/playerlist.official.json" : "cfg/playerlist.json");
+#endif
+	m_CFGGroup.SaveFile();
 }
 
 const PlayerListData* PlayerListJSON::FindPlayerData(const SteamID& id) const
@@ -346,14 +310,14 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	ModifyPlayerAction(*func)(PlayerListData& data, const void* userData), const void* userData)
 {
 	PlayerListData* data = nullptr;
-	if (auto found = GetMutableList().m_Players.find(id); found != GetMutableList().m_Players.end())
+	if (auto found = m_CFGGroup.GetMutableList().m_Players.find(id); found != m_CFGGroup.GetMutableList().m_Players.end())
 	{
 		data = &found->second;
 	}
 	else
 	{
 		auto existing = FindPlayerData(id);
-		data = &GetMutableList().m_Players.emplace(id, existing ? *existing : PlayerListData(id)).first->second;
+		data = &m_CFGGroup.GetMutableList().m_Players.emplace(id, existing ? *existing : PlayerListData(id)).first->second;
 	}
 
 	const auto action = func(*data, userData);
@@ -425,4 +389,15 @@ PlayerAttributesList& PlayerAttributesList::operator|=(const PlayerAttributesLis
 	m_Racist = m_Racist || other.m_Racist;
 
 	return *this;
+}
+
+void PlayerListJSON::ConfigFileGroup::CombineEntries(PlayerMap_t& map, const PlayerListFile& file) const
+{
+	for (auto& otherEntry : file.m_Players)
+	{
+		auto& newEntry = map.emplace(otherEntry.first, otherEntry.first).first->second;
+		newEntry.m_Attributes |= otherEntry.second.m_Attributes;
+		if (otherEntry.second.m_LastSeen > newEntry.m_LastSeen)
+			newEntry.m_LastSeen = otherEntry.second.m_LastSeen;
+	}
 }

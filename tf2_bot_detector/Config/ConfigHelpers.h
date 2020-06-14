@@ -1,8 +1,11 @@
 #pragma once
+#include "AsyncObject.h"
+#include "Settings.h"
 
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
+#include <future>
 #include <optional>
 #include <vector>
 
@@ -72,6 +75,122 @@ namespace tf2_bot_detector
 		void Serialize(nlohmann::json& json) const override = 0;
 
 		std::optional<ConfigFileInfo> m_FileInfo;
+	};
+
+	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
+	T LoadConfigFile(const std::filesystem::path& filename)
+	{
+		// Not going to be doing any async loading
+		if (T file; file.LoadFile(filename))
+			return file;
+
+		return T{};
+	}
+
+	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
+	auto LoadConfigFileAsync(std::filesystem::path filename)
+	{
+		if constexpr (std::is_base_of_v<SharedConfigFileBase, T>)
+		{
+			return AsyncObject<T>(std::async([filename]
+				{
+					return LoadConfigFile<T>(filename);
+				}));
+		}
+		else
+		{
+			// Not going to be doing any async loading
+			return LoadConfigFile<T>(filename);
+		}
+	}
+
+	template<typename T, typename TOthers = typename T::collection_type>
+	class ConfigFileGroupBase
+	{
+	public:
+		using collection_type = TOthers;
+
+		ConfigFileGroupBase(const Settings& settings) : m_Settings(&settings) {}
+		virtual ~ConfigFileGroupBase() = default;
+
+		virtual void CombineEntries(collection_type& collection, const T& file) const = 0;
+		virtual std::string GetBaseFileName() const = 0;
+
+		void LoadFiles()
+		{
+			using namespace std::string_literals;
+
+			const auto paths = GetConfigFilePaths(GetBaseFileName());
+
+			if (!IsOfficial() && !paths.m_User.empty())
+				m_UserList = LoadConfigFile<T>(paths.m_User);
+
+			if (!paths.m_Official.empty())
+				m_OfficialList = LoadConfigFileAsync<T>(paths.m_Official);
+			else
+				m_OfficialList = {};
+
+			m_ThirdPartyLists = std::async([this, paths]
+				{
+					collection_type collection;
+
+					for (const auto& file : paths.m_Others)
+					{
+						try
+						{
+							auto parsedFile = LoadConfigFile<T>(file);
+							CombineEntries(collection, parsedFile);
+						}
+						catch (const std::exception& e)
+						{
+							LogError("Exception when loading "s << file << ": " << e.what());
+						}
+					}
+
+					return collection;
+				});
+		}
+
+		void SaveFile() const
+		{
+			using namespace std::string_literals;
+
+			auto mutableList = GetMutableList();
+			if (!mutableList)
+				return; // Nothing to save
+
+			mutableList->SaveFile(IsOfficial() ?
+				("cfg/"s << GetBaseFileName() << ".official.json") :
+				("cfg/"s << GetBaseFileName() << ".json"));
+		}
+
+		bool IsOfficial() const { return m_Settings->m_LocalSteamID.IsPazer(); }
+
+		T& GetMutableList()
+		{
+			if (IsOfficial())
+				return *m_OfficialList;
+
+			if (!m_UserList)
+				m_UserList.emplace();
+
+			return m_UserList.value();
+		}
+		const T* GetMutableList() const
+		{
+			if (IsOfficial())
+				return &m_OfficialList.get();
+
+			if (!m_UserList)
+				return nullptr;
+
+			return &m_UserList.value();
+		}
+
+		const Settings* m_Settings = nullptr;
+		AsyncObject<T> m_OfficialList;
+		std::optional<T> m_UserList;
+		AsyncObject<collection_type> m_ThirdPartyLists;
 	};
 }
 

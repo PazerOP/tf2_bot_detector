@@ -1,4 +1,6 @@
 #pragma once
+#include "AsyncObject.h"
+#include "ConfigHelpers.h"
 
 #include <mh/coroutine/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -77,17 +79,24 @@ namespace tf2_bot_detector
 		mh::generator<const ModerationRule*> GetRules() const;
 
 	private:
-		const Settings* m_Settings = nullptr;
-		bool IsOfficial() const;
-
 		using RuleList_t = std::vector<ModerationRule>;
-		bool LoadFile(const std::filesystem::path& filename, RuleList_t& rules) const;
+		struct RuleFile final : SharedConfigFileBase
+		{
+			void ValidateSchema(const ConfigSchemaInfo& schema) const override;
+			void Deserialize(const nlohmann::json& json) override;
+			void Serialize(nlohmann::json& json) const override;
 
-		RuleList_t& GetMutableList() { return const_cast<RuleList_t&>(std::as_const(*this).GetMutableList()); }
-		const RuleList_t& GetMutableList() const { return IsOfficial() ? m_OfficialRules : m_UserRules; }
+			RuleList_t m_Rules;
+		};
 
-		RuleList_t m_OfficialRules;
-		RuleList_t m_UserRules;
-		RuleList_t m_OtherRules;
+		static constexpr int RULES_SCHEMA_VERSION = 3;
+
+		struct ConfigFileGroup final : ConfigFileGroupBase<RuleFile, RuleList_t>
+		{
+			using ConfigFileGroupBase::ConfigFileGroupBase;
+			void CombineEntries(RuleList_t& list, const RuleFile& file) const override;
+			std::string GetBaseFileName() const override { return "rules"; }
+
+		} m_CFGGroup;
 	};
 }

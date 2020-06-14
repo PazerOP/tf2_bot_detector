@@ -4,8 +4,8 @@
 		"authors": [
 			"pazer"
 		],
-		"title": "Official rules list",
 		"description": "Official rules list for TF2 Bot Detector.",
+		"title": "Official rules list",
 		"update_url": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/staging/cfg/rules.official.json"
 	},
 	"rules": [

@@ -125,18 +125,20 @@ namespace tf2_bot_detector
 
 		[[nodiscard]] static PlayerListFile ParsePlayerlist(const nlohmann::json& json);
 		[[nodiscard]] static AsyncObject<PlayerListFile> DownloadFile(const std::string& url, PlayerMap_t& map);
-		static AsyncObject<PlayerListFile> LoadFile(const std::filesystem::path& filename, bool autoUpdate);
-
-		bool IsOfficial() const;
-		PlayerListFile& GetMutableList();
-		const PlayerListFile* GetMutableList() const;
 
 		static constexpr int PLAYERLIST_SCHEMA_VERSION = 3;
+
+		struct ConfigFileGroup final : ConfigFileGroupBase<PlayerListFile, PlayerMap_t>
+		{
+			using ConfigFileGroupBase::ConfigFileGroupBase;
+			void CombineEntries(PlayerMap_t& map, const PlayerListFile& file) const override;
+			std::string GetBaseFileName() const override { return "playerlist"; }
+
+		} m_CFGGroup;
 
 		AsyncObject<PlayerListFile> m_OfficialPlayerList;
 		AsyncObject<PlayerMap_t> m_OtherPlayerLists;
 		std::optional<PlayerListFile> m_UserPlayerList;
-		const Settings* m_Settings = nullptr;
 	};
 
 	void to_json(nlohmann::json& j, const PlayerAttributes& d);
