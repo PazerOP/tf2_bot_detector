@@ -57,6 +57,23 @@
 					"cheater"
 				]
 			},
+			"description": "[VALVE] Twilight Sparkle",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"[VALVE] Twilight Sparkle"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "(catbot) furry-bot",
 			"triggers": {
 				"username_text_match": {
