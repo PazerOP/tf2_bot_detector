@@ -124,19 +124,20 @@ PlayerListJSON::PlayerListJSON(const Settings& settings) :
 {
 	// Immediately load and resave to normalize any formatting
 	LoadFiles();
-	SaveFile();
 }
 
-void PlayerListJSON::ValidateSchema(const nlohmann::json& json)
-{
-	const ConfigSchemaInfo schemaInfo(json);
-	if (schemaInfo.m_Type != ConfigSchemaInfo::Type::Playerlist)
-		throw std::runtime_error("Schema says this is not a playerlist");
-}
+//void PlayerListJSON::ValidateSchema(const nlohmann::json& json)
+//{
+//	throw std::exception("Not implemented");
+//
+//	//const ConfigSchemaInfo schemaInfo(json);
+//	//if (schemaInfo.m_Type != ConfigSchemaInfo::Type::Playerlist)
+//	//	throw std::runtime_error("Schema says this is not a playerlist");
+//}
 
 auto PlayerListJSON::ParsePlayerlist(const nlohmann::json& json) -> PlayerListFile
 {
-	ValidateSchema(json);
+	//ValidateSchema(json);
 
 	PlayerListFile retVal;
 	retVal.m_FileInfo = json;
@@ -153,56 +154,77 @@ auto PlayerListJSON::ParsePlayerlist(const nlohmann::json& json) -> PlayerListFi
 	return retVal;
 }
 
-auto PlayerListJSON::LoadFile(const std::filesystem::path& filename, bool autoUpdate) -> AsyncObject<PlayerListFile>
+struct PlayerListJSON::FileHandler : IConfigFileHandler
 {
-	Log("Loading player list from "s << filename);
+	FileHandler(PlayerListFile& file) : m_File(&file) {}
+	PlayerListFile* m_File = nullptr;
 
-	nlohmann::json json;
+	void ValidateSchema(const std::string_view& schema) const override
 	{
-		std::ifstream file(filename);
-		if (!file.good())
-			return {};
-
-		try
-		{
-			file >> json;
-		}
-		catch (const std::exception& e)
-		{
-			throw std::runtime_error(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
-		}
+		const ConfigSchemaInfo schemaInfo(schema);
+		if (schemaInfo.m_Type != ConfigSchemaInfo::Type::Playerlist)
+			throw std::runtime_error("Schema is not a playerlist");
 	}
 
-	ValidateSchema(json);
-
-	if (autoUpdate)
+	bool Deserialize(const nlohmann::json& json) override
 	{
+		*m_File = {};
+
 		if (auto found = json.find("file_info"); found != json.end())
 		{
-			const ConfigFileInfo info(*found);
-			if (!info.m_UpdateURL.empty())
-			{
-				try
-				{
-
-				}
-				catch (const std::exception& e)
-				{
-					LogError("Error downloading newer version of "s << filename << ": " << e.what());
-				}
-			}
-			else
-			{
-				DebugLog("Skipping auto-update of "s << filename << ": update_url was empty");
-			}
+			m_File->m_FileInfo = *found;
 		}
 		else
 		{
-			DebugLog("Skipping auto-update of "s << filename << ": file_info object missing");
+			m_File->m_FileInfo.m_Authors.push_back("Me!");
+			m_File->m_FileInfo.m_Title = "My List of Morons";
 		}
+
+		PlayerMap_t& map = m_File->m_Players;
+		for (const auto& player : json.at("players"))
+		{
+			const SteamID steamID(player.at("steamid").get<std::string>());
+			PlayerListData parsed(steamID);
+			player.get_to(parsed);
+			map.emplace(steamID, std::move(parsed));
+		}
+
+		return true;
 	}
 
-	return ParsePlayerlist(json);
+	void Serialize(nlohmann::json& json) const override
+	{
+		json =
+		{
+			{ "$schema", "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/playerlist.schema.json" },
+			{ "file_info", m_File->m_FileInfo },
+		};
+
+		auto& players = json["players"];
+		players = json.array();
+
+		for (const auto& pair : m_File->m_Players)
+		{
+			if (pair.second.m_Attributes.empty())
+				continue;
+
+			players.push_back(pair.second);
+		}
+	}
+};
+
+auto PlayerListJSON::LoadFile(const std::filesystem::path& filename, bool autoUpdate) -> AsyncObject<PlayerListFile>
+{
+	auto filenameCopy = filename;
+	return std::async([filenameCopy, autoUpdate]
+		{
+			PlayerListFile file;
+			FileHandler handler(file);
+			if (LoadConfigFile(filenameCopy, handler, autoUpdate))
+				return file;
+
+			return PlayerListFile{};
+		});
 }
 
 bool PlayerListJSON::IsOfficial() const
@@ -212,26 +234,26 @@ bool PlayerListJSON::IsOfficial() const
 	return m_Settings->m_LocalSteamID.IsPazer();
 }
 
-auto PlayerListJSON::GetMutableList() -> PlayerMap_t&
+auto PlayerListJSON::GetMutableList() -> PlayerListFile&
 {
 	if (IsOfficial())
-		return m_OfficialPlayerList->m_Players;
+		return *m_OfficialPlayerList;
 
 	if (!m_UserPlayerList)
 		m_UserPlayerList.emplace();
 
-	return m_UserPlayerList->m_Players;
+	return *m_UserPlayerList;
 }
 
-auto PlayerListJSON::GetMutableList() const -> const PlayerMap_t*
+auto PlayerListJSON::GetMutableList() const -> const PlayerListFile*
 {
 	if (IsOfficial())
-		return &m_OfficialPlayerList.get().m_Players;
+		return &m_OfficialPlayerList.get();
 
 	if (!m_UserPlayerList)
 		return nullptr;
 
-	return &m_UserPlayerList->m_Players;
+	return &m_UserPlayerList.value();
 }
 
 bool PlayerListJSON::LoadFiles()
@@ -246,7 +268,7 @@ bool PlayerListJSON::LoadFiles()
 	else
 		m_OfficialPlayerList = {};
 
-	m_OtherPlayerLists = std::async([&]
+	m_OtherPlayerLists = std::async([paths]
 		{
 			PlayerMap_t map;
 
@@ -276,33 +298,14 @@ bool PlayerListJSON::LoadFiles()
 
 void PlayerListJSON::SaveFile() const
 {
-	nlohmann::json json =
-	{
-		{ "$schema", "./schema/playerlist.schema.json" }
-	};
+	auto mutableList = GetMutableList();
+	if (!mutableList)
+		return; // Nothing to save
 
-	json["version"] = VERSION;
-
-	auto& players = json["players"];
-	players = json.array();
-
-	if (auto mutableList = GetMutableList())
-	{
-		for (const auto& pair : *mutableList)
-		{
-			if (pair.second.m_Attributes.empty())
-				continue;
-
-			players.push_back(pair.second);
-		}
-	}
-
-	// Make sure we successfully serialize BEFORE we destroy our file
-	auto jsonString = json.dump(1, '\t', true);
-	{
-		std::ofstream file(IsOfficial() ? "cfg/playerlist.official.json" : "cfg/playerlist.json");
-		file << jsonString << '\n';
-	}
+	// FIXME this is stupid
+	auto mutableListCopyFIXME = *mutableList;
+	FileHandler handler(mutableListCopyFIXME);
+	SaveConfigFile(IsOfficial() ? "cfg/playerlist.official.json" : "cfg/playerlist.json", handler);
 }
 
 const PlayerListData* PlayerListJSON::FindPlayerData(const SteamID& id) const
@@ -365,12 +368,14 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	ModifyPlayerAction(*func)(PlayerListData& data, const void* userData), const void* userData)
 {
 	PlayerListData* data = nullptr;
-	if (auto found = GetMutableList().find(id); found != GetMutableList().end())
+	if (auto found = GetMutableList().m_Players.find(id); found != GetMutableList().m_Players.end())
+	{
 		data = &found->second;
+	}
 	else
 	{
 		auto existing = FindPlayerData(id);
-		data = &GetMutableList().emplace(id, existing ? *existing : PlayerListData(id)).first->second;
+		data = &GetMutableList().m_Players.emplace(id, existing ? *existing : PlayerListData(id)).first->second;
 	}
 
 	const auto action = func(*data, userData);

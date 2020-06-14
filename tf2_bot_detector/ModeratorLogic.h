@@ -110,8 +110,8 @@ namespace tf2_bot_detector
 		void HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& enemyCheaters);
 		void HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& connectingEnemyCheaters);
 
-		ModerationRules m_Rules;
 		PlayerListJSON m_PlayerList;
+		ModerationRules m_Rules;
 		PlayerWhitelist m_PlayerWhitelist;
 	};
 }

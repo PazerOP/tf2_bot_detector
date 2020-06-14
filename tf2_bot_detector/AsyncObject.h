@@ -120,7 +120,7 @@ namespace tf2_bot_detector
 			}
 			else
 			{
-				m_Object = std::move(std::get<fut_t>(m_Object));
+				m_Object = std::move(std::get<fut_t>(m_Object).get());
 				return get();
 			}
 		}
@@ -139,7 +139,7 @@ namespace tf2_bot_detector
 			}
 			else
 			{
-				m_Object = std::move(std::get<fut_t>(m_Object));
+				m_Object = std::move(std::get<fut_t>(m_Object).get());
 				return get();
 			}
 		}
