@@ -1,19 +1,15 @@
-#define CPPHTTPLIB_OPENSSL_SUPPORT 1
-
 #include "GithubAPI.h"
 #include "Config/JSONHelpers.h"
 #include "Log.h"
 #include "Version.h"
+#include "HTTPHelpers.h"
 
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
-#pragma warning(push, 1)
-#include <httplib.h>
-#pragma warning(pop)
-
 #include <chrono>
 #include <future>
+#include <iomanip>
 #include <optional>
 #include <stdio.h>
 #include <string>
@@ -35,14 +31,7 @@ static std::optional<Version> ParseSemVer(const char* version)
 
 static bool GetLatestVersion(Version& version, std::string& url)
 {
-	httplib::Client client("api.github.com");
-	client.set_follow_location(true);
-
-	httplib::Headers headers =
-	{
-		{ "User-Agent", "curl/7.58.0" }
-	};
-
+#if 0
 	auto res = client.Get("/repos/PazerOP/tf2_bot_detector/releases", headers);
 	if (!res)
 	{
@@ -51,10 +40,11 @@ static bool GetLatestVersion(Version& version, std::string& url)
 	}
 
 	auto body = res->body;
+#endif
 
 	try
 	{
-		auto j = nlohmann::json::parse(res->body);
+		auto j = HTTP::GetJSON("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
 		if (j.empty())
 		{
 			LogError("Autoupdate: Response was empty");

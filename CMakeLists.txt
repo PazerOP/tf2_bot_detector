@@ -36,6 +36,7 @@ add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/ActionManager.h
 	tf2_bot_detector/Actions.cpp
 	tf2_bot_detector/Actions.h
+	tf2_bot_detector/AsyncObject.h
 	tf2_bot_detector/Clock.cpp
 	tf2_bot_detector/Clock.h
 	tf2_bot_detector/CompensatedTS.cpp
@@ -77,6 +78,8 @@ add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/WorldState.cpp
 	tf2_bot_detector/WorldState.h
 	tf2_bot_detector/Version.h
+	tf2_bot_detector/HTTPHelpers.h
+	tf2_bot_detector/HTTPHelpers.cpp
 )
 
 set_target_properties(tf2_bot_detector PROPERTIES
@@ -112,6 +115,11 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	mh_stuff
 	ValveFileVDF
 )
+
+# TODO: Find a way to do this locally
+if(MSVC)
+	target_compile_options(tf2_bot_detector PRIVATE /WX)
+endif()
 
 set_property(TARGET tf2_bot_detector PROPERTY CXX_STANDARD 20)
 if (MSVC)

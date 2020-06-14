@@ -1,4 +1,6 @@
 #include "PlayerListJSON.h"
+#include "ConfigHelpers.h"
+#include "HTTPHelpers.h"
 #include "Log.h"
 #include "Settings.h"
 #include "JSONHelpers.h"
@@ -125,36 +127,21 @@ PlayerListJSON::PlayerListJSON(const Settings& settings) :
 	SaveFile();
 }
 
-bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t& map) const
+void PlayerListJSON::ValidateSchema(const nlohmann::json& json)
 {
-	Log("Loading player list from "s << filename);
+	const ConfigSchemaInfo schemaInfo(json);
+	if (schemaInfo.m_Type != ConfigSchemaInfo::Type::Playerlist)
+		throw std::runtime_error("Schema says this is not a playerlist");
+}
 
-	nlohmann::json json;
-	{
-		std::ifstream file(filename);
-		if (!file.good())
-		{
-			LogWarning(std::string(__FUNCTION__ ": Failed to open ") << filename);
-			return false;
-		}
+auto PlayerListJSON::ParsePlayerlist(const nlohmann::json& json) -> PlayerListFile
+{
+	ValidateSchema(json);
 
-		try
-		{
-			file >> json;
-		}
-		catch (const std::exception& e)
-		{
-			LogError(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
-			return false;
-		}
-	}
+	PlayerListFile retVal;
+	retVal.m_FileInfo = json;
 
-	if (int version; !try_get_to(json, "version", version) || version < 2)
-	{
-		// Discard the file. Can't trust the bans due to an exploit.
-		return true;
-	}
-
+	PlayerMap_t& map = retVal.m_Players;
 	for (const auto& player : json.at("players"))
 	{
 		const SteamID steamID(player.at("steamid").get<std::string>());
@@ -163,7 +150,59 @@ bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t
 		map.emplace(steamID, std::move(parsed));
 	}
 
-	return true;
+	return retVal;
+}
+
+auto PlayerListJSON::LoadFile(const std::filesystem::path& filename, bool autoUpdate) -> AsyncObject<PlayerListFile>
+{
+	Log("Loading player list from "s << filename);
+
+	nlohmann::json json;
+	{
+		std::ifstream file(filename);
+		if (!file.good())
+			return {};
+
+		try
+		{
+			file >> json;
+		}
+		catch (const std::exception& e)
+		{
+			throw std::runtime_error(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
+		}
+	}
+
+	ValidateSchema(json);
+
+	if (autoUpdate)
+	{
+		if (auto found = json.find("file_info"); found != json.end())
+		{
+			const ConfigFileInfo info(*found);
+			if (!info.m_UpdateURL.empty())
+			{
+				try
+				{
+
+				}
+				catch (const std::exception& e)
+				{
+					LogError("Error downloading newer version of "s << filename << ": " << e.what());
+				}
+			}
+			else
+			{
+				DebugLog("Skipping auto-update of "s << filename << ": update_url was empty");
+			}
+		}
+		else
+		{
+			DebugLog("Skipping auto-update of "s << filename << ": file_info object missing");
+		}
+	}
+
+	return ParsePlayerlist(json);
 }
 
 bool PlayerListJSON::IsOfficial() const
@@ -176,63 +215,61 @@ bool PlayerListJSON::IsOfficial() const
 auto PlayerListJSON::GetMutableList() -> PlayerMap_t&
 {
 	if (IsOfficial())
-		return m_OfficialPlayerList;
+		return m_OfficialPlayerList->m_Players;
 
 	if (!m_UserPlayerList)
 		m_UserPlayerList.emplace();
 
-	return m_UserPlayerList.value();
+	return m_UserPlayerList->m_Players;
 }
 
 auto PlayerListJSON::GetMutableList() const -> const PlayerMap_t*
 {
 	if (IsOfficial())
-		return &m_OfficialPlayerList;
+		return &m_OfficialPlayerList.get().m_Players;
 
 	if (!m_UserPlayerList)
 		return nullptr;
 
-	return &m_UserPlayerList.value();
+	return &m_UserPlayerList->m_Players;
 }
 
 bool PlayerListJSON::LoadFiles()
 {
-	if (!IsOfficial())
-	{
-		if (!m_UserPlayerList.has_value())
-			m_UserPlayerList.emplace();
+	const auto paths = GetConfigFilePaths("playerlist");
 
-		LoadFile("cfg/playerlist.json", m_UserPlayerList.value());
-	}
+	if (!IsOfficial() && !paths.m_User.empty())
+		m_UserPlayerList = *LoadFile(paths.m_User, false);
 
-	m_OfficialPlayerList.clear();
-	LoadFile("cfg/playerlist.official.json", m_OfficialPlayerList);
+	if (!paths.m_Official.empty())
+		m_OfficialPlayerList = LoadFile(paths.m_Official, true);
+	else
+		m_OfficialPlayerList = {};
 
-	m_OtherPlayerLists.clear();
-	if (std::filesystem::is_directory("cfg"))
-	{
-		try
+	m_OtherPlayerLists = std::async([&]
 		{
-			for (const auto& file : std::filesystem::directory_iterator("cfg",
-				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
-			{
-				static const std::regex s_PlayerListRegex(R"regex(playerlist\.(.*\.)?json)regex", std::regex::optimize);
-				const auto path = file.path();
-				const auto filename = path.filename().string();
-				if (mh::case_insensitive_compare(filename, "playerlist.json"sv) || mh::case_insensitive_compare(filename, "playerlist.official.json"sv))
-					continue;
+			PlayerMap_t map;
 
-				if (std::regex_match(filename.begin(), filename.end(), s_PlayerListRegex))
+			for (const auto& file : paths.m_Others)
+			{
+				try
 				{
-					LoadFile(path, m_OtherPlayerLists);
+					for (auto& otherEntry : LoadFile(file, true)->m_Players)
+					{
+						auto& newEntry = map.emplace(otherEntry.first, otherEntry.first).first->second;
+						newEntry.m_Attributes |= otherEntry.second.m_Attributes;
+						if (otherEntry.second.m_LastSeen > newEntry.m_LastSeen)
+							newEntry.m_LastSeen = otherEntry.second.m_LastSeen;
+					}
+				}
+				catch (const std::exception& e)
+				{
+					LogError("Exception when loading "s << file << ": " << e.what());
 				}
 			}
-		}
-		catch (const std::filesystem::filesystem_error& e)
-		{
-			LogError(std::string(__FUNCTION__ ": Exception when loading playerlist.*.json files from ./cfg/: ") << e.what());
-		}
-	}
+
+			return map;
+		});
 
 	return true;
 }
@@ -272,13 +309,20 @@ const PlayerListData* PlayerListJSON::FindPlayerData(const SteamID& id) const
 {
 	if (m_UserPlayerList.has_value())
 	{
-		if (auto found = m_UserPlayerList->find(id); found != m_UserPlayerList->end())
+		if (auto found = m_UserPlayerList->m_Players.find(id); found != m_UserPlayerList->m_Players.end())
 			return &found->second;
 	}
-	if (auto found = m_OtherPlayerLists.find(id); found != m_OtherPlayerLists.end())
-		return &found->second;
-	if (auto found = m_OfficialPlayerList.find(id); found != m_OfficialPlayerList.end())
-		return &found->second;
+
+	if (m_OtherPlayerLists.is_ready())
+	{
+		if (auto found = m_OtherPlayerLists->find(id); found != m_OtherPlayerLists->end())
+			return &found->second;
+	}
+	if (m_OfficialPlayerList.is_ready())
+	{
+		if (auto found = m_OfficialPlayerList->m_Players.find(id); found != m_OfficialPlayerList->m_Players.end())
+			return &found->second;
+	}
 
 	return nullptr;
 }
@@ -388,4 +432,14 @@ bool PlayerAttributesList::SetAttribute(PlayerAttributes attribute, bool set)
 bool PlayerAttributesList::empty() const
 {
 	return !m_Cheater && !m_Suspicious && !m_Exploiter && !m_Racist;
+}
+
+PlayerAttributesList& PlayerAttributesList::operator|=(const PlayerAttributesList& other)
+{
+	m_Cheater = m_Cheater || other.m_Cheater;
+	m_Suspicious = m_Suspicious || other.m_Suspicious;
+	m_Exploiter = m_Exploiter || other.m_Exploiter;
+	m_Racist = m_Racist || other.m_Racist;
+
+	return *this;
 }

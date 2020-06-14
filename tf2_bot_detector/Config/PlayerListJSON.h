@@ -1,11 +1,14 @@
 #pragma once
 
+#include "AsyncObject.h"
+#include "ConfigHelpers.h"
 #include "SteamID.h"
 
 #include <nlohmann/json_fwd.hpp>
 
 #include <chrono>
 #include <filesystem>
+#include <future>
 #include <map>
 #include <optional>
 
@@ -31,6 +34,7 @@ namespace tf2_bot_detector
 		bool SetAttribute(PlayerAttributes attribute, bool set = true);
 
 		bool empty() const;
+		PlayerAttributesList& operator|=(const PlayerAttributesList& other);
 
 	private:
 		// For now... just implemented with bools for simplicity
@@ -52,6 +56,8 @@ namespace tf2_bot_detector
 		{
 			std::chrono::system_clock::time_point m_Time;
 			std::string m_PlayerName;
+
+			auto operator<=>(const LastSeen& other) const { return m_Time.time_since_epoch().count() <=> other.m_Time.time_since_epoch().count(); }
 		};
 		std::optional<LastSeen> m_LastSeen;
 
@@ -108,17 +114,26 @@ namespace tf2_bot_detector
 	private:
 		using PlayerMap_t = std::map<SteamID, PlayerListData>;
 
-		bool LoadFile(const std::filesystem::path& filename, PlayerMap_t& map) const;
+		struct PlayerListFile
+		{
+			PlayerMap_t m_Players;
+			ConfigFileInfo m_FileInfo;
+		};
+
+		static void ValidateSchema(const nlohmann::json& json);
+		[[nodiscard]] static PlayerListFile ParsePlayerlist(const nlohmann::json& json);
+		[[nodiscard]] static AsyncObject<PlayerListFile> DownloadFile(const std::string& url, PlayerMap_t& map);
+		AsyncObject<PlayerListFile> LoadFile(const std::filesystem::path& filename, bool autoUpdate);
 
 		bool IsOfficial() const;
 		PlayerMap_t& GetMutableList();
 		const PlayerMap_t* GetMutableList() const;
 
-		static constexpr int VERSION = 2;
+		static constexpr int VERSION = 3;
 
-		PlayerMap_t m_OfficialPlayerList;
-		PlayerMap_t m_OtherPlayerLists;
-		std::optional<PlayerMap_t> m_UserPlayerList;
+		AsyncObject<PlayerListFile> m_OfficialPlayerList;
+		AsyncObject<PlayerMap_t> m_OtherPlayerLists;
+		std::optional<PlayerListFile> m_UserPlayerList;
 		const Settings* m_Settings = nullptr;
 	};
 
