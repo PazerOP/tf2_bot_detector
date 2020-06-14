@@ -39,6 +39,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 
 	std::vector<std::string> argvStrings;
 	std::vector<const char*> argv;
+	argvStrings.reserve(argc);
+	argv.reserve(argc);
 
 	for (int i = 0; i < argc; i++)
 	{
