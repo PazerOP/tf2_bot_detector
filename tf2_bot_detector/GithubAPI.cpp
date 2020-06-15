@@ -31,17 +31,7 @@ static std::optional<Version> ParseSemVer(const char* version)
 
 static bool GetLatestVersion(Version& version, std::string& url)
 {
-#if 0
-	auto res = client.Get("/repos/PazerOP/tf2_bot_detector/releases", headers);
-	if (!res)
-	{
-		LogWarning("Autoupdate: Failed to contact GitHub when checking for a newer version.");
-		return false;
-	}
-
-	auto body = res->body;
-#endif
-
+	DebugLog("GetLatestVersion()");
 	try
 	{
 		auto j = HTTP::GetJSON("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
@@ -81,6 +71,7 @@ static bool GetLatestVersion(Version& version, std::string& url)
 		}
 
 		version = *parsedVersion;
+		DebugLog("GetLatestVersion(): version = "s << version << ", url = " << url);
 		return true;
 	}
 	catch (const nlohmann::json::parse_error& e)
@@ -119,23 +110,24 @@ static const std::shared_future<GithubAPI::NewVersionResult>& GetVersionCheckFut
 	return s_IsNewerVersionAvailable;
 }
 
-auto GithubAPI::CheckForNewVersion() -> NewVersionResult
+auto GithubAPI::CheckForNewVersion() -> AsyncObject<NewVersionResult>
 {
-	using Status = NewVersionResult::Status;
+	return std::async([]() -> NewVersionResult
+		{
+			using Status = NewVersionResult::Status;
+			Version latestVersion;
+			std::string url;
+			if (!GetLatestVersion(latestVersion, url))
+				return Status::Error;
 
-	if (!GetVersionCheckFuture().valid())
-		return Status::Error;
+			if (VERSION.m_Major == latestVersion.m_Major &&
+				VERSION.m_Minor == latestVersion.m_Minor &&
+				VERSION.m_Patch == latestVersion.m_Patch &&
+				VERSION.m_Preview < latestVersion.m_Preview)
+			{
+				return { Status::PreviewAvailable, url };
+			}
 
-	switch (GetVersionCheckFuture().wait_for(0s))
-	{
-	case std::future_status::deferred:
-		DebugLog("s_IsNewerVersionAvailable wait returned deferred???");
-	case std::future_status::timeout:
-		return Status::Loading;
-
-	case std::future_status::ready:
-		break;
-	}
-
-	return GetVersionCheckFuture().get();
+			return (latestVersion > VERSION) ? NewVersionResult{ Status::ReleaseAvailable, url } : Status::NoNewVersion;
+		});
 }

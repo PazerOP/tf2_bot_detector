@@ -539,6 +539,113 @@ void MainWindow::OnDrawSettingsPopup()
 				ImGui::SetTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
 		}
 
+		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false); ImGui::Checkbox("Allow internet connectivity", &allowInternet))
+		{
+			m_Settings.m_AllowInternetUsage = allowInternet;
+			m_Settings.SaveFile();
+		}
+
+		ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
+			{
+				auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
+
+				if (Combo("Automatic update checking", mode))
+				{
+					m_Settings.m_ProgramUpdateCheckMode = mode;
+					m_Settings.SaveFile();
+				}
+			});
+
+		ImGui::EndPopup();
+	}
+}
+
+void MainWindow::OnDrawUpdateCheckPopup()
+{
+	static constexpr char POPUP_NAME[] = "Check for Updates##Popup";
+
+	static bool s_Open = false;
+	if (m_UpdateCheckPopupOpen)
+	{
+		m_UpdateCheckPopupOpen = false;
+		ImGui::OpenPopup(POPUP_NAME);
+		s_Open = true;
+	}
+
+	ImGui::SetNextWindowSize({ 500, 300 }, ImGuiCond_Appearing);
+	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::PushTextWrapPos();
+		ImGui::TextUnformatted("You have chosen to disable internet connectivity for TF2 Bot Detector. You can still manually check for updates below.");
+		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Reminder: if you use antivirus software, connecting to the internet may trigger warnings.");
+
+		ImGui::EnabledSwitch(!m_UpdateInfo.is_valid(), [&]
+			{
+				if (ImGui::Button("Check for updates"))
+					GetUpdateInfo();
+			});
+
+		ImGui::NewLine();
+
+		if (m_UpdateInfo.is_ready())
+		{
+			using Status = GithubAPI::NewVersionResult::Status;
+			switch (GetUpdateInfo()->m_Status)
+			{
+			case Status::NoNewVersion:
+				ImGui::TextColoredUnformatted({ 0.1f, 1, 0.1f, 1 }, "You are already running the latest version of TF2 Bot Detector.");
+				break;
+			case Status::PreviewAvailable:
+				ImGui::TextUnformatted("There is a new preview version available.");
+				if (ImGui::Button("View on Github"))
+					OpenURL(GetUpdateInfo()->m_URL);
+
+				break;
+			case Status::ReleaseAvailable:
+				ImGui::TextUnformatted("There is a new stable version available.");
+				if (ImGui::Button("View on Github"))
+					OpenURL(GetUpdateInfo()->m_URL);
+
+				break;
+			case Status::Error:
+				ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "There was an error checking for updates.");
+				break;
+			}
+		}
+		else if (m_UpdateInfo.is_valid())
+		{
+			ImGui::TextUnformatted("Checking for updates...");
+		}
+		else
+		{
+			ImGui::TextUnformatted("Press \"Check for updates\" to check Github for a newer version.");
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
+void MainWindow::OnDrawUpdateAvailablePopup()
+{
+	static constexpr char POPUP_NAME[] = "Update Available##Popup";
+
+	static bool s_Open = false;
+	if (m_UpdateAvailablePopupOpen)
+	{
+		m_UpdateAvailablePopupOpen = false;
+		ImGui::OpenPopup(POPUP_NAME);
+		s_Open = true;
+	}
+
+	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		using Status = GithubAPI::NewVersionResult::Status;
+		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo->m_Status == Status::PreviewAvailable ? " preview" : "")
+			<< " version of TF2 Bot Detector available for download.");
+
+		if (ImGui::Button("Download"))
+			OpenURL(m_UpdateInfo->m_URL);
+
 		ImGui::EndPopup();
 	}
 }
@@ -663,6 +770,8 @@ void MainWindow::OnDraw()
 	ImGui::NextColumn();
 
 	OnDrawSettingsPopup();
+	OnDrawUpdateAvailablePopup();
+	OnDrawUpdateCheckPopup();
 }
 
 void MainWindow::OnDrawMenuBar()
@@ -722,7 +831,7 @@ void MainWindow::OnDrawMenuBar()
 	if (ImGui::MenuItem("Settings"))
 		OpenSettingsPopup();
 
-	if (ImGui::BeginMenu("About"))
+	if (ImGui::BeginMenu("Help"))
 	{
 		if (ImGui::MenuItem("Open GitHub"))
 			OpenURL("https://github.com/PazerOP/tf2_bot_detector");
@@ -735,32 +844,42 @@ void MainWindow::OnDrawMenuBar()
 		sprintf_s(buf, "Version: %s", VERSION_STRING);
 		ImGui::MenuItem(buf, nullptr, false, false);
 
+		if (m_Settings.m_AllowInternetUsage.value_or(false))
 		{
-			auto newVersion = GithubAPI::CheckForNewVersion();
-			using Result = GithubAPI::NewVersionResult::Status;
-			switch (newVersion.m_Status)
+			auto newVersion = GetUpdateInfo();
+			if (!newVersion)
 			{
-			case Result::Error:
-				ImGui::MenuItem("Error occurred checking for new version.", nullptr, nullptr, false);
-				break;
-			case Result::Loading:
 				ImGui::MenuItem("Checking for new version...", nullptr, nullptr, false);
-				break;
-			case Result::NoNewVersion:
-				ImGui::MenuItem("Up to date!", nullptr, nullptr, false);
-				break;
-			case Result::PreviewAvailable:
-				if (ImGui::MenuItem("A new preview is available"))
-					OpenURL(newVersion.m_URL.c_str());
-
-				break;
-			case Result::ReleaseAvailable:
-				ImGuiDesktop::ScopeGuards::TextColor green({ 0, 1, 0, 1 });
-				if (ImGui::MenuItem("A new version is available"))
-					OpenURL(newVersion.m_URL.c_str());
-
-				break;
 			}
+			else
+			{
+				using Result = GithubAPI::NewVersionResult::Status;
+				switch (newVersion->m_Status)
+				{
+				case Result::Error:
+					ImGui::MenuItem("Error occurred checking for new version.", nullptr, nullptr, false);
+					break;
+				case Result::NoNewVersion:
+					ImGui::MenuItem("Up to date!", nullptr, nullptr, false);
+					break;
+				case Result::PreviewAvailable:
+					if (ImGui::MenuItem("A new preview is available"))
+						OpenURL(newVersion->m_URL.c_str());
+
+					break;
+				case Result::ReleaseAvailable:
+					ImGuiDesktop::ScopeGuards::TextColor green({ 0, 1, 0, 1 });
+					if (ImGui::MenuItem("A new version is available"))
+						OpenURL(newVersion->m_URL.c_str());
+
+					break;
+				}
+			}
+		}
+		else
+		{
+			if (ImGui::MenuItem("Check for updates..."))
+				OpenUpdateCheckPopup();
 		}
 
 		ImGui::EndMenu();
@@ -773,6 +892,17 @@ bool MainWindow::HasMenuBar() const
 		return false;
 
 	return true;
+}
+
+GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
+{
+	if (!m_UpdateInfo.is_valid())
+		m_UpdateInfo = GithubAPI::CheckForNewVersion();
+
+	if (m_UpdateInfo.is_ready())
+		return &m_UpdateInfo.get();
+
+	return nullptr;
 }
 
 void MainWindow::OnUpdate()

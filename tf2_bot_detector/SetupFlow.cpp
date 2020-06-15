@@ -117,65 +117,29 @@ namespace
 					m_Settings.m_AllowInternetUsage = allow;
 
 				if (m_Settings.m_AllowInternetUsage.value_or(false))
-				{
-					ScopeGuards::TextColor col({ 1, 1, 0, 1 });
-					ImGui::TextUnformatted("If you use antivirus software, connecting to the internet may trigger warnings.");
-				}
+					ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "If you use antivirus software, connecting to the internet may trigger warnings.");
 			}
 			ImGui::Unindent();
 			ImGui::NewLine();
 
-			{
-				const bool internetAllowed = m_Settings.m_AllowInternetUsage.value_or(false);
-				std::optional<ScopeGuards::GlobalAlpha> globalAlpha;
-				if (!internetAllowed)
+			ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
 				{
-					ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-					globalAlpha.emplace(0.65f);
-				}
-
-				ImGui::BeginGroup();
-				ImGui::TextUnformatted("This tool can also check for updated functionality and bugfixes on startup.");
-				ImGui::Indent();
-				{
-					const char* friendlyText = "<UNKNOWN>";
-					static constexpr char FRIENDLY_TEXT_DISABLED[] = "Disable automatic update checks";
-					static constexpr char FRIENDLY_TEXT_PREVIEW[] = "Notify about new preview releases";
-					static constexpr char FRIENDLY_TEXT_STABLE[] = "Notify about new stable releases";
-
-					switch (internetAllowed ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled)
+					ImGui::BeginGroup();
+					ImGui::TextUnformatted("This tool can also check for updated functionality and bugfixes on startup.");
+					ImGui::Indent();
 					{
-					case ProgramUpdateCheckMode::Disabled: friendlyText = FRIENDLY_TEXT_DISABLED; break;
-					case ProgramUpdateCheckMode::Previews: friendlyText = FRIENDLY_TEXT_PREVIEW; break;
-					case ProgramUpdateCheckMode::Releases: friendlyText = FRIENDLY_TEXT_STABLE; break;
-					case ProgramUpdateCheckMode::Unknown:  friendlyText = "Select an option"; break;
+						auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
+						if (Combo("##SetupFlow_UpdateCheckingMode", mode))
+							m_Settings.m_ProgramUpdateCheckMode = mode;
+
+						if (m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Disabled)
+							ImGui::TextUnformatted("You can always check for updates manually via the Help menu.");
 					}
+					ImGui::Unindent();
+					ImGui::EndGroup();
+				});
 
-					if (ImGui::BeginCombo("##SetupFlow_UpdateCheckingMode", friendlyText))
-					{
-						if (ImGui::Selectable(FRIENDLY_TEXT_DISABLED))
-							m_Settings.m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Disabled;
-						if (ImGui::Selectable(FRIENDLY_TEXT_STABLE))
-							m_Settings.m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Releases;
-						if (ImGui::Selectable(FRIENDLY_TEXT_PREVIEW))
-							m_Settings.m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Previews;
-
-						ImGui::EndCombo();
-					}
-
-					if (m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Disabled)
-						ImGui::TextUnformatted("You can always check for updates manually via the Help menu.");
-				}
-				ImGui::Unindent();
-				ImGui::EndGroup();
-
-				if (!internetAllowed)
-				{
-					globalAlpha.reset();
-					ImGui::PopItemFlag();
-					ImGui::SetHoverTooltip("Requires \"Allow Internet Connectivity\"");
-				}
-			}
+			ImGui::SetHoverTooltip("Requires \"Allow Internet Connectivity\"");
 		}
 
 		void Init(const Settings& settings) override
@@ -271,27 +235,17 @@ bool SetupFlow::OnDraw(Settings& settings)
 
 		drewPage = true;
 
-		{
-			const auto canCommit = page->CanCommit();
-			std::optional<ScopeGuards::GlobalAlpha> disabled;
-			if (!canCommit)
+		ImGui::EnabledSwitch(page->CanCommit(), [&]
 			{
-				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-				disabled.emplace(0.5f);
-			}
-
-			if (ImGui::Button(hasNextPage ? "Next >" : "Done"))
-			{
-				page->Commit(settings);
-				settings.SaveFile();
-				m_ActivePage = INVALID_PAGE;
-				if (!hasNextPage)
-					m_ShouldDraw = false;
-			}
-
-			if (!canCommit)
-				ImGui::PopItemFlag();
-		}
+				if (ImGui::Button(hasNextPage ? "Next >" : "Done"))
+				{
+					page->Commit(settings);
+					settings.SaveFile();
+					m_ActivePage = INVALID_PAGE;
+					if (!hasNextPage)
+						m_ShouldDraw = false;
+				}
+			});
 	}
 
 	return drewPage || (m_ActivePage != INVALID_PAGE);

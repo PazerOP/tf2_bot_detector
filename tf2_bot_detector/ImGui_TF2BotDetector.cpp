@@ -1,5 +1,6 @@
 #include "ImGui_TF2BotDetector.h"
 #include "PathUtils.h"
+#include "Config/Settings.h"
 #include "SteamID.h"
 #include "PlatformSpecific/Shell.h"
 
@@ -249,6 +250,38 @@ bool tf2_bot_detector::InputTextTFDir(const std::string_view& label_id, std::fil
 		outPath = newPath;
 
 	return modifySuccess;
+}
+
+bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
+{
+	const char* friendlyText = "<UNKNOWN>";
+	static constexpr char FRIENDLY_TEXT_DISABLED[] = "Disable automatic update checks";
+	static constexpr char FRIENDLY_TEXT_PREVIEW[] = "Notify about new preview releases";
+	static constexpr char FRIENDLY_TEXT_STABLE[] = "Notify about new stable releases";
+
+	switch (mode)
+	{
+	case ProgramUpdateCheckMode::Disabled: friendlyText = FRIENDLY_TEXT_DISABLED; break;
+	case ProgramUpdateCheckMode::Previews: friendlyText = FRIENDLY_TEXT_PREVIEW; break;
+	case ProgramUpdateCheckMode::Releases: friendlyText = FRIENDLY_TEXT_STABLE; break;
+	case ProgramUpdateCheckMode::Unknown:  friendlyText = "Select an option"; break;
+	}
+
+	const auto oldMode = mode;
+
+	if (ImGui::BeginCombo(label_id, friendlyText))
+	{
+		if (ImGui::Selectable(FRIENDLY_TEXT_DISABLED))
+			mode = ProgramUpdateCheckMode::Disabled;
+		if (ImGui::Selectable(FRIENDLY_TEXT_STABLE))
+			mode = ProgramUpdateCheckMode::Releases;
+		if (ImGui::Selectable(FRIENDLY_TEXT_PREVIEW))
+			mode = ProgramUpdateCheckMode::Previews;
+
+		ImGui::EndCombo();
+	}
+
+	return mode != oldMode;
 }
 
 ImVec2 ImGui::CalcButtonSize(const char* label)

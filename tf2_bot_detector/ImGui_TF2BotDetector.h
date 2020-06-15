@@ -1,6 +1,7 @@
 #pragma once
 
 #include <imgui_desktop/ImGuiHelpers.h>
+#include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <implot.h>
@@ -106,13 +107,40 @@ namespace ImGui
 	void Value(const char* prefix, size_t v);
 
 	void SetHoverTooltip(const char* tooltipFmt, ...);
+
+	template<typename TFunc>
+	inline void EnabledSwitch(bool enabled, TFunc&& func)
+	{
+		if (enabled)
+		{
+			if constexpr (std::is_invocable_v<TFunc, bool>)
+				func(true);
+			else
+				func();
+		}
+		else
+		{
+			ImGuiDesktop::ScopeGuards::GlobalAlpha globalAlpha(0.65f);
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+
+			if constexpr (std::is_invocable_v<TFunc, bool>)
+				func(false);
+			else
+				func();
+
+			ImGui::PopItemFlag();
+		}
+	}
 }
 
 namespace tf2_bot_detector
 {
+	enum class ProgramUpdateCheckMode;
 	class SteamID;
+
 	bool InputTextSteamID(const char* label_id, SteamID& steamID, bool requireValid = true);
 	bool InputTextTFDir(const std::string_view& label_id, std::filesystem::path& path, bool requireValid = false);
+	bool Combo(const char* label_id, ProgramUpdateCheckMode& mode);
 }
 
 namespace ImPlot

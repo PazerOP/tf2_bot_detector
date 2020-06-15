@@ -1,6 +1,7 @@
 #pragma once
 
 #include <compare>
+#include <ostream>
 
 namespace tf2_bot_detector
 {
@@ -22,4 +23,10 @@ namespace tf2_bot_detector
 		.m_Patch = ${CMAKE_PROJECT_VERSION_PATCH},
 		.m_Preview = ${CMAKE_PROJECT_VERSION_TWEAK},
 	};
+}
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::Version& v)
+{
+	return os << v.m_Major << '.' << v.m_Minor << '.' << v.m_Patch << '.' << v.m_Preview;
 }

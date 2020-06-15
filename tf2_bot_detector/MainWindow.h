@@ -53,9 +53,15 @@ namespace tf2_bot_detector
 		bool m_SettingsPopupOpen = false;
 		void OpenSettingsPopup() { m_SettingsPopupOpen = true; }
 
-		void OnDrawUpdatePopup();
-		bool m_UpdatePopupOpen = false;
-		void OpenUpdatePopup() { m_UpdatePopupOpen = true; }
+		void OnDrawUpdateCheckPopup();
+		bool m_UpdateCheckPopupOpen = false;
+		void OpenUpdateCheckPopup() { m_UpdateCheckPopupOpen = true; }
+
+		void OnDrawUpdateAvailablePopup();
+		bool m_UpdateAvailablePopupOpen = false;
+		void OpenUpdateAvailablePopup() { m_UpdateAvailablePopupOpen = true; }
+
+		GithubAPI::NewVersionResult* GetUpdateInfo();
 		AsyncObject<GithubAPI::NewVersionResult> m_UpdateInfo;
 
 		void OnUpdate() override;

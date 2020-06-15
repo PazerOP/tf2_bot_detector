@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AsyncObject.h"
+
 #include <string>
 
 namespace tf2_bot_detector::GithubAPI
@@ -10,9 +12,9 @@ namespace tf2_bot_detector::GithubAPI
 		{
 			ReleaseAvailable,
 			PreviewAvailable,
-			Loading,
 			NoNewVersion,
 			Error,
+
 		} m_Status = Status::Error;
 
 		NewVersionResult() = default;
@@ -21,5 +23,5 @@ namespace tf2_bot_detector::GithubAPI
 		std::string m_URL;
 	};
 
-	NewVersionResult CheckForNewVersion();
+	[[nodiscard]] AsyncObject<NewVersionResult> CheckForNewVersion();
 }

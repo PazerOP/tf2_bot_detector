@@ -65,7 +65,14 @@ namespace tf2_bot_detector
 
 		bool is_valid() const
 		{
-			return !std::holds_alternative<std::monostate>(m_Object);
+			if (std::holds_alternative<std::monostate>(m_Object))
+				return false;
+			else if (std::holds_alternative<T>(m_Object))
+				return true;
+			else if (auto value = std::get_if<fut_t>(&m_Object))
+				return value->valid();
+			else
+				return std::get<sfut_t>(m_Object).valid();
 		}
 
 		/// <summary>
@@ -74,7 +81,7 @@ namespace tf2_bot_detector
 		bool is_ready() const
 		{
 			using namespace std::chrono_literals;
-			return wait_for(0s) == std::future_status::ready;
+			return is_valid() && wait_for(0s) == std::future_status::ready;
 		}
 
 		void wait() const
