@@ -126,15 +126,6 @@ PlayerListJSON::PlayerListJSON(const Settings& settings) :
 	LoadFiles();
 }
 
-//void PlayerListJSON::ValidateSchema(const nlohmann::json& json)
-//{
-//	throw std::exception("Not implemented");
-//
-//	//const ConfigSchemaInfo schemaInfo(json);
-//	//if (schemaInfo.m_Type != ConfigSchemaInfo::Type::Playerlist)
-//	//	throw std::runtime_error("Schema says this is not a playerlist");
-//}
-
 void PlayerListJSON::PlayerListFile::ValidateSchema(const ConfigSchemaInfo& schema) const
 {
 	if (schema.m_Type != "playerlist")
@@ -178,42 +169,6 @@ void PlayerListJSON::PlayerListFile::Serialize(nlohmann::json& json) const
 
 bool PlayerListJSON::LoadFiles()
 {
-#if 0
-	const auto paths = GetConfigFilePaths("playerlist");
-
-	if (!IsOfficial() && !paths.m_User.empty())
-		m_UserPlayerList = LoadConfigFile<PlayerListFile>(paths.m_User);
-
-	if (!paths.m_Official.empty())
-		m_OfficialPlayerList = LoadConfigFileAsync<PlayerListFile>(paths.m_Official);
-	else
-		m_OfficialPlayerList = {};
-
-	m_OtherPlayerLists = std::async([paths]
-		{
-			PlayerMap_t map;
-
-			for (const auto& file : paths.m_Others)
-			{
-				try
-				{
-					for (auto& otherEntry : LoadConfigFile<PlayerListFile>(file).m_Players)
-					{
-						auto& newEntry = map.emplace(otherEntry.first, otherEntry.first).first->second;
-						newEntry.m_Attributes |= otherEntry.second.m_Attributes;
-						if (otherEntry.second.m_LastSeen > newEntry.m_LastSeen)
-							newEntry.m_LastSeen = otherEntry.second.m_LastSeen;
-					}
-				}
-				catch (const std::exception& e)
-				{
-					LogError("Exception when loading "s << file << ": " << e.what());
-				}
-			}
-
-			return map;
-		});
-#endif
 	m_CFGGroup.LoadFiles();
 
 	return true;
@@ -221,13 +176,6 @@ bool PlayerListJSON::LoadFiles()
 
 void PlayerListJSON::SaveFile() const
 {
-#if 0
-	auto mutableList = GetMutableList();
-	if (!mutableList)
-		return; // Nothing to save
-
-	mutableList->SaveFile(IsOfficial() ? "cfg/playerlist.official.json" : "cfg/playerlist.json");
-#endif
 	m_CFGGroup.SaveFile();
 }
 

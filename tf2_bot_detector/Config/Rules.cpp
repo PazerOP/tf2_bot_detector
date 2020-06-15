@@ -169,38 +169,6 @@ ModerationRules::ModerationRules(const Settings& settings) :
 
 bool ModerationRules::Load()
 {
-#if 0
-	if (!IsOfficial())
-		LoadFile("cfg/rules.json", m_UserRules);
-
-	LoadFile("cfg/rules.official.json", m_OfficialRules);
-
-	m_OtherRules.clear();
-	if (std::filesystem::is_directory("cfg"))
-	{
-		try
-		{
-			for (const auto& file : std::filesystem::directory_iterator("cfg",
-				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
-			{
-				static const std::regex s_RulesRegex(R"regex(rules\.(.*\.)?json)regex", std::regex::optimize);
-				const auto path = file.path();
-				const auto filename = path.filename().string();
-				if (mh::case_insensitive_compare(filename, "rules.json"sv) || mh::case_insensitive_compare(filename, "rules.official.json"sv))
-					continue;
-
-				if (std::regex_match(filename.begin(), filename.end(), s_RulesRegex))
-				{
-					LoadFile(path, m_OtherRules);
-				}
-			}
-		}
-		catch (const std::filesystem::filesystem_error& e)
-		{
-			LogError(std::string(__FUNCTION__ ": Exception when loading rules.*.json files from ./cfg/: ") << e.what());
-		}
-	}
-#endif
 	m_CFGGroup.LoadFiles();
 
 	return true;
@@ -208,21 +176,6 @@ bool ModerationRules::Load()
 
 bool ModerationRules::Save() const
 {
-#if 0
-	nlohmann::json json =
-	{
-		{ "$schema", "./schema/rules.schema.json" },
-	};
-
-	json["rules"] = GetMutableList();
-
-	// Make sure we successfully serialize BEFORE we destroy our file
-	auto jsonString = json.dump(1, '\t', true);
-	{
-		std::ofstream file(IsOfficial() ? "cfg/rules.official.json" : "cfg/rules.json");
-		file << jsonString << '\n';
-	}
-#endif
 	m_CFGGroup.SaveFile();
 
 	return true;
