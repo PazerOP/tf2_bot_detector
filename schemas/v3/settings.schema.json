@@ -29,6 +29,29 @@
 				"tf_game_dir": {
 					"description": "The tf folder.",
 					"type": "string"
+				},
+				"allow_internet_usage": {
+					"description": "Allow this program to connect to the internet.",
+					"type": "boolean",
+					"default": true
+				},
+				"program_update_check_mode": {
+					"description": "Automatically connect to the internet and check for updates via Github. Does nothing if allow_internet_usage is false.",
+					"oneOf": [
+						{
+							"const": "releases",
+							"description": "Automatically check for updates and prompt the user if a new release is available."
+						},
+						{
+							"const": "previews",
+							"description": "Automatically check for updates and prompt the user if a new release OR preview is available."
+						},
+						{
+							"const": "disabled",
+							"description": "Disable auto-update completely. You can still check for updates manually through the Help menu."
+						}
+					],
+					"default": "releases"
 				}
 			},
 			"required": [

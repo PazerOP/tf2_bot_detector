@@ -63,6 +63,11 @@ namespace tf2_bot_detector
 		AsyncObject(sfut_t&& future) : m_Object(std::move(future)) {}
 		AsyncObject(T&& object) : m_Object(std::move(object)) {}
 
+		bool is_valid() const
+		{
+			return !std::holds_alternative<std::monostate>(m_Object);
+		}
+
 		/// <summary>
 		/// Checks if a result is ready (successful or not).
 		/// </summary>
@@ -157,6 +162,6 @@ namespace tf2_bot_detector
 		auto& get_future() { return std::get<std::shared_future<T>>(m_Object); }
 		auto& get_future() const { return std::get<std::shared_future<T>>(m_Object); }
 
-		mutable std::variant<T, std::future<T>, std::shared_future<T>> m_Object;
+		mutable std::variant<std::monostate, T, std::future<T>, std::shared_future<T>> m_Object;
 	};
 }

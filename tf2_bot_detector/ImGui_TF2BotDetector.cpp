@@ -271,3 +271,14 @@ void ImGui::Value(const char* prefix, size_t v)
 {
 	Text("%s: %zu", prefix, v);
 }
+
+void ImGui::SetHoverTooltip(const char* tooltipFmt, ...)
+{
+	va_list args;
+	va_start(args, tooltipFmt);
+
+	if (IsItemHovered())
+		SetTooltipV(tooltipFmt, args);
+
+	va_end(args);
+}
