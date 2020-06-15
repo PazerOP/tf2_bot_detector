@@ -1402,6 +1402,16 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "big weapon man",
+				"time": 1592205808
+			},
+			"steamid": "[U:1:1090496481]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:1090529828]"
 		},
 		{
@@ -2442,6 +2452,17 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1592202113
+			},
+			"steamid": "[U:1:1104084782]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "[g0tb0t]CoonSlayer",
 				"time": 1591681402
 			},
@@ -2575,6 +2596,17 @@
 			],
 			"last_seen": {
 				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1592206227
+			},
+			"steamid": "[U:1:1104195215]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
 				"time": 1591869149
 			},
 			"steamid": "[U:1:1104204916]"
@@ -2684,6 +2716,17 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1592204367
+			},
+			"steamid": "[U:1:1104310808]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "(2)MYG)T",
 				"time": 1591516618
 			},
@@ -2720,6 +2763,17 @@
 				"time": 1591658963
 			},
 			"steamid": "[U:1:1104600287]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592206053
+			},
+			"steamid": "[U:1:1104775339]"
 		},
 		{
 			"attributes": [
