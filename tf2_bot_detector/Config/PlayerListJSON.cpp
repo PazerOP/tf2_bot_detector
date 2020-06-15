@@ -135,25 +135,6 @@ PlayerListJSON::PlayerListJSON(const Settings& settings) :
 //	//	throw std::runtime_error("Schema says this is not a playerlist");
 //}
 
-auto PlayerListJSON::ParsePlayerlist(const nlohmann::json& json) -> PlayerListFile
-{
-	//ValidateSchema(json);
-
-	PlayerListFile retVal;
-	retVal.m_FileInfo = json;
-
-	PlayerMap_t& map = retVal.m_Players;
-	for (const auto& player : json.at("players"))
-	{
-		const SteamID steamID(player.at("steamid").get<std::string>());
-		PlayerListData parsed(steamID);
-		player.get_to(parsed);
-		map.emplace(steamID, std::move(parsed));
-	}
-
-	return retVal;
-}
-
 void PlayerListJSON::PlayerListFile::ValidateSchema(const ConfigSchemaInfo& schema) const
 {
 	if (schema.m_Type != "playerlist")
@@ -169,7 +150,7 @@ void PlayerListJSON::PlayerListFile::Deserialize(const nlohmann::json& json)
 	PlayerMap_t& map = m_Players;
 	for (const auto& player : json.at("players"))
 	{
-		const SteamID steamID(player.at("steamid").get<std::string>());
+		const SteamID steamID = player.at("steamid");
 		PlayerListData parsed(steamID);
 		player.get_to(parsed);
 		map.emplace(steamID, std::move(parsed));
