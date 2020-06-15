@@ -139,6 +139,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "Aegean Honey Badger",
+				"time": 1592189072
+			},
+			"steamid": "[U:1:138030815]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -2146,6 +2156,16 @@
 			],
 			"last_seen": {
 				"player_name": "[t0gym]OGBADGER",
+				"time": 1592197659
+			},
+			"steamid": "[U:1:1102965654]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[t0gym]OGBADGER",
 				"time": 1592122812
 			},
 			"steamid": "[U:1:1102973850]"
@@ -2621,6 +2641,17 @@
 			],
 			"last_seen": {
 				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1592193855
+			},
+			"steamid": "[U:1:1104245113]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
 				"time": 1591587556
 			},
 			"steamid": "[U:1:1104253688]"
@@ -2745,6 +2776,26 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "royalhack.net B0T",
+				"time": 1592194958
+			},
+			"steamid": "[U:1:1105287323]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[VALVE] Twilight Sparkle",
+				"time": 1592192840
+			},
+			"steamid": "[U:1:1105522236]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "(4)scunt gaming",
 				"time": 1592125484
 			},
@@ -2824,6 +2875,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "James Charles",
+				"time": 1592193003
+			},
+			"steamid": "[U:1:1105918648]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -2868,6 +2929,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "James Charles",
+				"time": 1592194974
+			},
+			"steamid": "[U:1:1105970824]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -2909,6 +2980,36 @@
 				"time": 1592031679
 			},
 			"steamid": "[U:1:1106031176]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[VALVE] Twilight Sparkle",
+				"time": 1592195660
+			},
+			"steamid": "[U:1:1106229564]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "James Charles",
+				"time": 1592193345
+			},
+			"steamid": "[U:1:1106355860]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)[VALVE] Twilight Sparkle",
+				"time": 1592192882
+			},
+			"steamid": "[U:1:1106397765]"
 		}
 	]
 }
