@@ -625,6 +625,12 @@ void MainWindow::OnDrawUpdateCheckPopup()
 	}
 }
 
+void MainWindow::OpenUpdateCheckPopup()
+{
+	m_NotifyOnUpdateAvailable = false;
+	m_UpdateCheckPopupOpen = true;
+}
+
 void MainWindow::OnDrawUpdateAvailablePopup()
 {
 	static constexpr char POPUP_NAME[] = "Update Available##Popup";
@@ -643,11 +649,17 @@ void MainWindow::OnDrawUpdateAvailablePopup()
 		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo->m_Status == Status::PreviewAvailable ? " preview" : "")
 			<< " version of TF2 Bot Detector available for download.");
 
-		if (ImGui::Button("Download"))
+		if (ImGui::Button("View on Github"))
 			OpenURL(m_UpdateInfo->m_URL);
 
 		ImGui::EndPopup();
 	}
+}
+
+void MainWindow::OpenUpdateAvailablePopup()
+{
+	m_NotifyOnUpdateAvailable = false;
+	m_UpdateAvailablePopupOpen = true;
 }
 
 void MainWindow::OnDrawServerStats()
@@ -916,6 +928,32 @@ void MainWindow::OnUpdate()
 	{
 		m_WorldState.emplace(*this, m_Settings, m_Settings.m_TFDir / "console.log");
 	}
+
+	// Update check
+	std::invoke([&]
+		{
+			if (!m_NotifyOnUpdateAvailable)
+				return;
+
+			if (!m_Settings.m_AllowInternetUsage.value_or(false))
+				return;
+
+			const bool checkPreviews = m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Previews;
+			const bool checkReleases = checkPreviews || m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Releases;
+			if (!checkPreviews && !checkReleases)
+				return;
+
+			auto result = GetUpdateInfo();
+			if (!result)
+				return;
+
+			using UpdateStatus = GithubAPI::NewVersionResult::Status;
+			if ((result->m_Status == UpdateStatus::PreviewAvailable && checkPreviews) ||
+				(result->m_Status == UpdateStatus::ReleaseAvailable && checkReleases))
+			{
+				OpenUpdateAvailablePopup();
+			}
+		});
 
 	if (!m_Paused && m_WorldState.has_value())
 	{
