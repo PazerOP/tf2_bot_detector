@@ -589,27 +589,27 @@ void MainWindow::OnDrawUpdateCheckPopup()
 
 		if (m_UpdateInfo.is_ready())
 		{
-			using Status = GithubAPI::NewVersionResult::Status;
-			switch (GetUpdateInfo()->m_Status)
+			auto& updateInfo = *m_UpdateInfo;
+
+			if (updateInfo.IsUpToDate())
 			{
-			case Status::NoNewVersion:
 				ImGui::TextColoredUnformatted({ 0.1f, 1, 0.1f, 1 }, "You are already running the latest version of TF2 Bot Detector.");
-				break;
-			case Status::PreviewAvailable:
+			}
+			else if (updateInfo.IsPreviewAvailable())
+			{
 				ImGui::TextUnformatted("There is a new preview version available.");
 				if (ImGui::Button("View on Github"))
-					OpenURL(GetUpdateInfo()->m_URL);
-
-				break;
-			case Status::ReleaseAvailable:
+					OpenURL(updateInfo.m_Preview->m_URL);
+			}
+			else if (updateInfo.IsReleaseAvailable())
+			{
 				ImGui::TextUnformatted("There is a new stable version available.");
 				if (ImGui::Button("View on Github"))
-					OpenURL(GetUpdateInfo()->m_URL);
-
-				break;
-			case Status::Error:
+					OpenURL(updateInfo.m_Stable->m_URL);
+			}
+			else if (updateInfo.IsError())
+			{
 				ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "There was an error checking for updates.");
-				break;
 			}
 		}
 		else if (m_UpdateInfo.is_valid())
@@ -645,12 +645,11 @@ void MainWindow::OnDrawUpdateAvailablePopup()
 
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		using Status = GithubAPI::NewVersionResult::Status;
-		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo->m_Status == Status::PreviewAvailable ? " preview" : "")
+		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo->IsPreviewAvailable() ? " preview" : "")
 			<< " version of TF2 Bot Detector available for download.");
 
 		if (ImGui::Button("View on Github"))
-			OpenURL(m_UpdateInfo->m_URL);
+			OpenURL(m_UpdateInfo->GetURL());
 
 		ImGui::EndPopup();
 	}
@@ -863,29 +862,25 @@ void MainWindow::OnDrawMenuBar()
 			{
 				ImGui::MenuItem("Checking for new version...", nullptr, nullptr, false);
 			}
+			else if (newVersion->IsUpToDate())
+			{
+				ImGui::MenuItem("Up to date!", nullptr, nullptr, false);
+			}
+			else if (newVersion->IsReleaseAvailable())
+			{
+				ImGuiDesktop::ScopeGuards::TextColor green({ 0, 1, 0, 1 });
+				if (ImGui::MenuItem("A new version is available"))
+					OpenURL(newVersion->m_Stable->m_URL);
+			}
+			else if (newVersion->IsPreviewAvailable())
+			{
+				if (ImGui::MenuItem("A new preview is available"))
+					OpenURL(newVersion->m_Preview->m_URL);
+			}
 			else
 			{
-				using Result = GithubAPI::NewVersionResult::Status;
-				switch (newVersion->m_Status)
-				{
-				case Result::Error:
-					ImGui::MenuItem("Error occurred checking for new version.", nullptr, nullptr, false);
-					break;
-				case Result::NoNewVersion:
-					ImGui::MenuItem("Up to date!", nullptr, nullptr, false);
-					break;
-				case Result::PreviewAvailable:
-					if (ImGui::MenuItem("A new preview is available"))
-						OpenURL(newVersion->m_URL.c_str());
-
-					break;
-				case Result::ReleaseAvailable:
-					ImGuiDesktop::ScopeGuards::TextColor green({ 0, 1, 0, 1 });
-					if (ImGui::MenuItem("A new version is available"))
-						OpenURL(newVersion->m_URL.c_str());
-
-					break;
-				}
+				assert(newVersion->IsError());
+				ImGui::MenuItem("Error occurred checking for new version.", nullptr, nullptr, false);
 			}
 		}
 		else
@@ -947,9 +942,8 @@ void MainWindow::OnUpdate()
 			if (!result)
 				return;
 
-			using UpdateStatus = GithubAPI::NewVersionResult::Status;
-			if ((result->m_Status == UpdateStatus::PreviewAvailable && checkPreviews) ||
-				(result->m_Status == UpdateStatus::ReleaseAvailable && checkReleases))
+			if ((result->IsPreviewAvailable() && checkPreviews) ||
+				(result->IsReleaseAvailable() && checkReleases))
 			{
 				OpenUpdateAvailablePopup();
 			}

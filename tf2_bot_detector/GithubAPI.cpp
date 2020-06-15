@@ -4,6 +4,7 @@
 #include "Version.h"
 #include "HTTPHelpers.h"
 
+#include <mh/coroutine/generator.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
@@ -29,63 +30,78 @@ static std::optional<Version> ParseSemVer(const char* version)
 	return v;
 }
 
-static bool GetLatestVersion(Version& version, std::string& url)
+namespace
+{
+	struct InternalRelease : NewVersionResult::Release
+	{
+		bool m_IsPrerelease;
+	};
+}
+
+static mh::generator<InternalRelease> GetAllReleases()
+{
+	auto j = HTTP::GetJSON("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
+	if (j.empty())
+		throw std::runtime_error("Autoupdate: Response json was empty");
+
+	if (!j.is_array())
+		throw std::runtime_error("Autoupdate: Response json was not an array");
+
+	for (auto& releases : j)
+	{
+		InternalRelease retVal;
+		retVal.m_IsPrerelease = releases.at("prerelease");
+		retVal.m_URL = releases.at("html_url");
+
+		std::string versionTag = releases.at("tag_name");
+		if (auto version = ParseSemVer(versionTag.c_str()))
+			retVal.m_Version = *version;
+		else
+		{
+			DebugLogWarning("Release id "s << releases.at("id") << " has invalid tag_name version " << versionTag);
+			continue;
+		}
+
+		co_yield retVal;
+	}
+}
+
+static NewVersionResult GetLatestVersion()
 {
 	DebugLog("GetLatestVersion()");
 	try
 	{
-		auto j = HTTP::GetJSON("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
-		if (j.empty())
+		NewVersionResult retVal;
+
+		for (auto release : GetAllReleases())
 		{
-			LogError("Autoupdate: Response was empty");
-			return false;
+			if (release.m_Version < VERSION)
+				break;
+
+			if (release.m_Version.m_Preview != 0)
+				retVal.m_Preview = release;
+			else
+				retVal.m_Stable = release;
+
+			if (retVal.m_Stable.has_value())
+				break;
 		}
 
-		if (!j.is_array())
-		{
-			LogError("Autoupdate: Response json was not an array");
-			return false;
-		}
-
-		auto& first = j.front();
-		auto tag = first["tag_name"].get<std::string>();
-
-		if (!try_get_to(first, "html_url", url))
-		{
-			LogError("Autoupdate: Failed to get 'html_url' property for a release");
-			return false;
-		}
-
-		std::string versionStr;
-		if (!try_get_to(first, "tag_name", versionStr))
-		{
-			LogError("Autoupdate: Failed to get 'tag_name' property for a release");
-			return false;
-		}
-
-		auto parsedVersion = ParseSemVer(tag.c_str());
-		if (!parsedVersion)
-		{
-			LogError("Autoupdate: Failed to parse semantic version from "s << std::quoted(tag));
-			return false;
-		}
-
-		version = *parsedVersion;
-		DebugLog("GetLatestVersion(): version = "s << version << ", url = " << url);
-		return true;
+		return retVal;
 	}
 	catch (const nlohmann::json::parse_error& e)
 	{
 		LogError("Autoupdate: Failed to parse json: "s << e.what());
-		return false;
+		return NewVersionResult{ .m_Error = true };
 	}
 	catch (const std::exception& e)
 	{
 		LogError("Autoupdate: Unknown error of type "s << typeid(e).name() << ": " << e.what());
-		return false;
+		return NewVersionResult{ .m_Error = true };
 	}
 }
 
+#if 0
 static const std::shared_future<GithubAPI::NewVersionResult>& GetVersionCheckFuture()
 {
 	static std::shared_future<GithubAPI::NewVersionResult> s_IsNewerVersionAvailable = std::async([]() -> NewVersionResult
@@ -109,25 +125,9 @@ static const std::shared_future<GithubAPI::NewVersionResult>& GetVersionCheckFut
 
 	return s_IsNewerVersionAvailable;
 }
+#endif
 
 auto GithubAPI::CheckForNewVersion() -> AsyncObject<NewVersionResult>
 {
-	return std::async([]() -> NewVersionResult
-		{
-			using Status = NewVersionResult::Status;
-			Version latestVersion;
-			std::string url;
-			if (!GetLatestVersion(latestVersion, url))
-				return Status::Error;
-
-			if (VERSION.m_Major == latestVersion.m_Major &&
-				VERSION.m_Minor == latestVersion.m_Minor &&
-				VERSION.m_Patch == latestVersion.m_Patch &&
-				VERSION.m_Preview < latestVersion.m_Preview)
-			{
-				return { Status::PreviewAvailable, url };
-			}
-
-			return (latestVersion > VERSION) ? NewVersionResult{ Status::ReleaseAvailable, url } : Status::NoNewVersion;
-		});
+	return std::async(GetLatestVersion);
 }
