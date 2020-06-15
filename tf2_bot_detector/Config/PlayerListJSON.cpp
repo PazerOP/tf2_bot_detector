@@ -252,20 +252,19 @@ void PlayerListJSON::SaveFile() const
 
 const PlayerListData* PlayerListJSON::FindPlayerData(const SteamID& id) const
 {
-	if (m_UserPlayerList.has_value())
+	if (m_CFGGroup.m_UserList.has_value())
 	{
-		if (auto found = m_UserPlayerList->m_Players.find(id); found != m_UserPlayerList->m_Players.end())
+		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id); found != m_CFGGroup.m_UserList->m_Players.end())
 			return &found->second;
 	}
-
-	if (m_OtherPlayerLists.is_ready())
+	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
 	{
-		if (auto found = m_OtherPlayerLists->find(id); found != m_OtherPlayerLists->end())
+		if (auto found = m_CFGGroup.m_ThirdPartyLists->find(id); found != m_CFGGroup.m_ThirdPartyLists->end())
 			return &found->second;
 	}
-	if (m_OfficialPlayerList.is_ready())
+	if (m_CFGGroup.m_OfficialList.is_ready())
 	{
-		if (auto found = m_OfficialPlayerList->m_Players.find(id); found != m_OfficialPlayerList->m_Players.end())
+		if (auto found = m_CFGGroup.m_OfficialList->m_Players.find(id); found != m_CFGGroup.m_OfficialList->m_Players.end())
 			return &found->second;
 	}
 

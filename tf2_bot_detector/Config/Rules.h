@@ -77,6 +77,7 @@ namespace tf2_bot_detector
 		bool Save() const;
 
 		mh::generator<const ModerationRule*> GetRules() const;
+		size_t GetRuleCount() const { return m_CFGGroup.size(); }
 
 	private:
 		using RuleList_t = std::vector<ModerationRule>;
@@ -85,6 +86,8 @@ namespace tf2_bot_detector
 			void ValidateSchema(const ConfigSchemaInfo& schema) const override;
 			void Deserialize(const nlohmann::json& json) override;
 			void Serialize(nlohmann::json& json) const override;
+
+			size_t size() const { return m_Rules.size(); }
 
 			RuleList_t m_Rules;
 		};

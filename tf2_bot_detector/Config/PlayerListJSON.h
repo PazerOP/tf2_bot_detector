@@ -111,6 +111,8 @@ namespace tf2_bot_detector
 		ModifyPlayerResult ModifyPlayer(const SteamID& id, ModifyPlayerAction(*func)(PlayerListData& data, const void* userData),
 			const void* userData = nullptr);
 
+		size_t GetPlayerCount() const { return m_CFGGroup.size(); }
+
 	private:
 		using PlayerMap_t = std::map<SteamID, PlayerListData>;
 
@@ -119,6 +121,8 @@ namespace tf2_bot_detector
 			void ValidateSchema(const ConfigSchemaInfo& schema) const override;
 			void Deserialize(const nlohmann::json& json) override;
 			void Serialize(nlohmann::json& json) const override;
+
+			size_t size() const { return m_Players.size(); }
 
 			PlayerMap_t m_Players;
 		};
@@ -135,10 +139,6 @@ namespace tf2_bot_detector
 			std::string GetBaseFileName() const override { return "playerlist"; }
 
 		} m_CFGGroup;
-
-		AsyncObject<PlayerListFile> m_OfficialPlayerList;
-		AsyncObject<PlayerMap_t> m_OtherPlayerLists;
-		std::optional<PlayerListFile> m_UserPlayerList;
 	};
 
 	void to_json(nlohmann::json& j, const PlayerAttributes& d);

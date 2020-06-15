@@ -632,6 +632,12 @@ void MainWindow::OnDraw()
 
 	if (IsWorldValid())
 	{
+		ImGui::Value("Blackslisted user count", GetModLogic().GetBlacklistedPlayerCount());
+		ImGui::Value("Rule count", GetModLogic().GetRuleCount());
+	}
+
+	if (IsWorldValid())
+	{
 		auto& world = GetWorld();
 		const auto parsedLineCount = world.GetParsedLineCount();
 		const auto parseProgress = world.GetParseProgress();

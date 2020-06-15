@@ -187,6 +187,20 @@ namespace tf2_bot_detector
 			return &m_UserList.value();
 		}
 
+		size_t size() const
+		{
+			size_t retVal = 0;
+
+			if (m_OfficialList.is_ready())
+				retVal += m_OfficialList->size();
+			if (m_UserList)
+				retVal += m_UserList->size();
+			if (m_ThirdPartyLists.is_ready())
+				retVal += m_ThirdPartyLists->size();
+
+			return retVal;
+		}
+
 		const Settings* m_Settings = nullptr;
 		AsyncObject<T> m_OfficialList;
 		std::optional<T> m_UserList;

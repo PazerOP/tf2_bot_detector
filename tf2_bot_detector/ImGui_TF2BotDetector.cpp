@@ -266,3 +266,8 @@ void ImGui::Value(const char* prefix, const char* str)
 {
 	Text("%s: %s", prefix, str ? str : "<NULL>");
 }
+
+void ImGui::Value(const char* prefix, size_t v)
+{
+	Text("%s: %zu", prefix, v);
+}
