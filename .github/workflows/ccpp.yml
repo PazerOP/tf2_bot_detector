@@ -14,15 +14,20 @@ jobs:
       with:
         submodules: recursive
 
-    - name: vcpkg install
-      run: |
-        vcpkg install SDL2
+    # - name: vcpkg install
+    #   run: |
+    #     vcpkg install SDL2
+    - name: run-vcpkg
+      uses: lukka/run-vcpkg@v3.0
 
-    - name: Build
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
-        cmake --build . -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
+    - name: run-cmake
+      uses: lukka/run-cmake@v2.5
+
+    # - name: Build
+    #   run: |
+    #     mkdir build
+    #     cd build
+    #     cmake .. -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
+    #     cmake --build . -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
 
 
