@@ -179,33 +179,29 @@ void PlayerListJSON::SaveFile() const
 	m_CFGGroup.SaveFile();
 }
 
-const PlayerListData* PlayerListJSON::FindPlayerData(const SteamID& id) const
+mh::generator<const PlayerListData*> PlayerListJSON::FindPlayerData(const SteamID& id) const
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
 		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id); found != m_CFGGroup.m_UserList->m_Players.end())
-			return &found->second;
+			co_yield &found->second;
 	}
 	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
 	{
 		if (auto found = m_CFGGroup.m_ThirdPartyLists->find(id); found != m_CFGGroup.m_ThirdPartyLists->end())
-			return &found->second;
+			co_yield &found->second;
 	}
 	if (m_CFGGroup.m_OfficialList.is_ready())
 	{
 		if (auto found = m_CFGGroup.m_OfficialList->m_Players.find(id); found != m_CFGGroup.m_OfficialList->m_Players.end())
-			return &found->second;
+			co_yield &found->second;
 	}
-
-	return nullptr;
 }
 
-const PlayerAttributesList* PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
+mh::generator<const PlayerAttributesList*> PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
 {
-	if (auto found = FindPlayerData(id))
-		return &found->m_Attributes;
-
-	return nullptr;
+	for (const PlayerListData* found : FindPlayerData(id))
+		co_yield &found->m_Attributes;
 }
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const
@@ -215,7 +211,7 @@ bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attr
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const
 {
-	if (auto found = FindPlayerAttributes(id))
+	for (const PlayerAttributesList* found : FindPlayerAttributes(id))
 	{
 		for (auto attr : attributes)
 		{
@@ -238,15 +234,11 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	ModifyPlayerAction(*func)(PlayerListData& data, const void* userData), const void* userData)
 {
 	PlayerListData* data = nullptr;
-	if (auto found = m_CFGGroup.GetMutableList().m_Players.find(id); found != m_CFGGroup.GetMutableList().m_Players.end())
-	{
+	auto& mutableList = m_CFGGroup.GetMutableList();
+	if (auto found = mutableList.m_Players.find(id); found != mutableList.m_Players.end())
 		data = &found->second;
-	}
 	else
-	{
-		auto existing = FindPlayerData(id);
-		data = &m_CFGGroup.GetMutableList().m_Players.emplace(id, existing ? *existing : PlayerListData(id)).first->second;
-	}
+		data = &mutableList.m_Players.emplace(id, PlayerListData(id)).first->second;
 
 	const auto action = func(*data, userData);
 	if (action == ModifyPlayerAction::Modified)
@@ -321,11 +313,17 @@ PlayerAttributesList& PlayerAttributesList::operator|=(const PlayerAttributesLis
 
 void PlayerListJSON::ConfigFileGroup::CombineEntries(PlayerMap_t& map, const PlayerListFile& file) const
 {
-	for (auto& otherEntry : file.m_Players)
+	for (auto& otherEntryPair : file.m_Players)
 	{
-		auto& newEntry = map.emplace(otherEntry.first, otherEntry.first).first->second;
-		newEntry.m_Attributes |= otherEntry.second.m_Attributes;
-		if (otherEntry.second.m_LastSeen > newEntry.m_LastSeen)
-			newEntry.m_LastSeen = otherEntry.second.m_LastSeen;
+		auto newEntryResult = map.emplace(otherEntryPair.first, otherEntryPair.second);
+		if (!newEntryResult.second)
+		{
+			auto& otherEntry = otherEntryPair.second;
+			auto& newEntry = newEntryResult.first->second;
+
+			newEntry.m_Attributes |= otherEntry.m_Attributes; // Merge if it already existed
+			if (otherEntry.m_LastSeen && !newEntry.m_LastSeen || otherEntry.m_LastSeen > newEntry.m_LastSeen)
+				newEntry.m_LastSeen = otherEntry.m_LastSeen;
+		}
 	}
 }
