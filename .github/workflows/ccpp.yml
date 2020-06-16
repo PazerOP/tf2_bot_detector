@@ -19,6 +19,8 @@ jobs:
     #     vcpkg install SDL2
     - name: run-vcpkg
       uses: lukka/run-vcpkg@v3.0
+      with:
+        vcpkgArguments: 'install SDL2:x86-windows SDL2:x64-windows openSSL:x86-windows openSSL:x64-windows glbinding:x86-windows glbinding:x64-windows cpp-httplib:x86-windows cpp-httplib:x64-windows'
 
     - name: run-cmake
       uses: lukka/run-cmake@v2.5
