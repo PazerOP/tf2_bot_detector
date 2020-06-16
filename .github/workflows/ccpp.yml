@@ -9,9 +9,9 @@ jobs:
       matrix:
         os: [windows-latest]
         triplet: [x86-windows, x64-windows]
-        include:
-          - os: windows-latest
-            triplet: [x86-windows,x64-windows]
+        # include:
+        #   - os: windows-latest
+        #     triplet: [x86-windows, x64-windows]
 
     steps:
     - name: Checkout
