@@ -11,7 +11,11 @@ jobs:
         os: [windows-latest]
         include:
           - os: windows-latest
-            triplet: [x86-windows, x64-windows]
+            triplet: x86-windows
+            arch: x86
+          - os: windows-latest
+            triplet: x64-windows
+            arch: x64
 
     steps:
     - name: Checkout
@@ -32,7 +36,7 @@ jobs:
     #   uses: lukka/run-cmake@v2.5
     #   with:
     #     useVcpkgToolchainFile: true
-    #     cmakeAppendedArgs: '-G "Visual Studio 16 2019"'
+    #     cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.arch }}'
 
     # - name: Build
     #   run: |
