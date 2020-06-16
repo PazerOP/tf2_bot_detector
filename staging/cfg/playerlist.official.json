@@ -160,6 +160,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "Chuk Vinson",
+				"time": 1592286005
+			},
+			"steamid": "[U:1:147393352]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -2301,6 +2311,17 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592289055
+			},
+			"steamid": "[U:1:1103918533]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "(1)MYG)T",
 				"time": 1591868547
 			},
@@ -2865,6 +2886,17 @@
 				"time": 1592031524
 			},
 			"steamid": "[U:1:1105639690]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "(1)MYG)T",
+				"time": 1592287768
+			},
+			"steamid": "[U:1:1105666555]"
 		},
 		{
 			"attributes": [
