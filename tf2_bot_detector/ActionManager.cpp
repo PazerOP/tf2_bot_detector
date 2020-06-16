@@ -187,7 +187,7 @@ bool ActionManager::ProcessComplexCommands(const Writer& writer)
 				if (file.bad())
 					break;
 
-				const auto bufCount = file.gcount();
+				const auto bufCount = static_cast<size_t>(file.gcount());
 				if (bufCount == 0)
 					break;
 
