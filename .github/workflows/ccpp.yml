@@ -9,13 +9,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest]
+        triplet: [x86-windows, x64-windows]
         include:
           - os: windows-latest
             triplet: x86-windows
-            arch: x86
+            tf2bd_arch: x86
           - os: windows-latest
             triplet: x64-windows
-            arch: x64
+            tf2bd_arch: x64
 
     steps:
     - name: Checkout
@@ -36,7 +37,7 @@ jobs:
     #   uses: lukka/run-cmake@v2.5
     #   with:
     #     useVcpkgToolchainFile: true
-    #     cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.arch }}'
+    #     cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }}'
 
     # - name: Build
     #   run: |
