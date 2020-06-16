@@ -129,3 +129,38 @@ endif()
 set_target_properties(tf2_bot_detector PROPERTIES
 	VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/staging"
 )
+
+# "installation" aka create a build we can upload to github as a release
+if (WIN32)
+	file(GLOB TF2BD_INSTALL_DEPS_DLL LIST_DIRECTORIES false "${CMAKE_BINARY_DIR}/*.dll")
+	install(FILES ${TF2BD_INSTALL_DEPS_DLL} DESTINATION /)
+endif()
+install(DIRECTORY staging/ staging/ DESTINATION "/" FILES_MATCHING
+	PATTERN "*"
+	PATTERN "staging/cfg/settings.json" EXCLUDE
+	PATTERN "staging/logs" EXCLUDE
+)
+install(TARGETS tf2_bot_detector DESTINATION /)
+
+file(GLOB_RECURSE TF2BD_EXTRA_FILES RELATIVE "${CMAKE_SOURCE_DIR}/staging" "staging/cfg/*" "staging/licenses/*")
+list(REMOVE_ITEM TF2BD_EXTRA_FILES "cfg/settings.json")
+foreach(EXTRA_FILE ${TF2BD_EXTRA_FILES})
+	configure_file("staging/${EXTRA_FILE}" "${CMAKE_BINARY_DIR}/${EXTRA_FILE}")
+endforeach()
+
+add_custom_command(
+	OUTPUT tf2_bot_detector.zip
+	DEPENDS tf2_bot_detector
+	COMMAND ${CMAKE_COMMAND} -E tar "cfv" "tf2_bot_detector_${PROJECT_VERSION}.zip" --format=zip $<TARGET_FILE_NAME:tf2_bot_detector> ${TF2BD_EXTRA_FILES} ${TF2BD_INSTALL_DEPS_DLL}
+)
+
+if (WIN32)
+	add_custom_command(
+		OUTPUT symbols.zip
+		DEPENDS tf2_bot_detector
+		COMMAND ${CMAKE_COMMAND} -E tar "cfv" "symbols_${PROJECT_VERSION}.zip" --format=zip $<TARGET_PDB_FILE:tf2_bot_detector>
+	)
+	add_custom_target(tf2_bot_detector_zips ALL DEPENDS tf2_bot_detector.zip symbols.zip)
+else()
+	add_custom_target(tf2_bot_detector_zips ALL DEPENDS tf2_bot_detector.zip)
+endif()
