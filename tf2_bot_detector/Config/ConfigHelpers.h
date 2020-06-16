@@ -58,7 +58,7 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ConfigFileBase() = default;
 
-		bool LoadFile(const std::filesystem::path& filename);
+		bool LoadFile(const std::filesystem::path& filename, bool allowAutoupdate = true);
 		bool SaveFile(const std::filesystem::path& filename) const;
 
 		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0;
@@ -78,29 +78,36 @@ namespace tf2_bot_detector
 	};
 
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
-	T LoadConfigFile(const std::filesystem::path& filename)
+	T LoadConfigFile(const std::filesystem::path& filename, bool allowAutoupdate)
 	{
 		// Not going to be doing any async loading
-		if (T file; file.LoadFile(filename))
+		if (T file; file.LoadFile(filename, allowAutoupdate))
 			return file;
 
 		return T{};
 	}
 
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
-	auto LoadConfigFileAsync(std::filesystem::path filename)
+	auto LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoupdate)
 	{
 		if constexpr (std::is_base_of_v<SharedConfigFileBase, T>)
 		{
-			return AsyncObject<T>(std::async([filename]
-				{
-					return LoadConfigFile<T>(filename);
-				}));
+			if (allowAutoupdate)
+			{
+				return AsyncObject<T>(std::async([filename]
+					{
+						return LoadConfigFile<T>(filename, true);
+					}));
+			}
+			else
+			{
+				return AsyncObject<T>(LoadConfigFile<T>(filename, false));
+			}
 		}
 		else
 		{
-			// Not going to be doing any async loading
-			return LoadConfigFile<T>(filename);
+			assert(!allowAutoupdate);
+			return LoadConfigFile<T>(filename, allowAutoupdate);
 		}
 	}
 
@@ -123,10 +130,10 @@ namespace tf2_bot_detector
 			const auto paths = GetConfigFilePaths(GetBaseFileName());
 
 			if (!IsOfficial() && !paths.m_User.empty())
-				m_UserList = LoadConfigFile<T>(paths.m_User);
+				m_UserList = LoadConfigFile<T>(paths.m_User, false);
 
 			if (!paths.m_Official.empty())
-				m_OfficialList = LoadConfigFileAsync<T>(paths.m_Official);
+				m_OfficialList = LoadConfigFileAsync<T>(paths.m_Official, !IsOfficial());
 			else
 				m_OfficialList = {};
 
@@ -138,7 +145,7 @@ namespace tf2_bot_detector
 					{
 						try
 						{
-							auto parsedFile = LoadConfigFile<T>(file);
+							auto parsedFile = LoadConfigFile<T>(file, true);
 							CombineEntries(collection, parsedFile);
 						}
 						catch (const std::exception& e)

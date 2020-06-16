@@ -192,7 +192,7 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 		d.m_UpdateURL.clear();
 }
 
-bool tf2_bot_detector::ConfigFileBase::LoadFile(const std::filesystem::path& filename)
+bool tf2_bot_detector::ConfigFileBase::LoadFile(const std::filesystem::path& filename, bool allowAutoupdate)
 {
 	nlohmann::json json;
 	{
@@ -225,29 +225,36 @@ bool tf2_bot_detector::ConfigFileBase::LoadFile(const std::filesystem::path& fil
 		return false;
 	}
 
-	if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
+	if (allowAutoupdate)
 	{
-		bool fileInfoParsed = false;
-
-		try
+		if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
 		{
-			if (ConfigFileInfo info; try_get_to(json, "file_info", info))
-			{
-				shared->m_FileInfo = std::move(info);
-				fileInfoParsed = true;
-			}
-			else
-			{
-				shared->m_FileInfo.reset();
-			}
-		}
-		catch (const std::exception& e)
-		{
-			LogWarning("Skipping auto-update for "s << filename << ": failed to parse file_info: " << e.what());
-		}
+			bool fileInfoParsed = false;
 
-		if (fileInfoParsed && TryAutoUpdate(filename, json, *shared))
-			return true;
+			try
+			{
+				if (ConfigFileInfo info; try_get_to(json, "file_info", info))
+				{
+					shared->m_FileInfo = std::move(info);
+					fileInfoParsed = true;
+				}
+				else
+				{
+					shared->m_FileInfo.reset();
+				}
+			}
+			catch (const std::exception& e)
+			{
+				LogWarning("Skipping auto-update for "s << filename << ": failed to parse file_info: " << e.what());
+			}
+
+			if (fileInfoParsed && TryAutoUpdate(filename, json, *shared))
+				return true;
+		}
+	}
+	else
+	{
+		DebugLog("Skipping auto-update for "s << filename << " because allowAutoupdate = false.");
 	}
 
 	try
