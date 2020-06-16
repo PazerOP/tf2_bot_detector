@@ -76,7 +76,7 @@ std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filen
 		if (!file.good())
 			return {};
 
-		const auto length = file.tellg();
+		const auto length = static_cast<size_t>(file.tellg());
 
 		// Skip BOM
 		file.seekg(2, std::ios::beg);

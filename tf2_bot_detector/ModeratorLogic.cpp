@@ -117,7 +117,7 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const s
 	if (friendlyCheaters.empty())
 		return; // Nothing to do
 
-	if ((friendlyPlayerCount / 2) <= friendlyCheaters.size())
+	if (uint8_t(friendlyPlayerCount / 2) <= friendlyCheaters.size())
 	{
 		Log("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
 			<< " friendly cheaters, but we're trying anyway :/", { 1, 0.5f, 0 });
@@ -160,7 +160,8 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 	if (enemyCheaters.empty() && connectingEnemyCheaters.empty())
 		return;
 
-	if (const auto cheaterCount = (enemyCheaters.size() + connectingEnemyCheaters.size()); (enemyPlayerCount / 2) <= cheaterCount)
+	if (const auto cheaterCount = (enemyCheaters.size() + connectingEnemyCheaters.size());
+		uint8_t(enemyPlayerCount / 2) <= cheaterCount)
 	{
 		Log("Impossible to pass a successful votekick against "s << cheaterCount << " enemy cheaters. Skipping all warnings.");
 		return;

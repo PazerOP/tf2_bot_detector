@@ -314,9 +314,9 @@ void ImGui::Value(const char* prefix, const char* str)
 	Text("%s: %s", prefix, str ? str : "<NULL>");
 }
 
-void ImGui::Value(const char* prefix, size_t v)
+void ImGui::Value(const char* prefix, uint64_t v)
 {
-	Text("%s: %zu", prefix, v);
+	Text("%s: %llu", prefix, v);
 }
 
 void ImGui::SetHoverTooltip(const char* tooltipFmt, ...)

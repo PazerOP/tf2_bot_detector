@@ -1,0 +1,50 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        triplet: [x86-windows, x64-windows]
+        include:
+          - os: windows-latest
+            triplet: x86-windows
+            tf2bd_arch: x86
+          - os: windows-latest
+            triplet: x64-windows
+            tf2bd_arch: x64
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    # - name: vcpkg install
+    #   run: |
+    #     vcpkg install SDL2
+    - name: run-vcpkg
+      uses: lukka/run-vcpkg@v3.0
+      with:
+        vcpkgGitCommitId: 7192d3affa4b1d8f88e3e730eb561612c24f7d78
+        vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib'
+        vcpkgTriplet: ${{ matrix.triplet }}
+
+    - name: run-cmake
+      uses: lukka/run-cmake@v2.5
+      with:
+        useVcpkgToolchainFile: true
+        cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }}'
+
+    # - name: Build
+    #   run: |
+    #     mkdir build
+    #     cd build
+    #     cmake .. -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
+    #     cmake --build . -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake
+
+
