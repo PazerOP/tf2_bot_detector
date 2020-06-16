@@ -40,6 +40,25 @@
 					"cheater"
 				]
 			},
+			"description": "(catbot) mygot 2",
+			"triggers": {
+				"mode": "match_any",
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"[t0gym]",
+						"[g0tb0t]"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "[VAC] OneTrick",
 			"triggers": {
 				"username_text_match": {
@@ -64,6 +83,23 @@
 					"mode": "contains",
 					"patterns": [
 						"[VALVE] Twilight Sparkle"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "royalhack.net",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"royalhack.net"
 					]
 				}
 			}
