@@ -75,8 +75,13 @@ static NewVersionResult GetLatestVersion()
 
 		for (auto release : GetAllReleases())
 		{
-			if (release.m_Version < VERSION)
+			DebugLog("GetLatestVersion(): version = "s << release.m_Version << ", url = " << release.m_URL);
+
+			if (release.m_Version <= VERSION)
+			{
+				DebugLog("GetLatestVersion(): break");
 				break;
+			}
 
 			if (release.m_Version.m_Preview != 0)
 				retVal.m_Preview = release;
