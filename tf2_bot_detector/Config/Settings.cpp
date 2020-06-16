@@ -145,7 +145,7 @@ bool Settings::SaveFile() const
 {
 	nlohmann::json json =
 	{
-		{ "$schema", "./schema/settings.schema.json" },
+		{ "$schema", "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/settings.schema.json" },
 		{ "theme", m_Theme },
 		{ "general",
 			{
