@@ -131,8 +131,8 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"\n\n",
-						"\r\n\r\n"
+						"\n",
+						"\r\n"
 					]
 				}
 			}
