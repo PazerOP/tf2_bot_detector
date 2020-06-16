@@ -3,6 +3,7 @@
 #include "Config/Settings.h"
 #include "SteamID.h"
 #include "PlatformSpecific/Shell.h"
+#include "Version.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <mh/text/string_insertion.hpp>
@@ -259,6 +260,12 @@ bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 	static constexpr char FRIENDLY_TEXT_PREVIEW[] = "Notify about new preview releases";
 	static constexpr char FRIENDLY_TEXT_STABLE[] = "Notify about new stable releases";
 
+	const auto oldMode = mode;
+
+	constexpr bool allowReleases = VERSION.m_Preview == 0;
+	if (!allowReleases && mode == ProgramUpdateCheckMode::Releases)
+		mode = ProgramUpdateCheckMode::Previews;
+
 	switch (mode)
 	{
 	case ProgramUpdateCheckMode::Disabled: friendlyText = FRIENDLY_TEXT_DISABLED; break;
@@ -267,14 +274,21 @@ bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 	case ProgramUpdateCheckMode::Unknown:  friendlyText = "Select an option"; break;
 	}
 
-	const auto oldMode = mode;
-
 	if (ImGui::BeginCombo(label_id, friendlyText))
 	{
 		if (ImGui::Selectable(FRIENDLY_TEXT_DISABLED))
 			mode = ProgramUpdateCheckMode::Disabled;
-		if (ImGui::Selectable(FRIENDLY_TEXT_STABLE))
-			mode = ProgramUpdateCheckMode::Releases;
+
+		ImGui::EnabledSwitch(allowReleases, [&]
+			{
+				ImGui::BeginGroup();
+
+				if (ImGui::Selectable(FRIENDLY_TEXT_STABLE))
+					mode = ProgramUpdateCheckMode::Releases;
+
+				ImGui::EndGroup();
+			}, "Since you are using a preview build, you will always be notified of new previews.");
+
 		if (ImGui::Selectable(FRIENDLY_TEXT_PREVIEW))
 			mode = ProgramUpdateCheckMode::Previews;
 

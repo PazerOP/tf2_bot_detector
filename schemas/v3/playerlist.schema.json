@@ -22,8 +22,7 @@
 	},
 	"required": [
 		"$schema",
-		"players",
-		"version"
+		"players"
 	],
 	"definitions": {
 		"tfbd_playerlist_entry": {

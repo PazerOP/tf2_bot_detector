@@ -554,7 +554,7 @@ void MainWindow::OnDrawSettingsPopup()
 					m_Settings.m_ProgramUpdateCheckMode = mode;
 					m_Settings.SaveFile();
 				}
-			});
+			}, "Requires \"Allow internet connectivity\"");
 
 		ImGui::EndPopup();
 	}

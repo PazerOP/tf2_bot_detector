@@ -2,6 +2,7 @@
 #include "Config/Settings.h"
 #include "PathUtils.h"
 #include "ImGui_TF2BotDetector.h"
+#include "Version.h"
 
 #include <imgui.h>
 #include <imgui_desktop/ScopeGuards.h>
@@ -98,6 +99,8 @@ namespace
 				return false;
 			if (settings.m_AllowInternetUsage.value() && settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Unknown)
 				return false;
+			if (settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Releases && VERSION.m_Preview != 0)
+				return false;
 
 			return true;
 		}
@@ -122,7 +125,8 @@ namespace
 			ImGui::Unindent();
 			ImGui::NewLine();
 
-			ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
+			const bool enabled = m_Settings.m_AllowInternetUsage.value_or(false);
+			ImGui::EnabledSwitch(enabled, [&](bool enabled)
 				{
 					ImGui::BeginGroup();
 					ImGui::TextUnformatted("This tool can also check for updated functionality and bugfixes on startup.");
@@ -137,9 +141,7 @@ namespace
 					}
 					ImGui::Unindent();
 					ImGui::EndGroup();
-				});
-
-			ImGui::SetHoverTooltip("Requires \"Allow Internet Connectivity\"");
+				}, "Requires \"Allow Internet Connectivity\"");
 		}
 
 		void Init(const Settings& settings) override

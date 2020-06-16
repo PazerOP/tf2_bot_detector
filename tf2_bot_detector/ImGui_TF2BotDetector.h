@@ -109,7 +109,7 @@ namespace ImGui
 	void SetHoverTooltip(const char* tooltipFmt, ...);
 
 	template<typename TFunc>
-	inline void EnabledSwitch(bool enabled, TFunc&& func)
+	inline void EnabledSwitch(bool enabled, TFunc&& func, const char* disabledTooltip = nullptr)
 	{
 		if (enabled)
 		{
@@ -120,15 +120,26 @@ namespace ImGui
 		}
 		else
 		{
-			ImGuiDesktop::ScopeGuards::GlobalAlpha globalAlpha(0.65f);
-			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::BeginGroup();
+			{
+				ImGuiDesktop::ScopeGuards::GlobalAlpha globalAlpha(0.65f);
+				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 
-			if constexpr (std::is_invocable_v<TFunc, bool>)
-				func(false);
-			else
-				func();
 
-			ImGui::PopItemFlag();
+				if constexpr (std::is_invocable_v<TFunc, bool>)
+					func(false);
+				else
+					func();
+
+				ImGui::PopItemFlag();
+			}
+			ImGui::EndGroup();
+
+			if (disabledTooltip)
+			{
+				ImGuiDesktop::ScopeGuards::GlobalAlpha tooltipAlpha(1);
+				ImGui::SetHoverTooltip("%s", disabledTooltip);
+			}
 		}
 	}
 }
