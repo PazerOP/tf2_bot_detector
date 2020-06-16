@@ -104,7 +104,7 @@ namespace ImGui
 
 	void Value(const char* prefix, double v, const char* float_format = nullptr);
 	void Value(const char* prefix, const char* str);
-	void Value(const char* prefix, size_t v);
+	void Value(const char* prefix, uint64_t v);
 
 	void SetHoverTooltip(const char* tooltipFmt, ...);
 
