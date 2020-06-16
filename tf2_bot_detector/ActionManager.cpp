@@ -197,7 +197,7 @@ bool ActionManager::ProcessComplexCommands(const Writer& writer)
 					break;
 				}
 
-				comparePos += file.gcount();
+				comparePos += bufCount;
 			}
 
 			if (comparePos == cfgFileContents.size())
