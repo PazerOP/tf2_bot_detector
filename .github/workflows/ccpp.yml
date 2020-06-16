@@ -8,9 +8,11 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
+        triplet: [x86-windows, x64-windows]
         include:
           - os: windows-latest
             triplet: [x86-windows,x64-windows]
+
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -24,12 +26,13 @@ jobs:
       uses: lukka/run-vcpkg@v3.0
       with:
         vcpkgGitCommitId: 7192d3affa4b1d8f88e3e730eb561612c24f7d78
-        vcpkgArguments: 'SDL2:${{ matrix.triplet }} openSSL:${{ matrix.triplet }} glbinding:${{ matrix.triplet }} cpp-httplib:${{ matrix.triplet }}'
+        vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib --triplet ${{ matrix.triplet }}'
 
     - name: run-cmake
       uses: lukka/run-cmake@v2.5
       with:
         useVcpkgToolchainFile: true
+        cmakeAppendedArgs: '-G "Visual Studio 16 2019"'
 
     # - name: Build
     #   run: |
