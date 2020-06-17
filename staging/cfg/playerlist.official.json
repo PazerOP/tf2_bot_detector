@@ -347,6 +347,16 @@
 		},
 		{
 			"attributes": [
+				"cheater",
+			],
+			"last_seen": {
+				"player_name": "EmpRess",
+				"time": 1592377270
+			},
+			"steamid": "[U:1:386670850]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"steamid": "[U:1:428240589]"
