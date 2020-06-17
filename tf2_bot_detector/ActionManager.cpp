@@ -63,6 +63,40 @@ ActionManager::~ActionManager()
 {
 }
 
+struct ActionManager::RunningCommand
+{
+	RunningCommand(HANDLE procHandle, std::string command) : m_ProcHandle(procHandle), m_Command(command) {}
+	RunningCommand(const RunningCommand&) = delete;
+	RunningCommand& operator=(const RunningCommand&) = delete;
+	~RunningCommand()
+	{
+		if (!CloseHandle(m_ProcHandle))
+			LogError(std::string(__FUNCTION__ ": Failed to close handle for ") << std::quoted(m_Command));
+	}
+
+	duration_t GetElapsed() const { return clock_t::now() - m_StartTime; }
+	bool IsComplete() const
+	{
+		return WaitForSingleObject(m_ProcHandle, 0) == WAIT_OBJECT_0;
+	}
+
+	void Terminate()
+	{
+		if (!TerminateProcess(m_ProcHandle, 1))
+		{
+			const auto error = GetLastError();
+			LogError("Failed to terminate stuck hl2.exe process ("s << std::quoted(m_Command)
+				<< "): GetLastError returned "s << error);
+		}
+	}
+
+	HANDLE m_ProcHandle;
+	std::string m_Command;
+
+private:
+	time_point_t m_StartTime = clock_t::now();
+};
+
 bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 {
 	if (const auto maxQueuedCount = action->GetMaxQueuedCount();
@@ -124,7 +158,7 @@ struct ActionManager::Writer final : ICommandWriter
 	size_t m_CommandArgCount = 0;
 };
 
-bool ActionManager::ProcessSimpleCommands(const Writer& writer) const
+bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 {
 	std::string cmdLine;
 	bool firstCmd = true;
@@ -225,11 +259,36 @@ bool ActionManager::ProcessComplexCommands(const Writer& writer)
 	return SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
 }
 
+void ActionManager::ProcessRunningCommands()
+{
+	for (auto it = m_RunningCommands.begin(); it != m_RunningCommands.end();)
+	{
+		bool shouldRemove = false;
+		if (it->IsComplete())
+		{
+			shouldRemove = true;
+		}
+		else if (it->GetElapsed() > 5s)
+		{
+			LogWarning("Command timed out: "s << std::quoted(it->m_Command));
+			it->Terminate();
+			shouldRemove = true;
+		}
+
+		if (shouldRemove)
+			it = m_RunningCommands.erase(it);
+		else
+			++it;
+	}
+}
+
 void ActionManager::Update()
 {
 	const auto curTime = clock_t::now();
 	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
 		return;
+
+	ProcessRunningCommands();
 
 	// Update periodic actions
 	for (auto& action : m_PeriodicActions)
@@ -306,7 +365,7 @@ void ActionManager::Update()
 	m_LastUpdateTime = curTime;
 }
 
-bool ActionManager::SendCommandToGame(const std::string_view& cmd) const
+bool ActionManager::SendCommandToGame(std::string cmd)
 {
 	if (cmd.empty())
 		return true;
@@ -344,7 +403,7 @@ bool ActionManager::SendCommandToGame(const std::string_view& cmd) const
 	if (!result)
 	{
 		const auto error = GetLastError();
-		Log("Failed to send command to hl2.exe: CreateProcess returned "s
+		LogError("Failed to send command to hl2.exe: CreateProcess returned "s
 			<< result << ", GetLastError returned " << error);
 
 		return false;
@@ -353,11 +412,8 @@ bool ActionManager::SendCommandToGame(const std::string_view& cmd) const
 	if (m_Settings->m_Unsaved.m_DebugShowCommands)
 		Log("Game command: "s << std::quoted(cmd), { 1, 1, 1, 0.6f });
 
-	//WaitForSingleObject(pi.hProcess, INFINITE);
+	m_RunningCommands.emplace_back(pi.hProcess, std::move(cmd));
 
-	// We will never need these, close them now
-	if (!CloseHandle(pi.hProcess))
-		throw std::runtime_error(__FUNCTION__ ": Failed to close process");
 	if (!CloseHandle(pi.hThread))
 		throw std::runtime_error(__FUNCTION__ ": Failed to close process thread");
 
