@@ -42,7 +42,6 @@
 			},
 			"description": "(catbot) mygot 2",
 			"triggers": {
-				"mode": "match_any",
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",

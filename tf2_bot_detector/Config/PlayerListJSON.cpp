@@ -129,9 +129,9 @@ PlayerListJSON::PlayerListJSON(const Settings& settings) :
 void PlayerListJSON::PlayerListFile::ValidateSchema(const ConfigSchemaInfo& schema) const
 {
 	if (schema.m_Type != "playerlist")
-		throw std::runtime_error("Schema is not a playerlist");
+		throw std::runtime_error("Schema "s << std::quoted(schema.m_Type) << " is not a playerlist");
 	if (schema.m_Version != 3)
-		throw std::runtime_error("Schema must be version 3");
+		throw std::runtime_error("Schema must be version 3 (current version "s << schema.m_Version << ')');
 }
 
 void PlayerListJSON::PlayerListFile::Deserialize(const nlohmann::json& json)
@@ -152,7 +152,7 @@ void PlayerListJSON::PlayerListFile::Serialize(nlohmann::json& json) const
 {
 	SharedConfigFileBase::Serialize(json);
 
-	if (m_Schema.m_Version != PLAYERLIST_SCHEMA_VERSION)
+	if (!m_Schema || m_Schema->m_Version != PLAYERLIST_SCHEMA_VERSION)
 		json["$schema"] = ConfigSchemaInfo("playerlist", PLAYERLIST_SCHEMA_VERSION);
 
 	auto& players = json["players"];
@@ -278,16 +278,37 @@ bool PlayerAttributesList::SetAttribute(PlayerAttributes attribute, bool set)
 {
 #undef HELPER
 #define HELPER(value) \
+	do \
 	{ \
 		auto old = (value); \
 		(value) = set; \
 		return old != (value); \
-	}
+	} while(false)
 
 	switch (attribute)
 	{
-	case PlayerAttributes::Cheater:     HELPER(m_Cheater);
-	case PlayerAttributes::Suspicious:  HELPER(m_Suspicious);
+	case PlayerAttributes::Cheater:
+	{
+		bool result = false;
+		if (m_Suspicious)
+		{
+			m_Suspicious = false;
+			result = true;
+		}
+
+		if (!m_Cheater)
+		{
+			m_Cheater = true;
+			result = true;
+		}
+
+		return result;
+	}
+	case PlayerAttributes::Suspicious:
+		if (!HasAttribute(PlayerAttributes::Cheater))
+			HELPER(m_Suspicious);
+		else
+			return false;
 	case PlayerAttributes::Exploiter:   HELPER(m_Exploiter);
 	case PlayerAttributes::Racist:      HELPER(m_Racist);
 

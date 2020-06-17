@@ -221,7 +221,7 @@ void ModerationRules::RuleFile::Serialize(nlohmann::json& json) const
 {
 	SharedConfigFileBase::Serialize(json);
 
-	if (m_Schema.m_Version != RULES_SCHEMA_VERSION)
+	if (!m_Schema || m_Schema->m_Type != "rules" || m_Schema->m_Version != RULES_SCHEMA_VERSION)
 		json["$schema"] = ConfigSchemaInfo("rules", RULES_SCHEMA_VERSION);
 
 	json["rules"] = m_Rules;

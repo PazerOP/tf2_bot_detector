@@ -30,7 +30,7 @@ namespace tf2_bot_detector
 
 	struct ConfigSchemaInfo
 	{
-		ConfigSchemaInfo() = default;
+		explicit ConfigSchemaInfo(std::nullptr_t) {}
 		ConfigSchemaInfo(const std::string_view& schema);
 		ConfigSchemaInfo(std::string type, unsigned version, std::string branch = "master");
 
@@ -65,7 +65,10 @@ namespace tf2_bot_detector
 		virtual void Deserialize(const nlohmann::json& json) = 0 {}
 		virtual void Serialize(nlohmann::json& json) const = 0;
 
-		ConfigSchemaInfo m_Schema;
+		std::optional<ConfigSchemaInfo> m_Schema;
+
+	private:
+		bool LoadFileInternal(const std::filesystem::path& filename, bool allowAutoupdate);
 	};
 
 	class SharedConfigFileBase : public ConfigFileBase

@@ -62,28 +62,15 @@ static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann
 		throw std::runtime_error("Failed to write json to file");
 }
 
-static void LoadAndValidateSchema(ConfigFileBase& config, const nlohmann::json& json)
+static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, const nlohmann::json& json)
 {
-	if (auto found = json.find("$schema"); found != json.end())
-	{
-		ConfigSchemaInfo schema;
-
-		try
-		{
-			schema = found->get<ConfigSchemaInfo>();
-		}
-		catch (const std::exception& e)
-		{
-			throw std::runtime_error("Failed to parse schema: "s << e.what());
-		}
-
-		config.ValidateSchema(schema);
-		config.m_Schema = std::move(schema);
-	}
-	else
-	{
+	ConfigSchemaInfo schema(nullptr);
+	if (!try_get_to(json, "$schema", schema))
 		throw std::runtime_error("JSON missing $schema property");
-	}
+
+	config.ValidateSchema(schema);
+
+	return schema;
 }
 
 static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann::json& existingJson, SharedConfigFileBase& config)
@@ -192,7 +179,17 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 		d.m_UpdateURL.clear();
 }
 
-bool tf2_bot_detector::ConfigFileBase::LoadFile(const std::filesystem::path& filename, bool allowAutoupdate)
+bool ConfigFileBase::LoadFile(const std::filesystem::path& filename, bool allowAutoupdate)
+{
+	bool retVal = LoadFileInternal(filename, allowAutoupdate);
+
+	if (!SaveFile(filename))
+		LogWarning("Failed to resave "s << filename);
+
+	return retVal;
+}
+
+bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, bool allowAutoupdate)
 {
 	nlohmann::json json;
 	{
@@ -212,6 +209,7 @@ bool tf2_bot_detector::ConfigFileBase::LoadFile(const std::filesystem::path& fil
 		catch (const std::exception& e)
 		{
 			LogError(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
+			return false;
 		}
 	}
 
@@ -268,9 +266,6 @@ bool tf2_bot_detector::ConfigFileBase::LoadFile(const std::filesystem::path& fil
 		return false;
 	}
 
-	if (!SaveFile(filename))
-		LogWarning("Successfully deserialized "s << filename << ", but failed to resave.");
-
 	return true;
 }
 
@@ -278,10 +273,11 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 {
 	nlohmann::json json;
 
+	// If we already have a schema loaded, put it in the $schema property
 	try
 	{
-		ValidateSchema(m_Schema);
-		json["$schema"] = m_Schema;
+		if (m_Schema)
+			json["$schema"] = *m_Schema;
 	}
 	catch (const std::exception& e)
 	{
@@ -299,35 +295,13 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 		return false;
 	}
 
-	if (auto found = json.find("$schema"); found != json.end())
+	try
 	{
-		ConfigSchemaInfo schema;
-
-		try
-		{
-			schema = found->get<ConfigSchemaInfo>();
-		}
-		catch (const std::exception& e)
-		{
-			LogError("Failed to serialize "s << filename << ": new $schema "
-				<< std::quoted(found->get<std::string_view>()) << " failed to parse: " << e.what());
-			return false;
-		}
-
-		try
-		{
-			ValidateSchema(schema);
-		}
-		catch (const std::exception& e)
-		{
-			LogError("Failed to serialize "s << filename << ": new $schema "
-				<< schema << " did not pass validation: " << e.what());
-			return false;
-		}
+		LoadAndValidateSchema(*this, json);
 	}
-	else
+	catch (const std::exception& e)
 	{
-		LogError("Failed to serialize "s << filename << ": $schema property missing.");
+		throw std::runtime_error("Failed to serialize "s << filename << ": LoadAndValidateSchema threw " << e.what());
 		return false;
 	}
 
@@ -346,10 +320,10 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 
 void ConfigFileBase::Serialize(nlohmann::json& json) const
 {
-	json =
-	{
-		{ "$schema", m_Schema }
-	};
+	json.clear();
+
+	if (m_Schema)
+		json["$schema"] = *m_Schema;
 }
 
 ConfigSchemaInfo::ConfigSchemaInfo(const std::string_view& schema)

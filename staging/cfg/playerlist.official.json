@@ -272,8 +272,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"last_seen": {
 				"player_name": "furry-bot 5",
@@ -413,6 +412,16 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592413046
+			},
+			"steamid": "[U:1:857640160]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:879347135]"
 		},
 		{
@@ -446,8 +455,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"last_seen": {
 				"player_name": "bunker\u200f boy\u200f\u200f\u200f",
@@ -457,8 +465,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"last_seen": {
 				"player_name": "/id/ras\u200fpy_on_osu\u200f\u200f",
@@ -500,8 +507,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"last_seen": {
 				"player_name": "/id/raspy_\u200fon_osu\u200f\u200f",
@@ -597,8 +603,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"steamid": "[U:1:1002399982]"
 		},
@@ -624,22 +629,19 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"steamid": "[U:1:1006962972]"
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"steamid": "[U:1:1007078265]"
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"steamid": "[U:1:1007216876]"
 		},
@@ -707,8 +709,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"steamid": "[U:1:1026045088]"
 		},
@@ -749,8 +750,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"last_seen": {
 				"time": 1590189134
@@ -967,8 +967,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"last_seen": {
 				"player_name": "/id/raspy_on_o\u200fsu\u200f",
@@ -1164,8 +1163,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"last_seen": {
 				"player_name": "[VAC] OneTrick",
@@ -1361,8 +1359,7 @@
 		},
 		{
 			"attributes": [
-				"cheater",
-				"suspicious"
+				"cheater"
 			],
 			"last_seen": {
 				"player_name": "pazer",
@@ -1557,6 +1554,17 @@
 				"time": 1591680349
 			},
 			"steamid": "[U:1:1094342572]"
+		},
+		{
+			"attributes": [
+				"cheater",
+				"exploiter"
+			],
+			"last_seen": {
+				"player_name": "*^+",
+				"time": 1592412127
+			},
+			"steamid": "[U:1:1094511355]"
 		},
 		{
 			"attributes": [
@@ -2811,6 +2819,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "royalhack.net B0T",
+				"time": 1592413515
+			},
+			"steamid": "[U:1:1104923439]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "[t0gym]OGBADGER",
 				"time": 1592028814
 			},
@@ -2888,6 +2906,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[VALVE] Twilight Sparkle",
+				"time": 1592413249
+			},
+			"steamid": "[U:1:1105614957]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -2914,9 +2942,29 @@
 			],
 			"last_seen": {
 				"player_name": "[VALVE] Twilight Sparkle",
+				"time": 1592412964
+			},
+			"steamid": "[U:1:1105695611]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[VALVE] Twilight Sparkle",
 				"time": 1592117461
 			},
 			"steamid": "[U:1:1105700551]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[VALVE] Twilight Sparkle",
+				"time": 1592413562
+			},
+			"steamid": "[U:1:1105732245]"
 		},
 		{
 			"attributes": [
@@ -3106,6 +3154,26 @@
 				"time": 1592192882
 			},
 			"steamid": "[U:1:1106397765]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "James Charles",
+				"time": 1592413801
+			},
+			"steamid": "[U:1:1107020129]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "James Charles",
+				"time": 1592413048
+			},
+			"steamid": "[U:1:1107318279]"
 		}
 	]
 }
