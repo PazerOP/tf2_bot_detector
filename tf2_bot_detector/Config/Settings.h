@@ -45,6 +45,8 @@ namespace tf2_bot_detector
 		bool m_AutoTempMute = true;
 		std::filesystem::path m_TFDir;
 
+		float m_CommandTimeoutSeconds = 5;
+
 		std::optional<bool> m_AllowInternetUsage;
 		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
 

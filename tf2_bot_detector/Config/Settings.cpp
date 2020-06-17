@@ -131,6 +131,7 @@ bool Settings::LoadFile()
 		try_get_to(*found, "auto_temp_mute", m_AutoTempMute);
 		try_get_to(*found, "allow_internet_usage", m_AllowInternetUsage);
 		try_get_to(*found, "program_update_check_mode", m_ProgramUpdateCheckMode);
+		try_get_to(*found, "command_timeout_seconds", m_CommandTimeoutSeconds);
 
 		if (auto foundDir = found->find("tf_game_dir"); foundDir != found->end())
 			m_TFDir = foundDir->get<std::string_view>();
@@ -153,6 +154,7 @@ bool Settings::SaveFile() const
 				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
 				{ "auto_temp_mute", m_AutoTempMute },
 				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
+				{ "command_timeout_seconds", m_CommandTimeoutSeconds },
 			}
 		}
 	};

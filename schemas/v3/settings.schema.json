@@ -35,6 +35,11 @@
 					"type": "boolean",
 					"default": true
 				},
+				"command_timeout_seconds": {
+					"description": "Seconds before terminating -hijack processes.",
+					"type":"number",
+					"default": 5
+				},
 				"program_update_check_mode": {
 					"description": "Automatically connect to the internet and check for updates via Github. Does nothing if allow_internet_usage is false.",
 					"oneOf": [
@@ -168,6 +173,6 @@
 	"required": [
 		"general",
 		"theme"
-							],
+	],
 	"definitions": {}
 }

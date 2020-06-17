@@ -268,7 +268,7 @@ void ActionManager::ProcessRunningCommands()
 		{
 			shouldRemove = true;
 		}
-		else if (it->GetElapsed() > 5s)
+		else if (it->GetElapsed() > std::chrono::duration<float>(m_Settings->m_CommandTimeoutSeconds))
 		{
 			LogWarning("Command timed out: "s << std::quoted(it->m_Command));
 			it->Terminate();

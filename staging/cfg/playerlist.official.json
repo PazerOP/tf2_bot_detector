@@ -2805,6 +2805,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592428260
+			},
+			"steamid": "[U:1:1104611071]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -2903,6 +2913,16 @@
 				"time": 1592125484
 			},
 			"steamid": "[U:1:1105528495]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[VALVE] Twilight Sparkle",
+				"time": 1592428241
+			},
+			"steamid": "[U:1:1105605056]"
 		},
 		{
 			"attributes": [
@@ -3134,6 +3154,16 @@
 				"time": 1592195660
 			},
 			"steamid": "[U:1:1106229564]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)[VALVE] Twilight Sparkle",
+				"time": 1592426884
+			},
+			"steamid": "[U:1:1106306126]"
 		},
 		{
 			"attributes": [
