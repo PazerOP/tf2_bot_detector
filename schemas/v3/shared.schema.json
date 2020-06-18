@@ -57,6 +57,39 @@
 					"type": "integer"
 				}
 			]
+		},
+		"file_info": {
+			"type": "object",
+			"description": "Information about this file.",
+			"additionalProperties": false,
+			"properties": {
+				"authors": {
+					"type": "array",
+					"description": "List of authors that maintain this list.",
+					"items": {
+						"type": "string"
+					},
+					"minItems": 1
+				},
+				"title": {
+					"type": "string",
+					"description": "A friendly name for this file.",
+					"default": "My Custom Rule List"
+				},
+				"description": {
+					"type": "string",
+					"description": "A friendly description for this file. Can be longer or more detailed than the title.",
+					"default": "I made this!"
+				},
+				"update_url": {
+					"type": "string",
+					"description": "A URL to fetch updated versions of this list from."
+				}
+			},
+			"required": [
+				"authors",
+				"title"
+			]
 		}
 	}
 }

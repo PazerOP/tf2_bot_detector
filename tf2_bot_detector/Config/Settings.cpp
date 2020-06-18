@@ -62,6 +62,39 @@ namespace tf2_bot_detector
 	}
 }
 
+void tf2_bot_detector::to_json(nlohmann::json& j, const ProgramUpdateCheckMode& d)
+{
+	switch (d)
+	{
+	case ProgramUpdateCheckMode::Unknown:   j = nullptr; return;
+	case ProgramUpdateCheckMode::Releases:  j = "releases"; return;
+	case ProgramUpdateCheckMode::Previews:  j = "previews"; return;
+	case ProgramUpdateCheckMode::Disabled:  j = "disabled"; return;
+
+	default:
+		throw std::invalid_argument("Unknown ProgramUpdateCheckMode "s << +std::underlying_type_t<ProgramUpdateCheckMode>(d));
+	}
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, ProgramUpdateCheckMode& d)
+{
+	if (j.is_null())
+	{
+		d = ProgramUpdateCheckMode::Unknown;
+		return;
+	}
+
+	auto value = j.get<std::string_view>();
+	if (value == "releases"sv)
+		d = ProgramUpdateCheckMode::Releases;
+	else if (value == "previews"sv)
+		d = ProgramUpdateCheckMode::Previews;
+	else if (value == "disabled"sv)
+		d = ProgramUpdateCheckMode::Disabled;
+	else
+		throw std::invalid_argument("Unknown ProgramUpdateCheckMode "s << std::quoted(value));
+}
+
 Settings::Settings()
 {
 	// Immediately load and resave to normalize any formatting
@@ -96,6 +129,9 @@ bool Settings::LoadFile()
 		try_get_to(*found, "local_steamid", m_LocalSteamID);
 		try_get_to(*found, "sleep_when_unfocused", m_SleepWhenUnfocused);
 		try_get_to(*found, "auto_temp_mute", m_AutoTempMute);
+		try_get_to(*found, "allow_internet_usage", m_AllowInternetUsage);
+		try_get_to(*found, "program_update_check_mode", m_ProgramUpdateCheckMode);
+		try_get_to(*found, "command_timeout_seconds", m_CommandTimeoutSeconds);
 
 		if (auto foundDir = found->find("tf_game_dir"); foundDir != found->end())
 			m_TFDir = foundDir->get<std::string_view>();
@@ -110,19 +146,24 @@ bool Settings::SaveFile() const
 {
 	nlohmann::json json =
 	{
-		{ "$schema", "./schema/settings.schema.json" },
+		{ "$schema", "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/settings.schema.json" },
 		{ "theme", m_Theme },
 		{ "general",
 			{
 				{ "tf_game_dir", m_TFDir.string() },
 				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
 				{ "auto_temp_mute", m_AutoTempMute },
+				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
+				{ "command_timeout_seconds", m_CommandTimeoutSeconds },
 			}
 		}
 	};
 
 	if (m_LocalSteamID.IsValid())
 		json["general"]["local_steamid"] = m_LocalSteamID;
+
+	if (m_AllowInternetUsage)
+		json["general"]["allow_internet_usage"] = *m_AllowInternetUsage;
 
 	// Make sure we successfully serialize BEFORE we destroy our file
 	auto jsonString = json.dump(1, '\t', true);

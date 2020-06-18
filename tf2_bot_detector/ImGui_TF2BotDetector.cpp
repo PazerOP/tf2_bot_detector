@@ -1,7 +1,9 @@
 #include "ImGui_TF2BotDetector.h"
 #include "PathUtils.h"
+#include "Config/Settings.h"
 #include "SteamID.h"
 #include "PlatformSpecific/Shell.h"
+#include "Version.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <mh/text/string_insertion.hpp>
@@ -251,6 +253,51 @@ bool tf2_bot_detector::InputTextTFDir(const std::string_view& label_id, std::fil
 	return modifySuccess;
 }
 
+bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
+{
+	const char* friendlyText = "<UNKNOWN>";
+	static constexpr char FRIENDLY_TEXT_DISABLED[] = "Disable automatic update checks";
+	static constexpr char FRIENDLY_TEXT_PREVIEW[] = "Notify about new preview releases";
+	static constexpr char FRIENDLY_TEXT_STABLE[] = "Notify about new stable releases";
+
+	const auto oldMode = mode;
+
+	constexpr bool allowReleases = VERSION.m_Preview == 0;
+	if (!allowReleases && mode == ProgramUpdateCheckMode::Releases)
+		mode = ProgramUpdateCheckMode::Previews;
+
+	switch (mode)
+	{
+	case ProgramUpdateCheckMode::Disabled: friendlyText = FRIENDLY_TEXT_DISABLED; break;
+	case ProgramUpdateCheckMode::Previews: friendlyText = FRIENDLY_TEXT_PREVIEW; break;
+	case ProgramUpdateCheckMode::Releases: friendlyText = FRIENDLY_TEXT_STABLE; break;
+	case ProgramUpdateCheckMode::Unknown:  friendlyText = "Select an option"; break;
+	}
+
+	if (ImGui::BeginCombo(label_id, friendlyText))
+	{
+		if (ImGui::Selectable(FRIENDLY_TEXT_DISABLED))
+			mode = ProgramUpdateCheckMode::Disabled;
+
+		ImGui::EnabledSwitch(allowReleases, [&]
+			{
+				ImGui::BeginGroup();
+
+				if (ImGui::Selectable(FRIENDLY_TEXT_STABLE))
+					mode = ProgramUpdateCheckMode::Releases;
+
+				ImGui::EndGroup();
+			}, "Since you are using a preview build, you will always be notified of new previews.");
+
+		if (ImGui::Selectable(FRIENDLY_TEXT_PREVIEW))
+			mode = ProgramUpdateCheckMode::Previews;
+
+		ImGui::EndCombo();
+	}
+
+	return mode != oldMode;
+}
+
 ImVec2 ImGui::CalcButtonSize(const char* label)
 {
 	const auto& style = ImGui::GetStyle();
@@ -265,4 +312,20 @@ void ImGui::Value(const char* prefix, double v, const char* float_format)
 void ImGui::Value(const char* prefix, const char* str)
 {
 	Text("%s: %s", prefix, str ? str : "<NULL>");
+}
+
+void ImGui::Value(const char* prefix, uint64_t v)
+{
+	Text("%s: %llu", prefix, v);
+}
+
+void ImGui::SetHoverTooltip(const char* tooltipFmt, ...)
+{
+	va_list args;
+	va_start(args, tooltipFmt);
+
+	if (IsItemHovered())
+		SetTooltipV(tooltipFmt, args);
+
+	va_end(args);
 }

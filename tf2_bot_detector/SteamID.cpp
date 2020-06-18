@@ -103,5 +103,8 @@ void tf2_bot_detector::to_json(nlohmann::json& j, const SteamID& d)
 
 void tf2_bot_detector::from_json(const nlohmann::json& j, SteamID& d)
 {
-	d = SteamID(j.get<std::string_view>());
+	if (j.is_number_unsigned())
+		d = SteamID(j.get<uint64_t>());
+	else
+		d = SteamID(j.get<std::string_view>());
 }

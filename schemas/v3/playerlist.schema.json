@@ -9,10 +9,8 @@
 			"description": "The JSON schema to validate this file against.",
 			"type": "string"
 		},
-		"version": {
-			"type": "integer",
-			"description": "Player list version. Some actions are taken depending on version number deltas.",
-			"default": 2
+		"file_info": {
+			"$ref": "./shared.schema.json#/definitions/file_info"
 		},
 		"players": {
 			"description": "Players in this list",
@@ -24,8 +22,7 @@
 	},
 	"required": [
 		"$schema",
-		"players",
-		"version"
+		"players"
 	],
 	"definitions": {
 		"tfbd_playerlist_entry": {

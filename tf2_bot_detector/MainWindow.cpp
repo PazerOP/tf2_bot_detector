@@ -1,11 +1,14 @@
 #include "MainWindow.h"
 #include "ConsoleLines.h"
+#include "GithubAPI.h"
 #include "NetworkStatus.h"
 #include "RegexHelpers.h"
+#include "PlatformSpecific/Shell.h"
 #include "ImGui_TF2BotDetector.h"
 #include "PeriodicActions.h"
 #include "Log.h"
 #include "PathUtils.h"
+#include "Version.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -49,6 +52,22 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		const auto steamID = player.GetSteamID();
 		if (ImGui::MenuItem("Copy SteamID", nullptr, false, steamID.IsValid()))
 			ImGui::SetClipboardText(steamID.str().c_str());
+
+		if (ImGui::BeginMenu("Go To"))
+		{
+			if (ImGui::MenuItem("Steam Community"))
+				OpenURL("https://steamcommunity.com/profiles/"s << player.GetSteamID().ID64);
+			if (ImGui::MenuItem("logs.tf"))
+				OpenURL("http://logs.tf/profile/"s << player.GetSteamID().ID64);
+			if (ImGui::MenuItem("RGL"))
+				OpenURL("https://rgl.gg/Public/PlayerProfile.aspx?p="s << player.GetSteamID().ID64);
+			if (ImGui::MenuItem("SteamRep"))
+				OpenURL("https://steamrep.com/profiles/"s << player.GetSteamID().ID64);
+			if (ImGui::MenuItem("UGC League"))
+				OpenURL("https://www.ugcleague.com/players_page.cfm?player_id="s << player.GetSteamID().ID64);
+
+			ImGui::EndMenu();
+		}
 
 		const auto& world = GetWorld();
 		auto& modLogic = GetModLogic();
@@ -520,8 +539,126 @@ void MainWindow::OnDrawSettingsPopup()
 				ImGui::SetTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
 		}
 
+		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false); ImGui::Checkbox("Allow internet connectivity", &allowInternet))
+		{
+			m_Settings.m_AllowInternetUsage = allowInternet;
+			m_Settings.SaveFile();
+		}
+
+		ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
+			{
+				auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
+
+				if (Combo("Automatic update checking", mode))
+				{
+					m_Settings.m_ProgramUpdateCheckMode = mode;
+					m_Settings.SaveFile();
+				}
+			}, "Requires \"Allow internet connectivity\"");
+
 		ImGui::EndPopup();
 	}
+}
+
+void MainWindow::OnDrawUpdateCheckPopup()
+{
+	static constexpr char POPUP_NAME[] = "Check for Updates##Popup";
+
+	static bool s_Open = false;
+	if (m_UpdateCheckPopupOpen)
+	{
+		m_UpdateCheckPopupOpen = false;
+		ImGui::OpenPopup(POPUP_NAME);
+		s_Open = true;
+	}
+
+	ImGui::SetNextWindowSize({ 500, 300 }, ImGuiCond_Appearing);
+	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::PushTextWrapPos();
+		ImGui::TextUnformatted("You have chosen to disable internet connectivity for TF2 Bot Detector. You can still manually check for updates below.");
+		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Reminder: if you use antivirus software, connecting to the internet may trigger warnings.");
+
+		ImGui::EnabledSwitch(!m_UpdateInfo.is_valid(), [&]
+			{
+				if (ImGui::Button("Check for updates"))
+					GetUpdateInfo();
+			});
+
+		ImGui::NewLine();
+
+		if (m_UpdateInfo.is_ready())
+		{
+			auto& updateInfo = *m_UpdateInfo;
+
+			if (updateInfo.IsUpToDate())
+			{
+				ImGui::TextColoredUnformatted({ 0.1f, 1, 0.1f, 1 }, "You are already running the latest version of TF2 Bot Detector.");
+			}
+			else if (updateInfo.IsPreviewAvailable())
+			{
+				ImGui::TextUnformatted("There is a new preview version available.");
+				if (ImGui::Button("View on Github"))
+					OpenURL(updateInfo.m_Preview->m_URL);
+			}
+			else if (updateInfo.IsReleaseAvailable())
+			{
+				ImGui::TextUnformatted("There is a new stable version available.");
+				if (ImGui::Button("View on Github"))
+					OpenURL(updateInfo.m_Stable->m_URL);
+			}
+			else if (updateInfo.IsError())
+			{
+				ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "There was an error checking for updates.");
+			}
+		}
+		else if (m_UpdateInfo.is_valid())
+		{
+			ImGui::TextUnformatted("Checking for updates...");
+		}
+		else
+		{
+			ImGui::TextUnformatted("Press \"Check for updates\" to check Github for a newer version.");
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
+void MainWindow::OpenUpdateCheckPopup()
+{
+	m_NotifyOnUpdateAvailable = false;
+	m_UpdateCheckPopupOpen = true;
+}
+
+void MainWindow::OnDrawUpdateAvailablePopup()
+{
+	static constexpr char POPUP_NAME[] = "Update Available##Popup";
+
+	static bool s_Open = false;
+	if (m_UpdateAvailablePopupOpen)
+	{
+		m_UpdateAvailablePopupOpen = false;
+		ImGui::OpenPopup(POPUP_NAME);
+		s_Open = true;
+	}
+
+	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo->IsPreviewAvailable() ? " preview" : "")
+			<< " version of TF2 Bot Detector available for download.");
+
+		if (ImGui::Button("View on Github"))
+			OpenURL(m_UpdateInfo->GetURL());
+
+		ImGui::EndPopup();
+	}
+}
+
+void MainWindow::OpenUpdateAvailablePopup()
+{
+	m_NotifyOnUpdateAvailable = false;
+	m_UpdateAvailablePopupOpen = true;
 }
 
 void MainWindow::OnDrawServerStats()
@@ -613,6 +750,12 @@ void MainWindow::OnDraw()
 
 	if (IsWorldValid())
 	{
+		ImGui::Value("Blackslisted user count", GetModLogic().GetBlacklistedPlayerCount());
+		ImGui::Value("Rule count", GetModLogic().GetRuleCount());
+	}
+
+	if (IsWorldValid())
+	{
 		auto& world = GetWorld();
 		const auto parsedLineCount = world.GetParsedLineCount();
 		const auto parseProgress = world.GetParseProgress();
@@ -638,6 +781,8 @@ void MainWindow::OnDraw()
 	ImGui::NextColumn();
 
 	OnDrawSettingsPopup();
+	OnDrawUpdateAvailablePopup();
+	OnDrawUpdateCheckPopup();
 }
 
 void MainWindow::OnDrawMenuBar()
@@ -697,9 +842,52 @@ void MainWindow::OnDrawMenuBar()
 	if (ImGui::MenuItem("Settings"))
 		OpenSettingsPopup();
 
-	if (ImGui::BeginMenu("About"))
+	if (ImGui::BeginMenu("Help"))
 	{
-		ImGui::MenuItem("Version: 1.1 preview 8", nullptr, false, false);
+		if (ImGui::MenuItem("Open GitHub"))
+			OpenURL("https://github.com/PazerOP/tf2_bot_detector");
+		if (ImGui::MenuItem("Open Discord"))
+			OpenURL("https://discord.gg/W8ZSh3Z");
+
+		ImGui::Separator();
+
+		char buf[128];
+		sprintf_s(buf, "Version: %s", VERSION_STRING);
+		ImGui::MenuItem(buf, nullptr, false, false);
+
+		if (m_Settings.m_AllowInternetUsage.value_or(false))
+		{
+			auto newVersion = GetUpdateInfo();
+			if (!newVersion)
+			{
+				ImGui::MenuItem("Checking for new version...", nullptr, nullptr, false);
+			}
+			else if (newVersion->IsUpToDate())
+			{
+				ImGui::MenuItem("Up to date!", nullptr, nullptr, false);
+			}
+			else if (newVersion->IsReleaseAvailable())
+			{
+				ImGuiDesktop::ScopeGuards::TextColor green({ 0, 1, 0, 1 });
+				if (ImGui::MenuItem("A new version is available"))
+					OpenURL(newVersion->m_Stable->m_URL);
+			}
+			else if (newVersion->IsPreviewAvailable())
+			{
+				if (ImGui::MenuItem("A new preview is available"))
+					OpenURL(newVersion->m_Preview->m_URL);
+			}
+			else
+			{
+				assert(newVersion->IsError());
+				ImGui::MenuItem("Error occurred checking for new version.", nullptr, nullptr, false);
+			}
+		}
+		else
+		{
+			if (ImGui::MenuItem("Check for updates..."))
+				OpenUpdateCheckPopup();
+		}
 
 		ImGui::EndMenu();
 	}
@@ -713,6 +901,17 @@ bool MainWindow::HasMenuBar() const
 	return true;
 }
 
+GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
+{
+	if (!m_UpdateInfo.is_valid())
+		m_UpdateInfo = GithubAPI::CheckForNewVersion();
+
+	if (m_UpdateInfo.is_ready())
+		return &m_UpdateInfo.get();
+
+	return nullptr;
+}
+
 void MainWindow::OnUpdate()
 {
 	if (m_SetupFlow.OnUpdate(m_Settings))
@@ -724,6 +923,31 @@ void MainWindow::OnUpdate()
 	{
 		m_WorldState.emplace(*this, m_Settings, m_Settings.m_TFDir / "console.log");
 	}
+
+	// Update check
+	std::invoke([&]
+		{
+			if (!m_NotifyOnUpdateAvailable)
+				return;
+
+			if (!m_Settings.m_AllowInternetUsage.value_or(false))
+				return;
+
+			const bool checkPreviews = m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Previews;
+			const bool checkReleases = checkPreviews || m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Releases;
+			if (!checkPreviews && !checkReleases)
+				return;
+
+			auto result = GetUpdateInfo();
+			if (!result)
+				return;
+
+			if ((result->IsPreviewAvailable() && checkPreviews) ||
+				(result->IsReleaseAvailable() && checkReleases))
+			{
+				OpenUpdateAvailablePopup();
+			}
+		});
 
 	if (!m_Paused && m_WorldState.has_value())
 	{

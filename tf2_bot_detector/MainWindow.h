@@ -6,6 +6,7 @@
 #include "CompensatedTS.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Settings.h"
+#include "GithubAPI.h"
 #include "ModeratorLogic.h"
 #include "SetupFlow.h"
 #include "WorldState.h"
@@ -51,6 +52,18 @@ namespace tf2_bot_detector
 		void OnDrawSettingsPopup();
 		bool m_SettingsPopupOpen = false;
 		void OpenSettingsPopup() { m_SettingsPopupOpen = true; }
+
+		void OnDrawUpdateCheckPopup();
+		bool m_UpdateCheckPopupOpen = false;
+		void OpenUpdateCheckPopup();
+
+		void OnDrawUpdateAvailablePopup();
+		bool m_UpdateAvailablePopupOpen = false;
+		void OpenUpdateAvailablePopup();
+
+		GithubAPI::NewVersionResult* GetUpdateInfo();
+		AsyncObject<GithubAPI::NewVersionResult> m_UpdateInfo;
+		bool m_NotifyOnUpdateAvailable = true;
 
 		void OnUpdate() override;
 

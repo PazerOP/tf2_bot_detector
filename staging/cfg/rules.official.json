@@ -1,5 +1,13 @@
 {
-	"$schema": "./schema/rules.schema.json",
+	"$schema": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/rules.schema.json",
+	"file_info": {
+		"authors": [
+			"pazer"
+		],
+		"description": "Official rules list for TF2 Bot Detector.",
+		"title": "Official rules list",
+		"update_url": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/staging/cfg/rules.official.json"
+	},
 	"rules": [
 		{
 			"actions": {
@@ -32,13 +40,65 @@
 					"cheater"
 				]
 			},
+			"description": "(catbot) mygot 2",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"[t0gym]",
+						"[g0tb0t]"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "[VAC] OneTrick",
 			"triggers": {
 				"username_text_match": {
 					"case_sensitive": false,
-					"mode": "equal",
+					"mode": "contains",
 					"patterns": [
 						"[VAC] OneTrick"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "[VALVE] Twilight Sparkle",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"[VALVE] Twilight Sparkle"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "royalhack.net",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"royalhack.net"
 					]
 				}
 			}
@@ -106,8 +166,8 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"\n\n",
-						"\r\n\r\n"
+						"\n",
+						"\r\n"
 					]
 				}
 			}

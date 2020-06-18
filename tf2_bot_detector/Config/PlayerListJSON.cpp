@@ -1,4 +1,6 @@
 #include "PlayerListJSON.h"
+#include "ConfigHelpers.h"
+#include "HTTPHelpers.h"
 #include "Log.h"
 #include "Settings.h"
 #include "JSONHelpers.h"
@@ -118,177 +120,88 @@ namespace tf2_bot_detector
 }
 
 PlayerListJSON::PlayerListJSON(const Settings& settings) :
-	m_Settings(&settings)
+	m_CFGGroup(settings)
 {
 	// Immediately load and resave to normalize any formatting
 	LoadFiles();
-	SaveFile();
 }
 
-bool PlayerListJSON::LoadFile(const std::filesystem::path& filename, PlayerMap_t& map) const
+void PlayerListJSON::PlayerListFile::ValidateSchema(const ConfigSchemaInfo& schema) const
 {
-	Log("Loading player list from "s << filename);
+	if (schema.m_Type != "playerlist")
+		throw std::runtime_error("Schema "s << std::quoted(schema.m_Type) << " is not a playerlist");
+	if (schema.m_Version != 3)
+		throw std::runtime_error("Schema must be version 3 (current version "s << schema.m_Version << ')');
+}
 
-	nlohmann::json json;
-	{
-		std::ifstream file(filename);
-		if (!file.good())
-		{
-			LogWarning(std::string(__FUNCTION__ ": Failed to open ") << filename);
-			return false;
-		}
+void PlayerListJSON::PlayerListFile::Deserialize(const nlohmann::json& json)
+{
+	SharedConfigFileBase::Deserialize(json);
 
-		try
-		{
-			file >> json;
-		}
-		catch (const std::exception& e)
-		{
-			LogError(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
-			return false;
-		}
-	}
-
-	if (int version; !try_get_to(json, "version", version) || version < 2)
-	{
-		// Discard the file. Can't trust the bans due to an exploit.
-		return true;
-	}
-
+	PlayerMap_t& map = m_Players;
 	for (const auto& player : json.at("players"))
 	{
-		const SteamID steamID(player.at("steamid").get<std::string>());
+		const SteamID steamID = player.at("steamid");
 		PlayerListData parsed(steamID);
 		player.get_to(parsed);
 		map.emplace(steamID, std::move(parsed));
 	}
-
-	return true;
 }
 
-bool PlayerListJSON::IsOfficial() const
+void PlayerListJSON::PlayerListFile::Serialize(nlohmann::json& json) const
 {
-	// I am magic. I get to mess with playerlist.official.json, while
-	// mere mortals have to use playerlist.json.
-	return m_Settings->m_LocalSteamID.IsPazer();
-}
+	SharedConfigFileBase::Serialize(json);
 
-auto PlayerListJSON::GetMutableList() -> PlayerMap_t&
-{
-	if (IsOfficial())
-		return m_OfficialPlayerList;
+	if (!m_Schema || m_Schema->m_Version != PLAYERLIST_SCHEMA_VERSION)
+		json["$schema"] = ConfigSchemaInfo("playerlist", PLAYERLIST_SCHEMA_VERSION);
 
-	if (!m_UserPlayerList)
-		m_UserPlayerList.emplace();
+	auto& players = json["players"];
+	players = json.array();
 
-	return m_UserPlayerList.value();
-}
+	for (const auto& pair : m_Players)
+	{
+		if (pair.second.m_Attributes.empty())
+			continue;
 
-auto PlayerListJSON::GetMutableList() const -> const PlayerMap_t*
-{
-	if (IsOfficial())
-		return &m_OfficialPlayerList;
-
-	if (!m_UserPlayerList)
-		return nullptr;
-
-	return &m_UserPlayerList.value();
+		players.push_back(pair.second);
+	}
 }
 
 bool PlayerListJSON::LoadFiles()
 {
-	if (!IsOfficial())
-	{
-		if (!m_UserPlayerList.has_value())
-			m_UserPlayerList.emplace();
-
-		LoadFile("cfg/playerlist.json", m_UserPlayerList.value());
-	}
-
-	m_OfficialPlayerList.clear();
-	LoadFile("cfg/playerlist.official.json", m_OfficialPlayerList);
-
-	m_OtherPlayerLists.clear();
-	if (std::filesystem::is_directory("cfg"))
-	{
-		try
-		{
-			for (const auto& file : std::filesystem::directory_iterator("cfg",
-				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
-			{
-				static const std::regex s_PlayerListRegex(R"regex(playerlist\.(.*\.)?json)regex", std::regex::optimize);
-				const auto path = file.path();
-				const auto filename = path.filename().string();
-				if (mh::case_insensitive_compare(filename, "playerlist.json"sv) || mh::case_insensitive_compare(filename, "playerlist.official.json"sv))
-					continue;
-
-				if (std::regex_match(filename.begin(), filename.end(), s_PlayerListRegex))
-				{
-					LoadFile(path, m_OtherPlayerLists);
-				}
-			}
-		}
-		catch (const std::filesystem::filesystem_error& e)
-		{
-			LogError(std::string(__FUNCTION__ ": Exception when loading playerlist.*.json files from ./cfg/: ") << e.what());
-		}
-	}
+	m_CFGGroup.LoadFiles();
 
 	return true;
 }
 
 void PlayerListJSON::SaveFile() const
 {
-	nlohmann::json json =
+	m_CFGGroup.SaveFile();
+}
+
+mh::generator<const PlayerListData*> PlayerListJSON::FindPlayerData(const SteamID& id) const
+{
+	if (m_CFGGroup.m_UserList.has_value())
 	{
-		{ "$schema", "./schema/playerlist.schema.json" }
-	};
-
-	json["version"] = VERSION;
-
-	auto& players = json["players"];
-	players = json.array();
-
-	if (auto mutableList = GetMutableList())
-	{
-		for (const auto& pair : *mutableList)
-		{
-			if (pair.second.m_Attributes.empty())
-				continue;
-
-			players.push_back(pair.second);
-		}
+		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id); found != m_CFGGroup.m_UserList->m_Players.end())
+			co_yield &found->second;
 	}
-
-	// Make sure we successfully serialize BEFORE we destroy our file
-	auto jsonString = json.dump(1, '\t', true);
+	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
 	{
-		std::ofstream file(IsOfficial() ? "cfg/playerlist.official.json" : "cfg/playerlist.json");
-		file << jsonString << '\n';
+		if (auto found = m_CFGGroup.m_ThirdPartyLists->find(id); found != m_CFGGroup.m_ThirdPartyLists->end())
+			co_yield &found->second;
+	}
+	if (m_CFGGroup.m_OfficialList.is_ready())
+	{
+		if (auto found = m_CFGGroup.m_OfficialList->m_Players.find(id); found != m_CFGGroup.m_OfficialList->m_Players.end())
+			co_yield &found->second;
 	}
 }
 
-const PlayerListData* PlayerListJSON::FindPlayerData(const SteamID& id) const
+mh::generator<const PlayerAttributesList*> PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
 {
-	if (m_UserPlayerList.has_value())
-	{
-		if (auto found = m_UserPlayerList->find(id); found != m_UserPlayerList->end())
-			return &found->second;
-	}
-	if (auto found = m_OtherPlayerLists.find(id); found != m_OtherPlayerLists.end())
-		return &found->second;
-	if (auto found = m_OfficialPlayerList.find(id); found != m_OfficialPlayerList.end())
-		return &found->second;
-
-	return nullptr;
-}
-
-const PlayerAttributesList* PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
-{
-	if (auto found = FindPlayerData(id))
-		return &found->m_Attributes;
-
-	return nullptr;
+	for (const PlayerListData* found : FindPlayerData(id))
+		co_yield &found->m_Attributes;
 }
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const
@@ -298,7 +211,7 @@ bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attr
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const
 {
-	if (auto found = FindPlayerAttributes(id))
+	for (const PlayerAttributesList* found : FindPlayerAttributes(id))
 	{
 		for (auto attr : attributes)
 		{
@@ -321,13 +234,11 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	ModifyPlayerAction(*func)(PlayerListData& data, const void* userData), const void* userData)
 {
 	PlayerListData* data = nullptr;
-	if (auto found = GetMutableList().find(id); found != GetMutableList().end())
+	auto& mutableList = m_CFGGroup.GetMutableList();
+	if (auto found = mutableList.m_Players.find(id); found != mutableList.m_Players.end())
 		data = &found->second;
 	else
-	{
-		auto existing = FindPlayerData(id);
-		data = &GetMutableList().emplace(id, existing ? *existing : PlayerListData(id)).first->second;
-	}
+		data = &mutableList.m_Players.emplace(id, PlayerListData(id)).first->second;
 
 	const auto action = func(*data, userData);
 	if (action == ModifyPlayerAction::Modified)
@@ -367,16 +278,37 @@ bool PlayerAttributesList::SetAttribute(PlayerAttributes attribute, bool set)
 {
 #undef HELPER
 #define HELPER(value) \
+	do \
 	{ \
 		auto old = (value); \
 		(value) = set; \
 		return old != (value); \
-	}
+	} while(false)
 
 	switch (attribute)
 	{
-	case PlayerAttributes::Cheater:     HELPER(m_Cheater);
-	case PlayerAttributes::Suspicious:  HELPER(m_Suspicious);
+	case PlayerAttributes::Cheater:
+	{
+		bool result = false;
+		if (m_Suspicious)
+		{
+			m_Suspicious = false;
+			result = true;
+		}
+
+		if (!m_Cheater)
+		{
+			m_Cheater = true;
+			result = true;
+		}
+
+		return result;
+	}
+	case PlayerAttributes::Suspicious:
+		if (!HasAttribute(PlayerAttributes::Cheater))
+			HELPER(m_Suspicious);
+		else
+			return false;
 	case PlayerAttributes::Exploiter:   HELPER(m_Exploiter);
 	case PlayerAttributes::Racist:      HELPER(m_Racist);
 
@@ -388,4 +320,31 @@ bool PlayerAttributesList::SetAttribute(PlayerAttributes attribute, bool set)
 bool PlayerAttributesList::empty() const
 {
 	return !m_Cheater && !m_Suspicious && !m_Exploiter && !m_Racist;
+}
+
+PlayerAttributesList& PlayerAttributesList::operator|=(const PlayerAttributesList& other)
+{
+	m_Cheater = m_Cheater || other.m_Cheater;
+	m_Suspicious = m_Suspicious || other.m_Suspicious;
+	m_Exploiter = m_Exploiter || other.m_Exploiter;
+	m_Racist = m_Racist || other.m_Racist;
+
+	return *this;
+}
+
+void PlayerListJSON::ConfigFileGroup::CombineEntries(PlayerMap_t& map, const PlayerListFile& file) const
+{
+	for (auto& otherEntryPair : file.m_Players)
+	{
+		auto newEntryResult = map.emplace(otherEntryPair.first, otherEntryPair.second);
+		if (!newEntryResult.second)
+		{
+			auto& otherEntry = otherEntryPair.second;
+			auto& newEntry = newEntryResult.first->second;
+
+			newEntry.m_Attributes |= otherEntry.m_Attributes; // Merge if it already existed
+			if (otherEntry.m_LastSeen && !newEntry.m_LastSeen || otherEntry.m_LastSeen > newEntry.m_LastSeen)
+				newEntry.m_LastSeen = otherEntry.m_LastSeen;
+		}
+	}
 }

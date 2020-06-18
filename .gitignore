@@ -343,3 +343,4 @@ build/
 CMakeFiles/
 .vscode/
 staging/cfg/settings.json
+out/

@@ -9,6 +9,9 @@
 			"description": "The JSON schema to validate this file against.",
 			"type": "string"
 		},
+		"file_info": {
+			"$ref": "./shared.schema.json#/definitions/file_info"
+		},
 		"rules": {
 			"description": "Defines rules for automatically performing actions on players.",
 			"type": "array",

@@ -161,120 +161,75 @@ namespace tf2_bot_detector
 }
 
 ModerationRules::ModerationRules(const Settings& settings) :
-	m_Settings(&settings)
+	m_CFGGroup(settings)
 {
 	// Immediately load and resave to normalize any formatting
 	Load();
-	Save();
 }
 
 bool ModerationRules::Load()
 {
-	if (!IsOfficial())
-		LoadFile("cfg/rules.json", m_UserRules);
-
-	LoadFile("cfg/rules.official.json", m_OfficialRules);
-
-	m_OtherRules.clear();
-	if (std::filesystem::is_directory("cfg"))
-	{
-		try
-		{
-			for (const auto& file : std::filesystem::directory_iterator("cfg",
-				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
-			{
-				static const std::regex s_RulesRegex(R"regex(rules\.(.*\.)?json)regex", std::regex::optimize);
-				const auto path = file.path();
-				const auto filename = path.filename().string();
-				if (mh::case_insensitive_compare(filename, "rules.json"sv) || mh::case_insensitive_compare(filename, "rules.official.json"sv))
-					continue;
-
-				if (std::regex_match(filename.begin(), filename.end(), s_RulesRegex))
-				{
-					LoadFile(path, m_OtherRules);
-				}
-			}
-		}
-		catch (const std::filesystem::filesystem_error& e)
-		{
-			LogError(std::string(__FUNCTION__ ": Exception when loading rules.*.json files from ./cfg/: ") << e.what());
-		}
-	}
+	m_CFGGroup.LoadFiles();
 
 	return true;
 }
 
 bool ModerationRules::Save() const
 {
-	nlohmann::json json =
-	{
-		{ "$schema", "./schema/rules.schema.json" },
-	};
-
-	json["rules"] = GetMutableList();
-
-	// Make sure we successfully serialize BEFORE we destroy our file
-	auto jsonString = json.dump(1, '\t', true);
-	{
-		std::ofstream file(IsOfficial() ? "cfg/rules.official.json" : "cfg/rules.json");
-		file << jsonString << '\n';
-	}
+	m_CFGGroup.SaveFile();
 
 	return true;
 }
 
 mh::generator<const ModerationRule*> tf2_bot_detector::ModerationRules::GetRules() const
 {
-	for (const auto& rule : m_OfficialRules)
-		co_yield &rule;
-	for (const auto& rule : m_UserRules)
-		co_yield &rule;
-	for (const auto& rule : m_OtherRules)
-		co_yield &rule;
+	if (m_CFGGroup.m_OfficialList.is_ready())
+	{
+		for (const auto& rule : m_CFGGroup.m_OfficialList->m_Rules)
+			co_yield &rule;
+	}
+
+	if (m_CFGGroup.m_UserList)
+	{
+		for (const auto& rule : m_CFGGroup.m_UserList->m_Rules)
+			co_yield &rule;
+	}
+
+	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
+	{
+		for (const auto& rule : m_CFGGroup.m_ThirdPartyLists.get())
+			co_yield &rule;
+	}
 }
 
-bool ModerationRules::IsOfficial() const
+void ModerationRules::RuleFile::ValidateSchema(const ConfigSchemaInfo& schema) const
 {
-	// I'm special
-	return m_Settings->m_LocalSteamID.IsPazer();
+	if (schema.m_Type != "rules")
+		throw std::runtime_error("Schema is not a rules list");
+	if (schema.m_Version != RULES_SCHEMA_VERSION)
+		throw std::runtime_error("Schema must be version 3");
 }
 
-bool ModerationRules::LoadFile(const std::filesystem::path& filename, RuleList_t& rules) const
+void ModerationRules::RuleFile::Deserialize(const nlohmann::json& json)
 {
-	Log("Loading rules list from "s << filename);
+	SharedConfigFileBase::Deserialize(json);
 
-	nlohmann::json json;
-	{
-		std::ifstream file(filename);
-		if (!file.good())
-		{
-			LogWarning(std::string(__FUNCTION__ ": Failed to open ") << filename);
-			return false;
-		}
+	m_Rules = json.at("rules").get<RuleList_t>();
+}
 
-		try
-		{
-			file >> json;
-		}
-		catch (const std::exception& e)
-		{
-			LogError(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
-			return false;
-		}
-	}
+void ModerationRules::RuleFile::Serialize(nlohmann::json& json) const
+{
+	SharedConfigFileBase::Serialize(json);
 
-	bool success = true;
-	if (auto found = json.find("rules"); found != json.end())
-	{
-		rules = found->get<RuleList_t>();
-	}
-	else
-	{
-		LogError(std::string(__FUNCTION__ ": Failed to find \"rules\" object when parsing JSON from ") << filename);
-		success = false;
-	}
+	if (!m_Schema || m_Schema->m_Type != "rules" || m_Schema->m_Version != RULES_SCHEMA_VERSION)
+		json["$schema"] = ConfigSchemaInfo("rules", RULES_SCHEMA_VERSION);
 
-	return success;
+	json["rules"] = m_Rules;
+}
+
+void ModerationRules::ConfigFileGroup::CombineEntries(RuleList_t& list, const RuleFile& file) const
+{
+	list.insert(list.end(), file.m_Rules.begin(), file.m_Rules.end());
 }
 
 bool TextMatch::Match(const std::string_view& text) const

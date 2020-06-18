@@ -49,6 +49,9 @@ namespace tf2_bot_detector
 
 		const PlayerWhitelist& GetPlayerWhitelist() const { return m_PlayerWhitelist; }
 
+		size_t GetBlacklistedPlayerCount() const { return m_PlayerList.GetPlayerCount(); }
+		size_t GetRuleCount() const { return m_Rules.GetRuleCount(); }
+
 	private:
 		WorldState* m_World = nullptr;
 		const Settings* m_Settings = nullptr;
@@ -110,8 +113,8 @@ namespace tf2_bot_detector
 		void HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& enemyCheaters);
 		void HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& connectingEnemyCheaters);
 
-		ModerationRules m_Rules;
 		PlayerListJSON m_PlayerList;
+		ModerationRules m_Rules;
 		PlayerWhitelist m_PlayerWhitelist;
 	};
 }

@@ -117,3 +117,8 @@ std::filesystem::path tf2_bot_detector::BrowseForFolderDialog()
 		return {};
 	}
 }
+
+void tf2_bot_detector::OpenURL(const char* url)
+{
+	ShellExecuteA(NULL, "open", url, nullptr, nullptr, SW_SHOWNORMAL);
+}

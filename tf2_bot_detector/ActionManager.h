@@ -53,9 +53,9 @@ namespace tf2_bot_detector
 
 	private:
 		struct Writer;
-		bool ProcessSimpleCommands(const Writer& writer) const;
+		bool ProcessSimpleCommands(const Writer& writer);
 		bool ProcessComplexCommands(const Writer& writer);
-		bool SendCommandToGame(const std::string_view& cmd) const;
+		bool SendCommandToGame(std::string cmd);
 
 		static constexpr duration_t UPDATE_INTERVAL = std::chrono::seconds(1);
 
@@ -79,6 +79,10 @@ namespace tf2_bot_detector
 		std::vector<std::unique_ptr<IAction>> m_PiggybackActions;
 		std::map<ActionType, time_point_t> m_LastTriggerTime;
 		uint32_t m_LastUpdateIndex = 0;
+
+		struct RunningCommand;
+		std::list<RunningCommand> m_RunningCommands;
+		void ProcessRunningCommands();
 
 		struct PeriodicAction
 		{

@@ -32,13 +32,12 @@ namespace tf2_bot_detector
 		LogMessageColor m_Color;
 	};
 
-	void Log(std::string msg);
+	void Log(std::string msg, const LogMessageColor& color = {});
 	void LogWarning(std::string msg);
 	void LogError(std::string msg);
 
-	void Log(std::string msg, const LogMessageColor& color);
-
 	void DebugLog(std::string msg, const LogMessageColor& color = {});
+	void DebugLogWarning(std::string msg);
 
 	void SetLogTimestamp(time_point_t timestamp);
 
