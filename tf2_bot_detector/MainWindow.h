@@ -61,6 +61,8 @@ namespace tf2_bot_detector
 		bool m_UpdateAvailablePopupOpen = false;
 		void OpenUpdateAvailablePopup();
 
+		void GenerateDebugReport();
+
 		GithubAPI::NewVersionResult* GetUpdateInfo();
 		AsyncObject<GithubAPI::NewVersionResult> m_UpdateInfo;
 		bool m_NotifyOnUpdateAvailable = true;

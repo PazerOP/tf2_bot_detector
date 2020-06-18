@@ -42,24 +42,42 @@ namespace tf2_bot_detector
 		LogToStream(msg, output);
 		s_LogMessages.push_back({ s_LogTimestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 	}
+}
 
+const std::filesystem::path& tf2_bot_detector::GetLogFilename()
+{
+	static const std::filesystem::path s_Path = []() -> std::filesystem::path
+	{
+		std::filesystem::path logPath = "logs";
+
+		std::error_code ec;
+		std::filesystem::create_directories(logPath, ec);
+		if (ec)
+		{
+			LogInternal("Failed to create directory "s << logPath << ". Log output will go to stdout.", {}, std::cout);
+			return {};
+		}
+
+		auto t = ToTM(clock_t::now());
+		return logPath / (""s << std::put_time(&t, "%Y-%m-%d_%H-%M-%S") << ".log");
+	}();
+
+	return s_Path;
+}
+
+namespace tf2_bot_detector
+{
 	static std::ostream& GetLogFile()
 	{
 		static std::ostream& s_LogFile = []() -> std::ostream&
 		{
-			std::filesystem::path logPath = "logs";
-
-			std::error_code ec;
-			std::filesystem::create_directories(logPath, ec);
-			if (ec)
+			const auto& logPath = GetLogFilename();
+			if (logPath.empty())
 			{
-				LogInternal("Failed to create directory "s << logPath << ". Log output will go to stdout.", {}, std::cout);
 				return std::cout;
 			}
 
-			auto t = ToTM(clock_t::now());
-			logPath /= (""s << std::put_time(&t, "%Y-%m-%d_%H-%M-%S") << ".log");
-			static std::ofstream s_LogFileLocal(logPath, std::ofstream::ate | std::ofstream::app | std::ofstream::out);
+			static std::ofstream s_LogFileLocal(logPath, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
 			if (!s_LogFileLocal.good())
 			{
 				LogInternal("Failed to open log file "s << logPath << ". Log output will go to stdout.", {}, std::cout);

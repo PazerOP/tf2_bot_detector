@@ -169,7 +169,7 @@ bool Settings::SaveFile() const
 	auto jsonString = json.dump(1, '\t', true);
 	{
 		std::filesystem::create_directories(std::filesystem::path(s_SettingsPath).remove_filename());
-		std::ofstream file(s_SettingsPath);
+		std::ofstream file(s_SettingsPath, std::ios::binary);
 		if (!file.good())
 		{
 			LogError(std::string(__FUNCTION__ ": Failed to open settings file for writing: ") << s_SettingsPath);

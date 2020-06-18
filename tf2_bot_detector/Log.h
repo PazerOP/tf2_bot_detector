@@ -4,6 +4,7 @@
 
 #include <mh/coroutine/generator.hpp>
 
+#include <filesystem>
 #include <string>
 
 struct ImVec4;
@@ -40,6 +41,7 @@ namespace tf2_bot_detector
 	void DebugLogWarning(std::string msg);
 
 	void SetLogTimestamp(time_point_t timestamp);
+	const std::filesystem::path& GetLogFilename();
 
 	mh::generator<const LogMessage*> GetLogMsgs();
 }

@@ -109,11 +109,15 @@ target_link_libraries(tf2_bot_detector PRIVATE OpenSSL::SSL)
 find_path(HTTPLIB_PATH NAMES httplib.h)
 target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 
+find_package(libzippp CONFIG REQUIRED)
+
 target_link_libraries(tf2_bot_detector PRIVATE
 	imgui_desktop
 	implot
 	mh_stuff
 	ValveFileVDF
+	libzip::libzip
+	libzippp::libzippp
 )
 
 # TODO: Find a way to do this locally

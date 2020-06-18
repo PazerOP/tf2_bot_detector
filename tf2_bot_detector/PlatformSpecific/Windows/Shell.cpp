@@ -9,6 +9,7 @@
 #include <wrl/client.h>
 #include <Windows.h>
 #include <ShObjIdl_core.h>
+#include <ShlObj.h>
 
 namespace
 {
@@ -73,7 +74,7 @@ namespace
 	};
 }
 
-std::filesystem::path tf2_bot_detector::BrowseForFolderDialog()
+std::filesystem::path tf2_bot_detector::Shell::BrowseForFolderDialog()
 {
 	try
 	{
@@ -118,7 +119,33 @@ std::filesystem::path tf2_bot_detector::BrowseForFolderDialog()
 	}
 }
 
-void tf2_bot_detector::OpenURL(const char* url)
+void tf2_bot_detector::Shell::OpenURL(const char* url)
 {
 	ShellExecuteA(NULL, "open", url, nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+void tf2_bot_detector::Shell::ExploreToAndSelect(std::filesystem::path path)
+{
+	try
+	{
+		if (!path.is_absolute())
+			path = std::filesystem::absolute(path);
+
+		struct Free
+		{
+			void operator()(LPITEMIDLIST p) const { ILFree(p); }
+		};
+		using itemid_ptr = std::unique_ptr<std::remove_pointer_t<LPITEMIDLIST>, Free>;
+
+		auto folder = std::filesystem::path(path).remove_filename();
+
+		//itemid_ptr folderID(ILCreateFromPathW(folder.wstring().c_str()));
+		itemid_ptr fileID(ILCreateFromPathW(path.wstring().c_str()));
+
+		CHECK_HR(SHOpenFolderAndSelectItems(fileID.get(), 0, nullptr, 0));
+	}
+	catch (const std::exception& e)
+	{
+		LogError(std::string(__FUNCTION__) << "(): path = " << path << ", " << e.what());
+	}
 }
