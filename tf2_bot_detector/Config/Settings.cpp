@@ -132,6 +132,7 @@ bool Settings::LoadFile()
 		try_get_to(*found, "allow_internet_usage", m_AllowInternetUsage);
 		try_get_to(*found, "program_update_check_mode", m_ProgramUpdateCheckMode);
 		try_get_to(*found, "command_timeout_seconds", m_CommandTimeoutSeconds);
+		try_get_to(*found, "steam_api_key", m_SteamAPIKey);
 
 		if (auto foundDir = found->find("tf_game_dir"); foundDir != found->end())
 			m_TFDir = foundDir->get<std::string_view>();
@@ -158,6 +159,9 @@ bool Settings::SaveFile() const
 			}
 		}
 	};
+
+	if (!m_SteamAPIKey.empty())
+		json["general"]["steam_api_key"] = m_SteamAPIKey;
 
 	if (m_LocalSteamID.IsValid())
 		json["general"]["local_steamid"] = m_LocalSteamID;

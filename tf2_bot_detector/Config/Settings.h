@@ -45,6 +45,8 @@ namespace tf2_bot_detector
 		bool m_AutoTempMute = true;
 		std::filesystem::path m_TFDir;
 
+		std::string m_SteamAPIKey;
+
 		float m_CommandTimeoutSeconds = 5;
 
 		std::optional<bool> m_AllowInternetUsage;
