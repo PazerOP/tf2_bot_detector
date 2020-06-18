@@ -605,6 +605,16 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "Orange Ma\u200fdness\u200f\u200f\u200f",
+				"time": 1592447348
+			},
+			"steamid": "[U:1:1002348029]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:1002399982]"
 		},
 		{
@@ -2487,6 +2497,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[g0tb0t]CatholicGod",
+				"time": 1592445384
+			},
+			"steamid": "[U:1:1104079486]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -2873,6 +2893,16 @@
 				"time": 1591850077
 			},
 			"steamid": "[U:1:1105233397]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "royalhack.net B0T",
+				"time": 1592448242
+			},
+			"steamid": "[U:1:1105256667]"
 		},
 		{
 			"attributes": [

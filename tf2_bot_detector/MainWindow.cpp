@@ -56,15 +56,15 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		if (ImGui::BeginMenu("Go To"))
 		{
 			if (ImGui::MenuItem("Steam Community"))
-				OpenURL("https://steamcommunity.com/profiles/"s << player.GetSteamID().ID64);
+				Shell::OpenURL("https://steamcommunity.com/profiles/"s << player.GetSteamID().ID64);
 			if (ImGui::MenuItem("logs.tf"))
-				OpenURL("http://logs.tf/profile/"s << player.GetSteamID().ID64);
+				Shell::OpenURL("http://logs.tf/profile/"s << player.GetSteamID().ID64);
 			if (ImGui::MenuItem("RGL"))
-				OpenURL("https://rgl.gg/Public/PlayerProfile.aspx?p="s << player.GetSteamID().ID64);
+				Shell::OpenURL("https://rgl.gg/Public/PlayerProfile.aspx?p="s << player.GetSteamID().ID64);
 			if (ImGui::MenuItem("SteamRep"))
-				OpenURL("https://steamrep.com/profiles/"s << player.GetSteamID().ID64);
+				Shell::OpenURL("https://steamrep.com/profiles/"s << player.GetSteamID().ID64);
 			if (ImGui::MenuItem("UGC League"))
-				OpenURL("https://www.ugcleague.com/players_page.cfm?player_id="s << player.GetSteamID().ID64);
+				Shell::OpenURL("https://www.ugcleague.com/players_page.cfm?player_id="s << player.GetSteamID().ID64);
 
 			ImGui::EndMenu();
 		}
@@ -599,13 +599,13 @@ void MainWindow::OnDrawUpdateCheckPopup()
 			{
 				ImGui::TextUnformatted("There is a new preview version available.");
 				if (ImGui::Button("View on Github"))
-					OpenURL(updateInfo.m_Preview->m_URL);
+					Shell::OpenURL(updateInfo.m_Preview->m_URL);
 			}
 			else if (updateInfo.IsReleaseAvailable())
 			{
 				ImGui::TextUnformatted("There is a new stable version available.");
 				if (ImGui::Button("View on Github"))
-					OpenURL(updateInfo.m_Stable->m_URL);
+					Shell::OpenURL(updateInfo.m_Stable->m_URL);
 			}
 			else if (updateInfo.IsError())
 			{
@@ -649,7 +649,7 @@ void MainWindow::OnDrawUpdateAvailablePopup()
 			<< " version of TF2 Bot Detector available for download.");
 
 		if (ImGui::Button("View on Github"))
-			OpenURL(m_UpdateInfo->GetURL());
+			Shell::OpenURL(m_UpdateInfo->GetURL());
 
 		ImGui::EndPopup();
 	}
@@ -659,6 +659,34 @@ void MainWindow::OpenUpdateAvailablePopup()
 {
 	m_NotifyOnUpdateAvailable = false;
 	m_UpdateAvailablePopupOpen = true;
+}
+
+#include <libzippp/libzippp.h>
+void MainWindow::GenerateDebugReport()
+{
+	Log("Generating debug_report.zip...");
+	{
+		using namespace libzippp;
+		ZipArchive archive("debug_report.zip");
+		archive.open(ZipArchive::NEW);
+
+		if (!archive.addFile("console.log", (m_Settings.m_TFDir / "console.log").string()))
+		{
+			LogError("Failed to add console.log to debug report");
+		}
+		if (!archive.addFile("tf2bd.log", GetLogFilename().string()))
+		{
+			LogError("Failed to add tf2bd log to debug report");
+		}
+
+		if (auto err = archive.close(); err != LIBZIPPP_OK)
+		{
+			LogError("Failed to close debug report zip archive: close() returned "s << err);
+			return;
+		}
+	}
+	Log("Finished generating debug_report.zip.");
+	Shell::ExploreToAndSelect("debug_report.zip");
 }
 
 void MainWindow::OnDrawServerStats()
@@ -790,12 +818,18 @@ void MainWindow::OnDrawMenuBar()
 	if (m_SetupFlow.ShouldDraw())
 		return;
 
-#if 0
 	if (ImGui::BeginMenu("File"))
 	{
+		if (ImGui::MenuItem("Generate Debug Report"))
+			GenerateDebugReport();
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("Exit", "Alt+F4"))
+			SetShouldClose(true);
+
 		ImGui::EndMenu();
 	}
-#endif
 
 #ifdef _DEBUG
 	if (ImGui::BeginMenu("Debug"))
@@ -845,9 +879,9 @@ void MainWindow::OnDrawMenuBar()
 	if (ImGui::BeginMenu("Help"))
 	{
 		if (ImGui::MenuItem("Open GitHub"))
-			OpenURL("https://github.com/PazerOP/tf2_bot_detector");
+			Shell::OpenURL("https://github.com/PazerOP/tf2_bot_detector");
 		if (ImGui::MenuItem("Open Discord"))
-			OpenURL("https://discord.gg/W8ZSh3Z");
+			Shell::OpenURL("https://discord.gg/W8ZSh3Z");
 
 		ImGui::Separator();
 
@@ -870,12 +904,12 @@ void MainWindow::OnDrawMenuBar()
 			{
 				ImGuiDesktop::ScopeGuards::TextColor green({ 0, 1, 0, 1 });
 				if (ImGui::MenuItem("A new version is available"))
-					OpenURL(newVersion->m_Stable->m_URL);
+					Shell::OpenURL(newVersion->m_Stable->m_URL);
 			}
 			else if (newVersion->IsPreviewAvailable())
 			{
 				if (ImGui::MenuItem("A new preview is available"))
-					OpenURL(newVersion->m_Preview->m_URL);
+					Shell::OpenURL(newVersion->m_Preview->m_URL);
 			}
 			else
 			{

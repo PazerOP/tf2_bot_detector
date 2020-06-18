@@ -141,7 +141,7 @@ struct ActionManager::Writer final : ICommandWriter
 			throw std::runtime_error("Command contains invalid characters");
 
 		if (!m_ComplexCommands && !std::all_of(args.begin(), args.end(),
-			[](char c) { return isalpha(c) || isdigit(c) || isspace(c) || c == '.'; }))
+			[](char c) { return isalpha(c) || isdigit(c) || isspace(c) || c == '.' || c == '_'; }))
 		{
 			m_ComplexCommands = true;
 		}

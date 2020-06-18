@@ -370,6 +370,57 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 
 	ChatWrappers wrappers(wrapChars);
 
+	{
+		static const auto Indent = [](std::string& str, int levels)
+		{
+			while (levels--)
+				str.push_back('\t');
+		};
+
+		using wrapper_pair_t = ChatWrappers::wrapper_pair_t;
+		static const auto PrintWrapper = [](std::string& str, const std::string_view& wrapper)
+		{
+			mh::strwrapperstream os(str);
+			os << std::quoted(wrapper) << " (";
+			os << std::hex << std::uppercase;
+			for (auto c : wrapper)
+				os << "\\x" << (+c & 0xFF);
+
+			os << ')';
+		};
+		const auto PrintWrapperPair = [](std::string& str, int indentLevels, const wrapper_pair_t& wrapper)
+		{
+			str << '\n';
+
+			Indent(str, indentLevels + 1);
+			str << "begin: ";
+			PrintWrapper(str, wrapper.first);
+
+			str << '\n';
+			Indent(str, indentLevels + 1);
+			str << "end:   ";
+			PrintWrapper(str, wrapper.second);
+		};
+
+		std::string logMsg = "Generated chat message wrappers:";// for "s << cat << '\n';
+		for (int i = 0; i < (int)ChatCategory::COUNT; i++)
+		{
+			auto cat = ChatCategory(i);
+
+			logMsg << '\n';
+			Indent(logMsg, 1);
+			logMsg << cat << ':';
+
+			logMsg << "\n\t\tFull: ";
+			PrintWrapperPair(logMsg, 2, wrappers.m_Types[i].m_Full);
+			logMsg << "\n\t\tName: ";
+			PrintWrapperPair(logMsg, 2, wrappers.m_Types[i].m_Name);
+			logMsg << "\n\t\tMessage: ";
+			PrintWrapperPair(logMsg, 2, wrappers.m_Types[i].m_Message);
+		}
+		DebugLog(std::move(logMsg));
+	}
+
 	const auto outputDir = tfdir / "custom" / TF2BD_LOCALIZATION_DIR / "resource";
 	std::filesystem::create_directories(outputDir);
 

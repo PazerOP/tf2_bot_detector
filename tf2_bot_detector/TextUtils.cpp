@@ -64,7 +64,7 @@ std::string tf2_bot_detector::ToMB(const std::wstring_view& input)
 
 std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filename)
 {
-	DebugLog("ReadWideFile("s << filename << ')');
+	//DebugLog("ReadWideFile("s << filename << ')');
 
 	std::u16string wideFileData;
 	{

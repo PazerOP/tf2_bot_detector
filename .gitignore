@@ -344,3 +344,4 @@ CMakeFiles/
 .vscode/
 staging/cfg/settings.json
 out/
+staging/debug_report.zip

@@ -200,7 +200,7 @@ bool tf2_bot_detector::InputTextTFDir(const std::string_view& label_id, std::fil
 	ImGui::SameLine();
 	if (ImGui::Button("Browse..."))
 	{
-		if (auto result = BrowseForFolderDialog(); !result.empty())
+		if (auto result = Shell::BrowseForFolderDialog(); !result.empty())
 		{
 			pathStr = result.string();
 			modified = true;
