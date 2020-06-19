@@ -156,12 +156,10 @@ bool Settings::SaveFile() const
 				{ "auto_temp_mute", m_AutoTempMute },
 				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
 				{ "command_timeout_seconds", m_CommandTimeoutSeconds },
+				{ "steam_api_key", m_SteamAPIKey },
 			}
 		}
 	};
-
-	if (!m_SteamAPIKey.empty())
-		json["general"]["steam_api_key"] = m_SteamAPIKey;
 
 	if (m_LocalSteamID.IsValid())
 		json["general"]["local_steamid"] = m_LocalSteamID;
