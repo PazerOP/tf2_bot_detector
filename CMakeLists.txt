@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1.0)
-project(tf2_bot_detector VERSION 1.0.0.14)
+project(tf2_bot_detector VERSION 1.0.0.15)
 
 set(JSON_BuildTests OFF)
 
@@ -80,6 +80,8 @@ add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/Version.h
 	tf2_bot_detector/HTTPHelpers.h
 	tf2_bot_detector/HTTPHelpers.cpp
+	tf2_bot_detector/SteamAPI.h
+	tf2_bot_detector/SteamAPI.cpp
 )
 
 set_target_properties(tf2_bot_detector PROPERTIES

@@ -259,6 +259,8 @@ void WorldState::Update()
 
 	TrySnapshot(snapshotUpdated);
 
+	ApplyPlayerSummaries();
+
 	if (linesProcessed)
 		m_EventBroadcaster.OnUpdate(*this, consoleLinesUpdated);
 }
@@ -498,6 +500,8 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 			// We can't trust the existing client indices
 			for (auto& player : m_CurrentPlayerData)
 				player.second.m_ClientIndex = 0;
+
+			QueuePlayerSummaryUpdate();
 		}
 		break;
 	}
@@ -670,6 +674,40 @@ auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
 	assert(data->GetSteamID() == id);
 
 	return *data;
+}
+
+void WorldState::QueuePlayerSummaryUpdate()
+{
+	std::vector<SteamID> steamIDs;
+
+	for (const IPlayer* member : GetLobbyMembers())
+		steamIDs.push_back(member->GetSteamID());
+
+	auto summary = SteamAPI::GetPlayerSummariesAsync(m_Settings->m_SteamAPIKey, std::move(steamIDs));
+	if (summary.is_valid())
+		m_PlayerSummaryRequests.push_back(std::move(summary));
+}
+
+void WorldState::ApplyPlayerSummaries()
+{
+	for (auto it = m_PlayerSummaryRequests.begin(); it != m_PlayerSummaryRequests.end(); )
+	{
+		auto& summaryReq = *it;
+		if (!summaryReq.is_ready())
+		{
+			++it;
+			break;
+		}
+
+		for (SteamAPI::PlayerSummary& entry : *summaryReq)
+		{
+			const auto steamID = entry.m_SteamID;
+			FindOrCreatePlayer(steamID).m_PlayerSummary = std::move(entry);
+		}
+
+		DebugLog("Applied "s << summaryReq->size() << " player summaries from Steam web API");
+		it = m_PlayerSummaryRequests.erase(it);
+	}
 }
 
 auto WorldState::GetTeamShareResult(const SteamID& id0, const SteamID& id1) const -> TeamShareResult

@@ -17,6 +17,11 @@ namespace tf2_bot_detector
 	enum class TFTeam : uint8_t;
 	class WorldState;
 
+	namespace SteamAPI
+	{
+		struct PlayerSummary;
+	}
+
 	struct PlayerScores
 	{
 		uint16_t m_Kills = 0;
@@ -35,6 +40,7 @@ namespace tf2_bot_detector
 
 		virtual std::string_view GetName() const = 0;
 		virtual SteamID GetSteamID() const = 0;
+		virtual const SteamAPI::PlayerSummary* GetPlayerSummary() const = 0;
 		virtual std::optional<UserID_t> GetUserID() const = 0;
 
 		virtual PlayerStatusState GetConnectionState() const = 0;

@@ -361,6 +361,14 @@ void MainWindow::OnDrawScoreboard()
 						else
 							ImGui::TextUnformatted(player.GetName());
 
+						// If their steamcommunity name doesn't match their ingame name
+						if (auto summary = player.GetPlayerSummary();
+							summary && !player.GetName().empty() && summary->m_Nickname != player.GetName())
+						{
+							ImGui::SameLine();
+							ImGui::TextColored({ 1, 0, 0, 1 }, "(%s)", summary->m_Nickname.c_str());
+						}
+
 						ImGui::NextColumn();
 					}
 

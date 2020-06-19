@@ -7,6 +7,7 @@
 #include "IWorldEventListener.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
+#include "SteamAPI.h"
 
 #include <mh/coroutine/generator.hpp>
 
@@ -116,6 +117,7 @@ namespace tf2_bot_detector
 			const PlayerScores& GetScores() const override { return m_Scores; }
 			uint16_t GetPing() const override { return m_Status.m_Ping; }
 			time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
+			const SteamAPI::PlayerSummary* GetPlayerSummary() const override { return m_PlayerSummary ? &*m_PlayerSummary : nullptr; }
 
 			WorldState* m_World{};
 			PlayerStatus m_Status{};
@@ -125,6 +127,7 @@ namespace tf2_bot_detector
 			uint8_t m_ClientIndex{};
 			time_point_t m_LastStatusUpdateTime{};
 			time_point_t m_LastPingUpdateTime{};
+			std::optional<SteamAPI::PlayerSummary> m_PlayerSummary;
 
 		protected:
 			std::map<std::type_index, std::any> m_UserData;
@@ -133,6 +136,10 @@ namespace tf2_bot_detector
 		};
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);
+
+		std::list<AsyncObject<std::vector<SteamAPI::PlayerSummary>>> m_PlayerSummaryRequests;
+		void QueuePlayerSummaryUpdate();
+		void ApplyPlayerSummaries();
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;
