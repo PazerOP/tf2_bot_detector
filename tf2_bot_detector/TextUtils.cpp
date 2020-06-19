@@ -47,6 +47,11 @@ std::u8string tf2_bot_detector::ToU8(const std::u16string_view& input)
 	return ToU8(converter.to_bytes(input.data(), input.data() + input.size()));
 }
 
+std::u8string tf2_bot_detector::ToU8(const std::wstring_view& input)
+{
+	return ToU8(std::u16string_view(reinterpret_cast<const char16_t*>(input.data()), input.size()));
+}
+
 std::string tf2_bot_detector::ToMB(const std::u8string_view& input)
 {
 	return std::string(std::string_view(reinterpret_cast<const char*>(input.data()), input.size()));

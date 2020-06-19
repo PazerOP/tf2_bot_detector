@@ -2,6 +2,7 @@
 #include "Config/Settings.h"
 #include "PathUtils.h"
 #include "ImGui_TF2BotDetector.h"
+#include "PlatformSpecific/Steam.h"
 #include "Version.h"
 
 #include <imgui.h>
@@ -25,10 +26,13 @@ namespace
 		template<typename T>
 		static bool InternalValidateSettings(const T& settings)
 		{
-			if (!settings.m_LocalSteamID.IsValid())
+			if (!settings.GetLocalSteamID().IsValid())
 				return false;
 
-			if (!TFDirectoryValidator(settings.m_TFDir))
+			if (settings.GetTFDir().empty() || !ValidateTFDir(settings.GetTFDir()))
+				return false;
+
+			if (!ValidateSteamDir(settings.m_SteamDir))
 				return false;
 
 			return true;
@@ -41,50 +45,78 @@ namespace
 
 		void OnDraw() override
 		{
-			// 1. Steam ID
+			// 1. Steam directory
 			{
-				ImGui::TextUnformatted("1. Your Steam ID"sv);
+				ImGui::TextUnformatted("1. Location of your Steam directory");
+				ImGui::NewLine();
+				ScopeGuards::Indent indent;
+				ImGui::TextUnformatted("Your Steam directory is needed to execute commands in TF2, read console logs, and determine your current Steam ID.");
+
+				InputTextSteamDir("##SetupFlow_SteamDir", m_Settings.m_SteamDir);
+
+				ImGui::NewLine();
+			}
+
+#if 0
+			// 2. Steam ID
+			{
+				ImGui::TextUnformatted("2. Your Steam ID"sv);
 				ImGui::NewLine();
 				ImGui::Indent();
 				ImGui::TextUnformatted("Your Steam ID is needed to identify who can be votekicked (same team) and who is on the other team. You can find your Steam ID using sites like steamidfinder.com.");
 
-				InputTextSteamID("##SetupFlow_SteamID", m_Settings.m_LocalSteamID);
+				InputTextSteamIDOverride("##SetupFlow_SteamID", m_Settings.m_LocalSteamID);
 
 				ImGui::Unindent();
 				ImGui::NewLine();
 			}
 
-			// 2. TF directory
+			// 3. TF directory
 			{
-				ImGui::TextUnformatted("2. Location of your tf directory");
+				ImGui::TextUnformatted("3. Location of your tf directory");
 				ImGui::NewLine();
 				ImGui::Indent();
 				ImGui::TextUnformatted("Your tf directory is needed so this tool knows where to read console output from. It is also needed to automatically run commands in the game.");
 
-				InputTextTFDir("##SetupFlow_TFDir", m_Settings.m_TFDir);
+				InputTextTFDirOverride("##SetupFlow_TFDir", m_Settings.m_TFDirOverride);
 
 				ImGui::Unindent();
 			}
+#endif
 		}
 
 		void Init(const Settings& settings) override
 		{
-			m_Settings.m_TFDir = settings.m_TFDir;
-			m_Settings.m_LocalSteamID = settings.m_LocalSteamID;
+			m_Settings.m_SteamDir = settings.m_SteamDir;
+			m_Settings.m_TFDirOverride = settings.m_TFDirOverride;
+			m_Settings.m_LocalSteamID = settings.GetLocalSteamID();
 		}
 
 		bool CanCommit() const override { return InternalValidateSettings(m_Settings); }
 		void Commit(Settings& settings)
 		{
-			settings.m_TFDir = m_Settings.m_TFDir;
-			settings.m_LocalSteamID = m_Settings.m_LocalSteamID;
+			settings.m_TFDirOverride = m_Settings.m_TFDirOverride;
+			settings.m_SteamDir = m_Settings.m_SteamDir;
+
+			auto autodetectedSID = GetCurrentActiveSteamID();
+			settings.m_LocalSteamIDOverride = (m_Settings.m_LocalSteamID == autodetectedSID) ? SteamID() : m_Settings.m_LocalSteamID;
 		}
 
 	private:
 		struct
 		{
-			std::filesystem::path m_TFDir;
+			std::filesystem::path m_SteamDir;
+			std::filesystem::path m_TFDirOverride;
 			SteamID m_LocalSteamID;
+			auto GetLocalSteamID() const { return m_LocalSteamID; }
+
+			auto GetTFDir() const
+			{
+				if (!m_TFDirOverride.empty())
+					return m_TFDirOverride;
+
+				return FindTFDir(m_SteamDir);
+			}
 
 		} m_Settings;
 	};

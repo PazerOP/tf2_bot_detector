@@ -2,7 +2,9 @@
 #include "IPlayer.h"
 #include "JSONHelpers.h"
 #include "Log.h"
+#include "PathUtils.h"
 #include "PlayerListJSON.h"
+#include "PlatformSpecific/Steam.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -126,7 +128,9 @@ bool Settings::LoadFile()
 
 	if (auto found = json.find("general"); found != json.end())
 	{
-		try_get_to(*found, "local_steamid", m_LocalSteamID);
+		if (!try_get_to(*found, "local_steamid_override", m_LocalSteamIDOverride))
+			try_get_to(*found, "local_steamid", m_LocalSteamIDOverride);
+
 		try_get_to(*found, "sleep_when_unfocused", m_SleepWhenUnfocused);
 		try_get_to(*found, "auto_temp_mute", m_AutoTempMute);
 		try_get_to(*found, "allow_internet_usage", m_AllowInternetUsage);
@@ -134,11 +138,20 @@ bool Settings::LoadFile()
 		try_get_to(*found, "command_timeout_seconds", m_CommandTimeoutSeconds);
 		try_get_to(*found, "steam_api_key", m_SteamAPIKey);
 
-		if (auto foundDir = found->find("tf_game_dir"); foundDir != found->end())
-			m_TFDir = foundDir->get<std::string_view>();
+		if (auto foundDir = found->find("steam_dir"); foundDir != found->end())
+			m_SteamDir = foundDir->get<std::string_view>();
+
+		if (auto foundDir = found->find("tf_game_dir_override"); foundDir != found->end())
+			m_TFDirOverride = foundDir->get<std::string_view>();
 	}
 
 	try_get_to(json, "theme", m_Theme);
+
+	if (auto foundTFDir = FindTFDir(m_SteamDir); foundTFDir != m_TFDir)
+	{
+		DebugLog("Detected TF directory as "s << foundTFDir);
+		m_TFDir = std::move(foundTFDir);
+	}
 
 	return true;
 }
@@ -151,19 +164,20 @@ bool Settings::SaveFile() const
 		{ "theme", m_Theme },
 		{ "general",
 			{
-				{ "tf_game_dir", m_TFDir.string() },
 				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
 				{ "auto_temp_mute", m_AutoTempMute },
 				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
 				{ "command_timeout_seconds", m_CommandTimeoutSeconds },
 				{ "steam_api_key", m_SteamAPIKey },
+				{ "steam_dir", m_SteamDir.string() },
 			}
 		}
 	};
 
-	if (m_LocalSteamID.IsValid())
-		json["general"]["local_steamid"] = m_LocalSteamID;
-
+	if (!m_TFDirOverride.empty())
+		json["general"]["tf_game_dir_override"] = m_TFDirOverride.string();
+	if (m_LocalSteamIDOverride.IsValid())
+		json["general"]["local_steamid_override"] = m_LocalSteamIDOverride;
 	if (m_AllowInternetUsage)
 		json["general"]["allow_internet_usage"] = *m_AllowInternetUsage;
 
@@ -187,4 +201,27 @@ bool Settings::SaveFile() const
 	}
 
 	return true;
+}
+
+SteamID Settings::GetLocalSteamID() const
+{
+	if (m_LocalSteamIDOverride.IsValid())
+		return m_LocalSteamIDOverride;
+
+	if (auto sid = GetCurrentActiveSteamID(); sid.IsValid())
+		return sid;
+
+	LogError(std::string(__FUNCTION__) << ": Failed to find a configured SteamID");
+	return {};
+}
+
+const std::filesystem::path& Settings::GetTFDir() const
+{
+	if (!m_TFDirOverride.empty())
+		return m_TFDirOverride;
+
+	if (m_TFDir.empty())
+		m_TFDir = FindTFDir(m_SteamDir);
+
+	return m_TFDir;
 }

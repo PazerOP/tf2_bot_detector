@@ -16,6 +16,7 @@ namespace ScopeGuards = ImGuiDesktop::ScopeGuards;
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
+using namespace tf2_bot_detector;
 
 void ImGui::TextUnformatted(const std::string_view& text)
 {
@@ -112,79 +113,127 @@ void ImGui::AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* u
 	ImGui::EndChild();
 }
 
-bool tf2_bot_detector::InputTextSteamID(const char* label, SteamID& steamID, bool requireValid)
+bool tf2_bot_detector::InputTextSteamIDOverride(const char* label, SteamID& steamID, std::optional<bool>& overrideEnabled, bool requireValid)
 {
-	std::string steamIDStr;
-	if (steamID.IsValid())
-		steamIDStr = steamID.str();
+	if (!overrideEnabled)
+		overrideEnabled = steamID.IsValid();
 
-	SteamID newSID;
-	const bool modified = ImGui::InputTextWithHint(label, "[U:1:1234567890]", &steamIDStr);
-	bool modifySuccess = false;
+	std::string checkboxLabel = "Override "s << label;
+	bool changed = ImGui::Checkbox(checkboxLabel.c_str(), &*overrideEnabled);
+
+	if (*overrideEnabled)
 	{
-		if (steamIDStr.empty())
+		std::string steamIDStr;
+		if (steamID.IsValid())
+			steamIDStr = steamID.str();
+
+		SteamID newSID;
+		const bool modified = ImGui::InputTextWithHint(label, "[U:1:1234567890]", &steamIDStr);
+		bool modifySuccess = false;
 		{
-			ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
-			ImGui::TextUnformatted("Cannot be empty"sv);
-		}
-		else
-		{
-			try
+			if (steamIDStr.empty())
 			{
-				const auto CheckValid = [&](const SteamID& id) { return !requireValid || id.IsValid(); };
-				bool valid = false;
-				if (modified)
+				ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
+				ImGui::TextUnformatted("Cannot be empty"sv);
+			}
+			else
+			{
+				try
 				{
-					newSID = SteamID(steamIDStr);
-					if (CheckValid(newSID))
+					const auto CheckValid = [&](const SteamID& id) { return !requireValid || id.IsValid(); };
+					bool valid = false;
+					if (modified)
 					{
-						modifySuccess = true;
-						valid = true;
+						newSID = SteamID(steamIDStr);
+						if (CheckValid(newSID))
+						{
+							modifySuccess = true;
+							valid = true;
+						}
+					}
+					else
+					{
+						valid = CheckValid(steamID);
+					}
+
+					if (valid)
+					{
+						ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
+						ImGui::TextUnformatted("Looks good!"sv);
+					}
+					else
+					{
+						ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
+						ImGui::TextUnformatted("Invalid SteamID"sv);
 					}
 				}
-				else
-				{
-					valid = CheckValid(steamID);
-				}
-
-				if (valid)
-				{
-					ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
-					ImGui::TextUnformatted("Looks good!"sv);
-				}
-				else
+				catch (const std::invalid_argument& error)
 				{
 					ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
-					ImGui::TextUnformatted("Invalid SteamID"sv);
+					ImGui::TextUnformatted(error.what());
 				}
 			}
-			catch (const std::invalid_argument& error)
-			{
-				ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
-				ImGui::TextUnformatted(error.what());
-			}
+		}
+
+		ImGui::NewLine();
+
+		if (modifySuccess)
+			steamID = newSID;
+
+		return modifySuccess;
+	}
+	else if (steamID.IsValid())
+	{
+		steamID = {};
+		return true;
+	}
+
+	return false;
+}
+
+static std::filesystem::path GetLastPathElement(const std::filesystem::path& path)
+{
+	auto begin = path.begin();
+	auto end = path.end();
+
+	for (auto it = end; (it--) != begin; )
+	{
+		if (!it->empty())
+			return *it;
+	}
+
+	return {};
+}
+
+using ValidatorFn = tf2_bot_detector::DirectoryValidatorResult(*)(std::filesystem::path path);
+
+static std::string_view GetVisibleLabel(const std::string_view& label_id)
+{
+	if (!label_id.empty())
+	{
+		auto hashIdx = label_id.find("##"sv);
+		if (hashIdx != 0)
+		{
+			if (hashIdx == label_id.npos)
+				return label_id;
+			else
+				return label_id.substr(0, hashIdx);
 		}
 	}
 
-	ImGui::NewLine();
-
-	if (modifySuccess)
-		steamID = newSID;
-
-	return modifySuccess;
+	return {};
 }
 
-bool tf2_bot_detector::InputTextTFDir(const std::string_view& label_id, std::filesystem::path& outPath, bool requireValid)
+static bool InputPathValidated(const std::string_view& label_id, const std::filesystem::path& exampleDir,
+	std::filesystem::path& outPath, bool requireValid, ValidatorFn validator)
 {
 	ScopeGuards::ID idScope(label_id);
-
-	constexpr char EXAMPLE_TF_DIR[] = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf";
 
 	bool modified = false;
 	std::string pathStr;
 	if (outPath.empty())
 	{
-		pathStr = EXAMPLE_TF_DIR;
+		pathStr = exampleDir.string();
 		modified = true;
 	}
 	else
@@ -196,7 +245,7 @@ bool tf2_bot_detector::InputTextTFDir(const std::string_view& label_id, std::fil
 	const auto browseBtnSize = ImGui::CalcButtonSize(BROWSE_BTN_LABEL).x;
 
 	ImGui::SetNextItemWidth(ImGui::CalcItemWidth() - browseBtnSize - 8);
-	modified = ImGui::InputTextWithHint("##input", EXAMPLE_TF_DIR, &pathStr) || modified;
+	modified = ImGui::InputTextWithHint("##input", exampleDir.string().c_str(), &pathStr) || modified;
 	ImGui::SameLine();
 	if (ImGui::Button("Browse..."))
 	{
@@ -207,36 +256,26 @@ bool tf2_bot_detector::InputTextTFDir(const std::string_view& label_id, std::fil
 		}
 	}
 
-	if (!label_id.empty())
+	if (auto label = GetVisibleLabel(label_id); !label.empty())
 	{
-		auto hashIdx = label_id.find("##"sv);
-		if (hashIdx != 0)
-		{
-			ImGui::SameLine(0, 4);
-
-			if (hashIdx == label_id.npos)
-				ImGui::TextUnformatted(label_id);
-			else
-				ImGui::TextUnformatted(label_id.substr(0, hashIdx));
-		}
+		ImGui::SameLine(0, 4);
+		ImGui::TextUnformatted(label);
 	}
 
 	bool modifySuccess = false;
 	const std::filesystem::path newPath(pathStr);
 	if (newPath.empty())
 	{
-		ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
-		ImGui::TextUnformatted("Cannot be empty"sv);
+		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Cannot be empty"sv);
 	}
-	else if (const TFDirectoryValidator validationResult(newPath); !validationResult)
+	else if (const auto validationResult = validator(newPath); !validationResult)
 	{
-		ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
-		ImGui::TextUnformatted("Doesn't look like a real tf directory: "s << validationResult.m_Message);
+		ImGui::TextColoredUnformatted({ 1, 0, 0, 1 },
+			"Doesn't look like a real "s << GetLastPathElement(exampleDir) << " directory: " << validationResult.m_Message);
 	}
 	else
 	{
-		ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
-		ImGui::TextUnformatted("Looks good!"sv);
+		ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Looks good!"sv);
 
 		if (modified)
 			modifySuccess = true;
@@ -251,6 +290,44 @@ bool tf2_bot_detector::InputTextTFDir(const std::string_view& label_id, std::fil
 		outPath = newPath;
 
 	return modifySuccess;
+}
+
+static bool InputPathValidatedOverride(const std::string_view& label_id, const std::filesystem::path& exampleDir,
+	std::filesystem::path& outPath, std::optional<bool>& overrideEnabled, bool requireValid, ValidatorFn validator)
+{
+	if (!overrideEnabled)
+		overrideEnabled = outPath.empty();
+
+	std::string checkboxLabel = "Override "s << GetVisibleLabel(label_id);
+	bool changed = ImGui::Checkbox(checkboxLabel.c_str(), &*overrideEnabled);
+
+	if (*overrideEnabled)
+	{
+		return InputPathValidated(label_id,
+			"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf",
+			outPath, requireValid, validator);
+	}
+	else if (!outPath.empty())
+	{
+		outPath.clear();
+		return true;
+	}
+
+	return false;
+}
+
+bool tf2_bot_detector::InputTextTFDirOverride(const std::string_view& label_id, std::filesystem::path& outPath,
+	std::optional<bool>& overrideEnabled, bool requireValid)
+{
+	return InputPathValidatedOverride(label_id,
+		"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf",
+		outPath, overrideEnabled, requireValid, &ValidateTFDir);
+}
+
+bool tf2_bot_detector::InputTextSteamDir(const std::string_view& label_id,
+	std::filesystem::path& outPath, bool requireValid)
+{
+	return InputPathValidated(label_id, "C:\\Program Files (x86)\\Steam", outPath, requireValid, &ValidateSteamDir);
 }
 
 bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
@@ -325,7 +402,15 @@ void ImGui::SetHoverTooltip(const char* tooltipFmt, ...)
 	va_start(args, tooltipFmt);
 
 	if (IsItemHovered())
-		SetTooltipV(tooltipFmt, args);
+	{
+		ImGui::BeginTooltip();
+		ImGui::PushTextWrapPos(500);
+
+		ImGui::TextV(tooltipFmt, args);
+
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
 
 	va_end(args);
 }

@@ -32,6 +32,7 @@ add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/Config/Whitelist.h
 	tf2_bot_detector/PlatformSpecific/Shell.h
 	tf2_bot_detector/PlatformSpecific/Shitty.h
+	tf2_bot_detector/PlatformSpecific/Steam.h
 	tf2_bot_detector/ActionManager.cpp
 	tf2_bot_detector/ActionManager.h
 	tf2_bot_detector/Actions.cpp
@@ -96,6 +97,7 @@ if(WIN32)
 		tf2_bot_detector/PlatformSpecific/Windows/CrashHandler.cpp
 		tf2_bot_detector/PlatformSpecific/Windows/Shell.cpp
 		tf2_bot_detector/PlatformSpecific/Windows/Shitty.cpp
+		tf2_bot_detector/PlatformSpecific/Windows/Steam.cpp
 	)
 endif()
 

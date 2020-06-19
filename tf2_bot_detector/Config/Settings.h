@@ -40,10 +40,15 @@ namespace tf2_bot_detector
 			bool m_DebugShowCommands = false;
 		} m_Unsaved;
 
-		SteamID m_LocalSteamID;
+		SteamID GetLocalSteamID() const;
+		SteamID m_LocalSteamIDOverride;
+
 		bool m_SleepWhenUnfocused = true;
 		bool m_AutoTempMute = true;
-		std::filesystem::path m_TFDir;
+
+		const std::filesystem::path& GetTFDir() const;
+		std::filesystem::path m_SteamDir;
+		std::filesystem::path m_TFDirOverride;
 
 		std::string m_SteamAPIKey;
 
@@ -68,6 +73,9 @@ namespace tf2_bot_detector
 			} m_Colors;
 
 		} m_Theme;
+
+	private:
+		mutable std::filesystem::path m_TFDir;
 	};
 }
 

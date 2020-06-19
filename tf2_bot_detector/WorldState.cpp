@@ -19,7 +19,7 @@ WorldState::WorldState(const Settings& settings, const std::filesystem::path& co
 
 	m_ConsoleLineListeners.insert(this);
 
-	m_ChatMsgWrappers = RandomizeChatWrappers(m_Settings->m_TFDir);
+	m_ChatMsgWrappers = RandomizeChatWrappers(m_Settings->GetTFDir());
 	//const char8_t c1[] = u8"        ";
 	//char c2[sizeof(c1)];
 	//memcpy(c2, c1, sizeof(c1));

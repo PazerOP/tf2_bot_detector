@@ -42,7 +42,7 @@ namespace tfbd_paths
 
 auto ActionManager::absolute_root() const
 {
-	return m_Settings->m_TFDir;// / "custom/tf2_bot_detector";
+	return m_Settings->GetTFDir();// / "custom/tf2_bot_detector";
 }
 auto ActionManager::absolute_cfg() const
 {
@@ -376,7 +376,7 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 		return false;
 	}
 
-	const std::filesystem::path hl2Dir = m_Settings->m_TFDir / "..";
+	const std::filesystem::path hl2Dir = m_Settings->GetTFDir() / "..";
 	const std::filesystem::path hl2ExePath = hl2Dir / "hl2.exe";
 
 	std::wstring cmdLine;

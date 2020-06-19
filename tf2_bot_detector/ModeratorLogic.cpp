@@ -126,7 +126,7 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const s
 	// Votekick the first one that is actually connected
 	for (const IPlayer* cheater : friendlyCheaters)
 	{
-		if (cheater->GetSteamID() == m_Settings->m_LocalSteamID)
+		if (cheater->GetSteamID() == m_Settings->GetLocalSteamID())
 			continue;
 
 		if (cheater->GetConnectionState() == PlayerStatusState::Active)
@@ -445,23 +445,23 @@ bool ModeratorLogic::HasPlayerAttribute(const SteamID& id, PlayerAttributes mark
 
 std::optional<LobbyMemberTeam> ModeratorLogic::TryGetMyTeam() const
 {
-	return m_World->FindLobbyMemberTeam(m_Settings->m_LocalSteamID);
+	return m_World->FindLobbyMemberTeam(m_Settings->GetLocalSteamID());
 }
 
 TeamShareResult ModeratorLogic::GetTeamShareResult(const SteamID& id) const
 {
-	return m_World->GetTeamShareResult(id, m_Settings->m_LocalSteamID);
+	return m_World->GetTeamShareResult(id, m_Settings->GetLocalSteamID());
 }
 
 const IPlayer* ModeratorLogic::GetLocalPlayer() const
 {
-	return m_World->FindPlayer(m_Settings->m_LocalSteamID);
+	return m_World->FindPlayer(m_Settings->GetLocalSteamID());
 }
 
 bool ModeratorLogic::IsBotLeader() const
 {
 	auto leader = GetBotLeader();
-	return leader && (leader->GetSteamID() == m_Settings->m_LocalSteamID);
+	return leader && (leader->GetSteamID() == m_Settings->GetLocalSteamID());
 }
 
 const IPlayer* ModeratorLogic::GetBotLeader() const

@@ -73,7 +73,7 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		auto& modLogic = GetModLogic();
 
 		if (ImGui::BeginMenu("Votekick",
-			(world.GetTeamShareResult(steamID, m_Settings.m_LocalSteamID) == TeamShareResult::SameTeams) && world.FindUserID(steamID)))
+			(world.GetTeamShareResult(steamID, m_Settings.GetLocalSteamID()) == TeamShareResult::SameTeams) && world.FindUserID(steamID)))
 		{
 			if (ImGui::MenuItem("Cheating"))
 				modLogic.InitiateVotekick(player, KickReason::Cheating);
@@ -295,7 +295,7 @@ void MainWindow::OnDrawScoreboard()
 					std::optional<ImGuiDesktop::ScopeGuards::StyleColor> textColor;
 					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetName().empty())
 						textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
-					else if (player.GetSteamID() == m_Settings.m_LocalSteamID)
+					else if (player.GetSteamID() == m_Settings.GetLocalSteamID())
 						textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYou);
 
 					char buf[32];
@@ -524,27 +524,25 @@ void MainWindow::OnDrawSettingsPopup()
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open))
 	{
 		// Local steamid
-		if (InputTextSteamID("My Steam ID", m_Settings.m_LocalSteamID))
+		if (InputTextSteamIDOverride("My Steam ID", m_Settings.m_LocalSteamIDOverride, m_SettingsPopupSteamIDOverride))
 			m_Settings.SaveFile();
 
-		// TF game dir
-		if (InputTextTFDir("tf directory", m_Settings.m_TFDir))
+		// TF game dir override
+		if (InputTextTFDirOverride("tf directory", m_Settings.m_TFDirOverride, m_SettingsPopupTFDirOverride))
 			m_Settings.SaveFile();
 
 		// Sleep when unfocused
 		{
 			if (ImGui::Checkbox("Sleep when unfocused", &m_Settings.m_SleepWhenUnfocused))
 				m_Settings.SaveFile();
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
+			ImGui::SetHoverTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
 		}
 
 		// Auto temp mute
 		{
 			if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
 				m_Settings.SaveFile();
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
+			ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
 		}
 
 		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false); ImGui::Checkbox("Allow internet connectivity", &allowInternet))
@@ -678,7 +676,7 @@ void MainWindow::GenerateDebugReport()
 		ZipArchive archive("debug_report.zip");
 		archive.open(ZipArchive::NEW);
 
-		if (!archive.addFile("console.log", (m_Settings.m_TFDir / "console.log").string()))
+		if (!archive.addFile("console.log", (m_Settings.GetTFDir() / "console.log").string()))
 		{
 			LogError("Failed to add console.log to debug report");
 		}
@@ -714,8 +712,7 @@ void MainWindow::OnDrawServerStats()
 		sprintf_s(buf, "%i (%1.0f%%)", lastSample.m_UsedEdicts, percent * 100);
 		ImGui::ProgressBar(percent, { -1, 0 }, buf);
 
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("%i of %i (%1.1f%%)", lastSample.m_UsedEdicts, lastSample.m_MaxEdicts, percent * 100);
+		ImGui::SetHoverTooltip("%i of %i (%1.1f%%)", lastSample.m_UsedEdicts, lastSample.m_MaxEdicts, percent * 100);
 	}
 
 	if (!m_ServerPingSamples.empty())
@@ -745,20 +742,16 @@ void MainWindow::OnDraw()
 			ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
 
 			ImGui::Checkbox("Mute", &m_Settings.m_Unsaved.m_Muted); ImGui::SameLine();
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("Suppresses all in-game chat messages.");
+			ImGui::SetHoverTooltip("Suppresses all in-game chat messages.");
 
 			ImGui::Checkbox("Enable Votekick", &m_Settings.m_Unsaved.m_EnableVotekick); ImGui::SameLine();
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("Votekicks cheaters on your team.");
+			ImGui::SetHoverTooltip("Votekicks cheaters on your team.");
 
 			ImGui::Checkbox("Enable Auto-mark", &m_Settings.m_Unsaved.m_EnableAutoMark); ImGui::SameLine();
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("Automatically marks players matching the detection rules.");
+			ImGui::SetHoverTooltip("Automatically marks players matching the detection rules.");
 
 			ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands); ImGui::SameLine();
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip("Prints out all game commands to the log.");
+			ImGui::SetHoverTooltip("Prints out all game commands to the log.");
 
 			const auto xPos = ImGui::GetCursorPosX();
 
@@ -963,7 +956,7 @@ void MainWindow::OnUpdate()
 	}
 	else if (!m_WorldState)
 	{
-		m_WorldState.emplace(*this, m_Settings, m_Settings.m_TFDir / "console.log");
+		m_WorldState.emplace(*this, m_Settings, m_Settings.GetTFDir() / "console.log");
 	}
 
 	// Update check

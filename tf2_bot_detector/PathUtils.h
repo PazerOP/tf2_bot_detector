@@ -1,13 +1,15 @@
 #pragma once
 
+#include <mh/coroutine/generator.hpp>
+
 #include <filesystem>
 #include <string_view>
 
 namespace tf2_bot_detector
 {
-	struct TFDirectoryValidator
+	struct [[nodiscard]] DirectoryValidatorResult
 	{
-		TFDirectoryValidator(std::filesystem::path path);
+		DirectoryValidatorResult(std::filesystem::path path) : m_Path(std::move(path)) {}
 
 		enum class Result
 		{
@@ -18,15 +20,17 @@ namespace tf2_bot_detector
 			NotADirectory,    // Not a directory
 			InvalidContents,  // Contents don't match what we expect
 			FilesystemError,  // Some sort of std::filesystem::filesystem_error exception
-		} m_Result;
-
-		std::filesystem::path m_Path;
-		std::string m_Message;
+		} m_Result = Result::Valid;
 
 		operator bool() const { return m_Result == Result::Valid; }
 
-	private:
-		[[nodiscard]] bool ValidateDirectory(const std::string_view& relative);
-		[[nodiscard]] bool ValidateFile(const std::string_view& relative);
+		std::filesystem::path m_Path;
+		std::string m_Message;
 	};
+
+	DirectoryValidatorResult ValidateTFDir(std::filesystem::path path);
+	DirectoryValidatorResult ValidateSteamDir(std::filesystem::path path);
+
+	mh::generator<std::filesystem::path> GetSteamLibraryFolders(const std::filesystem::path& steamDir);
+	std::filesystem::path FindTFDir(const std::filesystem::path& steamDir);
 }

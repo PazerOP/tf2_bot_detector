@@ -177,7 +177,7 @@ namespace tf2_bot_detector
 				("cfg/"s << GetBaseFileName() << ".json"));
 		}
 
-		bool IsOfficial() const { return m_Settings->m_LocalSteamID.IsPazer(); }
+		bool IsOfficial() const { return m_Settings->GetLocalSteamID().IsPazer(); }
 
 		T& GetMutableList()
 		{

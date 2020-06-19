@@ -7,6 +7,7 @@
 #include <implot.h>
 
 #include <filesystem>
+#include <optional>
 #include <string_view>
 #include <type_traits>
 
@@ -149,8 +150,10 @@ namespace tf2_bot_detector
 	enum class ProgramUpdateCheckMode;
 	class SteamID;
 
-	bool InputTextSteamID(const char* label_id, SteamID& steamID, bool requireValid = true);
-	bool InputTextTFDir(const std::string_view& label_id, std::filesystem::path& path, bool requireValid = false);
+	bool InputTextSteamIDOverride(const char* label_id, SteamID& steamID, std::optional<bool>& overrideEnabled, bool requireValid = true);
+	bool InputTextTFDirOverride(const std::string_view& label_id, std::filesystem::path& path,
+		std::optional<bool>& overrideEnabled, bool requireValid = false);
+	bool InputTextSteamDir(const std::string_view& label_id, std::filesystem::path& path, bool requireValid = false);
 	bool Combo(const char* label_id, ProgramUpdateCheckMode& mode);
 }
 
