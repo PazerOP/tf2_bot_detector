@@ -678,6 +678,9 @@ auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
 
 void WorldState::QueuePlayerSummaryUpdate()
 {
+	if (m_Settings->m_SteamAPIKey.empty())
+		return;
+
 	std::vector<SteamID> steamIDs;
 
 	for (const IPlayer* member : GetLobbyMembers())
