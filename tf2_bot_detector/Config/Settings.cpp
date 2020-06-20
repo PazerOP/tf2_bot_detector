@@ -128,9 +128,7 @@ bool Settings::LoadFile()
 
 	if (auto found = json.find("general"); found != json.end())
 	{
-		if (!try_get_to(*found, "local_steamid_override", m_LocalSteamIDOverride))
-			try_get_to(*found, "local_steamid", m_LocalSteamIDOverride);
-
+		try_get_to(*found, "local_steamid_override", m_LocalSteamIDOverride);
 		try_get_to(*found, "sleep_when_unfocused", m_SleepWhenUnfocused);
 		try_get_to(*found, "auto_temp_mute", m_AutoTempMute);
 		try_get_to(*found, "allow_internet_usage", m_AllowInternetUsage);
