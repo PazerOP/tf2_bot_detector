@@ -117,13 +117,13 @@ bool tf2_bot_detector::InputTextSteamIDOverride(const char* label, SteamID& stea
 {
 	if (overrideEnabled)
 	{
-		if (!*overrideEnabled)
-			*overrideEnabled = steamID.IsValid();
+		if (!overrideEnabled->has_value())
+			overrideEnabled->emplace(steamID.IsValid());
 
-		ImGui::Checkbox(("Override "s << label).c_str(), &**overrideEnabled);
+		ImGui::Checkbox(("Override "s << label).c_str(), &overrideEnabled->value());
 	}
 
-	if (!overrideEnabled || *overrideEnabled)
+	if (!overrideEnabled || overrideEnabled->value())
 	{
 		std::string steamIDStr;
 		if (steamID.IsValid())
@@ -300,13 +300,13 @@ static bool InputPathValidatedOverride(const std::string_view& label_id, const s
 	// optional pointer to std::optional<bool>... lol
 	if (overrideEnabled)
 	{
-		if (!*overrideEnabled)
-			*overrideEnabled = !outPath.empty();
+		if (!overrideEnabled->has_value())
+			overrideEnabled->emplace(!outPath.empty());
 
 		std::string checkboxLabel = "Override "s << GetVisibleLabel(label_id);
 		bool changed = ImGui::Checkbox(checkboxLabel.c_str(), &**overrideEnabled);
 
-		if (*overrideEnabled)
+		if (overrideEnabled->value())
 		{
 			return InputPathValidated(label_id, exampleDir, outPath, requireValid, validator);
 		}
