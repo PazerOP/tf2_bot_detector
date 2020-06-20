@@ -62,7 +62,12 @@ namespace tf2_bot_detector
 			return *this == SteamID(76561198003911389);
 		}
 
-		constexpr bool IsValid() const { return Type != SteamAccountType::Invalid && Universe != SteamAccountUniverse::Invalid; }
+		constexpr bool IsValid() const
+		{
+			return Type != SteamAccountType::Invalid &&
+				Universe != SteamAccountUniverse::Invalid &&
+				ID != 0;
+		}
 		std::string str() const;
 
 		union
