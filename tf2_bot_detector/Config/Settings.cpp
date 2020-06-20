@@ -211,7 +211,7 @@ SteamID AutoDetectedSettings::GetLocalSteamID() const
 	if (auto sid = GetCurrentActiveSteamID(); sid.IsValid())
 		return sid;
 
-	LogError(std::string(__FUNCTION__) << ": Failed to find a configured SteamID");
+	//LogError(std::string(__FUNCTION__) << ": Failed to find a configured SteamID");
 	return {};
 }
 

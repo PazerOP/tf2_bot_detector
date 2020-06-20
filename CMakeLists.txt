@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1.0)
-project(tf2_bot_detector VERSION 1.0.0.15)
+project(tf2_bot_detector VERSION 1.0.0.16)
 
 set(JSON_BuildTests OFF)
 
@@ -85,10 +85,6 @@ add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/SteamAPI.cpp
 )
 
-set_target_properties(tf2_bot_detector PROPERTIES
-	CMAKE_PROJECT_VERSION_MINOR 1
-	CMAKE_PROJECT_VERSION_PATCH "preview9"
-)
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
 
