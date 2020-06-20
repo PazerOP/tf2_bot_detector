@@ -356,10 +356,12 @@ void MainWindow::OnDrawScoreboard()
 
 					// player names column
 					{
-						if (player.GetName().empty())
-							ImGui::TextUnformatted("<Unknown>");
+						if (const auto& name = player.GetName(); !name.empty())
+							ImGui::TextUnformatted(name);
+						else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
+							ImGui::TextUnformatted(summary->m_Nickname);
 						else
-							ImGui::TextUnformatted(player.GetName());
+							ImGui::TextUnformatted("<Unknown>");
 
 						// If their steamcommunity name doesn't match their ingame name
 						if (auto summary = player.GetPlayerSummary();
