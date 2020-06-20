@@ -157,7 +157,7 @@ mh::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(co
 		if (!std::all_of(attrib.first.begin(), attrib.first.end(), [](char c) { return isdigit(c); }))
 			continue;
 
-		co_yield attrib.second;
+		co_yield std::filesystem::path(attrib.second) / "steamapps";
 	}
 }
 
