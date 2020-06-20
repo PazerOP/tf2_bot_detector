@@ -17,8 +17,17 @@ namespace tf2_bot_detector
 		public:
 			virtual ~IPage() = default;
 
-			virtual bool ValidateSettings(const Settings& settings) const = 0;
-			virtual void OnDraw() = 0;
+			[[nodiscard]] virtual bool ValidateSettings(const Settings& settings) const = 0;
+
+			enum class OnDrawResult
+			{
+				// Draw again next frame unless the user clicks "Done"/"Next"
+				ContinueDrawing,
+
+				// Pretend the user pressed "Done"/"Next"
+				EndDrawing,
+			};
+			[[nodiscard]] virtual OnDrawResult OnDraw() = 0;
 
 			virtual void Init(const Settings& settings) = 0;
 			virtual bool CanCommit() const = 0;

@@ -43,14 +43,16 @@ namespace
 			return InternalValidateSettings(settings);
 		}
 
-		void OnDraw() override
+		OnDrawResult OnDraw() override
 		{
 			ImGui::TextUnformatted("Due to your configuration, some settings could not be automatically detected.");
 			ImGui::NewLine();
 
 			// 1. Steam directory
-			if (m_Settings.GetSteamDir().empty())
+			bool any = false;
+			if (GetCurrentSteamDir().empty())
 			{
+				any = true;
 				ImGui::TextUnformatted("Location of your Steam directory");
 				ImGui::NewLine();
 				ScopeGuards::Indent indent;
@@ -61,8 +63,9 @@ namespace
 				ImGui::NewLine();
 			}
 
-			if (m_Settings.GetTFDir().empty())
+			if (FindTFDir(m_Settings.GetSteamDir()).empty())
 			{
+				any = true;
 				ImGui::TextUnformatted("Location of your tf directory");
 				ImGui::NewLine();
 				ImGui::Indent();
@@ -74,8 +77,9 @@ namespace
 			}
 
 			// 2. Steam ID
-			if (!m_Settings.GetLocalSteamID().IsValid())
+			if (!GetCurrentActiveSteamID().IsValid())
 			{
+				any = true;
 				ImGui::TextUnformatted("Your Steam ID"sv);
 				ImGui::NewLine();
 				ImGui::Indent();
@@ -86,6 +90,8 @@ namespace
 				ImGui::Unindent();
 				ImGui::NewLine();
 			}
+
+			return any ? OnDrawResult::ContinueDrawing : OnDrawResult::EndDrawing;
 		}
 
 		void Init(const Settings& settings) override
@@ -124,7 +130,7 @@ namespace
 			return InternalValidateSettings(settings);
 		}
 
-		void OnDraw() override
+		OnDrawResult OnDraw() override
 		{
 			ImGui::TextUnformatted("This tool can optionally connect to the internet to automatically update.");
 
@@ -156,6 +162,8 @@ namespace
 					ImGui::Unindent();
 					ImGui::EndGroup();
 				}, "Requires \"Allow Internet Connectivity\"");
+
+			return OnDrawResult::ContinueDrawing;
 		}
 
 		void Init(const Settings& settings) override
@@ -245,7 +253,7 @@ bool SetupFlow::OnDraw(Settings& settings)
 			page->Init(settings);
 		}
 
-		page->OnDraw();
+		auto drawResult = page->OnDraw();
 
 		ImGui::NewLine();
 
@@ -253,7 +261,7 @@ bool SetupFlow::OnDraw(Settings& settings)
 
 		ImGui::EnabledSwitch(page->CanCommit(), [&]
 			{
-				if (ImGui::Button(hasNextPage ? "Next >" : "Done"))
+				if (ImGui::Button(hasNextPage ? "Next >" : "Done") || drawResult == IPage::OnDrawResult::EndDrawing)
 				{
 					page->Commit(settings);
 					settings.SaveFile();
