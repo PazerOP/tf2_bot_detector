@@ -827,6 +827,8 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::BeginMenu("File"))
 	{
+		if (ImGui::MenuItem("Open TF2"))
+			Shell::OpenURL("steam://rungameid/440");
 		if (ImGui::MenuItem("Generate Debug Report"))
 			GenerateDebugReport();
 
