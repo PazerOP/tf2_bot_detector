@@ -3,6 +3,7 @@
 #include "Config/Settings.h"
 #include "SteamID.h"
 #include "PlatformSpecific/Shell.h"
+#include "PlatformSpecific/Steam.h"
 #include "Version.h"
 
 #include <imgui_desktop/ScopeGuards.h>
@@ -17,6 +18,16 @@ namespace ScopeGuards = ImGuiDesktop::ScopeGuards;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
+
+namespace
+{
+	enum class OverrideEnabled : int
+	{
+		Unset,
+		Disabled,
+		Enabled,
+	};
+}
 
 void ImGui::TextUnformatted(const std::string_view& text)
 {
@@ -111,86 +122,6 @@ void ImGui::AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* u
 	}
 
 	ImGui::EndChild();
-}
-
-bool tf2_bot_detector::InputTextSteamIDOverride(const char* label, SteamID& steamID, std::optional<bool>* overrideEnabled, bool requireValid)
-{
-	if (overrideEnabled)
-	{
-		if (!overrideEnabled->has_value())
-			overrideEnabled->emplace(steamID.IsValid());
-
-		ImGui::Checkbox(("Override "s << label).c_str(), &overrideEnabled->value());
-	}
-
-	if (!overrideEnabled || overrideEnabled->value())
-	{
-		std::string steamIDStr;
-		if (steamID.IsValid())
-			steamIDStr = steamID.str();
-
-		SteamID newSID;
-		const bool modified = ImGui::InputTextWithHint(label, "[U:1:1234567890]", &steamIDStr);
-		bool modifySuccess = false;
-		{
-			if (steamIDStr.empty())
-			{
-				ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
-				ImGui::TextUnformatted("Cannot be empty"sv);
-			}
-			else
-			{
-				try
-				{
-					const auto CheckValid = [&](const SteamID& id) { return !requireValid || id.IsValid(); };
-					bool valid = false;
-					if (modified)
-					{
-						newSID = SteamID(steamIDStr);
-						if (CheckValid(newSID))
-						{
-							modifySuccess = true;
-							valid = true;
-						}
-					}
-					else
-					{
-						valid = CheckValid(steamID);
-					}
-
-					if (valid)
-					{
-						ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
-						ImGui::TextUnformatted("Looks good!"sv);
-					}
-					else
-					{
-						ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
-						ImGui::TextUnformatted("Invalid SteamID"sv);
-					}
-				}
-				catch (const std::invalid_argument& error)
-				{
-					ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
-					ImGui::TextUnformatted(error.what());
-				}
-			}
-		}
-
-		ImGui::NewLine();
-
-		if (modifySuccess)
-			steamID = newSID;
-
-		return modifySuccess;
-	}
-	else if (steamID.IsValid())
-	{
-		steamID = {};
-		return true;
-	}
-
-	return false;
 }
 
 static std::filesystem::path GetLastPathElement(const std::filesystem::path& path)
@@ -294,49 +225,171 @@ static bool InputPathValidated(const std::string_view& label_id, const std::file
 	return modifySuccess;
 }
 
-static bool InputPathValidatedOverride(const std::string_view& label_id, const std::filesystem::path& exampleDir,
-	std::filesystem::path& outPath, std::optional<bool>* overrideEnabled, bool requireValid, ValidatorFn validator)
+template<typename T, typename TIsValidFunc, typename TInputFunc>
+static bool OverrideControl(const std::string_view& overrideLabel, T& overrideValue,
+	const T& autodetectedValue, TIsValidFunc&& isValidFunc, TInputFunc&& inputFunc)
 {
-	// optional pointer to std::optional<bool>... lol
-	if (overrideEnabled)
+	ScopeGuards::ID id(overrideLabel);
+
+	auto storage = ImGui::GetStateStorage();
+	static struct {} s_OverrideEnabled; // Unique pointer
+	const auto overrideEnabledID = ImGui::GetID(&s_OverrideEnabled);
+
+	auto& overrideEnabled = *reinterpret_cast<OverrideEnabled*>(storage->GetIntRef(overrideEnabledID, int(OverrideEnabled::Unset)));
+
+	if (overrideEnabled == OverrideEnabled::Unset)
+		overrideEnabled = isValidFunc(overrideValue) ? OverrideEnabled::Enabled : OverrideEnabled::Disabled;
+
+	std::string checkboxLabel = "Override "s << GetVisibleLabel(overrideLabel);
+
+	const bool isAutodetectedValueValid = isValidFunc(autodetectedValue);
+	ImGui::EnabledSwitch(isAutodetectedValueValid, [&](bool enabled)
+		{
+			if (bool checked = (overrideEnabled == OverrideEnabled::Enabled || !enabled);
+				ImGui::Checkbox(checkboxLabel.c_str(), &checked))
+			{
+				overrideEnabled = checked ? OverrideEnabled::Enabled : OverrideEnabled::Disabled;
+			}
+
+		}, ("Failed to autodetect value for "s << GetVisibleLabel(overrideLabel)).c_str());
+
+	ScopeGuards::Indent indent;
+	bool retVal = false;
+	if (overrideEnabled == OverrideEnabled::Enabled || !isAutodetectedValueValid)
 	{
-		if (!overrideEnabled->has_value())
-			overrideEnabled->emplace(!outPath.empty());
-
-		std::string checkboxLabel = "Override "s << GetVisibleLabel(label_id);
-		bool changed = ImGui::Checkbox(checkboxLabel.c_str(), &**overrideEnabled);
-
-		if (overrideEnabled->value())
-		{
-			return InputPathValidated(label_id, exampleDir, outPath, requireValid, validator);
-		}
-		else if (!outPath.empty())
-		{
-			outPath.clear();
-			return true;
-		}
-
-		return false;
+		retVal = inputFunc();// , InputPathValidated(label_id, exampleDir, outPath, requireValid, validator);
 	}
 	else
 	{
-		return InputPathValidated(label_id, exampleDir, outPath, requireValid, validator);
+		ImGui::TextUnformatted("Autodetected value: "s << autodetectedValue);
+		ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Looks good!");
+		ImGui::NewLine();
+
+		if (overrideValue != T{})
+		{
+			overrideValue = T{};
+			retVal = true;
+		}
 	}
+
+	return retVal;
+}
+
+static bool InputTextSteamID(const char* label, SteamID& steamID, bool requireValid)
+{
+	std::string steamIDStr;
+	if (steamID.IsValid())
+		steamIDStr = steamID.str();
+
+	SteamID newSID;
+	const bool modified = ImGui::InputTextWithHint(label, "[U:1:1234567890]", &steamIDStr);
+	bool modifySuccess = false;
+	{
+		if (steamIDStr.empty())
+		{
+			ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
+			ImGui::TextUnformatted("Cannot be empty"sv);
+		}
+		else
+		{
+			try
+			{
+				const auto CheckValid = [&](const SteamID& id) { return !requireValid || id.IsValid(); };
+				bool valid = false;
+				if (modified)
+				{
+					newSID = SteamID(steamIDStr);
+					if (CheckValid(newSID))
+					{
+						modifySuccess = true;
+						valid = true;
+					}
+				}
+				else
+				{
+					valid = CheckValid(steamID);
+				}
+
+				if (valid)
+				{
+					ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
+					ImGui::TextUnformatted("Looks good!"sv);
+				}
+				else
+				{
+					ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
+					ImGui::TextUnformatted("Invalid SteamID"sv);
+				}
+			}
+			catch (const std::invalid_argument& error)
+			{
+				ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
+				ImGui::TextUnformatted(error.what());
+			}
+		}
+	}
+
+	ImGui::NewLine();
+
+	if (modifySuccess)
+		steamID = newSID;
+
+	return modifySuccess;
+}
+
+bool tf2_bot_detector::InputTextSteamIDOverride(const char* label, SteamID& steamID, bool requireValid)
+{
+	return OverrideControl("SteamID"sv, steamID, GetCurrentActiveSteamID(),
+		[&](const SteamID& id) { return !requireValid || id.IsValid(); },
+		[&] { return InputTextSteamID(label, steamID, requireValid); });
+
+#if 0
+	if (overrideEnabled)
+	{
+		if (!overrideEnabled->has_value())
+			overrideEnabled->emplace(steamID.IsValid());
+
+		ImGui::Checkbox(("Override "s << label).c_str(), &overrideEnabled->value());
+	}
+
+	if (!overrideEnabled || overrideEnabled->value())
+	{
+
+	}
+	else if (steamID.IsValid())
+	{
+		steamID = {};
+		return true;
+	}
+
+	return false;
+#endif
+}
+
+static bool InputPathValidatedOverride(const std::string_view& label_id, const std::string_view& overrideLabel,
+	const std::filesystem::path& exampleDir, std::filesystem::path& outPath,
+	const std::filesystem::path& autodetectedPath, bool requireValid, ValidatorFn validator)
+{
+	return OverrideControl(overrideLabel, outPath, autodetectedPath,
+		[](const std::filesystem::path& path) { return !path.empty(); },
+		[&] { return InputPathValidated(label_id, exampleDir, outPath, requireValid, validator); }
+	);
 }
 
 bool tf2_bot_detector::InputTextTFDirOverride(const std::string_view& label_id, std::filesystem::path& outPath,
-	std::optional<bool>* overrideEnabled, bool requireValid)
+	const std::filesystem::path& autodetectedPath, bool requireValid)
 {
-	return InputPathValidatedOverride(label_id,
-		"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf",
-		outPath, overrideEnabled, requireValid, &ValidateTFDir);
+	static const std::filesystem::path s_ExamplePath("C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf");
+	return InputPathValidatedOverride(label_id, "tf directory"sv, s_ExamplePath,
+		outPath, autodetectedPath, requireValid, &ValidateTFDir);
 }
 
-bool tf2_bot_detector::InputTextSteamDirOverride(const std::string_view& label_id, std::filesystem::path& outPath,
-	std::optional<bool>* overrideEnabled, bool requireValid)
+bool tf2_bot_detector::InputTextSteamDirOverride(const std::string_view& label_id,
+	std::filesystem::path& outPath, bool requireValid)
 {
-	return InputPathValidatedOverride(label_id, "C:\\Program Files (x86)\\Steam", outPath,
-		overrideEnabled, requireValid, &ValidateSteamDir);
+	static const std::filesystem::path s_ExamplePath("C:\\Program Files (x86)\\Steam");
+	return InputPathValidatedOverride(label_id, "Steam directory"sv, s_ExamplePath, outPath,
+		GetCurrentSteamDir(), requireValid, &ValidateSteamDir);
 }
 
 bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)

@@ -50,42 +50,42 @@ namespace
 
 			// 1. Steam directory
 			bool any = false;
-			if (GetCurrentSteamDir().empty())
+			//if (auto autodetected = GetCurrentSteamDir(); autodetected.empty())
 			{
 				any = true;
-				ImGui::TextUnformatted("Location of your Steam directory");
+				ImGui::TextUnformatted("Location of your Steam directory:");
 				ImGui::NewLine();
 				ScopeGuards::Indent indent;
 				ImGui::TextUnformatted("Your Steam directory is needed to execute commands in TF2, read console logs, and determine your current Steam ID.");
 
-				InputTextSteamDirOverride("##SetupFlow_SteamDir", m_Settings.m_SteamDirOverride, nullptr);
+				InputTextSteamDirOverride("##SetupFlow_SteamDir", m_Settings.m_SteamDirOverride);
 
 				ImGui::NewLine();
 			}
 
-			if (FindTFDir(m_Settings.GetSteamDir()).empty())
+			//if (FindTFDir(m_Settings.GetSteamDir()).empty())
 			{
 				any = true;
-				ImGui::TextUnformatted("Location of your tf directory");
+				ImGui::TextUnformatted("Location of your tf directory:");
 				ImGui::NewLine();
 				ImGui::Indent();
 				ImGui::TextUnformatted("Your tf directory is needed so this tool knows where to read console output from. It is also needed to automatically run commands in the game.");
 
-				InputTextTFDirOverride("##SetupFlow_TFDir", m_Settings.m_TFDirOverride, nullptr);
+				InputTextTFDirOverride("##SetupFlow_TFDir", m_Settings.m_TFDirOverride, FindTFDir(m_Settings.GetSteamDir()));
 
 				ImGui::Unindent();
 			}
 
 			// 2. Steam ID
-			if (!GetCurrentActiveSteamID().IsValid())
+			//if (!GetCurrentActiveSteamID().IsValid())
 			{
 				any = true;
-				ImGui::TextUnformatted("Your Steam ID"sv);
+				ImGui::TextUnformatted("Your Steam ID:"sv);
 				ImGui::NewLine();
 				ImGui::Indent();
 				ImGui::TextUnformatted("Your Steam ID is needed to identify who can be votekicked (same team) and who is on the other team. You can find your Steam ID using sites like steamidfinder.com.");
 
-				InputTextSteamIDOverride("##SetupFlow_SteamID", m_Settings.m_LocalSteamIDOverride, nullptr);
+				InputTextSteamIDOverride("##SetupFlow_SteamID", m_Settings.m_LocalSteamIDOverride);
 
 				ImGui::Unindent();
 				ImGui::NewLine();

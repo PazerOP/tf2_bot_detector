@@ -51,9 +51,6 @@ namespace tf2_bot_detector
 
 		void OnDrawSettingsPopup();
 		bool m_SettingsPopupOpen = false;
-		std::optional<bool> m_SettingsPopupSteamDirOverride;
-		std::optional<bool> m_SettingsPopupSteamIDOverride;
-		std::optional<bool> m_SettingsPopupTFDirOverride;
 		void OpenSettingsPopup() { m_SettingsPopupOpen = true; }
 
 		void OnDrawUpdateCheckPopup();
