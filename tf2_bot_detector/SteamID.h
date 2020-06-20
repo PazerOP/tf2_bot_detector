@@ -49,7 +49,7 @@ namespace tf2_bot_detector
 		explicit SteamID(const std::string_view& str);
 		explicit constexpr SteamID(uint64_t id64) : ID64(id64) {}
 		explicit constexpr SteamID(uint32_t id, SteamAccountType type, SteamAccountUniverse universe,
-			SteamAccountInstance instance = SteamAccountInstance::All) :
+			SteamAccountInstance instance = SteamAccountInstance::Desktop) :
 			ID(id), Instance(instance), Type(type), Universe(universe)
 		{
 		}
