@@ -18,17 +18,25 @@
 					"description": "Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.",
 					"type": "boolean"
 				},
-				"local_steamid": {
-					"description": "The SteamID of the player running the tool.",
+				"local_steamid_override": {
+					"description": "The SteamID of the player running the tool. Overrides the auto-detected value.",
 					"$ref": "./shared.schema.json#definitions/steamid"
+				},
+				"tf_game_dir_override": {
+					"description": "The local tf directory. Overrides the auto-detected value.",
+					"type": "string"
+				},
+				"steam_dir_override": {
+					"description": "The local installation directory of Steam. Overrides the auto-detected value.",
+					"type": "string"
+				},
+				"steam_api_key": {
+					"description": "The user's Steam Web API key from https://steamcommunity.com/dev/apikey.",
+					"type": "string"
 				},
 				"sleep_when_unfocused": {
 					"description": "If true, the tool reduces its update rate when not focused to reduce CPU/GPU usage.",
 					"type": "boolean"
-				},
-				"tf_game_dir": {
-					"description": "The tf folder.",
-					"type": "string"
 				},
 				"allow_internet_usage": {
 					"description": "Allow this program to connect to the internet.",
@@ -58,11 +66,7 @@
 					],
 					"default": "releases"
 				}
-			},
-			"required": [
-				"local_steamid",
-				"tf_game_dir"
-			]
+			}
 		},
 		"theme": {
 			"type": "object",
@@ -168,6 +172,30 @@
 			"required": [
 				"colors"
 			]
+		},
+		"goto_profile_sites": {
+			"type": "array",
+			"description": "General settings.",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"description": "A site that appears in the \"Go To\" menu when right clicking on a user.",
+				"additionalProperties": false,
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "Name of this site (shows in menu)."
+					},
+					"profile_url": {
+						"type": "string",
+						"description": "URL for visiting profiles. Allows you to specify replacements like https://steamcommunity.com/id/%SteamID64%. Valid replacements are %SteamID64%, or %SteamID3% for [U:1:XXXXXX]."
+					}
+				},
+				"required": [
+					"name",
+					"profile_url"
+				]
+			}
 		}
 	},
 	"required": [

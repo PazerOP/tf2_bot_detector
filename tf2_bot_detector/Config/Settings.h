@@ -34,6 +34,14 @@ namespace tf2_bot_detector
 		std::filesystem::path m_TFDirOverride;
 	};
 
+	struct GotoProfileSite
+	{
+		std::string m_Name;
+		std::string m_ProfileURL;
+
+		std::string CreateProfileURL(const SteamID& id) const;
+	};
+
 	class Settings final : public AutoDetectedSettings
 	{
 	public:
@@ -62,6 +70,8 @@ namespace tf2_bot_detector
 		std::optional<bool> m_AllowInternetUsage;
 		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
 
+		std::vector<GotoProfileSite> m_GotoProfileSites;
+
 		struct Theme
 		{
 			struct Colors
@@ -78,9 +88,6 @@ namespace tf2_bot_detector
 			} m_Colors;
 
 		} m_Theme;
-
-	private:
-		mutable std::filesystem::path m_TFDir;
 	};
 }
 

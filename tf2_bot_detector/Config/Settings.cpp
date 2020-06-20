@@ -8,6 +8,7 @@
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <mh/text/stringops.hpp>
 #include <nlohmann/json.hpp>
 
 #include <filesystem>
@@ -19,7 +20,7 @@ using namespace tf2_bot_detector;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-static std::filesystem::path s_SettingsPath("cfg/settings.json");
+static const std::filesystem::path s_SettingsPath("cfg/settings.json");
 
 namespace tf2_bot_detector
 {
@@ -46,6 +47,15 @@ namespace tf2_bot_detector
 		};
 	}
 
+	void to_json(nlohmann::json& j, const GotoProfileSite& d)
+	{
+		j =
+		{
+			{ "name", d.m_Name },
+			{ "profile_url", d.m_ProfileURL },
+		};
+	}
+
 	void from_json(const nlohmann::json& j, Settings::Theme::Colors& d)
 	{
 		try_get_to(j, "scoreboard_cheater", d.m_ScoreboardCheater);
@@ -61,6 +71,12 @@ namespace tf2_bot_detector
 	void from_json(const nlohmann::json& j, Settings::Theme& d)
 	{
 		d.m_Colors = j.at("colors");
+	}
+
+	void from_json(const nlohmann::json& j, GotoProfileSite& d)
+	{
+		d.m_Name = j.at("name");
+		d.m_ProfileURL = j.at("profile_url");
 	}
 }
 
@@ -111,7 +127,7 @@ bool Settings::LoadFile()
 		std::ifstream file(s_SettingsPath);
 		if (!file.good())
 		{
-			Log(std::string(__FUNCTION__ ": Failed to open ") << s_SettingsPath, { 1, 0.5, 0, 1 });
+			LogError(std::string(__FUNCTION__ ": Failed to open ") << s_SettingsPath);
 			return false;
 		}
 
@@ -121,7 +137,15 @@ bool Settings::LoadFile()
 		}
 		catch (const nlohmann::json::exception& e)
 		{
-			Log(std::string(__FUNCTION__ ": Failed to parse JSON from ") << s_SettingsPath << ": " << e.what(), { 1, 0.25, 0, 1 });
+			auto backupPath = std::filesystem::path(s_SettingsPath).replace_filename("settings.backup.json");
+			LogError(std::string(__FUNCTION__) << ": Failed to parse JSON from " << s_SettingsPath << ": " << e.what()
+				<< ". Writing backup to " );
+
+			std::error_code ec;
+			std::filesystem::copy_file(s_SettingsPath, backupPath, ec);
+			if (!ec)
+				LogError(std::string(__FUNCTION__) << ": Failed to make backup of settings.json to " << backupPath);
+
 			return false;
 		}
 	}
@@ -143,11 +167,14 @@ bool Settings::LoadFile()
 	}
 
 	try_get_to(json, "theme", m_Theme);
-
-	if (auto foundTFDir = FindTFDir(GetSteamDir()); foundTFDir != m_TFDir)
+	if (!try_get_to(json, "goto_profile_sites", m_GotoProfileSites))
 	{
-		DebugLog("Detected TF directory as "s << foundTFDir);
-		m_TFDir = std::move(foundTFDir);
+		// Some defaults
+		m_GotoProfileSites.push_back({ "Steam Community", "https://steamcommunity.com/profiles/%SteamID64%" });
+		m_GotoProfileSites.push_back({ "logs.tf", "https://logs.tf/profile/%SteamID64%" });
+		m_GotoProfileSites.push_back({ "RGL", "https://rgl.gg/Public/PlayerProfile.aspx?p=%SteamID64%" });
+		m_GotoProfileSites.push_back({ "SteamRep", "https://steamrep.com/profiles/%SteamID64%" });
+		m_GotoProfileSites.push_back({ "UGC League", "https://www.ugcleague.com/players_page.cfm?player_id=%SteamID64%" });
 	}
 
 	return true;
@@ -167,7 +194,8 @@ bool Settings::SaveFile() const
 				{ "command_timeout_seconds", m_CommandTimeoutSeconds },
 				{ "steam_api_key", m_SteamAPIKey },
 			}
-		}
+		},
+		{ "goto_profile_sites", m_GotoProfileSites },
 	};
 
 	if (!m_SteamDirOverride.empty())
@@ -226,4 +254,10 @@ std::filesystem::path AutoDetectedSettings::GetSteamDir() const
 		return m_SteamDirOverride;
 
 	return GetCurrentSteamDir();
+}
+
+std::string GotoProfileSite::CreateProfileURL(const SteamID& id) const
+{
+	auto str = mh::find_and_replace(m_ProfileURL, "%SteamID64%"sv, std::string_view(std::to_string(id.ID64)));
+	return mh::find_and_replace(std::move(str), "%SteamID3%"sv, std::string_view(id.str()));
 }

@@ -32,6 +32,10 @@ MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
 	m_ActionManager(m_Settings)
 {
+	DebugLog("Steam dir: "s << m_Settings.GetSteamDir());
+	DebugLog("TF dir:    "s << m_Settings.GetTFDir());
+	DebugLog("SteamID:   "s << m_Settings.GetLocalSteamID());
+
 	m_OpenTime = clock_t::now();
 
 	m_ActionManager.AddPeriodicAction<StatusUpdateAction>();
@@ -55,16 +59,19 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 
 		if (ImGui::BeginMenu("Go To"))
 		{
-			if (ImGui::MenuItem("Steam Community"))
-				Shell::OpenURL("https://steamcommunity.com/profiles/"s << player.GetSteamID().ID64);
-			if (ImGui::MenuItem("logs.tf"))
-				Shell::OpenURL("http://logs.tf/profile/"s << player.GetSteamID().ID64);
-			if (ImGui::MenuItem("RGL"))
-				Shell::OpenURL("https://rgl.gg/Public/PlayerProfile.aspx?p="s << player.GetSteamID().ID64);
-			if (ImGui::MenuItem("SteamRep"))
-				Shell::OpenURL("https://steamrep.com/profiles/"s << player.GetSteamID().ID64);
-			if (ImGui::MenuItem("UGC League"))
-				Shell::OpenURL("https://www.ugcleague.com/players_page.cfm?player_id="s << player.GetSteamID().ID64);
+			if (!m_Settings.m_GotoProfileSites.empty())
+			{
+				for (const auto& item : m_Settings.m_GotoProfileSites)
+				{
+					ImGuiDesktop::ScopeGuards::ID id(&item);
+					if (ImGui::MenuItem(item.m_Name.c_str()))
+						Shell::OpenURL(item.CreateProfileURL(player));
+				}
+			}
+			else
+			{
+				ImGui::MenuItem("No sites configured", nullptr, nullptr, false);
+			}
 
 			ImGui::EndMenu();
 		}
