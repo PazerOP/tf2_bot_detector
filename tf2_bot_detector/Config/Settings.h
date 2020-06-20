@@ -22,7 +22,19 @@ namespace tf2_bot_detector
 	void to_json(nlohmann::json& j, const ProgramUpdateCheckMode& d);
 	void from_json(const nlohmann::json& j, ProgramUpdateCheckMode& d);
 
-	class Settings final
+	struct AutoDetectedSettings
+	{
+		SteamID GetLocalSteamID() const;
+		SteamID m_LocalSteamIDOverride;
+
+		std::filesystem::path GetSteamDir() const;
+		std::filesystem::path m_SteamDirOverride;
+
+		std::filesystem::path GetTFDir() const;
+		std::filesystem::path m_TFDirOverride;
+	};
+
+	class Settings final : public AutoDetectedSettings
 	{
 	public:
 		Settings();
@@ -40,15 +52,8 @@ namespace tf2_bot_detector
 			bool m_DebugShowCommands = false;
 		} m_Unsaved;
 
-		SteamID GetLocalSteamID() const;
-		SteamID m_LocalSteamIDOverride;
-
 		bool m_SleepWhenUnfocused = true;
 		bool m_AutoTempMute = true;
-
-		const std::filesystem::path& GetTFDir() const;
-		std::filesystem::path m_SteamDir;
-		std::filesystem::path m_TFDirOverride;
 
 		std::string m_SteamAPIKey;
 

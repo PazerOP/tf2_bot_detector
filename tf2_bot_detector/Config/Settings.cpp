@@ -138,16 +138,15 @@ bool Settings::LoadFile()
 		try_get_to(*found, "command_timeout_seconds", m_CommandTimeoutSeconds);
 		try_get_to(*found, "steam_api_key", m_SteamAPIKey);
 
-		if (auto foundDir = found->find("steam_dir"); foundDir != found->end())
-			m_SteamDir = foundDir->get<std::string_view>();
-
+		if (auto foundDir = found->find("steam_dir_override"); foundDir != found->end())
+			m_SteamDirOverride = foundDir->get<std::string_view>();
 		if (auto foundDir = found->find("tf_game_dir_override"); foundDir != found->end())
 			m_TFDirOverride = foundDir->get<std::string_view>();
 	}
 
 	try_get_to(json, "theme", m_Theme);
 
-	if (auto foundTFDir = FindTFDir(m_SteamDir); foundTFDir != m_TFDir)
+	if (auto foundTFDir = FindTFDir(GetSteamDir()); foundTFDir != m_TFDir)
 	{
 		DebugLog("Detected TF directory as "s << foundTFDir);
 		m_TFDir = std::move(foundTFDir);
@@ -169,11 +168,12 @@ bool Settings::SaveFile() const
 				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
 				{ "command_timeout_seconds", m_CommandTimeoutSeconds },
 				{ "steam_api_key", m_SteamAPIKey },
-				{ "steam_dir", m_SteamDir.string() },
 			}
 		}
 	};
 
+	if (!m_SteamDirOverride.empty())
+		json["general"]["steam_dir_override"] = m_SteamDirOverride.string();
 	if (!m_TFDirOverride.empty())
 		json["general"]["tf_game_dir_override"] = m_TFDirOverride.string();
 	if (m_LocalSteamIDOverride.IsValid())
@@ -203,7 +203,7 @@ bool Settings::SaveFile() const
 	return true;
 }
 
-SteamID Settings::GetLocalSteamID() const
+SteamID AutoDetectedSettings::GetLocalSteamID() const
 {
 	if (m_LocalSteamIDOverride.IsValid())
 		return m_LocalSteamIDOverride;
@@ -215,13 +215,18 @@ SteamID Settings::GetLocalSteamID() const
 	return {};
 }
 
-const std::filesystem::path& Settings::GetTFDir() const
+std::filesystem::path AutoDetectedSettings::GetTFDir() const
 {
 	if (!m_TFDirOverride.empty())
 		return m_TFDirOverride;
 
-	if (m_TFDir.empty())
-		m_TFDir = FindTFDir(m_SteamDir);
+	return FindTFDir(GetSteamDir());
+}
 
-	return m_TFDir;
+std::filesystem::path AutoDetectedSettings::GetSteamDir() const
+{
+	if (!m_SteamDirOverride.empty())
+		return m_SteamDirOverride;
+
+	return GetCurrentSteamDir();
 }

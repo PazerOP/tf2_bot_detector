@@ -113,15 +113,17 @@ void ImGui::AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* u
 	ImGui::EndChild();
 }
 
-bool tf2_bot_detector::InputTextSteamIDOverride(const char* label, SteamID& steamID, std::optional<bool>& overrideEnabled, bool requireValid)
+bool tf2_bot_detector::InputTextSteamIDOverride(const char* label, SteamID& steamID, std::optional<bool>* overrideEnabled, bool requireValid)
 {
-	if (!overrideEnabled)
-		overrideEnabled = steamID.IsValid();
+	if (overrideEnabled)
+	{
+		if (!*overrideEnabled)
+			*overrideEnabled = steamID.IsValid();
 
-	std::string checkboxLabel = "Override "s << label;
-	bool changed = ImGui::Checkbox(checkboxLabel.c_str(), &*overrideEnabled);
+		ImGui::Checkbox(("Override "s << label).c_str(), &**overrideEnabled);
+	}
 
-	if (*overrideEnabled)
+	if (!overrideEnabled || *overrideEnabled)
 	{
 		std::string steamIDStr;
 		if (steamID.IsValid())
@@ -293,41 +295,48 @@ static bool InputPathValidated(const std::string_view& label_id, const std::file
 }
 
 static bool InputPathValidatedOverride(const std::string_view& label_id, const std::filesystem::path& exampleDir,
-	std::filesystem::path& outPath, std::optional<bool>& overrideEnabled, bool requireValid, ValidatorFn validator)
+	std::filesystem::path& outPath, std::optional<bool>* overrideEnabled, bool requireValid, ValidatorFn validator)
 {
-	if (!overrideEnabled)
-		overrideEnabled = outPath.empty();
-
-	std::string checkboxLabel = "Override "s << GetVisibleLabel(label_id);
-	bool changed = ImGui::Checkbox(checkboxLabel.c_str(), &*overrideEnabled);
-
-	if (*overrideEnabled)
+	// optional pointer to std::optional<bool>... lol
+	if (overrideEnabled)
 	{
-		return InputPathValidated(label_id,
-			"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf",
-			outPath, requireValid, validator);
-	}
-	else if (!outPath.empty())
-	{
-		outPath.clear();
-		return true;
-	}
+		if (!*overrideEnabled)
+			*overrideEnabled = !outPath.empty();
 
-	return false;
+		std::string checkboxLabel = "Override "s << GetVisibleLabel(label_id);
+		bool changed = ImGui::Checkbox(checkboxLabel.c_str(), &**overrideEnabled);
+
+		if (*overrideEnabled)
+		{
+			return InputPathValidated(label_id, exampleDir, outPath, requireValid, validator);
+		}
+		else if (!outPath.empty())
+		{
+			outPath.clear();
+			return true;
+		}
+
+		return false;
+	}
+	else
+	{
+		return InputPathValidated(label_id, exampleDir, outPath, requireValid, validator);
+	}
 }
 
 bool tf2_bot_detector::InputTextTFDirOverride(const std::string_view& label_id, std::filesystem::path& outPath,
-	std::optional<bool>& overrideEnabled, bool requireValid)
+	std::optional<bool>* overrideEnabled, bool requireValid)
 {
 	return InputPathValidatedOverride(label_id,
 		"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Team Fortress 2\\tf",
 		outPath, overrideEnabled, requireValid, &ValidateTFDir);
 }
 
-bool tf2_bot_detector::InputTextSteamDir(const std::string_view& label_id,
-	std::filesystem::path& outPath, bool requireValid)
+bool tf2_bot_detector::InputTextSteamDirOverride(const std::string_view& label_id, std::filesystem::path& outPath,
+	std::optional<bool>* overrideEnabled, bool requireValid)
 {
-	return InputPathValidated(label_id, "C:\\Program Files (x86)\\Steam", outPath, requireValid, &ValidateSteamDir);
+	return InputPathValidatedOverride(label_id, "C:\\Program Files (x86)\\Steam", outPath,
+		overrideEnabled, requireValid, &ValidateSteamDir);
 }
 
 bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)

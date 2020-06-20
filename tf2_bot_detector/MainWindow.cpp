@@ -523,12 +523,16 @@ void MainWindow::OnDrawSettingsPopup()
 	ImGui::SetNextWindowSize({ 400, 400 }, ImGuiCond_Once);
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open))
 	{
+		// Steam dir
+		if (InputTextSteamDirOverride("Steam directory", m_Settings.m_SteamDirOverride, &m_SettingsPopupSteamDirOverride, true))
+			m_Settings.SaveFile();
+
 		// Local steamid
-		if (InputTextSteamIDOverride("My Steam ID", m_Settings.m_LocalSteamIDOverride, m_SettingsPopupSteamIDOverride))
+		if (InputTextSteamIDOverride("My Steam ID", m_Settings.m_LocalSteamIDOverride, &m_SettingsPopupSteamIDOverride, true))
 			m_Settings.SaveFile();
 
 		// TF game dir override
-		if (InputTextTFDirOverride("tf directory", m_Settings.m_TFDirOverride, m_SettingsPopupTFDirOverride))
+		if (InputTextTFDirOverride("tf directory", m_Settings.m_TFDirOverride, &m_SettingsPopupTFDirOverride, true))
 			m_Settings.SaveFile();
 
 		// Sleep when unfocused

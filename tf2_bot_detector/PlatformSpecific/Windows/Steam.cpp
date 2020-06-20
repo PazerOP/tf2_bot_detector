@@ -9,10 +9,32 @@
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
+static constexpr char STEAM_ACTIVE_PROCESS_KEY[] = "Software\\Valve\\Steam\\ActiveProcess";
+
+std::filesystem::path tf2_bot_detector::GetCurrentSteamDir()
+{
+	char steamDLLstr[256];
+	DWORD dataSize = sizeof(steamDLLstr);
+	DWORD type;
+	auto result = std::error_code(RegGetValueA(
+		HKEY_CURRENT_USER,
+		STEAM_ACTIVE_PROCESS_KEY, "SteamClientDll",
+		RRF_RT_REG_SZ, &type, steamDLLstr, &dataSize), std::system_category());
+
+	if (result)
+	{
+		LogError(std::string(__FUNCTION__) << ": Failed to retrieve "s
+			<< STEAM_ACTIVE_PROCESS_KEY << "\\SteamClientDll: error " << result << ' ' << std::quoted(result.message()));
+		return {};
+	}
+
+	std::filesystem::path steamDir(steamDLLstr);
+	steamDir.remove_filename();
+	return steamDir;
+}
+
 SteamID tf2_bot_detector::GetCurrentActiveSteamID()
 {
-	constexpr char STEAM_ACTIVE_PROCESS_KEY[] = "Software\\Valve\\Steam\\ActiveProcess";
-
 	DWORD type;
 	DWORD data;
 	DWORD dataSize = sizeof(data);

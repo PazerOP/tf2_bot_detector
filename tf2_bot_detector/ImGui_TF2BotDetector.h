@@ -150,10 +150,12 @@ namespace tf2_bot_detector
 	enum class ProgramUpdateCheckMode;
 	class SteamID;
 
-	bool InputTextSteamIDOverride(const char* label_id, SteamID& steamID, std::optional<bool>& overrideEnabled, bool requireValid = true);
+	bool InputTextSteamIDOverride(const char* label_id, SteamID& steamID,
+		std::optional<bool>* overrideEnabled, bool requireValid = true);
 	bool InputTextTFDirOverride(const std::string_view& label_id, std::filesystem::path& path,
-		std::optional<bool>& overrideEnabled, bool requireValid = false);
-	bool InputTextSteamDir(const std::string_view& label_id, std::filesystem::path& path, bool requireValid = false);
+		std::optional<bool>* overrideEnabled, bool requireValid = false);
+	bool InputTextSteamDirOverride(const std::string_view& label_id, std::filesystem::path& path,
+		std::optional<bool>* overrideEnabled, bool requireValid = false);
 	bool Combo(const char* label_id, ProgramUpdateCheckMode& mode);
 }
 

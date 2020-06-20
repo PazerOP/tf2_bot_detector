@@ -26,13 +26,13 @@ namespace
 		template<typename T>
 		static bool InternalValidateSettings(const T& settings)
 		{
+			if (auto steamDir = settings.GetSteamDir(); steamDir.empty() || !ValidateSteamDir(steamDir))
+				return false;
+
+			if (auto tfDir = settings.GetTFDir(); tfDir.empty() || !ValidateTFDir(tfDir))
+				return false;
+
 			if (!settings.GetLocalSteamID().IsValid())
-				return false;
-
-			if (settings.GetTFDir().empty() || !ValidateTFDir(settings.GetTFDir()))
-				return false;
-
-			if (!ValidateSteamDir(settings.m_SteamDir))
 				return false;
 
 			return true;
@@ -45,80 +45,62 @@ namespace
 
 		void OnDraw() override
 		{
+			ImGui::TextUnformatted("Due to your configuration, some settings could not be automatically detected.");
+			ImGui::NewLine();
+
 			// 1. Steam directory
+			if (m_Settings.GetSteamDir().empty())
 			{
-				ImGui::TextUnformatted("1. Location of your Steam directory");
+				ImGui::TextUnformatted("Location of your Steam directory");
 				ImGui::NewLine();
 				ScopeGuards::Indent indent;
 				ImGui::TextUnformatted("Your Steam directory is needed to execute commands in TF2, read console logs, and determine your current Steam ID.");
 
-				InputTextSteamDir("##SetupFlow_SteamDir", m_Settings.m_SteamDir);
+				InputTextSteamDirOverride("##SetupFlow_SteamDir", m_Settings.m_SteamDirOverride, nullptr);
 
 				ImGui::NewLine();
 			}
 
-#if 0
-			// 2. Steam ID
+			if (m_Settings.GetTFDir().empty())
 			{
-				ImGui::TextUnformatted("2. Your Steam ID"sv);
-				ImGui::NewLine();
-				ImGui::Indent();
-				ImGui::TextUnformatted("Your Steam ID is needed to identify who can be votekicked (same team) and who is on the other team. You can find your Steam ID using sites like steamidfinder.com.");
-
-				InputTextSteamIDOverride("##SetupFlow_SteamID", m_Settings.m_LocalSteamID);
-
-				ImGui::Unindent();
-				ImGui::NewLine();
-			}
-
-			// 3. TF directory
-			{
-				ImGui::TextUnformatted("3. Location of your tf directory");
+				ImGui::TextUnformatted("Location of your tf directory");
 				ImGui::NewLine();
 				ImGui::Indent();
 				ImGui::TextUnformatted("Your tf directory is needed so this tool knows where to read console output from. It is also needed to automatically run commands in the game.");
 
-				InputTextTFDirOverride("##SetupFlow_TFDir", m_Settings.m_TFDirOverride);
+				InputTextTFDirOverride("##SetupFlow_TFDir", m_Settings.m_TFDirOverride, nullptr);
 
 				ImGui::Unindent();
 			}
-#endif
+
+			// 2. Steam ID
+			if (!m_Settings.GetLocalSteamID().IsValid())
+			{
+				ImGui::TextUnformatted("Your Steam ID"sv);
+				ImGui::NewLine();
+				ImGui::Indent();
+				ImGui::TextUnformatted("Your Steam ID is needed to identify who can be votekicked (same team) and who is on the other team. You can find your Steam ID using sites like steamidfinder.com.");
+
+				InputTextSteamIDOverride("##SetupFlow_SteamID", m_Settings.m_LocalSteamIDOverride, nullptr);
+
+				ImGui::Unindent();
+				ImGui::NewLine();
+			}
 		}
 
 		void Init(const Settings& settings) override
 		{
-			m_Settings.m_SteamDir = settings.m_SteamDir;
-			m_Settings.m_TFDirOverride = settings.m_TFDirOverride;
-			m_Settings.m_LocalSteamID = settings.GetLocalSteamID();
+			m_Settings = settings;
 		}
 
 		bool CanCommit() const override { return InternalValidateSettings(m_Settings); }
 		void Commit(Settings& settings)
 		{
-			settings.m_TFDirOverride = m_Settings.m_TFDirOverride;
-			settings.m_SteamDir = m_Settings.m_SteamDir;
-
-			auto autodetectedSID = GetCurrentActiveSteamID();
-			settings.m_LocalSteamIDOverride = (m_Settings.m_LocalSteamID == autodetectedSID) ? SteamID() : m_Settings.m_LocalSteamID;
+			static_cast<AutoDetectedSettings&>(settings) = m_Settings;
 		}
 
 	private:
-		struct
-		{
-			std::filesystem::path m_SteamDir;
-			std::filesystem::path m_TFDirOverride;
-			SteamID m_LocalSteamID;
-			auto GetLocalSteamID() const { return m_LocalSteamID; }
-
-			auto GetTFDir() const
-			{
-				if (!m_TFDirOverride.empty())
-					return m_TFDirOverride;
-
-				return FindTFDir(m_SteamDir);
-			}
-
-		} m_Settings;
+		AutoDetectedSettings m_Settings;
 	};
 
 	class NetworkSettingsPage final : public SetupFlow::IPage

@@ -124,7 +124,6 @@ DirectoryValidatorResult tf2_bot_detector::ValidateSteamDir(std::filesystem::pat
 		if (!ValidateFile(result, "steam.exe") ||
 			!ValidateFile(result, "GameOverlayUI.exe") ||
 			!ValidateFile(result, "streaming_client.exe") ||
-			!ValidateFile(result, "ClientRegistry.blob") ||
 			!ValidateDirectory(result, "steamapps") ||
 			!ValidateDirectory(result, "config"))
 		{
