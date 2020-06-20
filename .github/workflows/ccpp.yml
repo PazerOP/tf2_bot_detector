@@ -30,6 +30,7 @@ jobs:
         vcpkgGitCommitId: 7192d3affa4b1d8f88e3e730eb561612c24f7d78
         vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp'
         vcpkgTriplet: ${{ matrix.triplet }}
+        appendedCacheKey: "42-pazer-${{ matrix.triplet }}"
 
     - name: run-cmake
       uses: lukka/run-cmake@v2.5
