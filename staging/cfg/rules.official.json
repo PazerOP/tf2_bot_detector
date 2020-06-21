@@ -29,23 +29,7 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"MYG)T"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "(catbot) mygot 2",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "contains",
-					"patterns": [
+						"MYG)T",
 						"[t0gym]",
 						"[g0tb0t]"
 					]

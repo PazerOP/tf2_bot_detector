@@ -837,13 +837,11 @@ void MainWindow::OnDrawMenuBar()
 
 #ifdef _DEBUG
 	static bool s_ImGuiDemoWindow = false;
-	static bool s_ImPlotDemoWindow = false;
 #endif
 	if (ImGui::BeginMenu("Window"))
 	{
 #ifdef _DEBUG
 		ImGui::MenuItem("ImGui Demo Window", nullptr, &s_ImGuiDemoWindow);
-		ImGui::MenuItem("ImPlot Demo Window", nullptr, &s_ImPlotDemoWindow);
 #endif
 		ImGui::EndMenu();
 	}
@@ -851,8 +849,6 @@ void MainWindow::OnDrawMenuBar()
 #ifdef _DEBUG
 	if (s_ImGuiDemoWindow)
 		ImGui::ShowDemoWindow(&s_ImGuiDemoWindow);
-	if (s_ImPlotDemoWindow)
-		ImPlot::ShowDemoWindow(&s_ImPlotDemoWindow);
 #endif
 #endif
 
