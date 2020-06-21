@@ -3091,6 +3091,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592699044
+			},
+			"steamid": "[U:1:1105678796]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "[VALVE] Twilight Sparkle",
 				"time": 1592412964
 			},
@@ -3226,6 +3236,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(1)MYG)T",
+				"time": 1592699011
+			},
+			"steamid": "[U:1:1105967288]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "James Charles",
 				"time": 1592194974
 			},
@@ -3344,6 +3364,16 @@
 				"time": 1592696786
 			},
 			"steamid": "[U:1:1107526033]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "poohook RCE bot 9",
+				"time": 1592704629
+			},
+			"steamid": "[U:1:1107622630]"
 		}
 	]
 }
