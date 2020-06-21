@@ -27,7 +27,7 @@
 				"mode": "match_any",
 				"username_text_match": {
 					"case_sensitive": false,
-					"mode": "equal",
+					"mode": "contains",
 					"patterns": [
 						"MYG)T"
 					]
