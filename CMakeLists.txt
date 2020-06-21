@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.17.2)
 project(tf2_bot_detector VERSION 1.0.0.22)
 
 set(JSON_BuildTests OFF)
@@ -10,10 +10,14 @@ if (MSVC)
 	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
 endif()
 
+set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE true)
+if (MSVC AND (CMAKE_BUILD_TYPE MATCHES "Release"))
+	add_link_options(/OPT:REF /OPT:ICF)
+endif()
+
 # set(VCPKG_APPLOCAL_DEPS ON)
 
 add_subdirectory(submodules/imgui_desktop)
-add_subdirectory(submodules/implot)
 add_subdirectory(submodules/mh_stuff)
 # add_subdirectory(submodules/nlohmann_json)
 add_subdirectory(submodules/ValveFileVDF)
@@ -114,7 +118,6 @@ find_package(libzippp CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	imgui_desktop
-	implot
 	mh_stuff
 	ValveFileVDF
 	libzip::libzip

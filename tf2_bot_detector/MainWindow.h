@@ -143,31 +143,6 @@ namespace tf2_bot_detector
 		std::vector<PingSample> m_ServerPingSamples;
 		time_point_t m_LastServerPingSample{};
 
-		struct AvgSample
-		{
-			float m_AvgValue{};
-			uint32_t m_SampleCount{};
-
-			void AddSample(float value);
-		};
-
-		struct NetSamples
-		{
-			std::map<time_point_t, AvgSample> m_Latency;
-			std::map<time_point_t, AvgSample> m_Loss;
-			std::map<time_point_t, AvgSample> m_Packets;
-			std::map<time_point_t, AvgSample> m_Data;
-		};
-		NetSamples m_NetSamplesOut;
-		NetSamples m_NetSamplesIn;
-		std::pair<time_point_t, time_point_t> GetNetSamplesRange() const;
-		void PruneNetSamples(time_point_t& startTime, time_point_t& endTime);
-		static constexpr duration_t NET_GRAPH_DURATION = std::chrono::seconds(30);
-
-		void PlotNetSamples(const char* label_id, const std::map<time_point_t, AvgSample>& data,
-			time_point_t startTime, time_point_t endTime, int yAxis = 0) const;
-		static float GetMaxValue(const std::map<time_point_t, AvgSample>& data);
-
 		Settings m_Settings;
 		ActionManager m_ActionManager;
 		SetupFlow m_SetupFlow;

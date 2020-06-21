@@ -4,7 +4,6 @@
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include <implot.h>
 
 #include <filesystem>
 #include <optional>

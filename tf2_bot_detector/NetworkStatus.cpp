@@ -83,31 +83,3 @@ void SplitPacketLine::Print() const
 		m_Packet.m_Address.c_str(),
 		m_Packet.m_TotalSize);
 }
-
-template<typename TSelf>
-NetChannelDualFloatLine<TSelf>::NetChannelDualFloatLine(time_point_t timestamp, float f0, float f1) :
-	BaseClass(timestamp), m_Float0(f0), m_Float1(f1)
-{
-}
-
-template<typename TSelf>
-std::unique_ptr<IConsoleLine> NetChannelDualFloatLine<TSelf>::TryParse(const std::string_view& text, time_point_t timestamp)
-{
-	static std::regex s_Regex(TSelf::REGEX_PATTERN, std::regex::optimize);
-
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
-	{
-		float f0, f1;
-		from_chars_throw(result[1], f0);
-		from_chars_throw(result[2], f1);
-		return std::make_unique<TSelf>(timestamp, f0, f1);
-	}
-
-	return nullptr;
-}
-
-template<typename TSelf>
-void NetChannelDualFloatLine<TSelf>::Print() const
-{
-	ImGui::Text(TSelf::PRINT_FORMAT_STRING, m_Float0, m_Float1);
-}
