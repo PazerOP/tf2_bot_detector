@@ -678,7 +678,7 @@ auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
 
 void WorldState::QueuePlayerSummaryUpdate()
 {
-	if (m_Settings->m_SteamAPIKey.empty())
+	if (m_Settings->m_SteamAPIKey.empty() || m_Settings->m_AllowInternetUsage != true)
 		return;
 
 	std::vector<SteamID> steamIDs;
