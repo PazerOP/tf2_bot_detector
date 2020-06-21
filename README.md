@@ -1,5 +1,5 @@
 # TF2 Bot Detector
-Automatically detects and votekicks cheaters/bots in TF2 casual. 
+Automatically detects and votekicks cheaters/bots in TF2 casual.
 
 **This program requires the [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019](https://aka.ms/vs/16/release/vc_redist.x64.exe).**
 
@@ -38,4 +38,9 @@ You can always visit the discord to get support or suggest new features: https:/
 ![src_engine_declined_request](https://user-images.githubusercontent.com/6569500/83913792-dc01fb00-a724-11ea-83c4-7b5aab364611.png)
 ![src_engine_not_running](https://user-images.githubusercontent.com/6569500/83913866-fc31ba00-a724-11ea-914c-5b36c9188d8c.png)
 
-Ignore these. A fix to close these dialogs automatically will happen in an upcoming release.
+Ignore these. They will automatically close after 5 seconds. A fix to prevent these popups entirely will happen in an upcoming release.
+
+## Credits
+
+Code/concept by Matt "pazer" Haynie: https://twitter.com/PazerFromSilver<br>
+Artwork/icon by S-Purple: https://twitter.com/spurpleheart (NSFW)

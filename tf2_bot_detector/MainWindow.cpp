@@ -939,6 +939,25 @@ void MainWindow::OnDrawMenuBar()
 				OpenUpdateCheckPopup();
 		}
 
+		ImGui::Separator();
+
+		if (ImGui::BeginMenu("Code by pazer"))
+		{
+			if (ImGui::MenuItem("GitHub"))
+				Shell::OpenURL("https://github.com/PazerOP");
+			if (ImGui::MenuItem("Twitter"))
+				Shell::OpenURL("https://twitter.com/PazerFromSilver");
+
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Artwork by S-Purple"))
+		{
+			if (ImGui::MenuItem("Twitter (NSFW)"))
+				Shell::OpenURL("https://twitter.com/spurpleheart");
+
+			ImGui::EndMenu();
+		}
+
 		ImGui::EndMenu();
 	}
 }

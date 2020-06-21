@@ -83,6 +83,7 @@ add_executable(tf2_bot_detector WIN32
 	tf2_bot_detector/HTTPHelpers.cpp
 	tf2_bot_detector/SteamAPI.h
 	tf2_bot_detector/SteamAPI.cpp
+	tf2_bot_detector/Resources.rc
 )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
