@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1.0)
-project(tf2_bot_detector VERSION 1.0.0.21)
+project(tf2_bot_detector VERSION 1.0.0.22)
 
 set(JSON_BuildTests OFF)
 
