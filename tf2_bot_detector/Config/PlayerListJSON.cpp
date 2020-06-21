@@ -1,6 +1,6 @@
 #include "PlayerListJSON.h"
 #include "ConfigHelpers.h"
-#include "HTTPHelpers.h"
+#include "Networking/HTTPHelpers.h"
 #include "Log.h"
 #include "Settings.h"
 #include "JSONHelpers.h"

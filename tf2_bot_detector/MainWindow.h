@@ -6,7 +6,7 @@
 #include "CompensatedTS.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Settings.h"
-#include "GithubAPI.h"
+#include "Networking/GithubAPI.h"
 #include "ModeratorLogic.h"
 #include "SetupFlow.h"
 #include "WorldState.h"

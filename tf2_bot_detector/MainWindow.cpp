@@ -1,6 +1,6 @@
 #include "MainWindow.h"
 #include "ConsoleLines.h"
-#include "GithubAPI.h"
+#include "Networking/GithubAPI.h"
 #include "NetworkStatus.h"
 #include "RegexHelpers.h"
 #include "PlatformSpecific/Shell.h"

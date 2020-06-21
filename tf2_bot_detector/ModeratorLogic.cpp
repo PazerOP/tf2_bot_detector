@@ -120,7 +120,8 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const s
 	if (uint8_t(friendlyPlayerCount / 2) <= friendlyCheaters.size())
 	{
 		Log("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
-			<< " friendly cheaters, but we're trying anyway :/", { 1, 0.5f, 0 });
+			<< " friendly cheaters", { 1, 0.5f, 0 });
+		return;
 	}
 
 	// Votekick the first one that is actually connected

@@ -1,5 +1,5 @@
 #include "ConfigHelpers.h"
-#include "HTTPHelpers.h"
+#include "Networking/HTTPHelpers.h"
 #include "JSONHelpers.h"
 #include "Log.h"
 #include "RegexHelpers.h"

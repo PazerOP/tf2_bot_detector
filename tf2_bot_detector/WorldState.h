@@ -7,7 +7,7 @@
 #include "IWorldEventListener.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
-#include "SteamAPI.h"
+#include "Networking/SteamAPI.h"
 
 #include <mh/coroutine/generator.hpp>
 
