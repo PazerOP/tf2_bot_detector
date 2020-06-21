@@ -2472,6 +2472,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592697870
+			},
+			"steamid": "[U:1:1104037256]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -3324,6 +3334,16 @@
 				"time": 1592413048
 			},
 			"steamid": "[U:1:1107318279]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "poohook RCE bot 13",
+				"time": 1592696786
+			},
+			"steamid": "[U:1:1107526033]"
 		}
 	]
 }

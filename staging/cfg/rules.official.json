@@ -126,6 +126,23 @@
 					"cheater"
 				]
 			},
+			"description": "(catbot) poohook",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"poohook RCE bot \\d+"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "(catbot) Rick May Was A Pedo Bot ##",
 			"triggers": {
 				"username_text_match": {
