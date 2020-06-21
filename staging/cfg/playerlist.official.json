@@ -386,6 +386,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Doll-sama",
+				"time": 1592720935
+			},
+			"steamid": "[U:1:395396348]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"steamid": "[U:1:428240589]"
@@ -401,9 +411,13 @@
 		},
 		{
 			"attributes": [
-				"suspicious",
+				"cheater",
 				"exploiter"
 			],
+			"last_seen": {
+				"player_name": "Captain Deadeye UGC Plat",
+				"time": 1592720854
+			},
 			"steamid": "[U:1:438647397]"
 		},
 		{
@@ -2881,6 +2895,16 @@
 				"time": 1591660371
 			},
 			"steamid": "[U:1:1104442002]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "MYG)T",
+				"time": 1592720349
+			},
+			"steamid": "[U:1:1104542636]"
 		},
 		{
 			"attributes": [
