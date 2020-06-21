@@ -84,7 +84,10 @@ namespace tf2_bot_detector
 	T LoadConfigFile(const std::filesystem::path& filename, bool allowAutoupdate, const Settings& settings)
 	{
 		if (allowAutoupdate && !settings.m_AllowInternetUsage.value_or(false))
+		{
 			Log("Disallowing auto-update of "s << filename << " because internet connectivity is disabled or unset in settings");
+			allowAutoupdate = false;
+		}
 
 		// Not going to be doing any async loading
 		if (T file; file.LoadFile(filename, allowAutoupdate))
