@@ -120,7 +120,7 @@ Settings::Settings()
 	SaveFile();
 }
 
-bool Settings::LoadFile()
+void Settings::LoadFile()
 {
 	nlohmann::json json;
 	{
@@ -128,25 +128,24 @@ bool Settings::LoadFile()
 		if (!file.good())
 		{
 			LogError(std::string(__FUNCTION__ ": Failed to open ") << s_SettingsPath);
-			return false;
 		}
-
-		try
+		else
 		{
-			file >> json;
-		}
-		catch (const nlohmann::json::exception& e)
-		{
-			auto backupPath = std::filesystem::path(s_SettingsPath).replace_filename("settings.backup.json");
-			LogError(std::string(__FUNCTION__) << ": Failed to parse JSON from " << s_SettingsPath << ": " << e.what()
-				<< ". Writing backup to " );
+			try
+			{
+				file >> json;
+			}
+			catch (const nlohmann::json::exception& e)
+			{
+				auto backupPath = std::filesystem::path(s_SettingsPath).replace_filename("settings.backup.json");
+				LogError(std::string(__FUNCTION__) << ": Failed to parse JSON from " << s_SettingsPath << ": " << e.what()
+					<< ". Writing backup to ");
 
-			std::error_code ec;
-			std::filesystem::copy_file(s_SettingsPath, backupPath, ec);
-			if (!ec)
-				LogError(std::string(__FUNCTION__) << ": Failed to make backup of settings.json to " << backupPath);
-
-			return false;
+				std::error_code ec;
+				std::filesystem::copy_file(s_SettingsPath, backupPath, ec);
+				if (!ec)
+					LogError(std::string(__FUNCTION__) << ": Failed to make backup of settings.json to " << backupPath);
+			}
 		}
 	}
 
@@ -176,8 +175,6 @@ bool Settings::LoadFile()
 		m_GotoProfileSites.push_back({ "SteamRep", "https://steamrep.com/profiles/%SteamID64%" });
 		m_GotoProfileSites.push_back({ "UGC League", "https://www.ugcleague.com/players_page.cfm?player_id=%SteamID64%" });
 	}
-
-	return true;
 }
 
 bool Settings::SaveFile() const

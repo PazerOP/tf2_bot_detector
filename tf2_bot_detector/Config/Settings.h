@@ -47,7 +47,7 @@ namespace tf2_bot_detector
 	public:
 		Settings();
 
-		bool LoadFile();
+		void LoadFile();
 		bool SaveFile() const;
 
 		// Settings that are not saved in the config file because we want them to
