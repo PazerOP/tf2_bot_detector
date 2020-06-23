@@ -296,9 +296,9 @@ bool PlayerAttributesList::SetAttribute(PlayerAttributes attribute, bool set)
 			result = true;
 		}
 
-		if (!m_Cheater)
+		if (m_Cheater != set)
 		{
-			m_Cheater = true;
+			m_Cheater = set;
 			result = true;
 		}
 
