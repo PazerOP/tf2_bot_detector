@@ -192,6 +192,8 @@ bool ConfigFileBase::LoadFile(const std::filesystem::path& filename, const HTTPC
 
 bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client)
 {
+	const auto startTime = clock_t::now();
+
 	nlohmann::json json;
 	{
 		std::ifstream file(filename);
@@ -267,6 +269,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		return false;
 	}
 
+	DebugLog("Loaded "s << filename << " in " << to_seconds(clock_t::now() - startTime) << " seconds");
 	return true;
 }
 

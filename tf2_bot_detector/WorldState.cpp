@@ -19,7 +19,7 @@ WorldState::WorldState(const Settings& settings, const std::filesystem::path& co
 
 	m_ConsoleLineListeners.insert(this);
 
-	m_ChatMsgWrappers = RandomizeChatWrappers(m_Settings->GetTFDir());
+	m_ChatMsgWrappers = std::async([&] { return RandomizeChatWrappers(m_Settings->GetTFDir()); });
 	//const char8_t c1[] = u8"        ";
 	//char c2[sizeof(c1)];
 	//memcpy(c2, c1, sizeof(c1));
@@ -60,7 +60,7 @@ bool WorldState::ParseChatMessage(const std::string_view& lineStr, striter& pars
 	{
 		const auto category = ChatCategory(i);
 
-		auto& type = m_ChatMsgWrappers.m_Types[i];
+		auto& type = m_ChatMsgWrappers->m_Types[i];
 		if (lineStr.starts_with(type.m_Full.first))
 		{
 			auto searchBuf = std::string_view(m_FileLineBuf).substr(
@@ -216,6 +216,9 @@ void WorldState::TrySnapshot(bool& snapshotUpdated)
 
 void WorldState::Update()
 {
+	if (!m_ChatMsgWrappers.is_ready())
+		return;
+
 	if (!m_File)
 	{
 		// Try to truncate

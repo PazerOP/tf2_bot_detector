@@ -84,7 +84,7 @@ namespace tf2_bot_detector
 		void Parse(bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated);
 		void ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated);
 
-		ChatWrappers m_ChatMsgWrappers;
+		AsyncObject<ChatWrappers> m_ChatMsgWrappers;
 		bool ParseChatMessage(const std::string_view& lineStr, striter& parseEnd, std::unique_ptr<IConsoleLine>& parsed);
 
 		enum class ParseLineResult
