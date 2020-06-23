@@ -4,7 +4,7 @@
 #include "Version.h"
 #include "HTTPHelpers.h"
 
-#include <mh/coroutine/generator.hpp>
+#include <cppcoro/generator.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
@@ -38,7 +38,7 @@ namespace
 	};
 }
 
-static mh::generator<InternalRelease> GetAllReleases()
+static cppcoro::generator<InternalRelease> GetAllReleases()
 {
 	auto j = HTTP::GetJSON("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
 	if (j.empty())

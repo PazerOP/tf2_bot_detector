@@ -2,7 +2,7 @@
 
 #include "Clock.h"
 
-#include <mh/coroutine/generator.hpp>
+#include <cppcoro/generator.hpp>
 
 #include <filesystem>
 #include <string>
@@ -43,5 +43,5 @@ namespace tf2_bot_detector
 	void SetLogTimestamp(time_point_t timestamp);
 	const std::filesystem::path& GetLogFilename();
 
-	mh::generator<const LogMessage*> GetLogMsgs();
+	cppcoro::generator<const LogMessage&> GetLogMsgs();
 }

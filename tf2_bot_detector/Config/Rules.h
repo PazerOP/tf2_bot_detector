@@ -2,7 +2,7 @@
 #include "AsyncObject.h"
 #include "ConfigHelpers.h"
 
-#include <mh/coroutine/generator.hpp>
+#include <cppcoro/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
@@ -76,7 +76,7 @@ namespace tf2_bot_detector
 		bool Load();
 		bool Save() const;
 
-		mh::generator<const ModerationRule*> GetRules() const;
+		cppcoro::generator<const ModerationRule&> GetRules() const;
 		size_t GetRuleCount() const { return m_CFGGroup.size(); }
 
 	private:

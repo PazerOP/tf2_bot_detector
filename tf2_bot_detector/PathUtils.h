@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mh/coroutine/generator.hpp>
+#include <cppcoro/generator.hpp>
 
 #include <filesystem>
 #include <string_view>
@@ -31,6 +31,6 @@ namespace tf2_bot_detector
 	DirectoryValidatorResult ValidateTFDir(std::filesystem::path path);
 	DirectoryValidatorResult ValidateSteamDir(std::filesystem::path path);
 
-	mh::generator<std::filesystem::path> GetSteamLibraryFolders(const std::filesystem::path& steamDir);
+	cppcoro::generator<std::filesystem::path> GetSteamLibraryFolders(const std::filesystem::path& steamDir);
 	std::filesystem::path FindTFDir(const std::filesystem::path& steamDir);
 }

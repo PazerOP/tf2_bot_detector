@@ -9,7 +9,7 @@
 #include "PlayerStatus.h"
 #include "Networking/SteamAPI.h"
 
-#include <mh/coroutine/generator.hpp>
+#include <cppcoro/generator.hpp>
 
 #include <any>
 #include <experimental/coroutine>
@@ -60,10 +60,10 @@ namespace tf2_bot_detector
 
 		size_t GetApproxLobbyMemberCount() const;
 
-		mh::generator<const IPlayer*> GetLobbyMembers() const;
-		mh::generator<IPlayer*> GetLobbyMembers();
-		mh::generator<const IPlayer*> GetPlayers() const;
-		mh::generator<IPlayer*> GetPlayers();
+		cppcoro::generator<const IPlayer&> GetLobbyMembers() const;
+		cppcoro::generator<IPlayer&> GetLobbyMembers();
+		cppcoro::generator<const IPlayer&> GetPlayers() const;
+		cppcoro::generator<IPlayer&> GetPlayers();
 
 	private:
 		const Settings* m_Settings = nullptr;

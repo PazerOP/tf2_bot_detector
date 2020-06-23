@@ -400,7 +400,7 @@ size_t WorldState::GetApproxLobbyMemberCount() const
 	return m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
 }
 
-mh::generator<const IPlayer*> WorldState::GetLobbyMembers() const
+cppcoro::generator<const IPlayer&> WorldState::GetLobbyMembers() const
 {
 	const auto GetPlayer = [&](const LobbyMember& member) -> const IPlayer*
 	{
@@ -424,7 +424,8 @@ mh::generator<const IPlayer*> WorldState::GetLobbyMembers() const
 		if (!member.IsValid())
 			continue;
 
-		co_yield GetPlayer(member);
+		if (auto found = GetPlayer(member))
+			co_yield *found;
 	}
 	for (const auto& member : m_PendingLobbyMembers)
 	{
@@ -437,26 +438,28 @@ mh::generator<const IPlayer*> WorldState::GetLobbyMembers() const
 			// Don't return two different instances with the same steamid.
 			continue;
 		}
-		co_yield GetPlayer(member);
+
+		if (auto found = GetPlayer(member))
+			co_yield *found;
 	}
 }
 
-mh::generator<IPlayer*> WorldState::GetLobbyMembers()
+cppcoro::generator<IPlayer&> WorldState::GetLobbyMembers()
 {
-	for (const IPlayer* member : std::as_const(*this).GetLobbyMembers())
-		co_yield const_cast<IPlayer*>(member);
+	for (const IPlayer& member : std::as_const(*this).GetLobbyMembers())
+		co_yield const_cast<IPlayer&>(member);
 }
 
-mh::generator<const IPlayer*> WorldState::GetPlayers() const
+cppcoro::generator<const IPlayer&> WorldState::GetPlayers() const
 {
 	for (const auto& pair : m_CurrentPlayerData)
-		co_yield &pair.second;
+		co_yield pair.second;
 }
 
-mh::generator<IPlayer*> WorldState::GetPlayers()
+cppcoro::generator<IPlayer&> WorldState::GetPlayers()
 {
-	for (const IPlayer* player : std::as_const(*this).GetPlayers())
-		co_yield const_cast<IPlayer*>(player);
+	for (const IPlayer& player : std::as_const(*this).GetPlayers())
+		co_yield const_cast<IPlayer&>(player);
 }
 
 void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
@@ -683,8 +686,8 @@ void WorldState::QueuePlayerSummaryUpdate()
 
 	std::vector<SteamID> steamIDs;
 
-	for (const IPlayer* member : GetLobbyMembers())
-		steamIDs.push_back(member->GetSteamID());
+	for (const IPlayer& member : GetLobbyMembers())
+		steamIDs.push_back(member.GetSteamID());
 
 	auto summary = SteamAPI::GetPlayerSummariesAsync(m_Settings->m_SteamAPIKey, std::move(steamIDs));
 	if (summary.is_valid())

@@ -292,9 +292,8 @@ void MainWindow::OnDrawScoreboard()
 
 			if (m_WorldState)
 			{
-				for (IPlayer* playerPtr : m_WorldState->GeneratePlayerPrintData())
+				for (IPlayer& player : m_WorldState->GeneratePlayerPrintData())
 				{
-					IPlayer& player = *playerPtr;
 					ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
 					ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
 
@@ -468,9 +467,8 @@ void MainWindow::OnDrawAppLog()
 		{
 			ImGui::PushTextWrapPos();
 
-			for (const LogMessage* msgPtr : GetLogMsgs())
+			for (const LogMessage& msg : GetLogMsgs())
 			{
-				const LogMessage& msg = *msgPtr;
 				const std::tm timestamp = ToTM(msg.m_Timestamp);
 
 				ImGui::TextColored({ 0.25f, 1.0f, 0.25f, 0.25f }, "[%02i:%02i:%02i]",
@@ -1057,7 +1055,7 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 }
 
-mh::generator<IPlayer*> MainWindow::WorldStateExtra::GeneratePlayerPrintData()
+cppcoro::generator<IPlayer&> MainWindow::WorldStateExtra::GeneratePlayerPrintData()
 {
 	IPlayer* printData[33]{};
 	auto begin = std::begin(printData);
@@ -1070,24 +1068,21 @@ mh::generator<IPlayer*> MainWindow::WorldStateExtra::GeneratePlayerPrintData()
 
 	{
 		auto* current = begin;
-		for (IPlayer* member : world.GetLobbyMembers())
+		for (IPlayer& member : world.GetLobbyMembers())
 		{
-			assert(member);
-			*current = member;
-			if (*current)
-				current++;
+			*current = &member;
+			current++;
 		}
 
 		if (current == begin)
 		{
 			// We seem to have either an empty lobby or we're playing on a community server.
 			// Just find the most recent status updates.
-			for (IPlayer* playerData : world.GetPlayers())
+			for (IPlayer& playerData : world.GetPlayers())
 			{
-				assert(playerData);
-				if (playerData->GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
+				if (playerData.GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
 				{
-					*current = playerData;
+					*current = &playerData;
 					current++;
 
 					if (current >= end)
@@ -1130,7 +1125,7 @@ mh::generator<IPlayer*> MainWindow::WorldStateExtra::GeneratePlayerPrintData()
 		});
 
 	for (auto it = begin; it != end; ++it)
-		co_yield *it;
+		co_yield **it;
 }
 
 void MainWindow::UpdateServerPing(time_point_t timestamp)
@@ -1141,12 +1136,12 @@ void MainWindow::UpdateServerPing(time_point_t timestamp)
 	float totalPing = 0;
 	uint16_t samples = 0;
 
-	for (IPlayer* player : GetWorld().GetPlayers())
+	for (IPlayer& player : GetWorld().GetPlayers())
 	{
-		if (player->GetLastStatusUpdateTime() < (timestamp - 20s))
+		if (player.GetLastStatusUpdateTime() < (timestamp - 20s))
 			continue;
 
-		auto& data = player->GetOrCreateData<PlayerExtraData>(*player);
+		auto& data = player.GetOrCreateData<PlayerExtraData>(player);
 		totalPing += data.GetAveragePing();
 		samples++;
 	}

@@ -4,7 +4,7 @@
 #include "ConfigHelpers.h"
 #include "SteamID.h"
 
-#include <mh/coroutine/generator.hpp>
+#include <cppcoro/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <chrono>
@@ -94,8 +94,8 @@ namespace tf2_bot_detector
 		bool LoadFiles();
 		void SaveFile() const;
 
-		mh::generator<const PlayerListData*> FindPlayerData(const SteamID& id) const;
-		mh::generator<const PlayerAttributesList*> FindPlayerAttributes(const SteamID& id) const;
+		cppcoro::generator<const PlayerListData&> FindPlayerData(const SteamID& id) const;
+		cppcoro::generator<const PlayerAttributesList&> FindPlayerAttributes(const SteamID& id) const;
 		bool HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const;
 		bool HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const;
 

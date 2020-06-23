@@ -52,12 +52,12 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 
 	if (m_Settings->m_Unsaved.m_EnableAutoMark && !m_PlayerWhitelist.HasPlayer(player))
 	{
-		for (const ModerationRule* rule : m_Rules.GetRules())
+		for (const ModerationRule& rule : m_Rules.GetRules())
 		{
-			if (!rule->Match(player))
+			if (!rule.Match(player))
 				continue;
 
-			OnRuleMatch(*rule, player);
+			OnRuleMatch(rule, player);
 		}
 	}
 }
@@ -99,12 +99,12 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 
 	if (m_Settings->m_Unsaved.m_EnableAutoMark && !m_PlayerWhitelist.HasPlayer(player) && !botMsgDetected)
 	{
-		for (const ModerationRule* rule : m_Rules.GetRules())
+		for (const ModerationRule& rule : m_Rules.GetRules())
 		{
-			if (!rule->Match(player, msg))
+			if (!rule.Match(player, msg))
 				continue;
 
-			OnRuleMatch(*rule, player);
+			OnRuleMatch(rule, player);
 		}
 	}
 }
@@ -378,10 +378,8 @@ void ModeratorLogic::ProcessPlayerActions()
 
 	const bool isBotLeader = IsBotLeader();
 	bool needsEnemyWarning = false;
-	for (IPlayer* playerPtr : m_World->GetLobbyMembers())
+	for (IPlayer& player : m_World->GetLobbyMembers())
 	{
-		assert(playerPtr);
-		IPlayer& player = *playerPtr;
 		const SteamID steamID = player.GetSteamID();
 
 		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, steamID);
@@ -478,19 +476,19 @@ const IPlayer* ModeratorLogic::GetBotLeader() const
 		return nullptr;
 
 	const auto now = m_World->GetCurrentTime();
-	for (const IPlayer* player : m_World->GetPlayers())
+	for (const IPlayer& player : m_World->GetPlayers())
 	{
-		if (player->GetTimeSinceLastStatusUpdate() > 20s)
+		if (player.GetTimeSinceLastStatusUpdate() > 20s)
 			continue;
 
-		if (player->GetSteamID() == localPlayer->GetSteamID())
+		if (player.GetSteamID() == localPlayer->GetSteamID())
 			continue;
 
-		if (player->GetUserID() >= localUserID)
+		if (player.GetUserID() >= localUserID)
 			continue;
 
-		if (IsUserRunningTool(*player))
-			return player;
+		if (IsUserRunningTool(player))
+			return &player;
 	}
 
 	return localPlayer;

@@ -95,7 +95,7 @@ namespace tf2_bot_detector
 
 			std::vector<const IConsoleLine*> m_PrintingLines;  // newest to oldest order
 			static constexpr size_t MAX_PRINTING_LINES = 512;
-			mh::generator<IPlayer*> GeneratePlayerPrintData();
+			cppcoro::generator<IPlayer&> GeneratePlayerPrintData();
 		};
 		std::optional<WorldStateExtra> m_WorldState;
 		bool IsWorldValid() const { return m_WorldState.has_value(); }

@@ -179,29 +179,29 @@ void PlayerListJSON::SaveFile() const
 	m_CFGGroup.SaveFile();
 }
 
-mh::generator<const PlayerListData*> PlayerListJSON::FindPlayerData(const SteamID& id) const
+cppcoro::generator<const PlayerListData&> PlayerListJSON::FindPlayerData(const SteamID& id) const
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
 		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id); found != m_CFGGroup.m_UserList->m_Players.end())
-			co_yield &found->second;
+			co_yield found->second;
 	}
 	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
 	{
 		if (auto found = m_CFGGroup.m_ThirdPartyLists->find(id); found != m_CFGGroup.m_ThirdPartyLists->end())
-			co_yield &found->second;
+			co_yield found->second;
 	}
 	if (m_CFGGroup.m_OfficialList.is_ready())
 	{
 		if (auto found = m_CFGGroup.m_OfficialList->m_Players.find(id); found != m_CFGGroup.m_OfficialList->m_Players.end())
-			co_yield &found->second;
+			co_yield found->second;
 	}
 }
 
-mh::generator<const PlayerAttributesList*> PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
+cppcoro::generator<const PlayerAttributesList&> PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
 {
-	for (const PlayerListData* found : FindPlayerData(id))
-		co_yield &found->m_Attributes;
+	for (const PlayerListData& found : FindPlayerData(id))
+		co_yield found.m_Attributes;
 }
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const
@@ -211,11 +211,11 @@ bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attr
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const
 {
-	for (const PlayerAttributesList* found : FindPlayerAttributes(id))
+	for (const PlayerAttributesList& found : FindPlayerAttributes(id))
 	{
 		for (auto attr : attributes)
 		{
-			if (found->HasAttribute(attr))
+			if (found.HasAttribute(attr))
 				return true;
 		}
 	}

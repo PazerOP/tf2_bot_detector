@@ -88,7 +88,7 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
 	"tf2_bot_detector/Resources.rc"
-)
+ )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
@@ -115,6 +115,7 @@ find_path(HTTPLIB_PATH NAMES httplib.h)
 target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 
 find_package(libzippp CONFIG REQUIRED)
+find_package(cppcoro CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	imgui_desktop
@@ -122,6 +123,7 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	ValveFileVDF
 	libzip::libzip
 	libzippp::libzippp
+	cppcoro
 )
 
 # TODO: Find a way to do this locally

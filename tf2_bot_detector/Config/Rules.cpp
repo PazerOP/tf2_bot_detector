@@ -181,24 +181,24 @@ bool ModerationRules::Save() const
 	return true;
 }
 
-mh::generator<const ModerationRule*> tf2_bot_detector::ModerationRules::GetRules() const
+cppcoro::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules() const
 {
 	if (m_CFGGroup.m_OfficialList.is_ready())
 	{
 		for (const auto& rule : m_CFGGroup.m_OfficialList->m_Rules)
-			co_yield &rule;
+			co_yield rule;
 	}
 
 	if (m_CFGGroup.m_UserList)
 	{
 		for (const auto& rule : m_CFGGroup.m_UserList->m_Rules)
-			co_yield &rule;
+			co_yield rule;
 	}
 
 	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
 	{
 		for (const auto& rule : m_CFGGroup.m_ThirdPartyLists.get())
-			co_yield &rule;
+			co_yield rule;
 	}
 }
 

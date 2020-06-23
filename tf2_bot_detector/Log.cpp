@@ -129,12 +129,12 @@ void tf2_bot_detector::SetLogTimestamp(time_point_t timestamp)
 	s_LogTimestamp = timestamp;
 }
 
-auto tf2_bot_detector::GetLogMsgs() -> mh::generator<const LogMessage*>
+auto tf2_bot_detector::GetLogMsgs() -> cppcoro::generator<const LogMessage&>
 {
 	std::lock_guard lock(s_LogMutex);
 
 	for (const auto& msg : s_LogMessages)
-		co_yield &msg;
+		co_yield msg;
 }
 
 LogMessageColor::LogMessageColor(const ImVec4& vec) :
