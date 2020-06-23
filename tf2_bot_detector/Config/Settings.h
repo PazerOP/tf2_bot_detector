@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Networking/HTTPClient.h"
 #include "SteamID.h"
 
 #include <nlohmann/json_fwd.hpp>
@@ -68,6 +69,7 @@ namespace tf2_bot_detector
 		float m_CommandTimeoutSeconds = 5;
 
 		std::optional<bool> m_AllowInternetUsage;
+		const HTTPClient* GetHTTPClient() const;
 		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
 
 		std::vector<GotoProfileSite> m_GotoProfileSites;
@@ -88,6 +90,9 @@ namespace tf2_bot_detector
 			} m_Colors;
 
 		} m_Theme;
+
+	private:
+		mutable std::optional<HTTPClient> m_HTTPClient;
 	};
 }
 

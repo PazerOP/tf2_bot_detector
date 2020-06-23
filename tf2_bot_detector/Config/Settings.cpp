@@ -226,6 +226,17 @@ bool Settings::SaveFile() const
 	return true;
 }
 
+const HTTPClient* tf2_bot_detector::Settings::GetHTTPClient() const
+{
+	if (!m_AllowInternetUsage.value_or(false))
+		return nullptr;
+
+	if (!m_HTTPClient)
+		m_HTTPClient.emplace();
+
+	return &*m_HTTPClient;
+}
+
 SteamID AutoDetectedSettings::GetLocalSteamID() const
 {
 	if (m_LocalSteamIDOverride.IsValid())

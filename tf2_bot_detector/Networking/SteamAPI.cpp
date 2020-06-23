@@ -1,4 +1,5 @@
 #include "SteamAPI.h"
+#include "HTTPClient.h"
 #include "HTTPHelpers.h"
 #include "Config/JSONHelpers.h"
 #include "Log.h"
@@ -33,10 +34,10 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerSummar
 }
 
 AsyncObject<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSummariesAsync(
-	std::string apikey, std::vector<SteamID> steamIDs)
+	std::string apikey, std::vector<SteamID> steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
-		return std::vector<PlayerSummary>{};
+		return {};
 
 	if (apikey.empty())
 	{
@@ -47,7 +48,7 @@ AsyncObject<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSum
 	if (steamIDs.size() > 100)
 		LogError(std::string(__FUNCTION__) << "Attempted to fetch " << steamIDs.size() << " steamIDs at once");
 
-	return std::async([apikey, steamIDs{ std::move(steamIDs) }]
+	return std::async([apikey, steamIDs{ std::move(steamIDs) }, &client]
 		{
 			std::string url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key="s
 				<< apikey << "&steamids=";
@@ -60,7 +61,7 @@ AsyncObject<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSum
 				url << steamIDs[i].ID64;
 			}
 
-			auto json = HTTP::GetJSON(url);
+			auto json = nlohmann::json::parse(client.GetString(url));
 
 			return json.at("response").at("players").get<std::vector<PlayerSummary>>();
 		});

@@ -7,6 +7,11 @@
 #include <string>
 #include <vector>
 
+namespace tf2_bot_detector
+{
+	class HTTPClient;
+}
+
 namespace tf2_bot_detector::SteamAPI
 {
 	enum class CommunityVisibilityState
@@ -43,5 +48,5 @@ namespace tf2_bot_detector::SteamAPI
 	void from_json(const nlohmann::json& j, PlayerSummary& d);
 
 	tf2_bot_detector::AsyncObject<std::vector<PlayerSummary>> GetPlayerSummariesAsync(
-		std::string apikey, std::vector<SteamID> steamIDs);
+		std::string apikey, std::vector<SteamID> steamIDs, const HTTPClient& client);
 }

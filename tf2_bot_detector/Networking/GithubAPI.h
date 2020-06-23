@@ -6,6 +6,11 @@
 #include <optional>
 #include <string>
 
+namespace tf2_bot_detector
+{
+	class HTTPClient;
+}
+
 namespace tf2_bot_detector::GithubAPI
 {
 	struct NewVersionResult
@@ -36,5 +41,5 @@ namespace tf2_bot_detector::GithubAPI
 		std::optional<Release> m_Preview;
 	};
 
-	[[nodiscard]] AsyncObject<NewVersionResult> CheckForNewVersion();
+	[[nodiscard]] AsyncObject<NewVersionResult> CheckForNewVersion(const HTTPClient& client);
 }

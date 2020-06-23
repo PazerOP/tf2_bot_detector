@@ -681,7 +681,11 @@ auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
 
 void WorldState::QueuePlayerSummaryUpdate()
 {
-	if (m_Settings->m_SteamAPIKey.empty() || m_Settings->m_AllowInternetUsage != true)
+	auto client = m_Settings->GetHTTPClient();
+	if (!client)
+		return;
+
+	if (m_Settings->m_SteamAPIKey.empty())
 		return;
 
 	std::vector<SteamID> steamIDs;
@@ -689,7 +693,7 @@ void WorldState::QueuePlayerSummaryUpdate()
 	for (const IPlayer& member : GetLobbyMembers())
 		steamIDs.push_back(member.GetSteamID());
 
-	auto summary = SteamAPI::GetPlayerSummariesAsync(m_Settings->m_SteamAPIKey, std::move(steamIDs));
+	auto summary = SteamAPI::GetPlayerSummariesAsync(m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
 	if (summary.is_valid())
 		m_PlayerSummaryRequests.push_back(std::move(summary));
 }

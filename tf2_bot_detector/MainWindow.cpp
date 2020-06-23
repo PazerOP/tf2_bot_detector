@@ -934,7 +934,12 @@ bool MainWindow::HasMenuBar() const
 GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
 {
 	if (!m_UpdateInfo.is_valid())
-		m_UpdateInfo = GithubAPI::CheckForNewVersion();
+	{
+		if (auto client = m_Settings.GetHTTPClient())
+			m_UpdateInfo = GithubAPI::CheckForNewVersion(*client);
+		else
+			return nullptr;
+	}
 
 	if (m_UpdateInfo.is_ready())
 		return &m_UpdateInfo.get();

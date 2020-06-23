@@ -2,6 +2,7 @@
 #include "Config/JSONHelpers.h"
 #include "Log.h"
 #include "Version.h"
+#include "HTTPClient.h"
 #include "HTTPHelpers.h"
 
 #include <cppcoro/generator.hpp>
@@ -38,9 +39,13 @@ namespace
 	};
 }
 
-static cppcoro::generator<InternalRelease> GetAllReleases()
+static cppcoro::generator<InternalRelease> GetAllReleases(const HTTPClient& client)
 {
-	auto j = HTTP::GetJSON("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
+	auto str = client.GetString("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
+	if (str.empty())
+		throw std::runtime_error("Autoupdate: response string was empty");
+
+	auto j = nlohmann::json::parse(str);
 	if (j.empty())
 		throw std::runtime_error("Autoupdate: Response json was empty");
 
@@ -66,14 +71,14 @@ static cppcoro::generator<InternalRelease> GetAllReleases()
 	}
 }
 
-static NewVersionResult GetLatestVersion()
+static NewVersionResult GetLatestVersion(const HTTPClient& client)
 {
 	DebugLog("GetLatestVersion()");
 	try
 	{
 		NewVersionResult retVal;
 
-		for (auto release : GetAllReleases())
+		for (auto release : GetAllReleases(client))
 		{
 			DebugLog("GetLatestVersion(): version = "s << release.m_Version << ", url = " << release.m_URL);
 
@@ -132,7 +137,7 @@ static const std::shared_future<GithubAPI::NewVersionResult>& GetVersionCheckFut
 }
 #endif
 
-auto GithubAPI::CheckForNewVersion() -> AsyncObject<NewVersionResult>
+auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> AsyncObject<NewVersionResult>
 {
-	return std::async(GetLatestVersion);
+	return std::async([&] { return GetLatestVersion(client); });
 }

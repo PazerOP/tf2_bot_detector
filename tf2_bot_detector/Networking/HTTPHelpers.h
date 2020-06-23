@@ -31,12 +31,6 @@ namespace tf2_bot_detector
 		http_error(int statusCode);
 		http_error(std::string msg);
 	};
-
-	namespace HTTP
-	{
-		std::string GetString(const URL& url);
-		nlohmann::json GetJSON(const URL& url);
-	}
 }
 
 template<typename CharT, typename Traits>

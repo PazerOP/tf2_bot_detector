@@ -73,7 +73,8 @@ static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, cons
 	return schema;
 }
 
-static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann::json& existingJson, SharedConfigFileBase& config)
+static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann::json& existingJson,
+	SharedConfigFileBase& config, const HTTPClient& client)
 {
 	auto fileInfoJson = existingJson.find("file_info");
 	if (fileInfoJson == existingJson.end())
@@ -92,7 +93,7 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	nlohmann::json newJson;
 	try
 	{
-		newJson = HTTP::GetJSON(info.m_UpdateURL);
+		newJson = nlohmann::json::parse(client.GetString(info.m_UpdateURL));
 	}
 	catch (const std::exception& e)
 	{
@@ -179,9 +180,9 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 		d.m_UpdateURL.clear();
 }
 
-bool ConfigFileBase::LoadFile(const std::filesystem::path& filename, bool allowAutoupdate)
+bool ConfigFileBase::LoadFile(const std::filesystem::path& filename, const HTTPClient* client)
 {
-	bool retVal = LoadFileInternal(filename, allowAutoupdate);
+	bool retVal = LoadFileInternal(filename, client);
 
 	if (!SaveFile(filename))
 		LogWarning("Failed to resave "s << filename);
@@ -189,7 +190,7 @@ bool ConfigFileBase::LoadFile(const std::filesystem::path& filename, bool allowA
 	return retVal;
 }
 
-bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, bool allowAutoupdate)
+bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client)
 {
 	nlohmann::json json;
 	{
@@ -223,7 +224,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, boo
 		return false;
 	}
 
-	if (allowAutoupdate)
+	if (client)
 	{
 		if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
 		{
@@ -246,7 +247,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, boo
 				LogWarning("Skipping auto-update for "s << filename << ": failed to parse file_info: " << e.what());
 			}
 
-			if (fileInfoParsed && TryAutoUpdate(filename, json, *shared))
+			if (fileInfoParsed && TryAutoUpdate(filename, json, *shared, *client))
 				return true;
 		}
 	}

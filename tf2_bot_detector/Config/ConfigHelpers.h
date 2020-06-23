@@ -58,7 +58,7 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ConfigFileBase() = default;
 
-		bool LoadFile(const std::filesystem::path& filename, bool allowAutoupdate = true);
+		bool LoadFile(const std::filesystem::path& filename, const HTTPClient* client = nullptr);
 		bool SaveFile(const std::filesystem::path& filename) const;
 
 		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0;
@@ -68,7 +68,7 @@ namespace tf2_bot_detector
 		std::optional<ConfigSchemaInfo> m_Schema;
 
 	private:
-		bool LoadFileInternal(const std::filesystem::path& filename, bool allowAutoupdate);
+		bool LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client);
 	};
 
 	class SharedConfigFileBase : public ConfigFileBase
@@ -83,14 +83,12 @@ namespace tf2_bot_detector
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
 	T LoadConfigFile(const std::filesystem::path& filename, bool allowAutoupdate, const Settings& settings)
 	{
-		if (allowAutoupdate && !settings.m_AllowInternetUsage.value_or(false))
-		{
+		const HTTPClient* client = allowAutoupdate ? settings.GetHTTPClient() : nullptr;
+		if (allowAutoupdate && !client)
 			Log("Disallowing auto-update of "s << filename << " because internet connectivity is disabled or unset in settings");
-			allowAutoupdate = false;
-		}
 
 		// Not going to be doing any async loading
-		if (T file; file.LoadFile(filename, allowAutoupdate))
+		if (T file; file.LoadFile(filename, client))
 			return file;
 
 		return T{};
