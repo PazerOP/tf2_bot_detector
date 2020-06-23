@@ -32,8 +32,6 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Config/Rules.h"
 	"tf2_bot_detector/Config/Settings.cpp"
 	"tf2_bot_detector/Config/Settings.h"
-	"tf2_bot_detector/Config/Whitelist.cpp"
-	"tf2_bot_detector/Config/Whitelist.h"
 	"tf2_bot_detector/Networking/GithubAPI.h"
 	"tf2_bot_detector/Networking/GithubAPI.cpp"
 	"tf2_bot_detector/Networking/HTTPClient.h"

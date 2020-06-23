@@ -50,7 +50,7 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 	const auto name = player.GetName();
 	const auto steamID = player.GetSteamID();
 
-	if (m_Settings->m_Unsaved.m_EnableAutoMark && !m_PlayerWhitelist.HasPlayer(player))
+	if (m_Settings->m_Unsaved.m_EnableAutoMark)
 	{
 		for (const ModerationRule& rule : m_Rules.GetRules())
 		{
@@ -97,7 +97,7 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 		}
 	}
 
-	if (m_Settings->m_Unsaved.m_EnableAutoMark && !m_PlayerWhitelist.HasPlayer(player) && !botMsgDetected)
+	if (m_Settings->m_Unsaved.m_EnableAutoMark && !botMsgDetected)
 	{
 		for (const ModerationRule& rule : m_Rules.GetRules())
 		{
@@ -514,6 +514,12 @@ void ModeratorLogic::SetUserRunningTool(const SteamID& id, bool isRunningTool)
 		m_PlayersRunningTool.insert(id);
 	else
 		m_PlayersRunningTool.erase(id);
+}
+
+void ModeratorLogic::ReloadConfigFiles()
+{
+	m_PlayerList.LoadFiles();
+	m_Rules.LoadFiles();
 }
 
 ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :

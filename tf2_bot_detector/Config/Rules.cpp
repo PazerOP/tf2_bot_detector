@@ -164,20 +164,18 @@ ModerationRules::ModerationRules(const Settings& settings) :
 	m_CFGGroup(settings)
 {
 	// Immediately load and resave to normalize any formatting
-	Load();
+	LoadFiles();
 }
 
-bool ModerationRules::Load()
+bool ModerationRules::LoadFiles()
 {
 	m_CFGGroup.LoadFiles();
-
 	return true;
 }
 
-bool ModerationRules::Save() const
+bool ModerationRules::SaveFile() const
 {
 	m_CFGGroup.SaveFile();
-
 	return true;
 }
 

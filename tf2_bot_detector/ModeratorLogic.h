@@ -3,7 +3,6 @@
 #include "IConsoleLineListener.h"
 #include "IWorldEventListener.h"
 #include "Config/PlayerListJSON.h"
-#include "Config/Whitelist.h"
 #include "Config/Rules.h"
 
 #include <optional>
@@ -47,10 +46,10 @@ namespace tf2_bot_detector
 		bool IsUserRunningTool(const SteamID& id) const;
 		void SetUserRunningTool(const SteamID& id, bool isRunningTool = true);
 
-		const PlayerWhitelist& GetPlayerWhitelist() const { return m_PlayerWhitelist; }
-
 		size_t GetBlacklistedPlayerCount() const { return m_PlayerList.GetPlayerCount(); }
 		size_t GetRuleCount() const { return m_Rules.GetRuleCount(); }
+
+		void ReloadConfigFiles();
 
 	private:
 		WorldState* m_World = nullptr;
@@ -115,6 +114,5 @@ namespace tf2_bot_detector
 
 		PlayerListJSON m_PlayerList;
 		ModerationRules m_Rules;
-		PlayerWhitelist m_PlayerWhitelist;
 	};
 }

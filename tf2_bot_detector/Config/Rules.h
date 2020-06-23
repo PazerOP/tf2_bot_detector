@@ -73,8 +73,8 @@ namespace tf2_bot_detector
 	public:
 		ModerationRules(const Settings& settings);
 
-		bool Load();
-		bool Save() const;
+		bool LoadFiles();
+		bool SaveFile() const;
 
 		cppcoro::generator<const ModerationRule&> GetRules() const;
 		size_t GetRuleCount() const { return m_CFGGroup.size(); }

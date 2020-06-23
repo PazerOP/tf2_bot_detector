@@ -105,15 +105,8 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 				name << PlayerAttributes(i);
 				if (ImGui::MenuItem(name.c_str(), nullptr, existingMarked))
 				{
-					if (!existingMarked && modLogic.GetPlayerWhitelist().HasPlayer(player))
-					{
-						LogWarning("Cannot mark "s << player << " with " << PlayerAttributes(i) << " because they are whitelisted.");
-					}
-					else
-					{
-						if (modLogic.SetPlayerAttribute(player, PlayerAttributes(i), !existingMarked))
-							Log("Manually marked "s << player << ' ' << (existingMarked ? "NOT " : "") << ' ' << PlayerAttributes(i));
-					}
+					if (modLogic.SetPlayerAttribute(player, PlayerAttributes(i), !existingMarked))
+						Log("Manually marked "s << player << ' ' << (existingMarked ? "NOT" : "") << ' ' << PlayerAttributes(i));
 				}
 			}
 
@@ -801,6 +794,8 @@ void MainWindow::OnDrawMenuBar()
 	{
 		if (ImGui::MenuItem("Open TF2"))
 			Shell::OpenURL("steam://rungameid/440");
+		if (ImGui::MenuItem("Reload Playerlists/Rules"))
+			GetModLogic().ReloadConfigFiles();
 		if (ImGui::MenuItem("Generate Debug Report"))
 			GenerateDebugReport();
 
