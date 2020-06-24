@@ -46,23 +46,23 @@ jobs:
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}.zip"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
     - name: "Artifacts: *.dll"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}.zip"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
 
     - name: "Artifacts: *.pdb"
       if: ${{ matrix.triplet == 'x86-windows' || matrix.triplet == 'x64-windows' }}
       uses: actions/upload-artifact@v2
       with:
-        name: "symbols_${{ matrix.triplet }}_${{ github.sha }}.zip"
+        name: "symbols_${{ matrix.triplet }}_${{ github.sha }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.pdb"
 
     - name: "Artifacts: staging dir"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}.zip"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
         path: "${{ github.workspace }}/staging"
