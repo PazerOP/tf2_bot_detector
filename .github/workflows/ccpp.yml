@@ -4,6 +4,9 @@ on: [push]
 
 jobs:
   ci:
+    env:
+      TF2BD_BUILD_DIR: "${{ github.workspace }}/tf2bd_cmake_build_dir/"
+
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -38,9 +41,10 @@ jobs:
         useVcpkgToolchainFile: true
         cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }}'
         cmakeBuildType: "Release"
+        buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
         name: my-artifact
-        path: "${{ github.workspace }}/../../_temp/*.zip"
+        path: "${{ env.TF2BD_BUILD_DIR }}/*.zip"
