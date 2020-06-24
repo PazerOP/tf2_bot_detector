@@ -712,8 +712,8 @@ void MainWindow::OnDraw()
 		{
 			ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
 
-			ImGui::Checkbox("Mute", &m_Settings.m_Unsaved.m_Muted); ImGui::SameLine();
-			ImGui::SetHoverTooltip("Suppresses all in-game chat messages.");
+			ImGui::Checkbox("Enable Chat Warnings", &m_Settings.m_Unsaved.m_EnableChatWarnings); ImGui::SameLine();
+			ImGui::SetHoverTooltip("Enables chat message warnings about cheaters.");
 
 			ImGui::Checkbox("Enable Votekick", &m_Settings.m_Unsaved.m_EnableVotekick); ImGui::SameLine();
 			ImGui::SetHoverTooltip("Votekicks cheaters on your team.");

@@ -55,7 +55,7 @@ namespace tf2_bot_detector
 		// reset to these defaults when the tool is reopened
 		struct
 		{
-			bool m_Muted = false;
+			bool m_EnableChatWarnings = true;
 			bool m_EnableVotekick = true;
 			bool m_EnableAutoMark = true;
 			bool m_DebugShowCommands = false;

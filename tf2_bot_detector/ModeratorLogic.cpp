@@ -262,7 +262,7 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& e
 
 		if (now >= m_NextCheaterWarningTime)
 		{
-			if (!m_Settings->m_Unsaved.m_Muted && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+			if (m_Settings->m_Unsaved.m_EnableChatWarnings && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
 			{
 				Log(logMsg, { 1, 0, 0, 1 });
 				m_NextCheaterWarningTime = now + CHEATER_WARNING_INTERVAL;
@@ -327,7 +327,7 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& 
 		}
 	}
 
-	if (!needsWarning || m_Settings->m_Unsaved.m_Muted)
+	if (!needsWarning || !m_Settings->m_Unsaved.m_EnableChatWarnings)
 		return;
 
 	char chatMsg[128];
