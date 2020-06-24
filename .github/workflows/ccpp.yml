@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: build
 
 on: [push]
 
@@ -37,3 +37,10 @@ jobs:
       with:
         useVcpkgToolchainFile: true
         cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }}'
+        cmakeBuildType: "Release"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: my-artifact
+        path: "${{ github.workspace }}/../../_temp/*.zip"
