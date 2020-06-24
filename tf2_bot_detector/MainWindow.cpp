@@ -796,6 +796,8 @@ void MainWindow::OnDrawMenuBar()
 			Shell::OpenURL("steam://rungameid/440");
 		if (ImGui::MenuItem("Reload Playerlists/Rules"))
 			GetModLogic().ReloadConfigFiles();
+		if (ImGui::MenuItem("Reload Settings"))
+			m_Settings.LoadFile();
 		if (ImGui::MenuItem("Generate Debug Report"))
 			GenerateDebugReport();
 
