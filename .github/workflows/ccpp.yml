@@ -1,9 +1,12 @@
-name: C/C++ CI
+name: build
 
 on: [push]
 
 jobs:
   ci:
+    env:
+      TF2BD_BUILD_DIR: "${{ github.workspace }}/tf2bd_cmake_build_dir/"
+
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -37,3 +40,29 @@ jobs:
       with:
         useVcpkgToolchainFile: true
         cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }}'
+        cmakeBuildType: "Release"
+        buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
+
+    - name: "Artifacts: *.exe"
+      uses: actions/upload-artifact@v2
+      with:
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
+        path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
+    - name: "Artifacts: *.dll"
+      uses: actions/upload-artifact@v2
+      with:
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
+        path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
+
+    - name: "Artifacts: *.pdb"
+      if: ${{ matrix.triplet == 'x86-windows' || matrix.triplet == 'x64-windows' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: "symbols_${{ matrix.triplet }}_${{ github.sha }}"
+        path: "${{ env.TF2BD_BUILD_DIR }}/*.pdb"
+
+    - name: "Artifacts: staging dir"
+      uses: actions/upload-artifact@v2
+      with:
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
+        path: "${{ github.workspace }}/staging"
