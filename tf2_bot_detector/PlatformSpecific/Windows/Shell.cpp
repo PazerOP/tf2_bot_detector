@@ -25,23 +25,7 @@ namespace
 			if (!context.empty())
 				retVal << context << ": ";
 
-			LPSTR buf = nullptr;
-			const size_t size = FormatMessageA(
-				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-				nullptr, errorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&buf, 0, nullptr);
-
-			try
-			{
-				retVal << std::string_view(buf, size);
-			}
-			catch (...)
-			{
-				LocalFree(buf);
-				throw;
-			}
-
-			LocalFree(buf);
-
+			retVal << std::error_code(errorCode, std::system_category()).message();
 			return retVal;
 		}
 

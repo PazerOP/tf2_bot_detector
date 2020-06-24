@@ -86,7 +86,7 @@ struct ActionManager::RunningCommand
 		{
 			const auto error = GetLastError();
 			LogError("Failed to terminate stuck hl2.exe process ("s << std::quoted(m_Command)
-				<< "): GetLastError returned "s << error);
+				<< "): GetLastError returned "s << error << ": " << std::error_code(error, std::system_category()).message());
 		}
 	}
 
@@ -404,7 +404,7 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 	{
 		const auto error = GetLastError();
 		LogError("Failed to send command to hl2.exe: CreateProcess returned "s
-			<< result << ", GetLastError returned " << error);
+			<< result << ", GetLastError returned " << error << ": " << std::error_code(error, std::system_category()).message());
 
 		return false;
 	}
