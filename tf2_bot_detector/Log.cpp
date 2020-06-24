@@ -16,16 +16,16 @@
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
-static tf2_bot_detector::time_point_t s_LogTimestamp;
 static std::recursive_mutex s_LogMutex;
 static std::vector<LogMessage> s_LogMessages;
 
 namespace tf2_bot_detector
 {
-	static void LogToStream(const std::string_view& msg, std::ostream& output)
+	static void LogToStream(const std::string_view& msg, std::ostream& output, time_point_t timestamp = clock_t::now())
 	{
 		std::lock_guard lock(s_LogMutex);
-		tm t = ToTM(s_LogTimestamp);
+
+		tm t = ToTM(timestamp);
 		output << '[' << std::put_time(&t, "%T") << "] " << msg << std::endl;
 
 #ifdef _WIN32
@@ -36,11 +36,12 @@ namespace tf2_bot_detector
 #endif
 	}
 
-	static void LogInternal(std::string msg, const LogMessageColor& color, std::ostream& output)
+	static void LogInternal(std::string msg, const LogMessageColor& color, std::ostream& output,
+		time_point_t timestamp = clock_t::now())
 	{
 		std::lock_guard lock(s_LogMutex);
-		LogToStream(msg, output);
-		s_LogMessages.push_back({ s_LogTimestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
+		LogToStream(msg, output, timestamp);
+		s_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 	}
 }
 
@@ -73,9 +74,7 @@ namespace tf2_bot_detector
 		{
 			const auto& logPath = GetLogFilename();
 			if (logPath.empty())
-			{
 				return std::cout;
-			}
 
 			static std::ofstream s_LogFileLocal(logPath, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
 			if (!s_LogFileLocal.good())
@@ -122,11 +121,6 @@ void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 void tf2_bot_detector::DebugLogWarning(std::string msg)
 {
 	Log(std::move(msg), { COLOR_WARNING.r, COLOR_WARNING.g, COLOR_WARNING.b, 0.67f });
-}
-
-void tf2_bot_detector::SetLogTimestamp(time_point_t timestamp)
-{
-	s_LogTimestamp = timestamp;
 }
 
 auto tf2_bot_detector::GetLogMsgs() -> cppcoro::generator<const LogMessage&>

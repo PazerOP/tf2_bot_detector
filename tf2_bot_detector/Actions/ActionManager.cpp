@@ -3,7 +3,7 @@
 #include "Config/Settings.h"
 #include "ConsoleLines.h"
 #include "Log.h"
-#include "PeriodicActions.h"
+#include "Actions/ActionGenerators.h"
 
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -118,14 +118,14 @@ bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 	return true;
 }
 
-void ActionManager::AddPeriodicAction(std::unique_ptr<IPeriodicAction>&& action)
+void ActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActionGenerator>&& action)
 {
-	m_PeriodicActions.push_back({ std::move(action), {} });
+	m_PeriodicActionGenerators.push_back(std::move(action));
 }
 
-void ActionManager::AddPiggybackAction(std::unique_ptr<IAction> action)
+void ActionManager::AddPiggybackActionGenerator(std::unique_ptr<IActionGenerator>&& action)
 {
-	m_PiggybackActions.push_back(std::move(action));
+	m_PiggybackActionGenerators.push_back(std::move(action));
 }
 
 struct ActionManager::Writer final : ICommandWriter
@@ -291,23 +291,8 @@ void ActionManager::Update()
 	ProcessRunningCommands();
 
 	// Update periodic actions
-	for (auto& action : m_PeriodicActions)
-	{
-		const auto interval = action.m_Action->GetInterval();
-		if (action.m_LastRunTime == time_point_t{})
-		{
-			const auto delay = action.m_Action->GetInitialDelay();
-			action.m_LastRunTime = curTime - interval + delay;
-		}
-
-		if ((curTime - action.m_LastRunTime) >= interval)
-		{
-			if (action.m_Action->Execute(*this))
-				action.m_LastRunTime = curTime;
-			else
-				Log("Couldn't run periodic action");
-		}
-	}
+	for (const auto& generator : m_PeriodicActionGenerators)
+		generator->Execute(*this);
 
 	if (!m_Actions.empty())
 	{
@@ -334,21 +319,29 @@ void ActionManager::Update()
 			return true;
 		};
 
-		// Handle normal actions
-		for (auto it = m_Actions.begin(); it != m_Actions.end(); )
+		const auto ProcessActions = [&]()
 		{
-			const IAction* action = it->get();
-			if (ProcessAction(it->get()))
-				it = m_Actions.erase(it);
-			else
-				++it;
-		}
+			for (auto it = m_Actions.begin(); it != m_Actions.end(); )
+			{
+				const IAction* action = it->get();
+				if (ProcessAction(it->get()))
+					it = m_Actions.erase(it);
+				else
+					++it;
+			}
+		};
+
+		// Handle normal actions
+		ProcessActions();
 
 		if (!writer.m_Commands.empty())
 		{
 			// Handle piggyback commands
-			for (const auto& action : m_PiggybackActions)
-				ProcessAction(action.get());
+			for (const auto& generator : m_PiggybackActionGenerators)
+				generator->Execute(*this);
+
+			// Process any actions added by piggyback action generators
+			ProcessActions();
 		}
 
 		// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?

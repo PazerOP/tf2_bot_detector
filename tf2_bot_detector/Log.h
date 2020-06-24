@@ -40,7 +40,6 @@ namespace tf2_bot_detector
 	void DebugLog(std::string msg, const LogMessageColor& color = { 1, 1, 1, 0.67f });
 	void DebugLogWarning(std::string msg);
 
-	void SetLogTimestamp(time_point_t timestamp);
 	const std::filesystem::path& GetLogFilename();
 
 	cppcoro::generator<const LogMessage&> GetLogMsgs();

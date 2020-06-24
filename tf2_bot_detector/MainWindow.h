@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Actions.h"
-#include "ActionManager.h"
+#include "Actions/Actions.h"
+#include "Actions/ActionManager.h"
 #include "Clock.h"
 #include "CompensatedTS.h"
 #include "Config/PlayerListJSON.h"
@@ -47,7 +47,6 @@ namespace tf2_bot_detector
 		void OnDrawChat();
 		void OnDrawAppLog();
 		void OnDrawServerStats();
-		void OnDrawNetGraph();
 
 		void OnDrawSettingsPopup();
 		bool m_SettingsPopupOpen = false;
@@ -79,7 +78,6 @@ namespace tf2_bot_detector
 
 		// IWorldEventListener
 		//void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
-		void OnTimestampUpdate(WorldState& world) override;
 		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
 		bool m_Paused = false;

@@ -35,4 +35,6 @@ namespace tf2_bot_detector
 	}
 
 	tm ToTM(const time_point_t& ts);
+	tm GetLocalTM();
+	time_point_t GetLocalTimePoint();
 }

@@ -1,6 +1,6 @@
 #include "ModeratorLogic.h"
-#include "Actions.h"
-#include "ActionManager.h"
+#include "Actions/Actions.h"
+#include "Actions/ActionManager.h"
 #include "Log.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Rules.h"

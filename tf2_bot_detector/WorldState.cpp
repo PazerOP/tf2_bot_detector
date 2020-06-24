@@ -1,5 +1,5 @@
 #include "WorldState.h"
-#include "Actions.h"
+#include "Actions/Actions.h"
 #include "Config/Settings.h"
 #include "ConsoleLines.h"
 #include "FileMods.h"

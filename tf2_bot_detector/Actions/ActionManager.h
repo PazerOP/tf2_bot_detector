@@ -12,9 +12,10 @@
 namespace tf2_bot_detector
 {
 	class IAction;
+	class IActionGenerator;
 	enum class ActionType;
 	class Settings;
-	class IPeriodicAction;
+	class IPeriodicActionGenerator;
 
 	class ActionManager final
 	{
@@ -35,20 +36,20 @@ namespace tf2_bot_detector
 
 		// Whenever another action triggers a send of command(s) to the game, these actions will be
 		// given the chance to add themselves to the
-		void AddPiggybackAction(std::unique_ptr<IAction> action);
+		void AddPiggybackActionGenerator(std::unique_ptr<IActionGenerator>&& action);
 
 		template<typename TAction, typename... TArgs>
-		void AddPiggybackAction(TArgs&&... args)
+		void AddPiggybackActionGenerator(TArgs&&... args)
 		{
-			return AddPiggybackAction(std::make_unique<TAction>(std::forward<TArgs>(args)...));
+			return AddPiggybackActionGenerator(std::make_unique<TAction>(std::forward<TArgs>(args)...));
 		}
 
-		void AddPeriodicAction(std::unique_ptr<IPeriodicAction>&& action);
+		void AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActionGenerator>&& action);
 
 		template<typename TAction, typename... TArgs>
-		void AddPeriodicAction(TArgs&&... args)
+		void AddPeriodicActionGenerator(TArgs&&... args)
 		{
-			return AddPeriodicAction(std::make_unique<TAction>(std::forward<TArgs>(args)...));
+			return AddPeriodicActionGenerator(std::make_unique<TAction>(std::forward<TArgs>(args)...));
 		}
 
 	private:
@@ -76,19 +77,13 @@ namespace tf2_bot_detector
 		const Settings* m_Settings = nullptr;
 		time_point_t m_LastUpdateTime{};
 		std::vector<std::unique_ptr<IAction>> m_Actions;
-		std::vector<std::unique_ptr<IAction>> m_PiggybackActions;
+		std::vector<std::unique_ptr<IActionGenerator>> m_PiggybackActionGenerators;
+		std::vector<std::unique_ptr<IPeriodicActionGenerator>> m_PeriodicActionGenerators;
 		std::map<ActionType, time_point_t> m_LastTriggerTime;
 		uint32_t m_LastUpdateIndex = 0;
 
 		struct RunningCommand;
 		std::list<RunningCommand> m_RunningCommands;
 		void ProcessRunningCommands();
-
-		struct PeriodicAction
-		{
-			std::unique_ptr<IPeriodicAction> m_Action;
-			time_point_t m_LastRunTime{};
-		};
-		std::vector<PeriodicAction> m_PeriodicActions;
 	};
 }

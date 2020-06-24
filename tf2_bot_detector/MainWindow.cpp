@@ -5,7 +5,7 @@
 #include "RegexHelpers.h"
 #include "PlatformSpecific/Shell.h"
 #include "ImGui_TF2BotDetector.h"
-#include "PeriodicActions.h"
+#include "Actions/ActionGenerators.h"
 #include "Log.h"
 #include "PathUtils.h"
 #include "Version.h"
@@ -37,8 +37,8 @@ MainWindow::MainWindow() :
 
 	m_OpenTime = clock_t::now();
 
-	m_ActionManager.AddPeriodicAction<StatusUpdateAction>();
-	m_ActionManager.AddPeriodicAction<ConfigAction>();
+	m_ActionManager.AddPeriodicActionGenerator<StatusUpdateActionGenerator>();
+	m_ActionManager.AddPiggybackActionGenerator<ConfigActionGenerator>();
 	//m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 }
 
@@ -984,11 +984,6 @@ void MainWindow::OnUpdate()
 		GetWorld().Update();
 		m_ActionManager.Update();
 	}
-}
-
-void MainWindow::OnTimestampUpdate(WorldState& world)
-{
-	SetLogTimestamp(world.GetCurrentTime());
 }
 
 void MainWindow::OnUpdate(WorldState& world, bool consoleLinesUpdated)

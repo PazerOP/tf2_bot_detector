@@ -1,16 +1,17 @@
-#include "PeriodicActions.h"
+#include "ActionGenerators.h"
 #include "ActionManager.h"
 #include "Actions.h"
+#include "Log.h"
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
 
-duration_t StatusUpdateAction::GetInterval() const
+duration_t StatusUpdateActionGenerator::GetInterval() const
 {
 	return 3s;
 }
 
-bool StatusUpdateAction::Execute(ActionManager& manager)
+bool StatusUpdateActionGenerator::ExecuteImpl(ActionManager& manager)
 {
 	// 3 second interval, we want:
 	//   1. status
@@ -39,12 +40,12 @@ bool StatusUpdateAction::Execute(ActionManager& manager)
 	return true;
 }
 
-duration_t ConfigAction::GetInterval() const
+duration_t ConfigActionGenerator::GetInterval() const
 {
 	return 10s;
 }
 
-bool ConfigAction::Execute(ActionManager& manager)
+bool ConfigActionGenerator::ExecuteImpl(ActionManager& manager)
 {
 	if (!manager.QueueAction<GenericCommandAction>("con_logfile", "console.log"))
 		return false;
@@ -52,8 +53,36 @@ bool ConfigAction::Execute(ActionManager& manager)
 		return false;
 	if (!manager.QueueAction<GenericCommandAction>("tf_mm_debug_level", "4"))
 		return false; // This is defaulted to 4, but mastercom's stupid config turns this off
-	if (!manager.QueueAction<GenericCommandAction>("net_showmsg", "svc_UserMessage"))
-		return false; // Need this for robust chat message detection
+
+	// Need this for robust chat message detection
+	//manager.QueueAction<GenericCommandAction>("net_showmsg", "svc_UserMessage");
+
+	return true;
+}
+
+bool IPeriodicActionGenerator::Execute(ActionManager& manager)
+{
+	const auto curTime = clock_t::now();
+	const auto interval = GetInterval();
+	if (m_LastRunTime == time_point_t{})
+	{
+		const auto delay = GetInitialDelay();
+		m_LastRunTime = curTime - interval + delay;
+	}
+
+	if ((curTime - m_LastRunTime) >= interval)
+	{
+		if (ExecuteImpl(manager))
+		{
+			m_LastRunTime = curTime;
+			return true;
+		}
+		else
+		{
+			LogWarning("Couldn't execute IPeriodicActionGenerator!");
+			return false;
+		}
+	}
 
 	return true;
 }
