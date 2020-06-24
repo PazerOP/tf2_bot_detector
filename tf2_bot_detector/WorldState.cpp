@@ -712,14 +712,21 @@ void WorldState::ApplyPlayerSummaries()
 			break;
 		}
 
-		for (SteamAPI::PlayerSummary& entry : *summaryReq)
+		try
 		{
-			const auto steamID = entry.m_SteamID;
-			FindOrCreatePlayer(steamID).m_PlayerSummary = std::move(entry);
-		}
+			for (SteamAPI::PlayerSummary& entry : *summaryReq)
+			{
+				const auto steamID = entry.m_SteamID;
+				FindOrCreatePlayer(steamID).m_PlayerSummary = std::move(entry);
+			}
 
-		DebugLog("Applied "s << summaryReq->size() << " player summaries from Steam web API");
-		it = m_PlayerSummaryRequests.erase(it);
+			DebugLog("Applied "s << summaryReq->size() << " player summaries from Steam web API");
+			it = m_PlayerSummaryRequests.erase(it);
+		}
+		catch (const std::exception& e)
+		{
+			LogError("Failed to apply player summaries from Steam web API: "s << e.what());
+		}
 	}
 }
 
