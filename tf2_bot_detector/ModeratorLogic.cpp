@@ -387,16 +387,17 @@ void ModeratorLogic::ProcessPlayerActions()
 	bool needsEnemyWarning = false;
 	for (IPlayer& player : m_World->GetLobbyMembers())
 	{
-		if (player.GetConnectionState() != PlayerStatusState::Active)
-			continue;
-
 		const SteamID steamID = player.GetSteamID();
 
+		const bool isPlayerConnected = player.GetConnectionState() == PlayerStatusState::Active;
 		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, steamID);
-		switch (teamShareResult)
+		if (isPlayerConnected)
 		{
-		case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
-		case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
+			switch (teamShareResult)
+			{
+			case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
+			case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
+			}
 		}
 
 		if (HasPlayerAttribute(steamID, PlayerAttributes::Cheater))
@@ -404,12 +405,14 @@ void ModeratorLogic::ProcessPlayerActions()
 			switch (teamShareResult)
 			{
 			case TeamShareResult::SameTeams:
-				friendlyCheaters.push_back(&player);
+				if (isPlayerConnected)
+					friendlyCheaters.push_back(&player);
+
 				break;
 			case TeamShareResult::OppositeTeams:
-				if (!player.GetName().empty())
+				if (!player.GetName().empty() && isPlayerConnected)
 					enemyCheaters.push_back(&player);
-				else
+				else if (!isPlayerConnected)
 					connectingEnemyCheaters.push_back(&player);
 
 				break;
