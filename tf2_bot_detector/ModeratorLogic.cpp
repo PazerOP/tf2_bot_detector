@@ -361,6 +361,13 @@ void ModeratorLogic::ProcessPlayerActions()
 		m_LastPlayerActionsUpdate = now;
 	}
 
+	if (auto self = m_World->FindPlayer(m_Settings->GetLocalSteamID());
+		self && self->GetConnectionState() != PlayerStatusState::Active)
+	{
+		DebugLog("Skipping ProcessPlayerActions() because we are not fully connected yet");
+		return;
+	}
+
 	// Don't process actions if we're way out of date
 	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(clock_t::now() - now);
 	if ((clock_t::now() - now) > 15s)
@@ -380,6 +387,9 @@ void ModeratorLogic::ProcessPlayerActions()
 	bool needsEnemyWarning = false;
 	for (IPlayer& player : m_World->GetLobbyMembers())
 	{
+		if (player.GetConnectionState() != PlayerStatusState::Active)
+			continue;
+
 		const SteamID steamID = player.GetSteamID();
 
 		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, steamID);
@@ -397,7 +407,7 @@ void ModeratorLogic::ProcessPlayerActions()
 				friendlyCheaters.push_back(&player);
 				break;
 			case TeamShareResult::OppositeTeams:
-				if (!player.GetName().empty() && player.GetConnectionState() == PlayerStatusState::Active)
+				if (!player.GetName().empty())
 					enemyCheaters.push_back(&player);
 				else
 					connectingEnemyCheaters.push_back(&player);
