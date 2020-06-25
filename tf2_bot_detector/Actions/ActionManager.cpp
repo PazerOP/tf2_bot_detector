@@ -54,8 +54,12 @@ auto ActionManager::absolute_cfg_temp() const
 }
 
 ActionManager::ActionManager(const Settings& settings) :
-	m_Settings(&settings)
+	m_Settings(&settings),
+	m_RCONClient("192.168.56.1", 27015, "testpw")
 {
+	auto result = m_RCONClient.send("echo hello world!!!");
+	auto result2 = m_RCONClient.send("status");
+
 	std::filesystem::remove_all(absolute_cfg_temp());
 }
 
@@ -356,6 +360,11 @@ void ActionManager::Update()
 	}
 
 	m_LastUpdateTime = curTime;
+}
+
+std::future<std::string> ActionManager::RunCommandAsync(std::string cmd, std::string args)
+{
+	return std::future<std::string>();
 }
 
 bool ActionManager::SendCommandToGame(std::string cmd)

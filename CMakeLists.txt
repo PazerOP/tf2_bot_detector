@@ -21,6 +21,7 @@ add_subdirectory(submodules/imgui_desktop)
 add_subdirectory(submodules/mh_stuff)
 # add_subdirectory(submodules/nlohmann_json)
 add_subdirectory(submodules/ValveFileVDF)
+add_subdirectory(submodules/SourceRCON)
 
 add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Config/ConfigHelpers.cpp"
@@ -124,6 +125,7 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	libzip::libzip
 	libzippp::libzippp
 	cppcoro
+	SourceRCON
 )
 
 # TODO: Find a way to do this locally

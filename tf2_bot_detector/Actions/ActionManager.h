@@ -3,6 +3,9 @@
 #include "Clock.h"
 #include "IConsoleLineListener.h"
 
+#include <srcon.h>
+
+#include <future>
 #include <map>
 #include <memory>
 #include <typeindex>
@@ -24,6 +27,8 @@ namespace tf2_bot_detector
 		~ActionManager();
 
 		void Update();
+
+		std::future<std::string> RunCommandAsync(std::string cmd, std::string args = {});
 
 		// Returns false if the action was not queued
 		bool QueueAction(std::unique_ptr<IAction>&& action);
@@ -53,6 +58,8 @@ namespace tf2_bot_detector
 		}
 
 	private:
+		srcon::client m_RCONClient;
+
 		struct Writer;
 		bool ProcessSimpleCommands(const Writer& writer);
 		bool ProcessComplexCommands(const Writer& writer);
