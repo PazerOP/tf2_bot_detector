@@ -13,3 +13,6 @@
 [submodule "submodules/ValveFileVDF"]
 	path = submodules/ValveFileVDF
 url=https://github.com/PazerOP/ValveFileVDF.git
+[submodule "submodules/SourceRCON"]
+	path = submodules/SourceRCON
+	url = https://github.com/PazerOP/SourceRCON.git
