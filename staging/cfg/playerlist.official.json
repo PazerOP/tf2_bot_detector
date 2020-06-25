@@ -276,6 +276,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "I disagree with gays.",
+				"time": 1593055194
+			},
+			"steamid": "[U:1:210554141]"
+		},
+		{
+			"attributes": [
 				"racist"
 			],
 			"steamid": "[U:1:214401058]"
@@ -399,6 +409,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "Tilar 1488 #TRUMP2020",
+				"time": 1593055211
+			},
+			"steamid": "[U:1:384450208]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "EmpRess",
 				"time": 1592377270
 			},
@@ -439,6 +459,17 @@
 				"time": 1592720854
 			},
 			"steamid": "[U:1:438647397]"
+		},
+		{
+			"attributes": [
+				"suspicious",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "i hate fags and trannies",
+				"time": 1593055123
+			},
+			"steamid": "[U:1:450019305]"
 		},
 		{
 			"attributes": [
@@ -497,6 +528,16 @@
 				"cheater"
 			],
 			"steamid": "[U:1:879347135]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Ryzen 9 3950X",
+				"time": 1593054986
+			},
+			"steamid": "[U:1:905861617]"
 		},
 		{
 			"attributes": [
@@ -1244,6 +1285,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "i7-7700K",
+				"time": 1593054988
+			},
+			"steamid": "[U:1:1085889902]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -1545,7 +1596,27 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "Lag-Bot 23",
+				"time": 1593057485
+			},
+			"steamid": "[U:1:1089414229]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:1089464711]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Lag-Bot 26",
+				"time": 1593051454
+			},
+			"steamid": "[U:1:1089541093]"
 		},
 		{
 			"attributes": [
@@ -2218,6 +2289,16 @@
 				"time": 1593041730
 			},
 			"steamid": "[U:1:1100827253]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 21",
+				"time": 1593051209
+			},
+			"steamid": "[U:1:1100834245]"
 		},
 		{
 			"attributes": [
@@ -3480,6 +3561,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "www.myg0t.gg",
+				"time": 1593058495
+			},
+			"steamid": "[U:1:1106003181]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -3614,10 +3705,50 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "i9-9900K",
+				"time": 1593054991
+			},
+			"steamid": "[U:1:1108869500]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "DJ Prodigy",
 				"time": 1592965693
 			},
 			"steamid": "[U:1:1108872592]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Pentium III",
+				"time": 1593054994
+			},
+			"steamid": "[U:1:1108967006]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Core 2 Duo E8400",
+				"time": 1593054996
+			},
+			"steamid": "[U:1:1109018038]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "i3-9100F",
+				"time": 1593054985
+			},
+			"steamid": "[U:1:1109069289]"
 		}
 	]
 }
