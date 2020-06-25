@@ -110,6 +110,23 @@
 					"cheater"
 				]
 			},
+			"description": "(catbot) Lag-bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"Lag-Bot \\d+"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "(catbot) poohook",
 			"triggers": {
 				"username_text_match": {

@@ -250,6 +250,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Dirty_Dany",
+				"time": 1593045679
+			},
+			"steamid": "[U:1:185956321]"
+		},
+		{
+			"attributes": [
 				"exploiter"
 			],
 			"steamid": "[U:1:188955681]"
@@ -458,6 +468,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "ok",
+				"time": 1593045568
+			},
+			"steamid": "[U:1:489625601]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"steamid": "[U:1:848388754]"
@@ -489,6 +509,16 @@
 				"cheater"
 			],
 			"steamid": "[U:1:963689585]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "cobus yolus",
+				"time": 1593045188
+			},
+			"steamid": "[U:1:992088653]"
 		},
 		{
 			"attributes": [
@@ -948,6 +978,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "furry-bot 10",
+				"time": 1593040548
+			},
+			"steamid": "[U:1:1057156791]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "bunker bo\u200fy\u200f\u200f",
 				"time": 1591517384
 			},
@@ -1160,6 +1200,16 @@
 				"time": 1592965620
 			},
 			"steamid": "[U:1:1068223526]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Lag-Bot 33",
+				"time": 1593041231
+			},
+			"steamid": "[U:1:1072232395]"
 		},
 		{
 			"attributes": [
@@ -1956,6 +2006,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 8",
+				"time": 1593041807
+			},
+			"steamid": "[U:1:1099452670]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -2144,6 +2204,26 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "furry-bot 30",
+				"time": 1593040676
+			},
+			"steamid": "[U:1:1100742434]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 2",
+				"time": 1593041730
+			},
+			"steamid": "[U:1:1100827253]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "furry-bot 24",
 				"time": 1590553142
 			},
@@ -2208,6 +2288,16 @@
 				"time": 1590647837
 			},
 			"steamid": "[U:1:1101441894]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "furry-bot 30",
+				"time": 1593042809
+			},
+			"steamid": "[U:1:1101697397]"
 		},
 		{
 			"attributes": [
