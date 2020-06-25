@@ -62,9 +62,18 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 	}
 }
 
+static bool IsCheaterConnectedWarning(const std::string_view& msg)
+{
+	static const std::regex s_IngameWarning(
+		R"regex(Attention! There (?:is a|are \d+) cheaters? on the other team named .*\. Please kick them!)regex",
+		std::regex::optimize);
+
+	return std::regex_match(msg.begin(), msg.end(), s_IngameWarning);
+}
+
 void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg)
 {
-	bool botMsgDetected = false;
+	bool botMsgDetected = IsCheaterConnectedWarning(msg);
 	// Check if it is a moderation message from someone else
 	if (m_Settings->m_AutoTempMute &&
 		!m_PlayerList.HasPlayerAttribute(player, { PlayerAttributes::Cheater, PlayerAttributes::Exploiter }))
@@ -72,15 +81,11 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 		if (auto localPlayer = GetLocalPlayer();
 			localPlayer && (player.GetSteamID() != localPlayer->GetSteamID()))
 		{
-			static const std::regex s_IngameWarning(
-				R"regex(Attention! There (?:is a|are \d+) cheaters? on the other team named .*\. Please kick them!)regex",
-				std::regex::optimize);
 			static const std::regex s_ConnectingWarning(
 				R"regex(Heads up! There (?:is a|are \d+) known cheaters? joining the other team! Names? unknown until they fully join\.)regex",
 				std::regex::optimize);
 
-			if (std::regex_match(msg.begin(), msg.end(), s_IngameWarning) ||
-				std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning))
+			if (botMsgDetected || std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning))
 			{
 				botMsgDetected = true;
 				Log("Detected message from "s << player << " as another instance of TF2BD: "s << std::quoted(msg));
