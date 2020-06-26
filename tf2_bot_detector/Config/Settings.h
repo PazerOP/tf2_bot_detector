@@ -33,6 +33,9 @@ namespace tf2_bot_detector
 
 		std::filesystem::path GetTFDir() const;
 		std::filesystem::path m_TFDirOverride;
+
+		std::string GetLocalIP() const;
+		std::string m_LocalIPOverride;
 	};
 
 	struct GotoProfileSite
@@ -71,6 +74,7 @@ namespace tf2_bot_detector
 		std::optional<bool> m_AllowInternetUsage;
 		const HTTPClient* GetHTTPClient() const;
 		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
+		std::string m_LocalIPOverride;
 
 		std::vector<GotoProfileSite> m_GotoProfileSites;
 

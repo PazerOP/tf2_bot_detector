@@ -14,12 +14,6 @@
 #include <iomanip>
 #include <regex>
 
-#ifdef _WIN32
-#include <WinSock2.h>
-#else
-#include <unistd.h>
-#endif
-
 #undef min
 #undef max
 
@@ -58,39 +52,12 @@ auto ActionManager::absolute_cfg_temp() const
 	return absolute_root() / "cfg" / tfbd_paths::local::cfg_temp();
 }
 
-static std::string GetHostName()
-{
-	// Same basic logic that the source engine uses to figure out what ip to bind to
-	// (attempting to connect to rcon at 127.0.0.1 doesn't work)
-	char buf[512];
-	if (auto result = gethostname(buf, sizeof(buf)); result < 0)
-		throw std::runtime_error(std::string(__FUNCTION__) << "(): gethostname() returned " << result);
-
-	buf[sizeof(buf) - 1] = 0;
-
-	auto host = gethostbyname(buf);
-	if (!host)
-		throw std::runtime_error(std::string(__FUNCTION__) << "(): gethostbyname returned nullptr");
-
-	in_addr addr{};
-	addr.s_addr = *(u_long*)host->h_addr_list[0];
-
-	std::string retVal;
-	if (auto addrStr = inet_ntoa(addr); addrStr && addrStr[0])
-		retVal = addrStr;
-	else
-		throw std::runtime_error(std::string(__FUNCTION__) << "(): inet_ntoa returned null or empty string");
-
-	Log(std::string(__FUNCTION__) << "(): ip = " << retVal);
-	return retVal;
-}
-
 ActionManager::ActionManager(const Settings& settings) :
 	m_Settings(&settings)
 {
 	try
 	{
-		m_RCONClient.connect(GetHostName(), "");
+		m_RCONClient.connect(settings.GetLocalIP(), "testpw");
 	}
 	catch (const std::exception& e)
 	{
@@ -265,6 +232,172 @@ void ActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationToken
 	}
 }
 
+void ActionManager::Update()
+{
+	const auto curTime = clock_t::now();
+	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
+		return;
+
+	// Update periodic actions
+	for (const auto& generator : m_PeriodicActionGenerators)
+		generator->Execute(*this);
+
+	if (!m_Actions.empty())
+	{
+		bool actionTypes[(int)ActionType::COUNT]{};
+
+		Writer writer;
+
+		const auto ProcessAction = [&](const IAction* action)
+		{
+			const ActionType type = action->GetType();
+			{
+				auto& previousMsg = actionTypes[(int)type];
+				const auto minInterval = action->GetMinInterval();
+
+				if (minInterval.count() > 0 && (previousMsg || (curTime - m_LastTriggerTime[type]) < minInterval))
+					return false;
+
+				previousMsg = true;
+			}
+
+			action->WriteCommands(writer);
+			//it = m_Actions.erase(it);
+			m_LastTriggerTime[type] = curTime;
+			return true;
+		};
+
+		const auto ProcessActions = [&]()
+		{
+			for (auto it = m_Actions.begin(); it != m_Actions.end(); )
+			{
+				const IAction* action = it->get();
+				if (ProcessAction(it->get()))
+					it = m_Actions.erase(it);
+				else
+					++it;
+			}
+		};
+
+		// Handle normal actions
+		ProcessActions();
+
+		if (!writer.m_Commands.empty())
+		{
+			// Handle piggyback commands
+			for (const auto& generator : m_PiggybackActionGenerators)
+				generator->Execute(*this);
+
+			// Process any actions added by piggyback action generators
+			ProcessActions();
+		}
+
+		for (const auto& cmd : writer.m_Commands)
+		{
+			if (cmd.second.empty())
+				SendCommandToGame(cmd.first);
+			else
+				SendCommandToGame(cmd.first + " " + cmd.second);
+		}
+	}
+
+	m_LastUpdateTime = curTime;
+}
+
+std::string ActionManager::RunCommand(std::string cmd)
+{
+	std::unique_lock lock(m_RCONClientMutex, 5s);
+	if (!lock.owns_lock())
+		throw std::runtime_error("Failed to acquire rcon client mutex");
+
+	if (!m_RCONClient.is_connected())
+	{
+		DebugLog(std::string(__FUNCTION__) << "(): SRCON not connected, reconnecting for command " << std::quoted(cmd));
+		m_RCONClient.reconnect();
+	}
+
+	return m_RCONClient.send(cmd);
+}
+
+std::shared_future<std::string> ActionManager::RunCommandAsync(std::string cmd)
+{
+	std::lock_guard lock(m_RCONCommandsMutex);
+	return m_RCONCommands.emplace(std::move(cmd)).m_Future;
+}
+
+bool ActionManager::SendCommandToGame(std::string cmd)
+{
+	RunCommandAsync(std::move(cmd));
+	return true;
+}
+
+ActionManager::InitSRCON::InitSRCON()
+{
+	srcon::SetLogFunc([](std::string&& msg)
+		{
+			DebugLog("[SRCON] "s << std::move(msg));
+		});
+}
+
+#ifdef _WIN32
+#include <Windows.h>
+struct ActionManager::RunningCommand
+{
+	RunningCommand(HANDLE procHandle, std::string command) : m_ProcHandle(procHandle), m_Command(command) {}
+	RunningCommand(const RunningCommand&) = delete;
+	RunningCommand& operator=(const RunningCommand&) = delete;
+	~RunningCommand()
+	{
+		if (!CloseHandle(m_ProcHandle))
+			LogError(std::string(__FUNCTION__ ": Failed to close handle for ") << std::quoted(m_Command));
+	}
+
+	duration_t GetElapsed() const { return clock_t::now() - m_StartTime; }
+	bool IsComplete() const
+	{
+		return WaitForSingleObject(m_ProcHandle, 0) == WAIT_OBJECT_0;
+	}
+
+	void Terminate()
+	{
+		if (!TerminateProcess(m_ProcHandle, 1))
+		{
+			const auto error = GetLastError();
+			LogError("Failed to terminate stuck hl2.exe process ("s << std::quoted(m_Command)
+				<< "): GetLastError returned "s << error << ": " << std::error_code(error, std::system_category()).message());
+		}
+	}
+
+	HANDLE m_ProcHandle;
+	std::string m_Command;
+
+private:
+	time_point_t m_StartTime = clock_t::now();
+};
+
+void ActionManager::ProcessRunningCommands()
+{
+	for (auto it = m_RunningCommands.begin(); it != m_RunningCommands.end();)
+	{
+		bool shouldRemove = false;
+		if (it->IsComplete())
+		{
+			shouldRemove = true;
+		}
+		else if (it->GetElapsed() > std::chrono::duration<float>(m_Settings->m_CommandTimeoutSeconds))
+		{
+			LogWarning("Command timed out: "s << std::quoted(it->m_Command));
+			it->Terminate();
+			shouldRemove = true;
+		}
+
+		if (shouldRemove)
+			it = m_RunningCommands.erase(it);
+		else
+			++it;
+	}
+}
+
 bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 {
 	std::string cmdLine;
@@ -280,7 +413,7 @@ bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 		if (!SendCommandToGame(cmd.first + " " + cmd.second))
 			return false;
 
-		//cmdLine << '+' << cmd.first;
+		cmdLine << '+' << cmd.first;
 
 		if (!cmd.second.empty())
 		{
@@ -298,8 +431,7 @@ bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 	}
 
 	// A simple command, we can pass this directly to the engine
-	//return SendCommandToGame(cmdLine);
-	return false;
+	return SendCommandToGame(cmdLine);
 }
 
 bool ActionManager::ProcessComplexCommands(const Writer& writer)
@@ -370,120 +502,23 @@ bool ActionManager::ProcessComplexCommands(const Writer& writer)
 	return SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
 }
 
-void ActionManager::Update()
+bool ActionManager::SendHijackCommands(const Writer& writer)
 {
-	const auto curTime = clock_t::now();
-	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
-		return;
-
-	// Update periodic actions
-	for (const auto& generator : m_PeriodicActionGenerators)
-		generator->Execute(*this);
-
-	if (!m_Actions.empty())
-	{
-		bool actionTypes[(int)ActionType::COUNT]{};
-
-		Writer writer;
-
-		const auto ProcessAction = [&](const IAction* action)
-		{
-			const ActionType type = action->GetType();
-			{
-				auto& previousMsg = actionTypes[(int)type];
-				const auto minInterval = action->GetMinInterval();
-
-				if (minInterval.count() > 0 && (previousMsg || (curTime - m_LastTriggerTime[type]) < minInterval))
-					return false;
-
-				previousMsg = true;
-			}
-
-			action->WriteCommands(writer);
-			//it = m_Actions.erase(it);
-			m_LastTriggerTime[type] = curTime;
-			return true;
-		};
-
-		const auto ProcessActions = [&]()
-		{
-			for (auto it = m_Actions.begin(); it != m_Actions.end(); )
-			{
-				const IAction* action = it->get();
-				if (ProcessAction(it->get()))
-					it = m_Actions.erase(it);
-				else
-					++it;
-			}
-		};
-
-		// Handle normal actions
-		ProcessActions();
-
-		if (!writer.m_Commands.empty())
-		{
-			// Handle piggyback commands
-			for (const auto& generator : m_PiggybackActionGenerators)
-				generator->Execute(*this);
-
-			// Process any actions added by piggyback action generators
-			ProcessActions();
-		}
-
-#if 0
-		// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?
-		if (!writer.m_ComplexCommands && writer.m_CommandArgCount < 200)
-		{
-			ProcessSimpleCommands(writer);
-		}
-		else
-		{
-			ProcessComplexCommands(writer);
-		}
-#else
-		for (const auto& cmd : writer.m_Commands)
-		{
-			if (cmd.second.empty())
-				SendCommandToGame(cmd.first);
-			else
-				SendCommandToGame(cmd.first + " " + cmd.second);
-		}
-#endif
-	}
-
-	m_LastUpdateTime = curTime;
+	// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?
+	if (!writer.m_ComplexCommands && writer.m_CommandArgCount < 200)
+		return ProcessSimpleCommands(writer);
+	else
+		return ProcessComplexCommands(writer);
 }
 
-std::string ActionManager::RunCommand(std::string cmd)
+bool ActionManager::SendHijackCommand(std::string cmd)
 {
-	std::unique_lock lock(m_RCONClientMutex, 5s);
-	if (!lock.owns_lock())
-		throw std::runtime_error("Failed to acquire rcon client mutex");
-
-	if (!m_RCONClient.is_connected())
-	{
-		DebugLog(std::string(__FUNCTION__) << "(): SRCON not connected, reconnecting for command " << std::quoted(cmd));
-		m_RCONClient.reconnect();
-	}
-
-	return m_RCONClient.send(cmd);
-}
-
-std::shared_future<std::string> ActionManager::RunCommandAsync(std::string cmd)
-{
-	std::lock_guard lock(m_RCONCommandsMutex);
-	return m_RCONCommands.emplace(std::move(cmd)).m_Future;
-}
-
-bool ActionManager::SendCommandToGame(std::string cmd)
-{
-#if 0
 	if (cmd.empty())
 		return true;
 
 	if (!FindWindowA("Valve001", nullptr))
 	{
-		Log("Attempted to send command \""s << cmd << "\" to game, but game is not running", { 1, 1, 0.8f });
+		DebugLogWarning("Attempted to send command \""s << cmd << "\" to game, but game is not running");
 		return false;
 	}
 
@@ -526,19 +561,8 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 	m_RunningCommands.emplace_back(pi.hProcess, std::move(cmd));
 
 	if (!CloseHandle(pi.hThread))
-		throw std::runtime_error(__FUNCTION__ ": Failed to close process thread");
+		LogError(__FUNCTION__ ": Failed to close process thread");
 
 	return true;
-#else
-	RunCommandAsync(std::move(cmd));
-	return true;
+}
 #endif
-}
-
-ActionManager::InitSRCON::InitSRCON()
-{
-	srcon::SetLogFunc([](std::string&& msg)
-		{
-			DebugLog("[SRCON] "s << std::move(msg));
-		});
-}

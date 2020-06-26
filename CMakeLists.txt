@@ -30,8 +30,6 @@ if (NOT nlohmann_json_POPULATED)
 endif()
 
 add_subdirectory(submodules/imgui_desktop)
-# add_subdirectory(submodules/mh_stuff)
-# add_subdirectory(submodules/nlohmann_json)
 add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
 
@@ -51,6 +49,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Networking/HTTPClient.cpp"
 	"tf2_bot_detector/Networking/HTTPHelpers.h"
 	"tf2_bot_detector/Networking/HTTPHelpers.cpp"
+	"tf2_bot_detector/Networking/NetworkHelpers.h"
+	"tf2_bot_detector/Networking/NetworkHelpers.cpp"
 	"tf2_bot_detector/Networking/SteamAPI.h"
 	"tf2_bot_detector/Networking/SteamAPI.cpp"
 	"tf2_bot_detector/PlatformSpecific/Shell.h"

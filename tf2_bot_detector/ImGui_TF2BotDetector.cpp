@@ -1,6 +1,10 @@
 #include "ImGui_TF2BotDetector.h"
+#include "CachedVariable.h"
+#include "Clock.h"
+#include "Networking/NetworkHelpers.h"
 #include "PathUtils.h"
 #include "Config/Settings.h"
+#include "RegexHelpers.h"
 #include "SteamID.h"
 #include "PlatformSpecific/Shell.h"
 #include "PlatformSpecific/Steam.h"
@@ -11,10 +15,12 @@
 
 #include <cstdarg>
 #include <memory>
+#include <regex>
 #include <stdexcept>
 
 namespace ScopeGuards = ImGuiDesktop::ScopeGuards;
 
+using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
@@ -390,6 +396,96 @@ bool tf2_bot_detector::InputTextSteamDirOverride(const std::string_view& label_i
 	static const std::filesystem::path s_ExamplePath("C:\\Program Files (x86)\\Steam");
 	return InputPathValidatedOverride(label_id, "Steam directory"sv, s_ExamplePath, outPath,
 		GetCurrentSteamDir(), requireValid, &ValidateSteamDir);
+}
+
+namespace
+{
+	struct [[nodiscard]] IPValidatorResult
+	{
+		IPValidatorResult(std::string addr) : m_Address(std::move(addr)) {}
+
+		enum class Result
+		{
+			Valid,
+
+			InvalidFormat, // Doesn't match XXX.XXX.XXX.XXX
+			InvalidOctetValue,  // One of the octets is < 0 or > 255
+		} m_Result = Result::Valid;
+
+		operator bool() const { return m_Result == Result::Valid; }
+
+		std::string m_Address;
+		std::string m_Message;
+	};
+
+	//static IPValidatorResult ValidateIP(std::string addr, )
+}
+
+static IPValidatorResult ValidateAndParseIPv4(std::string addr, uint8_t* values)
+{
+	IPValidatorResult retVal(std::move(addr));
+	using Result = IPValidatorResult::Result;
+
+	static const std::regex s_IPRegex(R"regex((\d+)\.(\d+)\.(\d+)\.(\d+))regex", std::regex::optimize);
+	std::smatch match;
+	if (!std::regex_match(retVal.m_Address, match, s_IPRegex))
+	{
+		retVal.m_Result = Result::InvalidFormat;
+		retVal.m_Message = "Unknown IPv4 format, it should look something like \"192.168.1.10\"";
+		return retVal;
+	}
+
+	for (size_t i = 0; i < 4; i++)
+	{
+		auto& octetStr = match[i + 1];
+		if (auto parseResult = from_chars(octetStr, values[i]); !parseResult)
+		{
+			retVal.m_Result = Result::InvalidOctetValue;
+			retVal.m_Message = "Octet #"s << (i + 1) << " should be between 0 and 255 inclusive";
+			return retVal;
+		}
+	}
+
+	return retVal;
+}
+
+static bool InputTextIPv4(std::string& addr, bool requireValid)
+{
+	if (ImGui::InputTextWithHint("", "XXX.XXX.XXX.XXX", &addr))
+	{
+		uint8_t octets[4];
+		auto validation = ValidateAndParseIPv4(addr, octets);
+		if (auto validation = ValidateAndParseIPv4(addr, octets); !validation)
+		{
+			ImGui::TextColored({ 1, 0, 0, 1 }, "Invalid IPv4 address: %s", validation.m_Message);
+			return !requireValid;
+		}
+		else
+		{
+			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Looks good!");
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool tf2_bot_detector::InputTextLocalIPOverride(const std::string_view& label_id, std::string& ip, bool requireValid)
+{
+	static CachedVariable s_AutodetectedValue(1s, &Networking::GetLocalIP);
+
+	static const auto IsValid = [](std::string value) -> bool
+	{
+		uint8_t dummy[4];
+		return !!ValidateAndParseIPv4(std::move(value), dummy);
+	};
+
+	const auto InputFunc = [&]() -> bool
+	{
+		return InputTextIPv4(ip, true);
+	};
+
+	return OverrideControl(label_id, ip, s_AutodetectedValue.GetAndUpdate(), IsValid, InputFunc);
 }
 
 bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)

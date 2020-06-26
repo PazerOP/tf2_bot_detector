@@ -5,6 +5,7 @@
 #include "PathUtils.h"
 #include "PlayerListJSON.h"
 #include "PlatformSpecific/Steam.h"
+#include "Networking/NetworkHelpers.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -254,6 +255,14 @@ std::filesystem::path AutoDetectedSettings::GetTFDir() const
 		return m_TFDirOverride;
 
 	return FindTFDir(GetSteamDir());
+}
+
+std::string tf2_bot_detector::AutoDetectedSettings::GetLocalIP() const
+{
+	if (!m_LocalIPOverride.empty())
+		return m_LocalIPOverride;
+
+	return tf2_bot_detector::Networking::GetLocalIP();
 }
 
 std::filesystem::path AutoDetectedSettings::GetSteamDir() const
