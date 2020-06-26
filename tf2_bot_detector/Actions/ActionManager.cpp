@@ -400,6 +400,8 @@ void ActionManager::ProcessRunningCommands()
 
 bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 {
+	assert(!writer.m_ComplexCommands);
+
 	std::string cmdLine;
 	bool firstCmd = true;
 
@@ -437,6 +439,7 @@ bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 bool ActionManager::ProcessComplexCommands(const Writer& writer)
 {
 	// More complicated, exec commands from a cfg file
+	assert(writer.m_ComplexCommands);
 
 	std::string cfgFileContents;
 	for (const auto& cmd : writer.m_Commands)

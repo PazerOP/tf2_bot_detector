@@ -125,6 +125,10 @@ namespace tf2_bot_detector
 
 		bool SendHijackCommands(const Writer& writer);
 		bool SendHijackCommand(std::string cmd);
+
+		struct RunningCommand;
+		std::list<RunningCommand> m_RunningCommands;
+		void ProcessRunningCommands();
 #endif
 	};
 }
