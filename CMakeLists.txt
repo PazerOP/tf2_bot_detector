@@ -17,12 +17,16 @@ endif()
 
 # set(VCPKG_APPLOCAL_DEPS ON)
 
-FetchContent_Declare(
-	mh_stuff
-	GIT_REPOSITORY https://github.com/PazerOP/stuff.git
-)
+FetchContent_Declare(mh_stuff GIT_REPOSITORY https://github.com/PazerOP/stuff.git)
 if (NOT mh_stuff_POPULATED)
 	FetchContent_MakeAvailable(mh_stuff)
+endif()
+
+FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json.git)
+set(JSON_MultipleHeaders on)
+set(JSON_BuildTests off)
+if (NOT nlohmann_json_POPULATED)
+	FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
 add_subdirectory(submodules/imgui_desktop)
