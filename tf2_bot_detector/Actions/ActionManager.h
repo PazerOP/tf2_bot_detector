@@ -68,7 +68,7 @@ namespace tf2_bot_detector
 			InitSRCON();
 		} s_InitSRCON;
 
-		std::mutex m_RCONClientMutex;
+		std::timed_mutex m_RCONClientMutex;
 		srcon::client m_RCONClient;
 
 		struct Writer;

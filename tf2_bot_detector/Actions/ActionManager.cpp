@@ -88,10 +88,14 @@ static std::string GetHostName()
 ActionManager::ActionManager(const Settings& settings) :
 	m_Settings(&settings)
 {
-	m_RCONClient.connect(GetHostName(), "testpw");
-
-	auto result = m_RCONClient.send("echo hello world!!!");
-	auto result2 = m_RCONClient.send("status");
+	try
+	{
+		m_RCONClient.connect(GetHostName(), "testpw");
+	}
+	catch (const std::exception& e)
+	{
+		DebugLogWarning("Failed initial RCON connection attempt: "s << e.what());
+	}
 
 	std::filesystem::remove_all(absolute_cfg_temp());
 }
@@ -408,7 +412,13 @@ std::future<std::string> ActionManager::RunCommandAsync(std::string cmd)
 {
 	return std::async([&, cmd = std::move(cmd)]
 		{
-			std::lock_guard lock(m_RCONClientMutex);
+			std::unique_lock lock(m_RCONClientMutex, 5s);
+			if (!lock.owns_lock())
+				throw std::runtime_error("Failed to acquire rcon client mutex");
+
+			if (!m_RCONClient.is_connected())
+				m_RCONClient.reconnect();
+
 			return m_RCONClient.send(cmd);
 		});
 }
@@ -473,9 +483,11 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 		const auto startTime = clock_t::now();
 
 		auto result = RunCommandAsync(cmd);
-		if (auto waitResult = result.wait_for(5s); waitResult == std::future_status::timeout)
+		if (auto waitResult = result.wait_for(7s); waitResult == std::future_status::timeout)
 		{
 			LogWarning("Timed out waiting for game command "s << std::quoted(cmd));
+			std::lock_guard lock(m_RCONClientMutex);
+			m_RCONClient.reconnect();
 			return false;
 		}
 		const auto resultStr = result.get();
@@ -509,6 +521,17 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 	catch (const std::exception& e)
 	{
 		LogError(std::string(__FUNCTION__) << "(): Unhandled exception: " << e.what());
+
+		try
+		{
+			std::lock_guard lock(m_RCONClientMutex);
+			m_RCONClient.reconnect();
+		}
+		catch (const std::exception& e2)
+		{
+			LogError(std::string(__FUNCTION__) << "(): Failed to reconnect after exception: " << e2.what());
+		}
+
 		return false;
 	}
 #endif
