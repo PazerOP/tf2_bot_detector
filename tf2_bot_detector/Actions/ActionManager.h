@@ -3,12 +3,16 @@
 #include "Clock.h"
 #include "IConsoleLineListener.h"
 
+#include <cppcoro/cancellation_source.hpp>
+#include <cppcoro/cancellation_token.hpp>
 #include <srcon.h>
 
 #include <future>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <queue>
+#include <thread>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -32,7 +36,8 @@ namespace tf2_bot_detector
 
 		void Update();
 
-		std::future<std::string> RunCommandAsync(std::string cmd);
+		std::string RunCommand(std::string cmd);
+		std::shared_future<std::string> RunCommandAsync(std::string cmd);
 
 		// Returns false if the action was not queued
 		bool QueueAction(std::unique_ptr<IAction>&& action);
@@ -70,6 +75,22 @@ namespace tf2_bot_detector
 
 		std::timed_mutex m_RCONClientMutex;
 		srcon::client m_RCONClient;
+		std::thread m_RCONThread;
+
+		struct RCONCommand
+		{
+			explicit RCONCommand(std::string cmd);
+
+			bool operator==(const RCONCommand& other) const { return m_Command == other.m_Command; }
+
+			std::string m_Command;
+			std::shared_ptr<std::promise<std::string>> m_Promise;
+			std::shared_future<std::string> m_Future;
+		};
+		std::queue<RCONCommand> m_RCONCommands;
+		std::mutex m_RCONCommandsMutex;
+		cppcoro::cancellation_source m_RCONCancellationSource;
+		void RCONThreadFunc(cppcoro::cancellation_token cancellationToken);
 
 		struct Writer;
 		bool ProcessSimpleCommands(const Writer& writer);
@@ -100,9 +121,5 @@ namespace tf2_bot_detector
 		std::vector<std::unique_ptr<IPeriodicActionGenerator>> m_PeriodicActionGenerators;
 		std::map<ActionType, time_point_t> m_LastTriggerTime;
 		uint32_t m_LastUpdateIndex = 0;
-
-		struct RunningCommand;
-		std::list<RunningCommand> m_RunningCommands;
-		void ProcessRunningCommands();
 	};
 }

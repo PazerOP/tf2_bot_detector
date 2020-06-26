@@ -90,7 +90,7 @@ ActionManager::ActionManager(const Settings& settings) :
 {
 	try
 	{
-		m_RCONClient.connect(GetHostName(), "testpw");
+		m_RCONClient.connect(GetHostName(), "");
 	}
 	catch (const std::exception& e)
 	{
@@ -98,45 +98,16 @@ ActionManager::ActionManager(const Settings& settings) :
 	}
 
 	std::filesystem::remove_all(absolute_cfg_temp());
+
+	m_RCONThread = std::thread(&ActionManager::RCONThreadFunc, this, m_RCONCancellationSource.token());
 }
 
 ActionManager::~ActionManager()
 {
+	assert(m_RCONCancellationSource.can_be_cancelled());
+	m_RCONCancellationSource.request_cancellation();
+	m_RCONThread.join();
 }
-
-struct ActionManager::RunningCommand
-{
-	RunningCommand(HANDLE procHandle, std::string command) : m_ProcHandle(procHandle), m_Command(command) {}
-	RunningCommand(const RunningCommand&) = delete;
-	RunningCommand& operator=(const RunningCommand&) = delete;
-	~RunningCommand()
-	{
-		if (!CloseHandle(m_ProcHandle))
-			LogError(std::string(__FUNCTION__ ": Failed to close handle for ") << std::quoted(m_Command));
-	}
-
-	duration_t GetElapsed() const { return clock_t::now() - m_StartTime; }
-	bool IsComplete() const
-	{
-		return WaitForSingleObject(m_ProcHandle, 0) == WAIT_OBJECT_0;
-	}
-
-	void Terminate()
-	{
-		if (!TerminateProcess(m_ProcHandle, 1))
-		{
-			const auto error = GetLastError();
-			LogError("Failed to terminate stuck hl2.exe process ("s << std::quoted(m_Command)
-				<< "): GetLastError returned "s << error << ": " << std::error_code(error, std::system_category()).message());
-		}
-	}
-
-	HANDLE m_ProcHandle;
-	std::string m_Command;
-
-private:
-	time_point_t m_StartTime = clock_t::now();
-};
 
 bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 {
@@ -198,6 +169,101 @@ struct ActionManager::Writer final : ICommandWriter
 	bool m_ComplexCommands = false;
 	size_t m_CommandArgCount = 0;
 };
+
+ActionManager::RCONCommand::RCONCommand(std::string cmd) :
+	m_Command(std::move(cmd)),
+	m_Promise(std::make_shared<std::promise<std::string>>()),
+	m_Future(m_Promise->get_future())
+{
+}
+
+void ActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationToken)
+{
+	while (!cancellationToken.is_cancellation_requested())
+	{
+		std::this_thread::sleep_for(250ms);
+
+		while (!m_RCONCommands.empty() && !cancellationToken.is_cancellation_requested())
+		{
+			std::optional<RCONCommand> cmd;
+			{
+				std::lock_guard lock(m_RCONCommandsMutex);
+				if (m_RCONCommands.empty())
+					break;
+
+				cmd = m_RCONCommands.front();
+			}
+
+			try
+			{
+				const auto startTime = clock_t::now();
+
+				auto resultStr = RunCommand(cmd->m_Command);
+				//DebugLog("Setting promise for "s << std::quoted(cmd->m_Command) << " to " << std::quoted(resultStr));
+				cmd->m_Promise->set_value(resultStr);
+#if 0
+				if (auto waitResult = result.wait_for(7s); waitResult == std::future_status::timeout)
+				{
+					LogWarning("SRCON reconnecting after timing out waiting for game command "s << std::quoted(cmd));
+					std::lock_guard lock(m_RCONClientMutex);
+					m_RCONClient.reconnect();
+					return false;
+				}
+				const auto resultStr = result.get();
+#endif
+
+				if (m_Settings->m_Unsaved.m_DebugShowCommands)
+				{
+					const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock_t::now() - startTime);
+					std::string msg = "Game command processed in "s << elapsed.count() << "ms : " << std::quoted(cmd->m_Command);
+
+					if (!resultStr.empty())
+						msg << ", response " << resultStr.size() << " bytes";
+
+					Log(std::move(msg), { 1, 1, 1, 0.6f });
+				}
+
+				if (!resultStr.empty())
+				{
+					if (m_WorldState)
+					{
+						m_WorldState->AddConsoleOutputChunk(resultStr);
+					}
+					else
+					{
+						LogError("WorldState was nullptr when we tried to give it the result: "s << resultStr);
+					}
+				}
+
+				{
+					std::lock_guard lock(m_RCONCommandsMutex);
+					assert(!m_RCONCommands.empty());
+					if (!m_RCONCommands.empty())
+					{
+						assert(m_RCONCommands.front() == cmd);
+						m_RCONCommands.pop();
+					}
+				}
+			}
+			catch (const std::exception& e)
+			{
+				LogError(std::string(__FUNCTION__) << "(): Unhandled exception: " << e.what());
+				std::this_thread::sleep_for(1s);
+
+				try
+				{
+					std::lock_guard lock(m_RCONClientMutex);
+					m_RCONClient.reconnect();
+				}
+				catch (const std::exception& e2)
+				{
+					LogError(std::string(__FUNCTION__) << "(): Failed to reconnect after exception: " << e2.what());
+					std::this_thread::sleep_for(1s);
+				}
+			}
+		}
+	}
+}
 
 bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 {
@@ -304,36 +370,11 @@ bool ActionManager::ProcessComplexCommands(const Writer& writer)
 	return SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
 }
 
-void ActionManager::ProcessRunningCommands()
-{
-	for (auto it = m_RunningCommands.begin(); it != m_RunningCommands.end();)
-	{
-		bool shouldRemove = false;
-		if (it->IsComplete())
-		{
-			shouldRemove = true;
-		}
-		else if (it->GetElapsed() > std::chrono::duration<float>(m_Settings->m_CommandTimeoutSeconds))
-		{
-			LogWarning("Command timed out: "s << std::quoted(it->m_Command));
-			it->Terminate();
-			shouldRemove = true;
-		}
-
-		if (shouldRemove)
-			it = m_RunningCommands.erase(it);
-		else
-			++it;
-	}
-}
-
 void ActionManager::Update()
 {
 	const auto curTime = clock_t::now();
 	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
 		return;
-
-	ProcessRunningCommands();
 
 	// Update periodic actions
 	for (const auto& generator : m_PeriodicActionGenerators)
@@ -401,26 +442,37 @@ void ActionManager::Update()
 		}
 #else
 		for (const auto& cmd : writer.m_Commands)
-			SendCommandToGame(cmd.first + " " + cmd.second);
+		{
+			if (cmd.second.empty())
+				SendCommandToGame(cmd.first);
+			else
+				SendCommandToGame(cmd.first + " " + cmd.second);
+		}
 #endif
 	}
 
 	m_LastUpdateTime = curTime;
 }
 
-std::future<std::string> ActionManager::RunCommandAsync(std::string cmd)
+std::string ActionManager::RunCommand(std::string cmd)
 {
-	return std::async([&, cmd = std::move(cmd)]
-		{
-			std::unique_lock lock(m_RCONClientMutex, 5s);
-			if (!lock.owns_lock())
-				throw std::runtime_error("Failed to acquire rcon client mutex");
+	std::unique_lock lock(m_RCONClientMutex, 5s);
+	if (!lock.owns_lock())
+		throw std::runtime_error("Failed to acquire rcon client mutex");
 
-			if (!m_RCONClient.is_connected())
-				m_RCONClient.reconnect();
+	if (!m_RCONClient.is_connected())
+	{
+		DebugLog(std::string(__FUNCTION__) << "(): SRCON not connected, reconnecting for command " << std::quoted(cmd));
+		m_RCONClient.reconnect();
+	}
 
-			return m_RCONClient.send(cmd);
-		});
+	return m_RCONClient.send(cmd);
+}
+
+std::shared_future<std::string> ActionManager::RunCommandAsync(std::string cmd)
+{
+	std::lock_guard lock(m_RCONCommandsMutex);
+	return m_RCONCommands.emplace(std::move(cmd)).m_Future;
 }
 
 bool ActionManager::SendCommandToGame(std::string cmd)
@@ -457,7 +509,7 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 		hl2Dir.c_str(),      // working directory
 		&si,                 // STARTUPINFO
 		&pi                  // PROCESS_INFORMATION
-		);
+	);
 
 	if (!result)
 	{
@@ -478,62 +530,8 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 
 	return true;
 #else
-	try
-	{
-		const auto startTime = clock_t::now();
-
-		auto result = RunCommandAsync(cmd);
-		if (auto waitResult = result.wait_for(7s); waitResult == std::future_status::timeout)
-		{
-			LogWarning("Timed out waiting for game command "s << std::quoted(cmd));
-			std::lock_guard lock(m_RCONClientMutex);
-			m_RCONClient.reconnect();
-			return false;
-		}
-		const auto resultStr = result.get();
-
-		if (m_Settings->m_Unsaved.m_DebugShowCommands)
-		{
-			const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock_t::now() - startTime);
-			std::string msg = "Game command processed in "s << elapsed.count() << "ms : " << std::quoted(cmd);
-
-			if (!resultStr.empty())
-				msg << ", response " << resultStr.size() << " bytes";
-
-			Log(std::move(msg), { 1, 1, 1, 0.6f });
-		}
-
-		if (!resultStr.empty())
-		{
-			if (m_WorldState)
-			{
-				m_WorldState->AddConsoleOutputChunk(resultStr);
-			}
-			else
-			{
-				LogError("WorldState was nullptr when we tried to give it the result: "s << resultStr);
-				return false;
-			}
-		}
-
-		return true;
-	}
-	catch (const std::exception& e)
-	{
-		LogError(std::string(__FUNCTION__) << "(): Unhandled exception: " << e.what());
-
-		try
-		{
-			std::lock_guard lock(m_RCONClientMutex);
-			m_RCONClient.reconnect();
-		}
-		catch (const std::exception& e2)
-		{
-			LogError(std::string(__FUNCTION__) << "(): Failed to reconnect after exception: " << e2.what());
-		}
-
-		return false;
-	}
+	RunCommandAsync(std::move(cmd));
+	return true;
 #endif
 }
 
