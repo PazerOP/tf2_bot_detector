@@ -948,12 +948,14 @@ void MainWindow::OnUpdate()
 {
 	if (m_SetupFlow.OnUpdate(m_Settings))
 	{
+		m_ActionManager.SetWorldState(nullptr);
 		m_WorldState.reset();
 		return;
 	}
 	else if (!m_WorldState)
 	{
 		m_WorldState.emplace(*this, m_Settings, m_Settings.GetTFDir() / "console.log");
+		m_ActionManager.SetWorldState(&GetWorld());
 	}
 
 	// Update check

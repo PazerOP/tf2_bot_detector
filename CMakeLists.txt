@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17.2)
 project(tf2_bot_detector VERSION 1.0.0.25)
 
-set(JSON_BuildTests OFF)
+include(FetchContent)
 
 # Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 if (MSVC)
@@ -17,8 +17,16 @@ endif()
 
 # set(VCPKG_APPLOCAL_DEPS ON)
 
+FetchContent_Declare(
+	mh_stuff
+	GIT_REPOSITORY https://github.com/PazerOP/stuff.git
+)
+if (NOT mh_stuff_POPULATED)
+	FetchContent_MakeAvailable(mh_stuff)
+endif()
+
 add_subdirectory(submodules/imgui_desktop)
-add_subdirectory(submodules/mh_stuff)
+# add_subdirectory(submodules/mh_stuff)
 # add_subdirectory(submodules/nlohmann_json)
 add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)

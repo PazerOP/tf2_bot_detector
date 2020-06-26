@@ -65,6 +65,9 @@ namespace tf2_bot_detector
 		cppcoro::generator<const IPlayer&> GetPlayers() const;
 		cppcoro::generator<IPlayer&> GetPlayers();
 
+		void AddConsoleOutputChunk(const std::string_view& chunk);
+		void AddConsoleOutputLine(const std::string_view& line);
+
 	private:
 		const Settings* m_Settings = nullptr;
 

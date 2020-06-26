@@ -4,16 +4,21 @@
 #include "ConsoleLines.h"
 #include "Log.h"
 #include "Actions/ActionGenerators.h"
+#include "WorldState.h"
 
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <regex>
 
-#define WIN32_LEAN_AND_MEAN 1
-#include <Windows.h>
+#ifdef _WIN32
+#include <WinSock2.h>
+#else
+#include <unistd.h>
+#endif
 
 #undef min
 #undef max
@@ -53,9 +58,37 @@ auto ActionManager::absolute_cfg_temp() const
 	return absolute_root() / "cfg" / tfbd_paths::local::cfg_temp();
 }
 
+static std::string GetHostName()
+{
+	// Same basic logic that the source engine uses to figure out what ip to bind to
+	// (attempting to connect to rcon at 127.0.0.1 doesn't work)
+	char buf[512];
+	if (auto result = gethostname(buf, sizeof(buf)); result < 0)
+		throw std::runtime_error(std::string(__FUNCTION__) << "(): gethostname() returned " << result);
+
+	buf[sizeof(buf) - 1] = 0;
+
+	auto host = gethostbyname(buf);
+	if (!host)
+		throw std::runtime_error(std::string(__FUNCTION__) << "(): gethostbyname returned nullptr");
+
+	in_addr addr{};
+	addr.s_addr = *(u_long*)host->h_addr_list[0];
+
+	std::string retVal;
+	if (auto addrStr = inet_ntoa(addr); addrStr && addrStr[0])
+		retVal = addrStr;
+	else
+		throw std::runtime_error(std::string(__FUNCTION__) << "(): inet_ntoa returned null or empty string");
+
+	Log(std::string(__FUNCTION__) << "(): ip = " << retVal);
+	return retVal;
+}
+
 ActionManager::ActionManager(const Settings& settings) :
 	m_Settings(&settings),
-	m_RCONClient("192.168.56.1", 27015, "testpw")
+	//m_RCONClient("192.168.56.1", 27015, "testpw")
+	m_RCONClient(GetHostName(), 27015, "testpw")
 {
 	auto result = m_RCONClient.send("echo hello world!!!");
 	auto result2 = m_RCONClient.send("status");
@@ -174,7 +207,10 @@ bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 		else
 			cmdLine << ' ';
 
-		cmdLine << '+' << cmd.first;
+		if (!SendCommandToGame(cmd.first + " " + cmd.second))
+			return false;
+
+		//cmdLine << '+' << cmd.first;
 
 		if (!cmd.second.empty())
 		{
@@ -192,7 +228,8 @@ bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 	}
 
 	// A simple command, we can pass this directly to the engine
-	return SendCommandToGame(cmdLine);
+	//return SendCommandToGame(cmdLine);
+	return false;
 }
 
 bool ActionManager::ProcessComplexCommands(const Writer& writer)
@@ -348,6 +385,7 @@ void ActionManager::Update()
 			ProcessActions();
 		}
 
+#if 0
 		// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?
 		if (!writer.m_ComplexCommands && writer.m_CommandArgCount < 200)
 		{
@@ -357,18 +395,27 @@ void ActionManager::Update()
 		{
 			ProcessComplexCommands(writer);
 		}
+#else
+		for (const auto& cmd : writer.m_Commands)
+			SendCommandToGame(cmd.first + " " + cmd.second);
+#endif
 	}
 
 	m_LastUpdateTime = curTime;
 }
 
-std::future<std::string> ActionManager::RunCommandAsync(std::string cmd, std::string args)
+std::future<std::string> ActionManager::RunCommandAsync(std::string cmd)
 {
-	return std::future<std::string>();
+	return std::async([&, cmd = std::move(cmd)]
+		{
+			std::lock_guard lock(m_RCONClientMutex);
+			return m_RCONClient.send(cmd);
+		});
 }
 
 bool ActionManager::SendCommandToGame(std::string cmd)
 {
+#if 0
 	if (cmd.empty())
 		return true;
 
@@ -420,4 +467,57 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 		throw std::runtime_error(__FUNCTION__ ": Failed to close process thread");
 
 	return true;
+#else
+	try
+	{
+		const auto startTime = clock_t::now();
+
+		auto result = RunCommandAsync(cmd);
+		if (auto waitResult = result.wait_for(5s); waitResult == std::future_status::timeout)
+		{
+			LogWarning("Timed out waiting for game command "s << std::quoted(cmd));
+			return false;
+		}
+		const auto resultStr = result.get();
+
+		if (m_Settings->m_Unsaved.m_DebugShowCommands)
+		{
+			const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock_t::now() - startTime);
+			std::string msg = "Game command processed in "s << elapsed.count() << "ms : " << std::quoted(cmd);
+
+			if (!resultStr.empty())
+				msg << ", response " << resultStr.size() << " bytes";
+
+			Log(std::move(msg), { 1, 1, 1, 0.6f });
+		}
+
+		if (!resultStr.empty())
+		{
+			if (m_WorldState)
+			{
+				m_WorldState->AddConsoleOutputChunk(resultStr);
+			}
+			else
+			{
+				LogError("WorldState was nullptr when we tried to give it the result: "s << resultStr);
+				return false;
+			}
+		}
+
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		LogError(std::string(__FUNCTION__) << "(): Unhandled exception: " << e.what());
+		return false;
+	}
+#endif
+}
+
+ActionManager::InitSRCON::InitSRCON()
+{
+	srcon::SetLogFunc([](std::string&& msg)
+		{
+			DebugLog("[SRCON] "s << std::move(msg));
+		});
 }

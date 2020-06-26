@@ -465,6 +465,32 @@ cppcoro::generator<IPlayer&> WorldState::GetPlayers()
 		co_yield const_cast<IPlayer&>(player);
 }
 
+void WorldState::AddConsoleOutputChunk(const std::string_view& chunk)
+{
+	size_t last = 0;
+	for (auto i = chunk.find('\n', 0); i != chunk.npos; i = chunk.find('\n', last))
+	{
+		auto line = chunk.substr(last, i - last);
+		AddConsoleOutputLine(line);
+		last = i + 1;
+	}
+}
+
+void WorldState::AddConsoleOutputLine(const std::string_view& line)
+{
+	auto parsed = IConsoleLine::ParseConsoleLine(line, m_CurrentTimestamp.GetSnapshot());
+	if (parsed)
+	{
+		for (auto listener : m_ConsoleLineListeners)
+			listener->OnConsoleLineParsed(*this, *parsed);
+	}
+	else
+	{
+		for (auto listener : m_ConsoleLineListeners)
+			listener->OnConsoleLineUnparsed(*this, line);
+	}
+}
+
 void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 {
 	assert(&world == this);

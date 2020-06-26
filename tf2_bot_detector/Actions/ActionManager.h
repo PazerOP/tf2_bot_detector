@@ -8,17 +8,19 @@
 #include <future>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
 
 namespace tf2_bot_detector
 {
+	enum class ActionType;
 	class IAction;
 	class IActionGenerator;
-	enum class ActionType;
-	class Settings;
 	class IPeriodicActionGenerator;
+	class Settings;
+	class WorldState;
 
 	class ActionManager final
 	{
@@ -26,9 +28,11 @@ namespace tf2_bot_detector
 		ActionManager(const Settings& settings);
 		~ActionManager();
 
+		void SetWorldState(WorldState* worldState) { m_WorldState = worldState; }
+
 		void Update();
 
-		std::future<std::string> RunCommandAsync(std::string cmd, std::string args = {});
+		std::future<std::string> RunCommandAsync(std::string cmd);
 
 		// Returns false if the action was not queued
 		bool QueueAction(std::unique_ptr<IAction>&& action);
@@ -58,6 +62,13 @@ namespace tf2_bot_detector
 		}
 
 	private:
+		// This is stupid
+		struct InitSRCON
+		{
+			InitSRCON();
+		} s_InitSRCON;
+
+		std::mutex m_RCONClientMutex;
 		srcon::client m_RCONClient;
 
 		struct Writer;
@@ -81,6 +92,7 @@ namespace tf2_bot_detector
 		// create a ton of duplicate files.
 		std::unordered_multimap<size_t, uint32_t> m_TempCfgFiles;
 
+		WorldState* m_WorldState = nullptr;
 		const Settings* m_Settings = nullptr;
 		time_point_t m_LastUpdateTime{};
 		std::vector<std::unique_ptr<IAction>> m_Actions;
