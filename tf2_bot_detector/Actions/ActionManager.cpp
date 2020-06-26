@@ -86,10 +86,10 @@ static std::string GetHostName()
 }
 
 ActionManager::ActionManager(const Settings& settings) :
-	m_Settings(&settings),
-	//m_RCONClient("192.168.56.1", 27015, "testpw")
-	m_RCONClient(GetHostName(), 27015, "testpw")
+	m_Settings(&settings)
 {
+	m_RCONClient.connect(GetHostName(), "testpw");
+
 	auto result = m_RCONClient.send("echo hello world!!!");
 	auto result2 = m_RCONClient.send("status");
 
