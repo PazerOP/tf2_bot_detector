@@ -140,4 +140,4 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 [releases-link]: https://github.com/PazerOP/tf2_bot_detector/releases
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
-[zip-image]: https://i.imgur.com/QGuE7SI.png
+[zip-image]: https://user-images.githubusercontent.com/6569500/85929969-8de89f00-b86d-11ea-859e-2632a1034ea7.png
