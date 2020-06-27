@@ -5,6 +5,7 @@
 
 namespace tf2_bot_detector
 {
+	class ActionManager;
 	class Settings;
 
 	class SetupFlow final
@@ -27,16 +28,24 @@ namespace tf2_bot_detector
 				// Pretend the user pressed "Done"/"Next"
 				EndDrawing,
 			};
-			[[nodiscard]] virtual OnDrawResult OnDraw() = 0;
+
+			struct DrawState
+			{
+				ActionManager* m_ActionManager = nullptr;
+			};
+
+			[[nodiscard]] virtual OnDrawResult OnDraw(const DrawState& ds) = 0;
 
 			virtual void Init(const Settings& settings) = 0;
 			virtual bool CanCommit() const = 0;
 			virtual void Commit(Settings& settings) = 0;
+			virtual bool WantsSetupText() const { return true; }
+			virtual bool WantsContinueButton() const { return true; }
 		};
 
 		// Returns true if the setup flow needs to draw.
 		[[nodiscard]] bool OnUpdate(const Settings& settings);
-		[[nodiscard]] bool OnDraw(Settings& settings);
+		[[nodiscard]] bool OnDraw(Settings& settings, const IPage::DrawState& ds);
 
 		bool ShouldDraw() const { return m_ShouldDraw; }
 

@@ -701,8 +701,13 @@ void MainWindow::OnDrawServerStats()
 
 void MainWindow::OnDraw()
 {
-	if (m_SetupFlow.OnDraw(m_Settings))
-		return;
+	{
+		SetupFlow::IPage::DrawState ds;
+		ds.m_ActionManager = &m_ActionManager;
+
+		if (m_SetupFlow.OnDraw(m_Settings, ds))
+			return;
+	}
 
 	ImGui::Columns(2, "MainWindowSplit");
 

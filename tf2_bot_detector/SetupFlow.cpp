@@ -4,6 +4,7 @@
 #include "ImGui_TF2BotDetector.h"
 #include "PlatformSpecific/Steam.h"
 #include "Version.h"
+#include "PlatformSpecific/Shitty.h"
 
 #include <imgui.h>
 #include <imgui_desktop/ScopeGuards.h>
@@ -43,7 +44,7 @@ namespace
 			return InternalValidateSettings(settings);
 		}
 
-		OnDrawResult OnDraw() override
+		OnDrawResult OnDraw(const DrawState& ds) override
 		{
 			ImGui::TextUnformatted("Due to your configuration, some settings could not be automatically detected.");
 			ImGui::NewLine();
@@ -130,7 +131,7 @@ namespace
 			return InternalValidateSettings(settings);
 		}
 
-		OnDrawResult OnDraw() override
+		OnDrawResult OnDraw(const DrawState& ds) override
 		{
 			ImGui::TextUnformatted("This tool can optionally connect to the internet to automatically update.");
 
@@ -174,7 +175,7 @@ namespace
 				m_Settings.m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Releases;
 		}
 		bool CanCommit() const override { return InternalValidateSettings(m_Settings); }
-		void Commit(Settings& settings)
+		void Commit(Settings& settings) override
 		{
 			settings.m_AllowInternetUsage = m_Settings.m_AllowInternetUsage;
 			settings.m_ProgramUpdateCheckMode = m_Settings.m_ProgramUpdateCheckMode;
@@ -188,12 +189,58 @@ namespace
 
 		} m_Settings;
 	};
+
+	class TF2OpenPage final : public SetupFlow::IPage
+	{
+	public:
+		bool ValidateSettings(const Settings& settings) const override
+		{
+			if (!IsTF2Running())
+				return false;
+
+			return true;
+		}
+
+		OnDrawResult OnDraw(const DrawState& ds) override
+		{
+			ImGui::TextUnformatted("Waiting for TF2 to be opened...");
+			if (IsTF2Running())
+				return OnDrawResult::EndDrawing;
+
+			return OnDrawResult::ContinueDrawing;
+		}
+
+		void Init(const Settings& settings) override {}
+		bool CanCommit() const override { return false; }
+		void Commit(Settings& settings) override {}
+
+		bool WantsSetupText() const override { return false; }
+		bool WantsContinueButton() const override { return false; }
+	};
+
+#if 0
+	class RCONConnectionPage final : public SetupFlow::IPage
+	{
+	public:
+		bool ValidateSettings(const Settings& settings) const override
+		{
+
+		}
+
+		OnDrawResult OnDraw(const DrawState& ds) override
+		{
+
+		}
+	};
+#endif
 }
 
 SetupFlow::SetupFlow()
 {
 	m_Pages.push_back(std::make_unique<BasicSettingsPage>());
 	m_Pages.push_back(std::make_unique<NetworkSettingsPage>());
+	m_Pages.push_back(std::make_unique<TF2OpenPage>());
+	//m_Pages.push_back(std::make_unique<RCONConnectionPage>());
 }
 
 bool SetupFlow::OnUpdate(const Settings& settings)
@@ -227,7 +274,7 @@ void SetupFlow::GetPageState(const Settings& settings, size_t& currentPage, bool
 	}
 }
 
-bool SetupFlow::OnDraw(Settings& settings)
+bool SetupFlow::OnDraw(Settings& settings, const IPage::DrawState& ds)
 {
 	if (!m_ShouldDraw)
 		return false;
@@ -241,11 +288,13 @@ bool SetupFlow::OnDraw(Settings& settings)
 	{
 		ImGui::PushTextWrapPos();
 
-		ImGui::TextUnformatted("Welcome to TF2 Bot Detector! Some setup is required before first use."sv);
+		auto page = m_Pages[m_ActivePage].get();
+		if (page->WantsSetupText())
+			ImGui::TextUnformatted("Welcome to TF2 Bot Detector! Some setup is required before first use."sv);
+		else
+			ImGui::NewLine();
 
 		ImGui::NewLine();
-
-		auto page = m_Pages[m_ActivePage].get();
 
 		if (m_ActivePage != lastPage)
 		{
@@ -253,23 +302,27 @@ bool SetupFlow::OnDraw(Settings& settings)
 			page->Init(settings);
 		}
 
-		auto drawResult = page->OnDraw();
+		auto drawResult = page->OnDraw(ds);
 
 		ImGui::NewLine();
 
 		drewPage = true;
 
-		ImGui::EnabledSwitch(page->CanCommit(), [&]
-			{
-				if (ImGui::Button(hasNextPage ? "Next >" : "Done") || drawResult == IPage::OnDrawResult::EndDrawing)
+		if (page->WantsContinueButton())
+		{
+			ImGui::EnabledSwitch(page->CanCommit(), [&]
 				{
-					page->Commit(settings);
-					settings.SaveFile();
-					m_ActivePage = INVALID_PAGE;
-					if (!hasNextPage)
-						m_ShouldDraw = false;
-				}
-			});
+					if (ImGui::Button(hasNextPage ? "Next >" : "Done") ||
+						drawResult == IPage::OnDrawResult::EndDrawing)
+					{
+						page->Commit(settings);
+						settings.SaveFile();
+						m_ActivePage = INVALID_PAGE;
+						if (!hasNextPage)
+							m_ShouldDraw = false;
+					}
+				});
+		}
 	}
 
 	return drewPage || (m_ActivePage != INVALID_PAGE);

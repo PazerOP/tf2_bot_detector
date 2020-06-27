@@ -34,6 +34,12 @@ add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
 
 add_executable(tf2_bot_detector WIN32
+	"tf2_bot_detector/Actions/ActionManager.cpp"
+	"tf2_bot_detector/Actions/ActionManager.h"
+	"tf2_bot_detector/Actions/Actions.cpp"
+	"tf2_bot_detector/Actions/Actions.h"
+	"tf2_bot_detector/Actions/HijackActionManager.h"
+	"tf2_bot_detector/Actions/HijackActionManager.cpp"
 	"tf2_bot_detector/Config/ConfigHelpers.cpp"
 	"tf2_bot_detector/Config/ConfigHelpers.h"
 	"tf2_bot_detector/Config/JSONHelpers.h"
@@ -56,10 +62,6 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/PlatformSpecific/Shell.h"
 	"tf2_bot_detector/PlatformSpecific/Shitty.h"
 	"tf2_bot_detector/PlatformSpecific/Steam.h"
-	"tf2_bot_detector/Actions/ActionManager.cpp"
-	"tf2_bot_detector/Actions/ActionManager.h"
-	"tf2_bot_detector/Actions/Actions.cpp"
-	"tf2_bot_detector/Actions/Actions.h"
 	"tf2_bot_detector/AsyncObject.h"
 	"tf2_bot_detector/Clock.cpp"
 	"tf2_bot_detector/Clock.h"

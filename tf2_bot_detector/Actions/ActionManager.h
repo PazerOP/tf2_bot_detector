@@ -103,10 +103,6 @@ namespace tf2_bot_detector
 			uint32_t m_UpdateIndex;
 		};
 
-		auto absolute_root() const;
-		auto absolute_cfg() const;
-		auto absolute_cfg_temp() const;
-
 		WorldState* m_WorldState = nullptr;
 		const Settings* m_Settings = nullptr;
 		time_point_t m_LastUpdateTime{};
@@ -114,21 +110,5 @@ namespace tf2_bot_detector
 		std::vector<std::unique_ptr<IActionGenerator>> m_PiggybackActionGenerators;
 		std::vector<std::unique_ptr<IPeriodicActionGenerator>> m_PeriodicActionGenerators;
 		std::map<ActionType, time_point_t> m_LastTriggerTime;
-		uint32_t m_LastUpdateIndex = 0;
-
-#ifdef _WIN32 // '-hijack' related stuff
-		// Map of temp cfg file content hashes to cfg file name so we don't
-		// create a ton of duplicate files.
-		std::unordered_multimap<size_t, uint32_t> m_TempCfgFiles;
-		bool ProcessSimpleCommands(const Writer& writer);
-		bool ProcessComplexCommands(const Writer& writer);
-
-		bool SendHijackCommands(const Writer& writer);
-		bool SendHijackCommand(std::string cmd);
-
-		struct RunningCommand;
-		std::list<RunningCommand> m_RunningCommands;
-		void ProcessRunningCommands();
-#endif
 	};
 }

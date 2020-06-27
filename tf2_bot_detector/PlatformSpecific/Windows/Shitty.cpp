@@ -12,9 +12,14 @@ namespace tf2_bot_detector
 }
 #endif
 
+bool tf2_bot_detector::IsTF2Running()
+{
+	return !!FindWindowA("Valve001", nullptr);
+}
+
 void tf2_bot_detector::RequireTF2NotRunning()
 {
-	if (!FindWindowA("Valve001", nullptr))
+	if (!IsTF2Running())
 		return;
 
 #ifdef _DEBUG
