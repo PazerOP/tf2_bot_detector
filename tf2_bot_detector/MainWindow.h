@@ -2,6 +2,7 @@
 
 #include "Actions/Actions.h"
 #include "Actions/ActionManager.h"
+#include "Actions/HijackActionManager.h"
 #include "Clock.h"
 #include "CompensatedTS.h"
 #include "Config/PlayerListJSON.h"
@@ -142,6 +143,9 @@ namespace tf2_bot_detector
 		time_point_t m_LastServerPingSample{};
 
 		Settings m_Settings;
+#ifdef _WIN32
+		HijackActionManager m_HijackActionManager;
+#endif
 		ActionManager m_ActionManager;
 		SetupFlow m_SetupFlow;
 	};

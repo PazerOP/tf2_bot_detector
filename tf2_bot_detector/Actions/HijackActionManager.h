@@ -2,16 +2,24 @@
 #ifdef _WIN32
 
 #include <list>
+#include <memory>
 #include <unordered_map>
 
 namespace tf2_bot_detector
 {
+	class IAction;
 	class Settings;
 
 	class HijackActionManager final
 	{
 	public:
 		HijackActionManager(const Settings& settings);
+		~HijackActionManager();
+
+		// Returns false if the action was not queued
+		bool RunCommand(std::string cmd, std::string args = {});
+
+		void Update();
 
 	private:
 		const Settings* m_Settings = nullptr;

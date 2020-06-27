@@ -1,5 +1,6 @@
 #ifdef _WIN32
 #include "HijackActionManager.h"
+#include "Actions.h"
 #include "ICommandSource.h"
 #include "Log.h"
 #include "Config/Settings.h"
@@ -134,6 +135,22 @@ HijackActionManager::HijackActionManager(const Settings& settings) :
 	m_Settings(&settings)
 {
 	std::filesystem::remove_all(absolute_cfg_temp());
+}
+
+HijackActionManager::~HijackActionManager()
+{
+}
+
+bool HijackActionManager::RunCommand(std::string cmd, std::string args)
+{
+	Writer writer;
+	writer.Write(std::move(cmd), std::move(args));
+	return SendHijackCommands(writer);
+}
+
+void HijackActionManager::Update()
+{
+	ProcessRunningCommands();
 }
 
 bool HijackActionManager::ProcessSimpleCommands(const Writer& writer)

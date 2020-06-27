@@ -29,6 +29,9 @@ using namespace std::string_view_literals;
 
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
+#ifdef _WIN32
+	m_HijackActionManager(m_Settings),
+#endif
 	m_ActionManager(m_Settings)
 {
 	DebugLog("Steam dir: "s << m_Settings.GetSteamDir());
@@ -951,6 +954,10 @@ GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
 
 void MainWindow::OnUpdate()
 {
+#ifdef _WIN32
+	m_HijackActionManager.Update();
+#endif
+
 	if (m_SetupFlow.OnUpdate(m_Settings))
 	{
 		m_ActionManager.SetWorldState(nullptr);

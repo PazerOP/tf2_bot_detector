@@ -4,6 +4,7 @@
 #include "ImGui_TF2BotDetector.h"
 #include "PlatformSpecific/Steam.h"
 #include "Version.h"
+#include "PlatformSpecific/Shell.h"
 #include "PlatformSpecific/Shitty.h"
 
 #include <imgui.h>
@@ -204,6 +205,12 @@ namespace
 		OnDrawResult OnDraw(const DrawState& ds) override
 		{
 			ImGui::TextUnformatted("Waiting for TF2 to be opened...");
+
+			ImGui::NewLine();
+
+			if (ImGui::Button("Launch TF2"))
+				Shell::OpenURL("steam://rungameid/440");
+
 			if (IsTF2Running())
 				return OnDrawResult::EndDrawing;
 
@@ -304,25 +311,24 @@ bool SetupFlow::OnDraw(Settings& settings, const IPage::DrawState& ds)
 
 		auto drawResult = page->OnDraw(ds);
 
-		ImGui::NewLine();
+		const bool wantsContinueButton = page->WantsContinueButton();
+		if (wantsContinueButton)
+			ImGui::NewLine();
 
 		drewPage = true;
 
-		if (page->WantsContinueButton())
-		{
-			ImGui::EnabledSwitch(page->CanCommit(), [&]
+		ImGui::EnabledSwitch(page->CanCommit(), [&]
+			{
+				if ((!wantsContinueButton || ImGui::Button(hasNextPage ? "Next >" : "Done")) ||
+					drawResult == IPage::OnDrawResult::EndDrawing)
 				{
-					if (ImGui::Button(hasNextPage ? "Next >" : "Done") ||
-						drawResult == IPage::OnDrawResult::EndDrawing)
-					{
-						page->Commit(settings);
-						settings.SaveFile();
-						m_ActivePage = INVALID_PAGE;
-						if (!hasNextPage)
-							m_ShouldDraw = false;
-					}
-				});
-		}
+					page->Commit(settings);
+					settings.SaveFile();
+					m_ActivePage = INVALID_PAGE;
+					if (!hasNextPage)
+						m_ShouldDraw = false;
+				}
+			});
 	}
 
 	return drewPage || (m_ActivePage != INVALID_PAGE);

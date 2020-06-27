@@ -30,7 +30,8 @@ ActionManager::ActionManager(const Settings& settings) :
 {
 	try
 	{
-		m_RCONClient.connect(settings.GetLocalIP(), "testpw");
+		//m_RCONClient.connect(settings.GetLocalIP(), "testpw");
+		m_RCONClient.connect("127.0.0.1", "testpw");
 	}
 	catch (const std::exception& e)
 	{
