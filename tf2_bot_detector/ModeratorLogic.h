@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IConsoleLineListener.h"
+#include "ConsoleLog/IConsoleLineListener.h"
 #include "IWorldEventListener.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Rules.h"
@@ -25,6 +25,8 @@ namespace tf2_bot_detector
 	{
 	public:
 		ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager);
+
+		void Update();
 
 		bool InitiateVotekick(const IPlayer& id, KickReason reason);
 
@@ -77,7 +79,6 @@ namespace tf2_bot_detector
 		// Steam IDs of players that we think are running the tool.
 		std::unordered_set<SteamID> m_PlayersRunningTool;
 
-		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 		void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
 		void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override;
 

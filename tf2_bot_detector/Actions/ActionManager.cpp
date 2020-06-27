@@ -1,7 +1,7 @@
 #include "ActionManager.h"
 #include "Actions.h"
 #include "Config/Settings.h"
-#include "ConsoleLines.h"
+#include "ConsoleLog/ConsoleLines.h"
 #include "Log.h"
 #include "Actions/ActionGenerators.h"
 #include "WorldState.h"
@@ -25,8 +25,8 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 
-ActionManager::ActionManager(const Settings& settings) :
-	m_Settings(&settings)
+ActionManager::ActionManager(const Settings& settings, WorldState& world) :
+	m_Settings(&settings), m_WorldState(&world)
 {
 	try
 	{

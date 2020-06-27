@@ -21,9 +21,9 @@ GenericConsoleLine::GenericConsoleLine(time_point_t timestamp, std::string text)
 	m_Text.shrink_to_fit();
 }
 
-std::unique_ptr<IConsoleLine> GenericConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> GenericConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
-	return std::make_unique<GenericConsoleLine>(timestamp, std::string(text));
+	return std::make_shared<GenericConsoleLine>(timestamp, std::string(text));
 }
 
 void GenericConsoleLine::Print() const
@@ -38,17 +38,17 @@ ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName,
 	m_Message.shrink_to_fit();
 }
 
-std::unique_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	return TryParse(text, timestamp, false);
 }
 
-std::unique_ptr<ChatConsoleLine> ChatConsoleLine::TryParseFlexible(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParseFlexible(const std::string_view& text, time_point_t timestamp)
 {
 	return TryParse(text, timestamp, true);
 }
 
-std::unique_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp, bool flexible)
+std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp, bool flexible)
 {
 	if (!flexible)
 		LogWarning("Found ourselves searching chat message "s << std::quoted(text) << " in non-flexible mode");
@@ -58,7 +58,7 @@ std::unique_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_vie
 
 	if (svmatch result; std::regex_match(text.begin(), text.end(), result, flexible ? s_RegexFlexible : s_Regex))
 	{
-		return std::make_unique<ChatConsoleLine>(timestamp, result[3].str(), result[4].str(),
+		return std::make_shared<ChatConsoleLine>(timestamp, result[3].str(), result[4].str(),
 			result[1].matched, result[2].matched);
 	}
 
@@ -129,7 +129,7 @@ LobbyHeaderLine::LobbyHeaderLine(time_point_t timestamp, unsigned memberCount, u
 {
 }
 
-std::unique_ptr<IConsoleLine> LobbyHeaderLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> LobbyHeaderLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
 
@@ -141,7 +141,7 @@ std::unique_ptr<IConsoleLine> LobbyHeaderLine::TryParse(const std::string_view& 
 		if (!mh::from_chars(std::string_view(&*result[3].first, result[3].length()), pendingCount))
 			throw std::runtime_error("Failed to parse lobby pending member count");
 
-		return std::make_unique<LobbyHeaderLine>(timestamp, memberCount, pendingCount);
+		return std::make_shared<LobbyHeaderLine>(timestamp, memberCount, pendingCount);
 	}
 
 	return nullptr;
@@ -158,7 +158,7 @@ LobbyMemberLine::LobbyMemberLine(time_point_t timestamp, const LobbyMember& lobb
 {
 }
 
-std::unique_ptr<IConsoleLine> LobbyMemberLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> LobbyMemberLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex(\s+(?:(?:Member)|(Pending))\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
 
@@ -189,7 +189,7 @@ std::unique_ptr<IConsoleLine> LobbyMemberLine::TryParse(const std::string_view& 
 		else
 			throw std::runtime_error("Unknown lobby member type");
 
-		return std::make_unique<LobbyMemberLine>(timestamp, member);
+		return std::make_shared<LobbyMemberLine>(timestamp, member);
 	}
 
 	return nullptr;
@@ -224,7 +224,7 @@ auto IConsoleLine::GetTypeData() -> std::list<ConsoleLineTypeData>&
 	return s_List;
 }
 
-std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, time_point_t timestamp)
 {
 	auto& list = GetTypeData();
 
@@ -260,7 +260,7 @@ std::unique_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 	//	return chatLine;
 
 	return nullptr;
-	//return std::make_unique<GenericConsoleLine>(timestamp, std::string(text));
+	//return std::make_shared<GenericConsoleLine>(timestamp, std::string(text));
 }
 
 void IConsoleLine::AddTypeData(ConsoleLineTypeData data)
@@ -273,7 +273,7 @@ ServerStatusPlayerLine::ServerStatusPlayerLine(time_point_t timestamp, PlayerSta
 {
 }
 
-std::unique_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex(#\s+(\d+)\s+"((?:.|\n)+)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+)(?:\s+(\S+))?)regex", std::regex::optimize);
 
@@ -320,7 +320,7 @@ std::unique_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string
 
 		status.m_Address = result[10].str();
 
-		return std::make_unique<ServerStatusPlayerLine>(timestamp, std::move(status));
+		return std::make_shared<ServerStatusPlayerLine>(timestamp, std::move(status));
 	}
 
 	return nullptr;
@@ -337,10 +337,10 @@ void ServerStatusPlayerLine::Print() const
 		s.m_Loss);
 }
 
-std::unique_ptr<IConsoleLine> ClientReachedServerSpawnLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ClientReachedServerSpawnLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	if (text == "Client reached server_spawn."sv)
-		return std::make_unique<ClientReachedServerSpawnLine>(timestamp);
+		return std::make_shared<ClientReachedServerSpawnLine>(timestamp);
 
 	return nullptr;
 }
@@ -357,13 +357,13 @@ KillNotificationLine::KillNotificationLine(time_point_t timestamp, std::string a
 {
 }
 
-std::unique_ptr<IConsoleLine> KillNotificationLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> KillNotificationLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex((.*) killed (.*) with (.*)\.( \(crit\))?)regex", std::regex::optimize);
 
 	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
 	{
-		return std::make_unique<KillNotificationLine>(timestamp, result[1].str(),
+		return std::make_shared<KillNotificationLine>(timestamp, result[1].str(),
 			result[2].str(), result[3].str(), result[4].matched);
 	}
 
@@ -381,14 +381,14 @@ LobbyChangedLine::LobbyChangedLine(time_point_t timestamp, LobbyChangeType type)
 {
 }
 
-std::unique_ptr<IConsoleLine> LobbyChangedLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> LobbyChangedLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	if (text == "Lobby created"sv)
-		return std::make_unique<LobbyChangedLine>(timestamp, LobbyChangeType::Created);
+		return std::make_shared<LobbyChangedLine>(timestamp, LobbyChangeType::Created);
 	else if (text == "Lobby updated"sv)
-		return std::make_unique<LobbyChangedLine>(timestamp, LobbyChangeType::Updated);
+		return std::make_shared<LobbyChangedLine>(timestamp, LobbyChangeType::Updated);
 	else if (text == "Lobby destroyed"sv)
-		return std::make_unique<LobbyChangedLine>(timestamp, LobbyChangeType::Destroyed);
+		return std::make_shared<LobbyChangedLine>(timestamp, LobbyChangeType::Destroyed);
 
 	return nullptr;
 }
@@ -411,14 +411,14 @@ CvarlistConvarLine::CvarlistConvarLine(time_point_t timestamp, std::string name,
 {
 }
 
-std::unique_ptr<IConsoleLine> CvarlistConvarLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> CvarlistConvarLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex((\S+)\s+:\s+([-\d.]+)\s+:\s+(.+)?\s+:[\t ]+(.+)?)regex", std::regex::optimize);
 	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
 	{
 		float value;
 		from_chars_throw(result[2], value);
-		return std::make_unique<CvarlistConvarLine>(timestamp, result[1].str(), value, result[3].str(), result[4].str());
+		return std::make_shared<CvarlistConvarLine>(timestamp, result[1].str(), value, result[3].str(), result[4].str());
 	}
 
 	return nullptr;
@@ -435,7 +435,7 @@ ServerStatusShortPlayerLine::ServerStatusShortPlayerLine(time_point_t timestamp,
 {
 }
 
-std::unique_ptr<IConsoleLine> ServerStatusShortPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerStatusShortPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex(#(\d+) - (.+))regex", std::regex::optimize);
 
@@ -447,7 +447,7 @@ std::unique_ptr<IConsoleLine> ServerStatusShortPlayerLine::TryParse(const std::s
 		assert(status.m_ClientIndex >= 1);
 		status.m_Name = result[2].str();
 
-		return std::make_unique<ServerStatusShortPlayerLine>(timestamp, std::move(status));
+		return std::make_shared<ServerStatusShortPlayerLine>(timestamp, std::move(status));
 	}
 
 	return nullptr;
@@ -464,7 +464,7 @@ VoiceReceiveLine::VoiceReceiveLine(time_point_t timestamp, uint8_t channel,
 {
 }
 
-std::unique_ptr<IConsoleLine> VoiceReceiveLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> VoiceReceiveLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex(Voice - chan (\d+), ent (\d+), bufsize: (\d+))regex", std::regex::optimize);
 
@@ -479,7 +479,7 @@ std::unique_ptr<IConsoleLine> VoiceReceiveLine::TryParse(const std::string_view&
 		uint16_t bufSize;
 		from_chars_throw(result[3], bufSize);
 
-		return std::make_unique<VoiceReceiveLine>(timestamp, channel, entindex, bufSize);
+		return std::make_shared<VoiceReceiveLine>(timestamp, channel, entindex, bufSize);
 	}
 
 	return nullptr;
@@ -496,7 +496,7 @@ ServerStatusPlayerCountLine::ServerStatusPlayerCountLine(time_point_t timestamp,
 {
 }
 
-std::unique_ptr<IConsoleLine> ServerStatusPlayerCountLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerStatusPlayerCountLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex(players : (\d+) humans, (\d+) bots \((\d+) max\))regex", std::regex::optimize);
 
@@ -506,7 +506,7 @@ std::unique_ptr<IConsoleLine> ServerStatusPlayerCountLine::TryParse(const std::s
 		from_chars_throw(result[1], playerCount);
 		from_chars_throw(result[2], botCount);
 		from_chars_throw(result[3], maxPlayers);
-		return std::make_unique<ServerStatusPlayerCountLine>(timestamp, playerCount, botCount, maxPlayers);
+		return std::make_shared<ServerStatusPlayerCountLine>(timestamp, playerCount, botCount, maxPlayers);
 	}
 
 	return nullptr;
@@ -522,7 +522,7 @@ EdictUsageLine::EdictUsageLine(time_point_t timestamp, uint16_t usedEdicts, uint
 {
 }
 
-std::unique_ptr<IConsoleLine> EdictUsageLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> EdictUsageLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex(edicts  : (\d+) used of (\d+) max)regex", std::regex::optimize);
 
@@ -531,7 +531,7 @@ std::unique_ptr<IConsoleLine> EdictUsageLine::TryParse(const std::string_view& t
 		uint16_t usedEdicts, totalEdicts;
 		from_chars_throw(result[1], usedEdicts);
 		from_chars_throw(result[2], totalEdicts);
-		return std::make_unique<EdictUsageLine>(timestamp, usedEdicts, totalEdicts);
+		return std::make_shared<EdictUsageLine>(timestamp, usedEdicts, totalEdicts);
 	}
 
 	return nullptr;
@@ -547,7 +547,7 @@ PingLine::PingLine(time_point_t timestamp, uint16_t ping, std::string playerName
 {
 }
 
-std::unique_ptr<IConsoleLine> PingLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> PingLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex( *(\d+) ms : (.{1,32}))regex", std::regex::optimize);
 
@@ -555,7 +555,7 @@ std::unique_ptr<IConsoleLine> PingLine::TryParse(const std::string_view& text, t
 	{
 		uint16_t ping;
 		from_chars_throw(result[1], ping);
-		return std::make_unique<PingLine>(timestamp, ping, result[2].str());
+		return std::make_shared<PingLine>(timestamp, ping, result[2].str());
 	}
 
 	return nullptr;
@@ -571,7 +571,7 @@ SVCUserMessageLine::SVCUserMessageLine(time_point_t timestamp, std::string addre
 {
 }
 
-std::unique_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static const std::regex s_Regex(R"regex(Msg from (\d+\.\d+\.\d+\.\d+:\d+): svc_UserMessage: type (\d+), bytes (\d+))regex", std::regex::optimize);
 
@@ -586,7 +586,7 @@ std::unique_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const std::string_vie
 
 		from_chars_throw(result[3], bytes);
 
-		return std::make_unique<SVCUserMessageLine>(timestamp, result[1].str(), type, bytes);
+		return std::make_shared<SVCUserMessageLine>(timestamp, result[1].str(), type, bytes);
 	}
 
 	return nullptr;
@@ -597,10 +597,10 @@ void SVCUserMessageLine::Print() const
 	ImGui::Text("Msg from %s: svc_UserMessage: type %u, bytes %u", m_Address.c_str(), m_MsgType, m_MsgBytes);
 }
 
-std::unique_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	if (text == "Failed to find lobby shared object"sv)
-		return std::make_unique<LobbyStatusFailedLine>(timestamp);
+		return std::make_shared<LobbyStatusFailedLine>(timestamp);
 
 	return nullptr;
 }

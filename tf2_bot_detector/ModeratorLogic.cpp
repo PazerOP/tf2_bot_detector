@@ -23,10 +23,9 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-void ModeratorLogic::OnUpdate(WorldState& world, bool consoleLinesUpdated)
+void ModeratorLogic::Update()
 {
-	if (consoleLinesUpdated)
-		ProcessPlayerActions();
+	ProcessPlayerActions();
 }
 
 void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& player)

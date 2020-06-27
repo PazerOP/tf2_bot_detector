@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Clock.h"
-#include "IConsoleLineListener.h"
+#include "ConsoleLog/IConsoleLineListener.h"
 
 #include <cppcoro/cancellation_source.hpp>
 #include <cppcoro/cancellation_token.hpp>
@@ -29,10 +29,8 @@ namespace tf2_bot_detector
 	class ActionManager final
 	{
 	public:
-		ActionManager(const Settings& settings);
+		ActionManager(const Settings& settings, WorldState& world);
 		~ActionManager();
-
-		void SetWorldState(WorldState* worldState) { m_WorldState = worldState; }
 
 		void Update();
 

@@ -5,6 +5,7 @@
 #include "Actions/HijackActionManager.h"
 #include "Clock.h"
 #include "CompensatedTS.h"
+#include "ConsoleLog/ConsoleLogParser.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Settings.h"
 #include "Networking/GithubAPI.h"
@@ -14,7 +15,7 @@
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
 #include "TFConstants.h"
-#include "IConsoleLineListener.h"
+#include "ConsoleLog/IConsoleLineListener.h"
 
 #include <imgui_desktop/Window.h>
 
@@ -66,6 +67,7 @@ namespace tf2_bot_detector
 		GithubAPI::NewVersionResult* GetUpdateInfo();
 		AsyncObject<GithubAPI::NewVersionResult> m_UpdateInfo;
 		bool m_NotifyOnUpdateAvailable = true;
+		void HandleUpdateCheck();
 
 		void OnUpdate() override;
 
@@ -76,32 +78,18 @@ namespace tf2_bot_detector
 
 		// IConsoleLineListener
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) override;
+		void OnConsoleLogChunkParsed(WorldState& world, bool consoleLinesParsed) override;
 
 		// IWorldEventListener
 		//void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
-		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
+		//void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
 		bool m_Paused = false;
 
-		struct WorldStateExtra
-		{
-			WorldStateExtra(MainWindow& window, const Settings& settings, const std::filesystem::path& conLogFile);
-
-			time_point_t m_LastStatusUpdateTime{};
-
-			WorldState m_WorldState;
-			ModeratorLogic m_ModeratorLogic;
-
-			std::vector<const IConsoleLine*> m_PrintingLines;  // newest to oldest order
-			static constexpr size_t MAX_PRINTING_LINES = 512;
-			cppcoro::generator<IPlayer&> GeneratePlayerPrintData();
-		};
-		std::optional<WorldStateExtra> m_WorldState;
-		bool IsWorldValid() const { return m_WorldState.has_value(); }
-		WorldState& GetWorld() { return m_WorldState.value().m_WorldState; }
-		const WorldState& GetWorld() const { return m_WorldState.value().m_WorldState; }
-		ModeratorLogic& GetModLogic() { return m_WorldState.value().m_ModeratorLogic; }
-		const ModeratorLogic& GetModLogic() const { return m_WorldState.value().m_ModeratorLogic; }
+		WorldState& GetWorld() { return m_WorldState; }
+		const WorldState& GetWorld() const { return m_WorldState; }
+		ModeratorLogic& GetModLogic() { return m_ModeratorLogic; }
+		const ModeratorLogic& GetModLogic() const { return m_ModeratorLogic; }
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
 		time_point_t GetCurrentTimestampCompensated() const;
@@ -143,10 +131,26 @@ namespace tf2_bot_detector
 		time_point_t m_LastServerPingSample{};
 
 		Settings m_Settings;
+		WorldState m_WorldState{ m_Settings };
 #ifdef _WIN32
-		HijackActionManager m_HijackActionManager;
+		HijackActionManager m_HijackActionManager{ m_Settings };
 #endif
-		ActionManager m_ActionManager;
+		ActionManager m_ActionManager{ m_Settings, m_WorldState };
+		ModeratorLogic m_ModeratorLogic{ m_WorldState, m_Settings, m_ActionManager };
 		SetupFlow m_SetupFlow;
+
+		struct ConsoleLogParserExtra
+		{
+			ConsoleLogParserExtra(MainWindow& parent);
+			MainWindow* m_Parent = nullptr;
+			ConsoleLogParser m_Parser;
+
+			std::list<std::shared_ptr<const IConsoleLine>> m_PrintingLines;  // newest to oldest order
+			static constexpr size_t MAX_PRINTING_LINES = 512;
+			cppcoro::generator<IPlayer&> GeneratePlayerPrintData();
+
+			time_point_t m_LastStatusUpdateTime{};
+		};
+		std::optional<ConsoleLogParserExtra> m_ConsoleLogParser;
 	};
 }

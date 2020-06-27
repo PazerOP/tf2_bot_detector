@@ -1,7 +1,7 @@
 #include "MainWindow.h"
-#include "ConsoleLines.h"
+#include "ConsoleLog/ConsoleLines.h"
 #include "Networking/GithubAPI.h"
-#include "NetworkStatus.h"
+#include "ConsoleLog/NetworkStatus.h"
 #include "RegexHelpers.h"
 #include "PlatformSpecific/Shell.h"
 #include "ImGui_TF2BotDetector.h"
@@ -28,12 +28,11 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 MainWindow::MainWindow() :
-	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector"),
-#ifdef _WIN32
-	m_HijackActionManager(m_Settings),
-#endif
-	m_ActionManager(m_Settings)
+	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector")
 {
+	m_WorldState.AddConsoleLineListener(this);
+	m_WorldState.AddWorldEventListener(this);
+
 	DebugLog("Steam dir: "s << m_Settings.GetSteamDir());
 	DebugLog("TF dir:    "s << m_Settings.GetTFDir());
 	DebugLog("SteamID:   "s << m_Settings.GetLocalSteamID());
@@ -117,14 +116,12 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		}
 
 #ifdef _DEBUG
-		if (IsWorldValid())
-		{
-			ImGui::Separator();
+		ImGui::Separator();
 
-			auto& modLogic = GetModLogic();
-			bool isRunning = modLogic.IsUserRunningTool(player);
-			if (ImGui::MenuItem("Is Running TFBD", nullptr, isRunning))
-				modLogic.SetUserRunningTool(player, !isRunning);
+		if (bool isRunning = m_ModeratorLogic.IsUserRunningTool(player);
+			ImGui::MenuItem("Is Running TFBD", nullptr, isRunning))
+		{
+			m_ModeratorLogic.SetUserRunningTool(player, !isRunning);
 		}
 #endif
 	}
@@ -286,9 +283,9 @@ void MainWindow::OnDrawScoreboard()
 				ImGui::Separator();
 			}
 
-			if (m_WorldState)
+			if (m_ConsoleLogParser)
 			{
-				for (IPlayer& player : m_WorldState->GeneratePlayerPrintData())
+				for (IPlayer& player : m_ConsoleLogParser->GeneratePlayerPrintData())
 				{
 					ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
 					ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
@@ -314,14 +311,10 @@ void MainWindow::OnDrawScoreboard()
 					{
 						ImVec4 bgColor = [&]() -> ImVec4
 						{
-							if (IsWorldValid())
+							switch (m_ModeratorLogic.GetTeamShareResult(player))
 							{
-								auto& modLogic = GetModLogic();
-								switch (modLogic.GetTeamShareResult(player))
-								{
-								case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_FriendlyTeam;
-								case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_EnemyTeam;
-								}
+							case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_FriendlyTeam;
+							case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_EnemyTeam;
 							}
 
 							switch (player.GetTeam())
@@ -442,12 +435,12 @@ void MainWindow::OnDrawChat()
 {
 	ImGui::AutoScrollBox("##fileContents", { 0, 0 }, [&]()
 		{
-			if (!IsWorldValid())
+			if (!m_ConsoleLogParser)
 				return;
 
 			ImGui::PushTextWrapPos();
 
-			for (auto it = m_WorldState->m_PrintingLines.rbegin(); it != m_WorldState->m_PrintingLines.rend(); ++it)
+			for (auto it = m_ConsoleLogParser->m_PrintingLines.rbegin(); it != m_ConsoleLogParser->m_PrintingLines.rend(); ++it)
 			{
 				assert(*it);
 				(*it)->Print();
@@ -746,27 +739,22 @@ void MainWindow::OnDraw()
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 
 #ifdef _DEBUG
-	if (IsWorldValid())
 	{
-		auto& modLogic = GetModLogic();
-		auto leader = modLogic.GetBotLeader();
+		auto leader = m_ModeratorLogic.GetBotLeader();
 		ImGui::Value("Bot Leader", leader ? (""s << *leader).c_str() : "");
-		ImGui::Value("Time to next connecting cheater warning", to_seconds(modLogic.TimeToConnectingCheaterWarning()));
-		ImGui::Value("Time to next cheater warning", to_seconds(modLogic.TimeToCheaterWarning()));
+		ImGui::Value("Time to next connecting cheater warning", to_seconds(m_ModeratorLogic.TimeToConnectingCheaterWarning()));
+		ImGui::Value("Time to next cheater warning", to_seconds(m_ModeratorLogic.TimeToCheaterWarning()));
 	}
 #endif
 
-	if (IsWorldValid())
-	{
-		ImGui::Value("Blackslisted user count", GetModLogic().GetBlacklistedPlayerCount());
-		ImGui::Value("Rule count", GetModLogic().GetRuleCount());
-	}
+	ImGui::Value("Blackslisted user count", m_ModeratorLogic.GetBlacklistedPlayerCount());
+	ImGui::Value("Rule count", m_ModeratorLogic.GetRuleCount());
 
-	if (IsWorldValid())
+	if (m_ConsoleLogParser)
 	{
 		auto& world = GetWorld();
-		const auto parsedLineCount = world.GetParsedLineCount();
-		const auto parseProgress = world.GetParseProgress();
+		const auto parsedLineCount = m_ConsoleLogParser->m_Parser.GetParsedLineCount();
+		const auto parseProgress = m_ConsoleLogParser->m_Parser.GetParseProgress();
 
 		if (parseProgress < 0.95f)
 		{
@@ -952,57 +940,60 @@ GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
 	return nullptr;
 }
 
+void MainWindow::HandleUpdateCheck()
+{
+	if (!m_NotifyOnUpdateAvailable)
+		return;
+
+	if (!m_Settings.m_AllowInternetUsage.value_or(false))
+		return;
+
+	const bool checkPreviews = m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Previews;
+	const bool checkReleases = checkPreviews || m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Releases;
+	if (!checkPreviews && !checkReleases)
+		return;
+
+	auto result = GetUpdateInfo();
+	if (!result)
+		return;
+
+	if ((result->IsPreviewAvailable() && checkPreviews) ||
+		(result->IsReleaseAvailable() && checkReleases))
+	{
+		OpenUpdateAvailablePopup();
+	}
+}
+
 void MainWindow::OnUpdate()
 {
+	if (m_Paused)
+		return;
+
 #ifdef _WIN32
 	m_HijackActionManager.Update();
 #endif
 
+	m_WorldState.Update();
+	m_ActionManager.Update();
+
+	HandleUpdateCheck();
+
 	if (m_SetupFlow.OnUpdate(m_Settings))
 	{
-		m_ActionManager.SetWorldState(nullptr);
-		m_WorldState.reset();
+		m_ConsoleLogParser.reset();
 		return;
 	}
-	else if (!m_WorldState)
+	else if (!m_ConsoleLogParser)
 	{
-		m_WorldState.emplace(*this, m_Settings, m_Settings.GetTFDir() / "console.log");
-		m_ActionManager.SetWorldState(&GetWorld());
+		m_ConsoleLogParser.emplace(*this);
 	}
-
-	// Update check
-	std::invoke([&]
-		{
-			if (!m_NotifyOnUpdateAvailable)
-				return;
-
-			if (!m_Settings.m_AllowInternetUsage.value_or(false))
-				return;
-
-			const bool checkPreviews = m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Previews;
-			const bool checkReleases = checkPreviews || m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Releases;
-			if (!checkPreviews && !checkReleases)
-				return;
-
-			auto result = GetUpdateInfo();
-			if (!result)
-				return;
-
-			if ((result->IsPreviewAvailable() && checkPreviews) ||
-				(result->IsReleaseAvailable() && checkReleases))
-			{
-				OpenUpdateAvailablePopup();
-			}
-		});
-
-	if (!m_Paused && m_WorldState.has_value())
+	else if (m_ConsoleLogParser)
 	{
-		GetWorld().Update();
-		m_ActionManager.Update();
+		m_ConsoleLogParser->m_Parser.Update();
 	}
 }
 
-void MainWindow::OnUpdate(WorldState& world, bool consoleLinesUpdated)
+void MainWindow::OnConsoleLogChunkParsed(WorldState& world, bool consoleLinesUpdated)
 {
 	assert(&world == &GetWorld());
 
@@ -1032,13 +1023,13 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 
 void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 {
-	if (parsed.ShouldPrint() && m_WorldState)
+	if (parsed.ShouldPrint() && m_ConsoleLogParser)
 	{
-		auto& ws = *m_WorldState;
-		while (ws.m_PrintingLines.size() > ws.MAX_PRINTING_LINES)
-			ws.m_PrintingLines.pop_back();
+		auto& parser = *m_ConsoleLogParser;
+		while (parser.m_PrintingLines.size() > parser.MAX_PRINTING_LINES)
+			parser.m_PrintingLines.pop_back();
 
-		ws.m_PrintingLines.insert(ws.m_PrintingLines.begin(), &parsed);
+		parser.m_PrintingLines.push_front(parsed.shared_from_this());
 	}
 
 	switch (parsed.GetType())
@@ -1066,13 +1057,19 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 }
 
-cppcoro::generator<IPlayer&> MainWindow::WorldStateExtra::GeneratePlayerPrintData()
+MainWindow::ConsoleLogParserExtra::ConsoleLogParserExtra(MainWindow& parent) :
+	m_Parent(&parent),
+	m_Parser(parent.m_WorldState, parent.m_Settings, parent.m_Settings.GetTFDir() / "console.log")
+{
+}
+
+cppcoro::generator<IPlayer&> MainWindow::ConsoleLogParserExtra::GeneratePlayerPrintData()
 {
 	IPlayer* printData[33]{};
 	auto begin = std::begin(printData);
 	auto end = std::end(printData);
 	assert(begin <= end);
-	auto& world = m_WorldState;
+	auto& world = m_Parent->m_WorldState;
 	assert(static_cast<size_t>(end - begin) >= world.GetApproxLobbyMemberCount());
 
 	std::fill(begin, end, nullptr);
@@ -1105,7 +1102,7 @@ cppcoro::generator<IPlayer&> MainWindow::WorldStateExtra::GeneratePlayerPrintDat
 		end = current;
 	}
 
-	std::sort(begin, end, [](const IPlayer* lhs, const IPlayer* rhs)
+	std::sort(begin, end, [](const IPlayer* lhs, const IPlayer* rhs) -> bool
 		{
 			assert(lhs);
 			assert(rhs);
@@ -1181,19 +1178,7 @@ float MainWindow::PlayerExtraData::GetAveragePing() const
 #endif
 }
 
-MainWindow::WorldStateExtra::WorldStateExtra(MainWindow& window,
-	const Settings& settings, const std::filesystem::path& conLogFile) :
-	m_WorldState(settings, conLogFile),
-	m_ModeratorLogic(m_WorldState, settings, window.m_ActionManager)
-{
-	m_WorldState.AddConsoleLineListener(&window);
-	m_WorldState.AddWorldEventListener(&window);
-}
-
 time_point_t MainWindow::GetCurrentTimestampCompensated() const
 {
-	if (IsWorldValid())
-		return m_WorldState->m_WorldState.GetCurrentTime();
-	else
-		return m_OpenTime;
+	return m_WorldState.GetCurrentTime();
 }

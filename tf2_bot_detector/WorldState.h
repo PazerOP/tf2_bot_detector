@@ -2,7 +2,7 @@
 
 #include "CompensatedTS.h"
 #include "FileMods.h"
-#include "IConsoleLineListener.h"
+#include "ConsoleLog/IConsoleLineListener.h"
 #include "IPlayer.h"
 #include "IWorldEventListener.h"
 #include "LobbyMember.h"
@@ -12,8 +12,6 @@
 #include <cppcoro/generator.hpp>
 
 #include <any>
-#include <experimental/coroutine>
-#include <experimental/generator>
 #include <filesystem>
 #include <typeindex>
 #include <unordered_set>
@@ -21,6 +19,7 @@
 namespace tf2_bot_detector
 {
 	class ChatConsoleLine;
+	class ConsoleLogParser;
 	enum class LobbyMemberTeam : uint8_t;
 	class Settings;
 
@@ -31,21 +30,35 @@ namespace tf2_bot_detector
 		Neither,
 	};
 
-	class WorldState : IConsoleLineListener
+	class WorldState;
+
+	class WorldStateConLog
 	{
 	public:
-		WorldState(const Settings& settings, const std::filesystem::path& conLogFile);
+		void AddConsoleLineListener(IConsoleLineListener* listener);
+		void RemoveConsoleLineListener(IConsoleLineListener* listener);
 
-		void Update();
+		void AddConsoleOutputChunk(const std::string_view& chunk);
+		void AddConsoleOutputLine(const std::string_view& line);
+
+	private:
+		WorldState& GetWorldState();
+
+		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
+		friend class ConsoleLogParser;
+	};
+
+	class WorldState : IConsoleLineListener, public WorldStateConLog
+	{
+	public:
+		WorldState(const Settings& settings);
+
 		time_point_t GetCurrentTime() const { return m_CurrentTimestamp.GetSnapshot(); }
-		size_t GetParsedLineCount() const { return m_ParsedLineCount; }
-		float GetParseProgress() const { return m_ParseProgress; }
+		void Update();
+		void UpdateTimestamp(const ConsoleLogParser& parser);
 
 		void AddWorldEventListener(IWorldEventListener* listener);
 		void RemoveWorldEventListener(IWorldEventListener* listener);
-
-		void AddConsoleLineListener(IConsoleLineListener* listener);
-		void RemoveConsoleLineListener(IConsoleLineListener* listener);
 
 		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const;
 		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const;
@@ -65,43 +78,12 @@ namespace tf2_bot_detector
 		cppcoro::generator<const IPlayer&> GetPlayers() const;
 		cppcoro::generator<IPlayer&> GetPlayers();
 
-		void AddConsoleOutputChunk(const std::string_view& chunk);
-		void AddConsoleOutputLine(const std::string_view& line);
-
 	private:
 		const Settings* m_Settings = nullptr;
 
-		struct CustomDeleters
-		{
-			void operator()(FILE*) const;
-		};
-		std::filesystem::path m_FileName;
-		std::unique_ptr<FILE, CustomDeleters> m_File;
-		std::string m_FileLineBuf;
-		size_t m_ParsedLineCount = 0;
-		float m_ParseProgress = 0;
-		std::vector<std::unique_ptr<IConsoleLine>> m_ConsoleLines;
-		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
-
-		using striter = std::string::const_iterator;
-		void Parse(bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated);
-		void ParseChunk(striter& parseEnd, bool& linesProcessed, bool& snapshotUpdated, bool& consoleLinesUpdated);
-
-		AsyncObject<ChatWrappers> m_ChatMsgWrappers;
-		bool ParseChatMessage(const std::string_view& lineStr, striter& parseEnd, std::unique_ptr<IConsoleLine>& parsed);
-
-		enum class ParseLineResult
-		{
-			Unparsed,
-			Defer,
-			Success,
-			Modified,
-		};
+		CompensatedTS m_CurrentTimestamp;
 
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed) override;
-
-		void TrySnapshot(bool& snapshotUpdated);
-		CompensatedTS m_CurrentTimestamp;
 
 		struct PlayerExtraData final : IPlayer
 		{
@@ -152,7 +134,6 @@ namespace tf2_bot_detector
 
 		struct EventBroadcaster final : IWorldEventListener
 		{
-			void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 			void OnTimestampUpdate(WorldState& world) override;
 			void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
 			void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override;
