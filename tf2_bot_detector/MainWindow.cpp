@@ -456,7 +456,7 @@ void MainWindow::OnDrawAppLog()
 		{
 			ImGui::PushTextWrapPos();
 
-			for (const LogMessage& msg : GetLogMsgs())
+			for (const LogMessage& msg : GetVisibleLogMsgs())
 			{
 				const std::tm timestamp = ToTM(msg.m_Timestamp);
 

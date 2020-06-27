@@ -6,52 +6,16 @@
 #include <filesystem>
 #include <memory>
 
+#include "WindowsHelpers.h"
 #include <wrl/client.h>
 #include <Windows.h>
 #include <ShObjIdl_core.h>
 #include <ShlObj.h>
 
+using namespace tf2_bot_detector::Windows;
+
 namespace
 {
-	class GetLastErrorException final : public std::runtime_error
-	{
-		static std::string GetLastErrorString(HRESULT hr, const std::string_view& context, DWORD& errorCode)
-		{
-			errorCode = GetLastError();
-			if (errorCode == 0)
-				return {};
-
-			std::string retVal;
-			if (!context.empty())
-				retVal << context << ": ";
-
-			retVal << std::error_code(errorCode, std::system_category()).message();
-			return retVal;
-		}
-
-	public:
-		GetLastErrorException(HRESULT hr) : GetLastErrorException(hr, std::string_view{}) {}
-		GetLastErrorException(HRESULT hr, const std::string_view& msg) : std::runtime_error(GetLastErrorString(hr, msg, m_ErrorCode)) {}
-
-		HRESULT GetResult() const { return m_Result; }
-		DWORD GetErrorCode() const { return m_ErrorCode; }
-
-	private:
-		HRESULT m_Result;
-		DWORD m_ErrorCode;
-	};
-
-	static bool Failed(HRESULT hr) { return FAILED(hr); }
-	static bool Succeeded(HRESULT hr) { return SUCCEEDED(hr); }
-
-#define MH_STR(x) #x
-
-#define CHECK_HR(x) \
-	if (auto hr_temp_____ = (x); Failed(hr_temp_____)) \
-	{ \
-		throw GetLastErrorException(hr_temp_____, MH_STR(x)); \
-	}
-
 	struct CoTaskMemFreeFn
 	{
 		void operator()(void* p) { CoTaskMemFree(p); }

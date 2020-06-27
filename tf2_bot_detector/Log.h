@@ -42,5 +42,6 @@ namespace tf2_bot_detector
 
 	const std::filesystem::path& GetLogFilename();
 
-	cppcoro::generator<const LogMessage&> GetLogMsgs();
+	cppcoro::generator<const LogMessage&> GetVisibleLogMsgs();
+	void ClearVisibleLogMessages();
 }

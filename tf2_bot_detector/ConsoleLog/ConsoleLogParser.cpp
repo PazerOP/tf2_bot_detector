@@ -5,7 +5,7 @@
 #include "RegexHelpers.h"
 #include "Config/Settings.h"
 #include "WorldState.h"
-#include "PlatformSpecific/Shitty.h"
+#include "PlatformSpecific/Processes.h"
 
 #include <mh/text/string_insertion.hpp>
 
@@ -27,7 +27,7 @@ void ConsoleLogParser::TrySnapshot(bool& snapshotUpdated)
 ConsoleLogParser::ConsoleLogParser(WorldState& world, const Settings& settings, std::filesystem::path conLogFile) :
 	m_Settings(&settings), m_WorldState(&world), m_FileName(std::move(conLogFile))
 {
-	RequireTF2NotRunning();
+	Processes::RequireTF2NotRunning();
 	m_ChatMsgWrappers = std::async([&] { return RandomizeChatWrappers(m_Settings->GetTFDir()); });
 }
 
