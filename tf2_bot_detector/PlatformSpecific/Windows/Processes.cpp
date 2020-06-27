@@ -67,8 +67,8 @@ namespace
 	class BaseQuerySink : public IWbemObjectSink
 	{
 	public:
-		ULONG AddRef() override { return ++m_RefCount; }
-		ULONG Release() override
+		ULONG STDMETHODCALLTYPE AddRef() override { return ++m_RefCount; }
+		ULONG STDMETHODCALLTYPE Release() override
 		{
 			auto newVal = --m_RefCount;
 			if (newVal == 0)
@@ -78,7 +78,7 @@ namespace
 		}
 		bool IsDone() const { return m_Done; }
 
-		HRESULT QueryInterface(REFIID riid, void** ppv) override
+		HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv) override
 		{
 			IUNKNOWN_QI_TYPE(IUnknown);
 			IUNKNOWN_QI_TYPE(IWbemObjectSink);
