@@ -6,6 +6,7 @@
 #include <mh/text/string_insertion.hpp>
 
 #include <atomic>
+#include <cassert>
 #include <chrono>
 #include <exception>
 #include <mutex>
