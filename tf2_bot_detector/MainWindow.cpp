@@ -699,7 +699,7 @@ void MainWindow::OnDrawServerStats()
 void MainWindow::OnDraw()
 {
 	{
-		SetupFlow::IPage::DrawState ds;
+		ISetupFlowPage::DrawState ds;
 		ds.m_ActionManager = &m_ActionManager;
 
 		if (m_SetupFlow.OnDraw(m_Settings, ds))

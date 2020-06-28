@@ -10,7 +10,7 @@
 #include "Config/Settings.h"
 #include "Networking/GithubAPI.h"
 #include "ModeratorLogic.h"
-#include "SetupFlow.h"
+#include "SetupFlow/SetupFlow.h"
 #include "WorldState.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"

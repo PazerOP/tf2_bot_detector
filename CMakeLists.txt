@@ -98,8 +98,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/PathUtils.cpp"
 	"tf2_bot_detector/PathUtils.h"
 	"tf2_bot_detector/PlayerStatus.h"
-	"tf2_bot_detector/SetupFlow.cpp"
-	"tf2_bot_detector/SetupFlow.h"
+	"tf2_bot_detector/SetupFlow/SetupFlow.cpp"
+	"tf2_bot_detector/SetupFlow/SetupFlow.h"
 	"tf2_bot_detector/SteamID.cpp"
 	"tf2_bot_detector/SteamID.h"
 	"tf2_bot_detector/TextUtils.cpp"
@@ -110,7 +110,7 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Version.h"
 	"tf2_bot_detector/Resources.rc"
 	"tf2_bot_detector/PlatformSpecific/Windows/WindowsHelpers.h"
-)
+ "tf2_bot_detector/SetupFlow/ISetupFlowPage.h" "tf2_bot_detector/SetupFlow/BasicSettingsPage.h" "tf2_bot_detector/SetupFlow/BasicSettingsPage.cpp" "tf2_bot_detector/SetupFlow/NetworkSettingsPage.h" "tf2_bot_detector/SetupFlow/NetworkSettingsPage.cpp" "tf2_bot_detector/SetupFlow/TF2CommandLinePage.h" "tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp")
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
