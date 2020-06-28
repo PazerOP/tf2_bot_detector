@@ -252,7 +252,7 @@ std::string ActionManager::RunCommand(std::string cmd)
 	if (!m_RCONClient.is_connected())
 	{
 		DebugLog(std::string(__FUNCTION__) << "(): SRCON not connected, reconnecting for command " << std::quoted(cmd));
-		m_RCONClient.connect("127.0.0.1", m_Settings->m_Unsaved.m_RCONPassword);
+		m_RCONClient.connect("127.0.0.1", m_Settings->m_Unsaved.m_RCONPassword, m_Settings->m_Unsaved.m_RCONPort);
 	}
 
 	return m_RCONClient.send_command(cmd);

@@ -305,10 +305,32 @@ namespace
 		return retVal;
 	}
 
+	static uint16_t GenerateRandomRCONPort()
+	{
+		std::mt19937 generator;
+#ifdef _DEBUG
+		if (g_StaticRandomSeed != 0)
+		{
+			generator.seed(g_StaticRandomSeed + 314);
+		}
+		else
+#endif
+		{
+			std::random_device randomSeed;
+			generator.seed(randomSeed());
+		}
+
+		// Some routers have issues handling high port numbers. By restricting
+		// ourselves to these high port numbers, we add another layer of security.
+		std::uniform_int_distribution<uint16_t> dist(40000, 65535);
+		return dist(generator);
+	}
+
 	class TF2OpenPage final : public SetupFlow::IPage
 	{
 		std::vector<std::string> m_CommandLineArgs;
 		std::shared_future<std::vector<std::string>> m_CommandLineArgsFuture;
+		bool m_Ready = false;
 
 		void TryUpdateCmdlineArgs()
 		{
@@ -321,6 +343,7 @@ namespace
 			{
 				m_CommandLineArgs = m_CommandLineArgsFuture.get();
 				m_CommandLineArgsFuture = Processes::GetTF2CommandLineArgsAsync();
+				m_Ready = true;
 			}
 		}
 
@@ -350,20 +373,25 @@ namespace
 			const auto LaunchTF2Button = [&]
 			{
 				ImGui::NewLine();
-				if (ImGui::Button("Launch TF2"))
-				{
-					std::string url = "steam://run/440//"
-						" -usercon"
-						" +ip 0.0.0.0 +alias ip"
-						" +sv_rcon_whitelist_address 127.0.0.1 +alias sv_rcon_whitelist_address"
-						" +rcon_password "s << m_RCONPassword <<
-						" +con_timestamp 1 +alias con_timestamp"
-						" +net_start"
-						" -condebug"
-						" -conclearlog";
+				ImGui::EnabledSwitch(m_Ready, [&]
+					{
+						if (ImGui::Button("Launch TF2"))
+						{
+							std::string url;
+							url << "steam://run/440//"
+								" -usercon"
+								" +ip 0.0.0.0 +alias ip"
+								" +sv_rcon_whitelist_address 127.0.0.1 +alias sv_rcon_whitelist_address"
+								" +rcon_password " << m_RCONPassword <<
+								" +hostport " << m_RCONPort << " +alias hostport"
+								" +con_timestamp 1 +alias con_timestamp"
+								" +net_start"
+								" -condebug"
+								" -conclearlog";
 
-					Shell::OpenURL(std::move(url));
-				}
+							Shell::OpenURL(std::move(url));
+						}
+					}, "Finding command line arguments...");
 			};
 
 			if (m_CommandLineArgs.empty())
@@ -392,11 +420,14 @@ namespace
 		void Init(const Settings& settings) override
 		{
 			m_RCONPassword = GenerateRandomRCONPassword();
+			m_RCONPort = GenerateRandomRCONPort();
+			m_Ready = false;
 		}
 		bool CanCommit() const override { return true; }
 		void Commit(Settings& settings) override
 		{
 			settings.m_Unsaved.m_RCONPassword = m_RCONPassword;
+			settings.m_Unsaved.m_RCONPort = m_RCONPort;
 		}
 
 		bool WantsSetupText() const override { return false; }
@@ -404,6 +435,7 @@ namespace
 
 	private:
 		std::string m_RCONPassword;
+		uint16_t m_RCONPort;
 	};
 
 #if 0
