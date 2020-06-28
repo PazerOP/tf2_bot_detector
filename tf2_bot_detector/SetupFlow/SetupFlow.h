@@ -7,7 +7,7 @@
 
 namespace tf2_bot_detector
 {
-	class ActionManager;
+	class RCONActionManager;
 	class HijackActionManager;
 	class Settings;
 

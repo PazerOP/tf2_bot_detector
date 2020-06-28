@@ -11,7 +11,7 @@
 
 namespace tf2_bot_detector
 {
-	class ActionManager;
+	class RCONActionManager;
 	enum class LobbyMemberTeam : uint8_t;
 	class IPlayer;
 	enum class KickReason;
@@ -24,7 +24,7 @@ namespace tf2_bot_detector
 	class ModeratorLogic final : IConsoleLineListener, BaseWorldEventListener
 	{
 	public:
-		ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager);
+		ModeratorLogic(WorldState& world, const Settings& settings, RCONActionManager& actionManager);
 
 		void Update();
 
@@ -56,7 +56,7 @@ namespace tf2_bot_detector
 	private:
 		WorldState* m_World = nullptr;
 		const Settings* m_Settings = nullptr;
-		ActionManager* m_ActionManager = nullptr;
+		RCONActionManager* m_ActionManager = nullptr;
 
 		struct PlayerExtraData
 		{

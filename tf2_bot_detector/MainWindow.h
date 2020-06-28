@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Actions/Actions.h"
-#include "Actions/ActionManager.h"
 #include "Actions/HijackActionManager.h"
+#include "Actions/RCONActionManager.h"
 #include "Clock.h"
 #include "CompensatedTS.h"
 #include "ConsoleLog/ConsoleLogParser.h"
@@ -135,7 +135,7 @@ namespace tf2_bot_detector
 #ifdef _WIN32
 		HijackActionManager m_HijackActionManager{ m_Settings };
 #endif
-		ActionManager m_ActionManager{ m_Settings, m_WorldState };
+		RCONActionManager m_ActionManager{ m_Settings, m_WorldState };
 		ModeratorLogic m_ModeratorLogic{ m_WorldState, m_Settings, m_ActionManager };
 		SetupFlow m_SetupFlow;
 

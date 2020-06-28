@@ -26,11 +26,11 @@ namespace tf2_bot_detector
 	class Settings;
 	class WorldState;
 
-	class ActionManager final
+	class RCONActionManager final
 	{
 	public:
-		ActionManager(const Settings& settings, WorldState& world);
-		~ActionManager();
+		RCONActionManager(const Settings& settings, WorldState& world);
+		~RCONActionManager();
 
 		void Update();
 

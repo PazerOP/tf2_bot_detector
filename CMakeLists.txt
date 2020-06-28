@@ -38,8 +38,8 @@ add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
 
 add_executable(tf2_bot_detector WIN32
-	"tf2_bot_detector/Actions/ActionManager.cpp"
-	"tf2_bot_detector/Actions/ActionManager.h"
+	"tf2_bot_detector/Actions/RCONActionManager.cpp"
+	"tf2_bot_detector/Actions/RCONActionManager.h"
 	"tf2_bot_detector/Actions/ActionGenerators.cpp"
 	"tf2_bot_detector/Actions/ActionGenerators.h"
 	"tf2_bot_detector/Actions/Actions.cpp"
@@ -77,6 +77,13 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/PlatformSpecific/Processes.h"
 	"tf2_bot_detector/PlatformSpecific/Shell.h"
 	"tf2_bot_detector/PlatformSpecific/Steam.h"
+	"tf2_bot_detector/SetupFlow/BasicSettingsPage.h"
+	"tf2_bot_detector/SetupFlow/BasicSettingsPage.cpp"
+	"tf2_bot_detector/SetupFlow/ISetupFlowPage.h"
+	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.h"
+	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.cpp"
+	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
+	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
 	"tf2_bot_detector/AsyncObject.h"
 	"tf2_bot_detector/Clock.cpp"
 	"tf2_bot_detector/Clock.h"
@@ -109,8 +116,7 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
 	"tf2_bot_detector/Resources.rc"
-	"tf2_bot_detector/PlatformSpecific/Windows/WindowsHelpers.h"
- "tf2_bot_detector/SetupFlow/ISetupFlowPage.h" "tf2_bot_detector/SetupFlow/BasicSettingsPage.h" "tf2_bot_detector/SetupFlow/BasicSettingsPage.cpp" "tf2_bot_detector/SetupFlow/NetworkSettingsPage.h" "tf2_bot_detector/SetupFlow/NetworkSettingsPage.cpp" "tf2_bot_detector/SetupFlow/TF2CommandLinePage.h" "tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp")
+)
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
@@ -121,6 +127,7 @@ if(WIN32)
 		"tf2_bot_detector/PlatformSpecific/Windows/Processes.cpp"
 		"tf2_bot_detector/PlatformSpecific/Windows/Shell.cpp"
 		"tf2_bot_detector/PlatformSpecific/Windows/Steam.cpp"
+		"tf2_bot_detector/PlatformSpecific/Windows/WindowsHelpers.h"
 		"tf2_bot_detector/PlatformSpecific/Windows/WinMain.cpp"
 	)
 endif()

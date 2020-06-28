@@ -2,7 +2,7 @@
 
 namespace tf2_bot_detector
 {
-	class ActionManager;
+	class RCONActionManager;
 #ifdef _WIN32
 	class HijackActionManager;
 #endif
@@ -29,7 +29,7 @@ namespace tf2_bot_detector
 #ifdef _WIN32
 			HijackActionManager* m_HijackActionManager = nullptr;
 #endif
-			ActionManager* m_ActionManager = nullptr;
+			RCONActionManager* m_ActionManager = nullptr;
 		};
 
 		[[nodiscard]] virtual OnDrawResult OnDraw(const DrawState& ds) = 0;

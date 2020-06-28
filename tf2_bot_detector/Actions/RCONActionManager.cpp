@@ -1,4 +1,4 @@
-#include "ActionManager.h"
+#include "RCONActionManager.h"
 #include "Actions.h"
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
@@ -25,20 +25,20 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 
-ActionManager::ActionManager(const Settings& settings, WorldState& world) :
+RCONActionManager::RCONActionManager(const Settings& settings, WorldState& world) :
 	m_Settings(&settings), m_WorldState(&world)
 {
-	m_RCONThread = std::thread(&ActionManager::RCONThreadFunc, this, m_RCONCancellationSource.token());
+	m_RCONThread = std::thread(&RCONActionManager::RCONThreadFunc, this, m_RCONCancellationSource.token());
 }
 
-ActionManager::~ActionManager()
+RCONActionManager::~RCONActionManager()
 {
 	assert(m_RCONCancellationSource.can_be_cancelled());
 	m_RCONCancellationSource.request_cancellation();
 	m_RCONThread.join();
 }
 
-bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
+bool RCONActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 {
 	if (const auto maxQueuedCount = action->GetMaxQueuedCount();
 		maxQueuedCount <= m_Actions.size())
@@ -59,24 +59,24 @@ bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 	return true;
 }
 
-void ActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActionGenerator>&& action)
+void RCONActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActionGenerator>&& action)
 {
 	m_PeriodicActionGenerators.push_back(std::move(action));
 }
 
-void ActionManager::AddPiggybackActionGenerator(std::unique_ptr<IActionGenerator>&& action)
+void RCONActionManager::AddPiggybackActionGenerator(std::unique_ptr<IActionGenerator>&& action)
 {
 	m_PiggybackActionGenerators.push_back(std::move(action));
 }
 
-ActionManager::RCONCommand::RCONCommand(std::string cmd) :
+RCONActionManager::RCONCommand::RCONCommand(std::string cmd) :
 	m_Command(std::move(cmd)),
 	m_Promise(std::make_shared<std::promise<std::string>>()),
 	m_Future(m_Promise->get_future())
 {
 }
 
-void ActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationToken)
+void RCONActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationToken)
 {
 	while (!cancellationToken.is_cancellation_requested())
 	{
@@ -167,7 +167,7 @@ void ActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationToken
 	}
 }
 
-void ActionManager::Update()
+void RCONActionManager::Update()
 {
 	const auto curTime = clock_t::now();
 	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
@@ -189,7 +189,7 @@ void ActionManager::Update()
 				m_Manager->RunCommandAsync(cmd + " " + args);
 			}
 
-			ActionManager* m_Manager = nullptr;
+			RCONActionManager* m_Manager = nullptr;
 			bool m_AnyCmdsRun = false;
 
 		} writer;
@@ -243,7 +243,7 @@ void ActionManager::Update()
 	m_LastUpdateTime = curTime;
 }
 
-std::string ActionManager::RunCommand(std::string cmd)
+std::string RCONActionManager::RunCommand(std::string cmd)
 {
 	std::unique_lock lock(m_RCONClientMutex, 5s);
 	if (!lock.owns_lock())
@@ -258,19 +258,19 @@ std::string ActionManager::RunCommand(std::string cmd)
 	return m_RCONClient.send_command(cmd);
 }
 
-std::shared_future<std::string> ActionManager::RunCommandAsync(std::string cmd)
+std::shared_future<std::string> RCONActionManager::RunCommandAsync(std::string cmd)
 {
 	std::lock_guard lock(m_RCONCommandsMutex);
 	return m_RCONCommands.emplace(std::move(cmd)).m_Future;
 }
 
-bool ActionManager::SendCommandToGame(std::string cmd)
+bool RCONActionManager::SendCommandToGame(std::string cmd)
 {
 	RunCommandAsync(std::move(cmd));
 	return true;
 }
 
-ActionManager::InitSRCON::InitSRCON()
+RCONActionManager::InitSRCON::InitSRCON()
 {
 	srcon::SetLogFunc([](std::string&& msg)
 		{

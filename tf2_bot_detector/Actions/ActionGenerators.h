@@ -10,14 +10,14 @@
 namespace tf2_bot_detector
 {
 	class IAction;
-	class ActionManager;
+	class RCONActionManager;
 
 	class IActionGenerator
 	{
 	public:
 		virtual ~IActionGenerator() = default;
 
-		virtual bool Execute(ActionManager& manager) = 0;
+		virtual bool Execute(RCONActionManager& manager) = 0;
 	};
 
 	class IPeriodicActionGenerator : public IActionGenerator
@@ -28,10 +28,10 @@ namespace tf2_bot_detector
 		virtual duration_t GetInterval() const = 0;
 		virtual duration_t GetInitialDelay() const { return {}; }
 
-		bool Execute(ActionManager& manager) override final;
+		bool Execute(RCONActionManager& manager) override final;
 
 	protected:
-		[[nodiscard]] virtual bool ExecuteImpl(ActionManager& manager) = 0;
+		[[nodiscard]] virtual bool ExecuteImpl(RCONActionManager& manager) = 0;
 
 	private:
 		time_point_t m_LastRunTime{};
@@ -43,7 +43,7 @@ namespace tf2_bot_detector
 		duration_t GetInterval() const override;
 
 	protected:
-		bool ExecuteImpl(ActionManager& manager) override;
+		bool ExecuteImpl(RCONActionManager& manager) override;
 
 	private:
 		bool m_NextShort = false;
@@ -56,6 +56,6 @@ namespace tf2_bot_detector
 		duration_t GetInterval() const override;
 
 	protected:
-		bool ExecuteImpl(ActionManager& manager) override;
+		bool ExecuteImpl(RCONActionManager& manager) override;
 	};
 }
