@@ -127,12 +127,10 @@ endif()
 
 target_include_directories(tf2_bot_detector
 	PRIVATE tf2_bot_detector
-	PRIVATE submodules/nlohmann_json/include
 )
 
-# cpp-httplib requires openssl
 find_package(OpenSSL REQUIRED)
-target_link_libraries(tf2_bot_detector PRIVATE OpenSSL::SSL)
+target_link_libraries(tf2_bot_detector)
 
 find_path(HTTPLIB_PATH NAMES httplib.h)
 target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
@@ -140,14 +138,16 @@ target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 find_package(libzippp CONFIG REQUIRED)
 find_package(cppcoro CONFIG REQUIRED)
 
-target_link_libraries(tf2_bot_detector PRIVATE
-	imgui_desktop
-	mh_stuff
-	ValveFileVDF
-	libzip::libzip
-	libzippp::libzippp
-	cppcoro
-	SourceRCON
+target_link_libraries(tf2_bot_detector
+	PRIVATE imgui_desktop
+	PRIVATE mh_stuff
+	PRIVATE ValveFileVDF
+	PRIVATE libzip::libzip
+	PRIVATE libzippp::libzippp
+	PRIVATE cppcoro
+	PRIVATE SourceRCON
+	PRIVATE OpenSSL::SSL # cpp-httplib requires openssl
+	PRIVATE nlohmann_json::nlohmann_json
 )
 
 # TODO: Find a way to do this locally
