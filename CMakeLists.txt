@@ -22,6 +22,11 @@ if (NOT mh_stuff_POPULATED)
 	FetchContent_MakeAvailable(mh_stuff)
 endif()
 
+FetchContent_Declare(imgui_desktop GIT_REPOSITORY https://github.com/PazerOP/imgui_desktop.git)
+if (NOT imgui_desktop_POPULATED)
+	FetchContent_MakeAvailable(imgui_desktop)
+endif()
+
 FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json.git)
 set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
 set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
@@ -29,7 +34,6 @@ if (NOT nlohmann_json_POPULATED)
 	FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
-add_subdirectory(submodules/imgui_desktop)
 add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
 

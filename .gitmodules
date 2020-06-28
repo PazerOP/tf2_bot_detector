@@ -1,6 +1,3 @@
-[submodule "imgui_desktop"]
-	path = submodules/imgui_desktop
-	url = https://github.com/PazerOP/imgui_desktop.git
 [submodule "implot"]
 	path = submodules/implot
 	url = https://github.com/PazerOP/implot.git
