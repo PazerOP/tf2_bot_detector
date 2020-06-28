@@ -35,7 +35,7 @@ namespace tf2_bot_detector
 		void Update();
 
 		std::string RunCommand(std::string cmd);
-		std::shared_future<std::string> RunCommandAsync(std::string cmd);
+		std::shared_future<std::string> RunCommandAsync(std::string cmd, bool reliable = true);
 
 		// Returns false if the action was not queued
 		bool QueueAction(std::unique_ptr<IAction>&& action);
@@ -77,13 +77,14 @@ namespace tf2_bot_detector
 
 		struct RCONCommand
 		{
-			explicit RCONCommand(std::string cmd);
+			explicit RCONCommand(std::string cmd, bool reliable);
 
 			bool operator==(const RCONCommand& other) const { return m_Command == other.m_Command; }
 
 			std::string m_Command;
-			std::shared_ptr<std::promise<std::string>> m_Promise;
-			std::shared_future<std::string> m_Future;
+			bool m_Reliable = true;
+			std::shared_ptr<std::promise<std::string>> m_Promise{ std::make_shared<std::promise<std::string>>() };
+			std::shared_future<std::string> m_Future{ m_Promise->get_future().share() };
 		};
 		std::queue<RCONCommand> m_RCONCommands;
 		std::mutex m_RCONCommandsMutex;

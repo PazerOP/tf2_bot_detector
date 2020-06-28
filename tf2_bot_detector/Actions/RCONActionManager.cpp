@@ -24,7 +24,6 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-
 RCONActionManager::RCONActionManager(const Settings& settings, WorldState& world) :
 	m_Settings(&settings), m_WorldState(&world)
 {
@@ -69,10 +68,8 @@ void RCONActionManager::AddPiggybackActionGenerator(std::unique_ptr<IActionGener
 	m_PiggybackActionGenerators.push_back(std::move(action));
 }
 
-RCONActionManager::RCONCommand::RCONCommand(std::string cmd) :
-	m_Command(std::move(cmd)),
-	m_Promise(std::make_shared<std::promise<std::string>>()),
-	m_Future(m_Promise->get_future())
+RCONActionManager::RCONCommand::RCONCommand(std::string cmd, bool reliable) :
+	m_Command(std::move(cmd)), m_Reliable(reliable)
 {
 }
 
@@ -90,7 +87,16 @@ void RCONActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationT
 				if (m_RCONCommands.empty())
 					break;
 
-				cmd = m_RCONCommands.front();
+				auto& front = m_RCONCommands.front();
+				if (!front.m_Reliable)
+				{
+					cmd = std::move(front);
+					m_RCONCommands.pop();
+				}
+				else
+				{
+					cmd = front;
+				}
 			}
 
 			try
@@ -100,16 +106,6 @@ void RCONActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationT
 				auto resultStr = RunCommand(cmd->m_Command);
 				//DebugLog("Setting promise for "s << std::quoted(cmd->m_Command) << " to " << std::quoted(resultStr));
 				cmd->m_Promise->set_value(resultStr);
-#if 0
-				if (auto waitResult = result.wait_for(7s); waitResult == std::future_status::timeout)
-				{
-					LogWarning("SRCON reconnecting after timing out waiting for game command "s << std::quoted(cmd));
-					std::lock_guard lock(m_RCONClientMutex);
-					m_RCONClient.reconnect();
-					return false;
-				}
-				const auto resultStr = result.get();
-#endif
 
 				if (m_Settings->m_Unsaved.m_DebugShowCommands)
 				{
@@ -134,6 +130,7 @@ void RCONActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationT
 					}
 				}
 
+				if (cmd->m_Reliable)
 				{
 					std::lock_guard lock(m_RCONCommandsMutex);
 					assert(!m_RCONCommands.empty());
@@ -147,21 +144,11 @@ void RCONActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationT
 			catch (const std::exception& e)
 			{
 				LogError(std::string(__FUNCTION__) << "(): Unhandled exception: " << e.what());
+				if (!cmd->m_Reliable)
+					cmd->m_Promise->set_exception(std::current_exception());
+
 				m_RCONClient.disconnect();
 				std::this_thread::sleep_for(1s);
-
-#if 0
-				try
-				{
-					std::lock_guard lock(m_RCONClientMutex);
-					m_RCONClient.reconnect();
-				}
-				catch (const std::exception& e2)
-				{
-					LogError(std::string(__FUNCTION__) << "(): Failed to reconnect after exception: " << e2.what());
-					std::this_thread::sleep_for(1s);
-				}
-#endif
 			}
 		}
 	}
@@ -258,10 +245,10 @@ std::string RCONActionManager::RunCommand(std::string cmd)
 	return m_RCONClient.send_command(cmd);
 }
 
-std::shared_future<std::string> RCONActionManager::RunCommandAsync(std::string cmd)
+std::shared_future<std::string> RCONActionManager::RunCommandAsync(std::string cmd, bool reliable)
 {
 	std::lock_guard lock(m_RCONCommandsMutex);
-	return m_RCONCommands.emplace(std::move(cmd)).m_Future;
+	return m_RCONCommands.emplace(std::move(cmd), reliable).m_Future;
 }
 
 bool RCONActionManager::SendCommandToGame(std::string cmd)
