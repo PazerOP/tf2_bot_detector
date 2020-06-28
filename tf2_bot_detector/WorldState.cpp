@@ -15,6 +15,12 @@ using namespace tf2_bot_detector;
 WorldState::WorldState(const Settings& settings) :
 	m_Settings(&settings)
 {
+	AddConsoleLineListener(this);
+}
+
+WorldState::~WorldState()
+{
+	RemoveConsoleLineListener(this);
 }
 
 void WorldState::Update()
@@ -543,7 +549,7 @@ std::optional<UserID_t> WorldState::PlayerExtraData::GetUserID() const
 duration_t WorldState::PlayerExtraData::GetConnectedTime() const
 {
 	auto result = GetWorld().GetCurrentTime() - GetConnectionTime();
-	assert(result >= -1s);
+	//assert(result >= -1s);
 	result = std::max<duration_t>(result, 0s);
 	return result;
 }

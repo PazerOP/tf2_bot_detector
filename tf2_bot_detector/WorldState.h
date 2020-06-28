@@ -52,6 +52,7 @@ namespace tf2_bot_detector
 	{
 	public:
 		WorldState(const Settings& settings);
+		~WorldState();
 
 		time_point_t GetCurrentTime() const { return m_CurrentTimestamp.GetSnapshot(); }
 		void Update();

@@ -62,6 +62,8 @@ namespace tf2_bot_detector
 			bool m_EnableVotekick = true;
 			bool m_EnableAutoMark = true;
 			bool m_DebugShowCommands = false;
+			std::string m_RCONPassword;
+
 		} m_Unsaved;
 
 		bool m_SleepWhenUnfocused = true;

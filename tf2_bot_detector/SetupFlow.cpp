@@ -16,12 +16,20 @@
 
 #include <optional>
 #include <string_view>
+#include <random>
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 namespace ScopeGuards = ImGuiDesktop::ScopeGuards;
+
+#ifdef _DEBUG
+namespace tf2_bot_detector
+{
+	extern uint32_t g_StaticRandomSeed;
+}
+#endif
 
 namespace
 {
@@ -272,6 +280,31 @@ namespace
 		void Commit(Settings& settings) override {}
 	};
 
+	static std::string GenerateRandomRCONPassword(size_t length = 16)
+	{
+		std::mt19937 generator;
+#ifdef _DEBUG
+		if (g_StaticRandomSeed != 0)
+		{
+			generator.seed(g_StaticRandomSeed);
+		}
+		else
+#endif
+		{
+			std::random_device randomSeed;
+			generator.seed(randomSeed());
+		}
+
+		constexpr char PALETTE[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		std::uniform_int_distribution<size_t> dist(0, std::size(PALETTE) - 1);
+
+		std::string retVal(length, '\0');
+		for (size_t i = 0; i < length; i++)
+			retVal[i] = PALETTE[dist(generator)];
+
+		return retVal;
+	}
+
 	class TF2OpenPage final : public SetupFlow::IPage
 	{
 		std::vector<std::string> m_CommandLineArgs;
@@ -314,11 +347,23 @@ namespace
 		{
 			TryUpdateCmdlineArgs();
 
-			const auto LaunchTF2Button = []
+			const auto LaunchTF2Button = [&]
 			{
 				ImGui::NewLine();
 				if (ImGui::Button("Launch TF2"))
-					Shell::OpenURL("steam://run/440//-usercon");
+				{
+					std::string url = "steam://run/440//"
+						" -usercon"
+						" +ip 0.0.0.0 +alias ip"
+						" +sv_rcon_whitelist_address 127.0.0.1 +alias sv_rcon_whitelist_address"
+						" +rcon_password "s << m_RCONPassword <<
+						" +con_timestamp 1 +alias con_timestamp"
+						" +net_start"
+						" -condebug"
+						" -conclearlog";
+
+					Shell::OpenURL(std::move(url));
+				}
 			};
 
 			if (m_CommandLineArgs.empty())
@@ -344,12 +389,21 @@ namespace
 			return OnDrawResult::ContinueDrawing;
 		}
 
-		void Init(const Settings& settings) override {}
-		bool CanCommit() const override { return false; }
-		void Commit(Settings& settings) override {}
+		void Init(const Settings& settings) override
+		{
+			m_RCONPassword = GenerateRandomRCONPassword();
+		}
+		bool CanCommit() const override { return true; }
+		void Commit(Settings& settings) override
+		{
+			settings.m_Unsaved.m_RCONPassword = m_RCONPassword;
+		}
 
 		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
+
+	private:
+		std::string m_RCONPassword;
 	};
 
 #if 0
@@ -445,19 +499,27 @@ bool SetupFlow::OnDraw(Settings& settings, const IPage::DrawState& ds)
 
 		drewPage = true;
 
-		ImGui::EnabledSwitch(page->CanCommit(), [&]
+		const bool canCommit = page->CanCommit();
+		ImGui::EnabledSwitch(canCommit, [&]
 			{
-				if ((!wantsContinueButton || ImGui::Button(hasNextPage ? "Next >" : "Done")) ||
+				if ((wantsContinueButton && ImGui::Button(hasNextPage ? "Next >" : "Done")) ||
 					drawResult == IPage::OnDrawResult::EndDrawing)
 				{
-					page->Commit(settings);
-					settings.SaveFile();
+					if (canCommit)
+					{
+						page->Commit(settings);
+						settings.SaveFile();
+					}
+
 					m_ActivePage = INVALID_PAGE;
 					if (!hasNextPage)
 						m_ShouldDraw = false;
 				}
 			});
 	}
+
+	if (!drewPage && m_ActivePage == INVALID_PAGE)
+		m_ShouldDraw = false;
 
 	return drewPage || (m_ActivePage != INVALID_PAGE);
 }

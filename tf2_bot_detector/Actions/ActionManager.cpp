@@ -28,16 +28,6 @@ using namespace std::string_view_literals;
 ActionManager::ActionManager(const Settings& settings, WorldState& world) :
 	m_Settings(&settings), m_WorldState(&world)
 {
-	try
-	{
-		//m_RCONClient.connect(settings.GetLocalIP(), "testpw");
-		m_RCONClient.connect("127.0.0.1", "testpw");
-	}
-	catch (const std::exception& e)
-	{
-		DebugLogWarning("Failed initial RCON connection attempt: "s << e.what());
-	}
-
 	m_RCONThread = std::thread(&ActionManager::RCONThreadFunc, this, m_RCONCancellationSource.token());
 }
 
@@ -157,8 +147,10 @@ void ActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationToken
 			catch (const std::exception& e)
 			{
 				LogError(std::string(__FUNCTION__) << "(): Unhandled exception: " << e.what());
+				m_RCONClient.disconnect();
 				std::this_thread::sleep_for(1s);
 
+#if 0
 				try
 				{
 					std::lock_guard lock(m_RCONClientMutex);
@@ -169,6 +161,7 @@ void ActionManager::RCONThreadFunc(cppcoro::cancellation_token cancellationToken
 					LogError(std::string(__FUNCTION__) << "(): Failed to reconnect after exception: " << e2.what());
 					std::this_thread::sleep_for(1s);
 				}
+#endif
 			}
 		}
 	}
@@ -259,10 +252,10 @@ std::string ActionManager::RunCommand(std::string cmd)
 	if (!m_RCONClient.is_connected())
 	{
 		DebugLog(std::string(__FUNCTION__) << "(): SRCON not connected, reconnecting for command " << std::quoted(cmd));
-		m_RCONClient.reconnect();
+		m_RCONClient.connect("127.0.0.1", m_Settings->m_Unsaved.m_RCONPassword);
 	}
 
-	return m_RCONClient.send(cmd);
+	return m_RCONClient.send_command(cmd);
 }
 
 std::shared_future<std::string> ActionManager::RunCommandAsync(std::string cmd)

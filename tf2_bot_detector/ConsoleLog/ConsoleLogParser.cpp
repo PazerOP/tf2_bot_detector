@@ -21,6 +21,7 @@ void ConsoleLogParser::TrySnapshot(bool& snapshotUpdated)
 	{
 		m_CurrentTimestamp.Snapshot();
 		snapshotUpdated = true;
+		m_WorldState->UpdateTimestamp(*this);
 	}
 }
 
