@@ -34,9 +34,6 @@ namespace tf2_bot_detector
 
 		void Update();
 
-		std::string RunCommand(std::string cmd);
-		std::shared_future<std::string> RunCommandAsync(std::string cmd, bool reliable = true);
-
 		// Returns false if the action was not queued
 		bool QueueAction(std::unique_ptr<IAction>&& action);
 
@@ -44,16 +41,6 @@ namespace tf2_bot_detector
 		bool QueueAction(TArgs&&... args)
 		{
 			return QueueAction(std::make_unique<TAction>(std::forward<TArgs>(args)...));
-		}
-
-		// Whenever another action triggers a send of command(s) to the game, these actions will be
-		// given the chance to add themselves to the
-		void AddPiggybackActionGenerator(std::unique_ptr<IActionGenerator>&& action);
-
-		template<typename TAction, typename... TArgs>
-		void AddPiggybackActionGenerator(TArgs&&... args)
-		{
-			return AddPiggybackActionGenerator(std::make_unique<TAction>(std::forward<TArgs>(args)...));
 		}
 
 		void AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActionGenerator>&& action);
@@ -65,48 +52,24 @@ namespace tf2_bot_detector
 		}
 
 	private:
-		// This is stupid
-		struct InitSRCON
+		struct RunningCommand
 		{
-			InitSRCON();
-		} s_InitSRCON;
-
-		std::timed_mutex m_RCONClientMutex;
-		srcon::client m_RCONClient;
-		std::thread m_RCONThread;
-
-		struct RCONCommand
-		{
-			explicit RCONCommand(std::string cmd, bool reliable);
-
-			bool operator==(const RCONCommand& other) const { return m_Command == other.m_Command; }
-
+			time_point_t m_StartTime{};
 			std::string m_Command;
-			bool m_Reliable = true;
-			std::shared_ptr<std::promise<std::string>> m_Promise{ std::make_shared<std::promise<std::string>>() };
-			std::shared_future<std::string> m_Future{ m_Promise->get_future().share() };
+			std::shared_future<std::string> m_Future;
 		};
-		std::queue<RCONCommand> m_RCONCommands;
-		std::mutex m_RCONCommandsMutex;
-		cppcoro::cancellation_source m_RCONCancellationSource;
-		void RCONThreadFunc(cppcoro::cancellation_token cancellationToken);
+		std::queue<RunningCommand> m_RunningCommands;
+		void ProcessRunningCommands();
+		void ProcessQueuedCommands();
 
 		struct Writer;
-		bool SendCommandToGame(std::string cmd);
 
 		static constexpr duration_t UPDATE_INTERVAL = std::chrono::seconds(1);
-
-		struct QueuedAction
-		{
-			std::unique_ptr<IAction> m_Action;
-			uint32_t m_UpdateIndex;
-		};
 
 		WorldState* m_WorldState = nullptr;
 		const Settings* m_Settings = nullptr;
 		time_point_t m_LastUpdateTime{};
 		std::vector<std::unique_ptr<IAction>> m_Actions;
-		std::vector<std::unique_ptr<IActionGenerator>> m_PiggybackActionGenerators;
 		std::vector<std::unique_ptr<IPeriodicActionGenerator>> m_PeriodicActionGenerators;
 		std::map<ActionType, time_point_t> m_LastTriggerTime;
 	};

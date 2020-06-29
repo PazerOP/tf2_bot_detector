@@ -11,6 +11,7 @@
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
 #include <nlohmann/json.hpp>
+#include <srcon/async_client.h>
 
 #include <filesystem>
 #include <fstream>
@@ -225,6 +226,10 @@ bool Settings::SaveFile() const
 	}
 
 	return true;
+}
+
+Settings::Unsaved::~Unsaved()
+{
 }
 
 const HTTPClient* tf2_bot_detector::Settings::GetHTTPClient() const

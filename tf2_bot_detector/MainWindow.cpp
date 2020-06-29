@@ -41,7 +41,7 @@ MainWindow::MainWindow() :
 	m_OpenTime = clock_t::now();
 
 	m_ActionManager.AddPeriodicActionGenerator<StatusUpdateActionGenerator>();
-	m_ActionManager.AddPiggybackActionGenerator<ConfigActionGenerator>();
+	m_ActionManager.AddPeriodicActionGenerator<ConfigActionGenerator>();
 	//m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 }
 

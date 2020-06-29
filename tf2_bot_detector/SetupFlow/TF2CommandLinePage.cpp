@@ -212,17 +212,20 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 	if (m_Data.m_CommandLineArgs.empty())
 	{
+		m_Data.m_TestRCONClient.reset();
 		ImGui::TextUnformatted("Waiting for TF2 to be opened...");
 		LaunchTF2Button();
 	}
 	else if (m_Data.m_CommandLineArgs.size() > 1)
 	{
+		m_Data.m_TestRCONClient.reset();
 		ImGui::TextUnformatted("More than one instance of hl2.exe found. Please close the other instances.");
 
 		ImGui::EnabledSwitch(false, LaunchTF2Button, "TF2 is currently running. Please close it first.");
 	}
 	else if (!m_Data.HasUseRconCmdLineFlag())
 	{
+		m_Data.m_TestRCONClient.reset();
 		ImGui::TextUnformatted("TF2 must be run with the -usercon command line flag. You can either add that flag under Launch Options in Steam, or close TF2 and open it with the button below.");
 
 		ImGui::EnabledSwitch(false, LaunchTF2Button, "TF2 is currently running. Please close it first.");
@@ -236,9 +239,9 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 			m_Data.m_TestRCONClient.emplace(m_Data.m_RCONPassword, m_Data.m_RCONPort);
 
 		ImGui::NewLine();
-		m_Data.m_RCONSuccess = m_Data.m_TestRCONClient->Update();
-		if (m_Data.m_RCONSuccess)
-			m_Data.m_TestRCONClient.reset();
+		m_Data.m_RCONSuccess = m_Data.m_TestRCONClient.value().Update();
+		//if (m_Data.m_RCONSuccess)
+		//	m_Data.m_TestRCONClient.reset();
 	}
 	else
 	{
@@ -257,6 +260,6 @@ void TF2CommandLinePage::Init(const Settings& settings)
 
 void TF2CommandLinePage::Commit(Settings& settings)
 {
-	settings.m_Unsaved.m_RCONPassword = m_Data.m_RCONPassword;
-	settings.m_Unsaved.m_RCONPort = m_Data.m_RCONPort;
+	settings.m_Unsaved.m_RCONClient = std::move(m_Data.m_TestRCONClient.value().m_Client);
+	m_Data.m_TestRCONClient.reset();
 }

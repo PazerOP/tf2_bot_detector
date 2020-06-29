@@ -9,6 +9,11 @@
 #include <optional>
 #include <vector>
 
+namespace srcon
+{
+	class async_client;
+}
+
 namespace tf2_bot_detector
 {
 	enum class ProgramUpdateCheckMode
@@ -56,15 +61,16 @@ namespace tf2_bot_detector
 
 		// Settings that are not saved in the config file because we want them to
 		// reset to these defaults when the tool is reopened
-		struct
+		struct Unsaved
 		{
+			~Unsaved();
+
 			bool m_EnableChatWarnings = true;
 			bool m_EnableVotekick = true;
 			bool m_EnableAutoMark = true;
 			bool m_DebugShowCommands = false;
 
-			std::string m_RCONPassword;
-			uint16_t m_RCONPort;
+			std::unique_ptr<srcon::async_client> m_RCONClient;
 
 		} m_Unsaved;
 
