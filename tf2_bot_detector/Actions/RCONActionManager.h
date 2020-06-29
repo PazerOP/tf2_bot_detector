@@ -5,7 +5,7 @@
 
 #include <cppcoro/cancellation_source.hpp>
 #include <cppcoro/cancellation_token.hpp>
-#include <srcon.h>
+#include <srcon/client.h>
 
 #include <future>
 #include <map>
