@@ -34,6 +34,7 @@ MainWindow::MainWindow() :
 	DebugLog("Steam dir: "s << m_Settings.GetSteamDir());
 	DebugLog("TF dir:    "s << m_Settings.GetTFDir());
 	DebugLog("SteamID:   "s << m_Settings.GetLocalSteamID());
+	DebugLog("Version:   "s << VERSION);
 
 	m_OpenTime = clock_t::now();
 
