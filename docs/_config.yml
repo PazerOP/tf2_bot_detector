@@ -1,1 +1,4 @@
 theme: jekyll-theme-minimal
+title: TF2 Bot Detector
+description: Automatically detects and votekicks cheaters/bots in TF2 casual.
+logo: https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/tf2_bot_detector/Art/TF2BotDetector.ico

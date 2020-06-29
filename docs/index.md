@@ -6,35 +6,6 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-![Build Status][build-shield]
-
-
-
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/PazerOP/tf2_bot_detector">
-    <img src="https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/tf2_bot_detector/Art/TF2BotDetector.ico" alt="Logo" width="100" height="100">
-  </a>
-
-  <h3 align="center">TF2 Bot Detector</h3>
-
-  <p align="center">
-    Automatically detects and votekicks cheaters/bots in TF2 casual.
-    <br />
-    <a href="https://pazerop.github.io/tf2_bot_detector/"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/PazerOP/tf2_bot_detector/issues">Report a Bug</a>
-    ·
-    <a href="https://github.com/PazerOP/tf2_bot_detector/issues">Request a Feature</a>
-    ·
-    <a href="https://discord.gg/W8ZSh3Z">Join the Discord</a>
-  </p>
-</p>
 
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
