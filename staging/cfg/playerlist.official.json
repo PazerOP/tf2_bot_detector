@@ -782,11 +782,12 @@
 		},
 		{
 			"attributes": [
+				"cheater",
 				"exploiter"
 			],
 			"last_seen": {
-				"player_name": "Stephanie.",
-				"time": 1591436064
+				"player_name": "Alice ^=^",
+				"time": 1593383631
 			},
 			"steamid": "[U:1:1008050763]"
 		},
@@ -3779,6 +3780,16 @@
 				"time": 1593054985
 			},
 			"steamid": "[U:1:1109069289]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "ANTI BOT BO\u200fT | Owner",
+				"time": 1593391155
+			},
+			"steamid": "[U:1:1109966153]"
 		}
 	]
 }
