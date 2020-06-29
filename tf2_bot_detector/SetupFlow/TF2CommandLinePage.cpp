@@ -135,58 +135,60 @@ TF2CommandLinePage::RCONClientData::RCONClientData(std::string pwd, uint16_t por
 	addr.port = port;
 
 	m_Client->set_addr(std::move(addr));
+
+	m_Message = "Connecting...";
 }
 
 bool TF2CommandLinePage::RCONClientData::Update()
 {
-	if (m_Success)
-		return true;
-
-	if (m_Future.valid() && m_Future.wait_for(0s) == std::future_status::ready)
+	if (!m_Success)
 	{
-		try
+		if (m_Future.valid() && m_Future.wait_for(0s) == std::future_status::ready)
 		{
-			auto response = m_Future.get();
-			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, response);
-			m_Success = true;
-		}
-		catch (const srcon::srcon_error& e)
-		{
-			DebugLog(std::string(__FUNCTION__) << "(): " << e.what());
-
-			using srcon::srcon_errc;
-			switch (e.get_errc())
+			try
 			{
-			case srcon_errc::bad_rcon_password:
-				m_MessageColor = { 1, 0, 0, 1 };
-				m_Message = "Bad rcon password, this should never happen!";
-				break;
-			case srcon_errc::rcon_connect_failed:
-				m_MessageColor = { 1, 1, 0.5, 1 };
-				m_Message = "Retrying RCON connection...";
-				break;
-			case srcon_errc::socket_send_failed:
-				m_MessageColor = { 1, 1, 0.5, 1 };
-				m_Message = "TF2 not yet accepting RCON commands...";
-				break;
-			default:
-				m_MessageColor = { 1, 1, 0, 1 };
-				m_Message = "Unexpected error: "s << e.what();
-				break;
+				m_Message = m_Future.get();
+				m_MessageColor = { 0, 1, 0, 1 };
+				m_Success = true;
 			}
-			m_Future = {};
-		}
-		catch (const std::exception& e)
-		{
-			DebugLogWarning(std::string(__FUNCTION__) << "(): " << e.what());
-			m_MessageColor = { 1, 0, 0, 1 };
-			m_Message = "RCON connection unsuccessful: "s << e.what();
-			m_Future = {};
-		}
-	}
+			catch (const srcon::srcon_error& e)
+			{
+				DebugLog(std::string(__FUNCTION__) << "(): " << e.what());
 
-	if (!m_Future.valid())
-		m_Future = m_Client->send_command_async("echo RCON connection successful.", false);
+				using srcon::srcon_errc;
+				switch (e.get_errc())
+				{
+				case srcon_errc::bad_rcon_password:
+					m_MessageColor = { 1, 0, 0, 1 };
+					m_Message = "Bad rcon password, this should never happen!";
+					break;
+				case srcon_errc::rcon_connect_failed:
+					m_MessageColor = { 1, 1, 0.5, 1 };
+					m_Message = "TF2 not yet accepting RCON connections. Retrying...";
+					break;
+				case srcon_errc::socket_send_failed:
+					m_MessageColor = { 1, 1, 0.5, 1 };
+					m_Message = "TF2 not yet accepting RCON commands...";
+					break;
+				default:
+					m_MessageColor = { 1, 1, 0, 1 };
+					m_Message = "Unexpected error: "s << e.what();
+					break;
+				}
+				m_Future = {};
+			}
+			catch (const std::exception& e)
+			{
+				DebugLogWarning(std::string(__FUNCTION__) << "(): " << e.what());
+				m_MessageColor = { 1, 0, 0, 1 };
+				m_Message = "RCON connection unsuccessful: "s << e.what();
+				m_Future = {};
+			}
+		}
+
+		if (!m_Future.valid())
+			m_Future = m_Client->send_command_async("echo RCON connection successful.", false);
+	}
 
 	ImGui::TextColoredUnformatted(m_MessageColor, m_Message);
 
@@ -233,6 +235,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 		if (!m_Data.m_TestRCONClient)
 			m_Data.m_TestRCONClient.emplace(m_Data.m_RCONPassword, m_Data.m_RCONPort);
 
+		ImGui::NewLine();
 		m_Data.m_RCONSuccess = m_Data.m_TestRCONClient->Update();
 		if (m_Data.m_RCONSuccess)
 			m_Data.m_TestRCONClient.reset();

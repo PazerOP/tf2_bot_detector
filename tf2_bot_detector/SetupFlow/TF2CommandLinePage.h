@@ -35,11 +35,11 @@ namespace tf2_bot_detector
 			std::unique_ptr<srcon::async_client> m_Client;
 			std::shared_future<std::string> m_Future;
 
-			bool m_Success = false;
 			[[nodiscard]] bool Update();
 
 		private:
-			std::array<float, 4> m_MessageColor;
+			bool m_Success = false;
+			std::array<float, 4> m_MessageColor{ 1, 1, 1, 1 };
 			std::string m_Message;
 		};
 
