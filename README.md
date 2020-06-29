@@ -101,11 +101,6 @@ No. It does not modify the game or OS memory in any way. It is only using built-
 
 It monitors the console output (saved to a log file) to get information about the game state. Invoking commands in the game is done via the `-hijack` command line paramter. Getting players in the current game is done via the `tf_lobby_debug` and `status` commands. Cheaters are identified by their behavior and/or their Steam ID.
 
-### Sometimes I get these popups!
-
-![src_engine_declined_request](https://user-images.githubusercontent.com/6569500/83913792-dc01fb00-a724-11ea-83c4-7b5aab364611.png)
-![src_engine_not_running](https://user-images.githubusercontent.com/6569500/83913866-fc31ba00-a724-11ea-914c-5b36c9188d8c.png)
-
 Ignore these. They will automatically close after 5 seconds. A fix to prevent these popups entirely will happen in an upcoming release.
 
 <!-- LICENSE -->
