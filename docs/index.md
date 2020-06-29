@@ -24,11 +24,9 @@
 
   <p align="center">
     Automatically detects and votekicks cheaters/bots in TF2 casual.
-    <!-- commented until there is documentation at the wiki
     <br />
-    <a href="https://github.com/PazerOP/tf2_bot_detector/wiki"><strong>Explore the docs »</strong></a>
+    <a href="https://pazerop.github.io/tf2_bot_detector/"><strong>Explore the docs »</strong></a>
     <br />
-    -->
     <br />
     <a href="https://github.com/PazerOP/tf2_bot_detector/issues">Report a Bug</a>
     ·
