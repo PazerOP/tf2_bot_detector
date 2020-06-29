@@ -991,6 +991,7 @@ void MainWindow::OnUpdate()
 	else if (m_ConsoleLogParser)
 	{
 		m_ConsoleLogParser->m_Parser.Update();
+		m_ModeratorLogic.Update();
 	}
 }
 
