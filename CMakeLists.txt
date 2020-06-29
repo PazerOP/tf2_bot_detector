@@ -15,8 +15,6 @@ if (MSVC AND (CMAKE_BUILD_TYPE MATCHES "Release"))
 	add_link_options(/OPT:REF /OPT:ICF)
 endif()
 
-# set(VCPKG_APPLOCAL_DEPS ON)
-
 FetchContent_Declare(mh_stuff GIT_REPOSITORY https://github.com/PazerOP/stuff.git)
 if (NOT mh_stuff_POPULATED)
 	FetchContent_MakeAvailable(mh_stuff)
@@ -28,8 +26,8 @@ if (NOT imgui_desktop_POPULATED)
 endif()
 
 FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json.git)
-set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
-set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
+set(JSON_MultipleHeaders on)
+set(JSON_BuildTests off)
 if (NOT nlohmann_json_POPULATED)
 	FetchContent_MakeAvailable(nlohmann_json)
 endif()
@@ -82,6 +80,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/SetupFlow/ISetupFlowPage.h"
 	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.h"
 	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.cpp"
+	"tf2_bot_detector/SetupFlow/RCONConnectionPage.h"
+	"tf2_bot_detector/SetupFlow/RCONConnectionPage.cpp"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
 	"tf2_bot_detector/AsyncObject.h"
@@ -116,7 +116,7 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
 	"tf2_bot_detector/Resources.rc"
- "tf2_bot_detector/SetupFlow/RCONConnectionPage.h" "tf2_bot_detector/SetupFlow/RCONConnectionPage.cpp")
+)
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
@@ -182,26 +182,3 @@ install(DIRECTORY staging/ staging/ DESTINATION "/" FILES_MATCHING
 	PATTERN "staging/logs" EXCLUDE
 )
 install(TARGETS tf2_bot_detector DESTINATION /)
-
-file(GLOB_RECURSE TF2BD_EXTRA_FILES RELATIVE "${CMAKE_SOURCE_DIR}/staging" "staging/cfg/*" "staging/licenses/*")
-list(REMOVE_ITEM TF2BD_EXTRA_FILES "cfg/settings.json")
-foreach(EXTRA_FILE ${TF2BD_EXTRA_FILES})
-	configure_file("staging/${EXTRA_FILE}" "${CMAKE_BINARY_DIR}/${EXTRA_FILE}")
-endforeach()
-
-add_custom_command(
-	OUTPUT tf2_bot_detector.zip
-	DEPENDS tf2_bot_detector
-	COMMAND ${CMAKE_COMMAND} -E tar "cfv" "tf2_bot_detector_${PROJECT_VERSION}.zip" --format=zip $<TARGET_FILE_NAME:tf2_bot_detector> ${TF2BD_EXTRA_FILES} ${TF2BD_INSTALL_DEPS_DLL}
-)
-
-if (WIN32)
-	add_custom_command(
-		OUTPUT symbols.zip
-		DEPENDS tf2_bot_detector
-		COMMAND ${CMAKE_COMMAND} -E tar "cfv" "symbols_${PROJECT_VERSION}.zip" --format=zip $<TARGET_PDB_FILE:tf2_bot_detector>
-	)
-	add_custom_target(tf2_bot_detector_zips ALL DEPENDS tf2_bot_detector.zip symbols.zip)
-else()
-	add_custom_target(tf2_bot_detector_zips ALL DEPENDS tf2_bot_detector.zip)
-endif()
