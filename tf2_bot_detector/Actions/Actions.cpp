@@ -84,11 +84,6 @@ std::string ChatMessageAction::ScrubMessage(std::string msg)
 	return "\""s << msg << '"';
 }
 
-duration_t LobbyUpdateAction::GetMinInterval() const
-{
-	return 1s;
-}
-
 void LobbyUpdateAction::WriteCommands(ICommandWriter& writer) const
 {
 	writer.Write("tf_lobby_debug");
