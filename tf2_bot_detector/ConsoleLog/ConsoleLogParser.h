@@ -31,8 +31,6 @@ namespace tf2_bot_detector
 		const Settings* m_Settings = nullptr;
 		WorldState* m_WorldState = nullptr;
 
-		AsyncObject<ChatWrappers> m_ChatMsgWrappers;
-
 		void TrySnapshot(bool& snapshotUpdated);
 		CompensatedTS m_CurrentTimestamp;
 

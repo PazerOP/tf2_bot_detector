@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AsyncObject.h"
+#include "FileMods.h"
 #include "Networking/HTTPClient.h"
 #include "SteamID.h"
 
@@ -70,6 +72,7 @@ namespace tf2_bot_detector
 			bool m_EnableAutoMark = true;
 			bool m_DebugShowCommands = false;
 
+			AsyncObject<ChatWrappers> m_ChatMsgWrappers;
 			std::unique_ptr<srcon::async_client> m_RCONClient;
 
 		} m_Unsaved;

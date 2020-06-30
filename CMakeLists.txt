@@ -83,8 +83,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/SetupFlow/ISetupFlowPage.h"
 	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.h"
 	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.cpp"
-	"tf2_bot_detector/SetupFlow/RCONConnectionPage.h"
-	"tf2_bot_detector/SetupFlow/RCONConnectionPage.cpp"
+	
+	
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
 	"tf2_bot_detector/AsyncObject.h"
@@ -119,7 +119,7 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
 	"tf2_bot_detector/Resources.rc"
-)
+ "tf2_bot_detector/SetupFlow/ChatWrappersGeneratorPage.h" "tf2_bot_detector/SetupFlow/ChatWrappersGeneratorPage.cpp")
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)

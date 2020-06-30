@@ -28,13 +28,11 @@ void ConsoleLogParser::TrySnapshot(bool& snapshotUpdated)
 ConsoleLogParser::ConsoleLogParser(WorldState& world, const Settings& settings, std::filesystem::path conLogFile) :
 	m_Settings(&settings), m_WorldState(&world), m_FileName(std::move(conLogFile))
 {
-	Processes::RequireTF2NotRunning();
-	m_ChatMsgWrappers = std::async([&] { return RandomizeChatWrappers(m_Settings->GetTFDir()); });
 }
 
 void ConsoleLogParser::Update()
 {
-	if (!m_ChatMsgWrappers.is_ready())
+	if (!m_Settings->m_Unsaved.m_ChatMsgWrappers.is_ready())
 		return;
 
 	if (!m_File)
@@ -121,7 +119,7 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 	{
 		const auto category = ChatCategory(i);
 
-		auto& type = m_ChatMsgWrappers->m_Types[i];
+		auto& type = m_Settings->m_Unsaved.m_ChatMsgWrappers->m_Types[i];
 		if (lineStr.starts_with(type.m_Full.first))
 		{
 			auto searchBuf = std::string_view(m_FileLineBuf).substr(

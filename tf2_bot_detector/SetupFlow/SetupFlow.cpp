@@ -1,5 +1,6 @@
 #include "SetupFlow.h"
 #include "BasicSettingsPage.h"
+#include "ChatWrappersGeneratorPage.h"
 #include "NetworkSettingsPage.h"
 #include "TF2CommandLinePage.h"
 #include "Log.h"
@@ -111,6 +112,7 @@ namespace
 SetupFlow::SetupFlow()
 {
 	m_Pages.push_back(std::make_unique<BasicSettingsPage>());
+	m_Pages.push_back(std::make_unique<ChatWrappersGeneratorPage>());
 	m_Pages.push_back(std::make_unique<NetworkSettingsPage>());
 	//m_Pages.push_back(std::make_unique<UseRCONCmdLinePage>());
 	m_Pages.push_back(std::make_unique<TF2CommandLinePage>());
