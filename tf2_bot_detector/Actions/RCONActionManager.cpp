@@ -80,25 +80,32 @@ void RCONActionManager::ProcessRunningCommands()
 		if (cmd.m_Future.wait_for(0s) == std::future_status::timeout)
 			break;
 
-		auto resultStr = cmd.m_Future.get();
-
-		if (m_Settings->m_Unsaved.m_DebugShowCommands)
+		try
 		{
-			const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock_t::now() - cmd.m_StartTime);
-			std::string msg = "Game command processed in "s << elapsed.count() << "ms : " << std::quoted(cmd.m_Command);
+			auto resultStr = cmd.m_Future.get();
+
+			if (m_Settings->m_Unsaved.m_DebugShowCommands)
+			{
+				const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock_t::now() - cmd.m_StartTime);
+				std::string msg = "Game command processed in "s << elapsed.count() << "ms : " << std::quoted(cmd.m_Command);
+
+				if (!resultStr.empty())
+					msg << ", response " << resultStr.size() << " bytes";
+
+				Log(std::move(msg), { 1, 1, 1, 0.6f });
+			}
 
 			if (!resultStr.empty())
-				msg << ", response " << resultStr.size() << " bytes";
-
-			Log(std::move(msg), { 1, 1, 1, 0.6f });
+			{
+				if (m_WorldState)
+					m_WorldState->AddConsoleOutputChunk(resultStr);
+				else
+					LogError("WorldState was nullptr when we tried to give it the result: "s << resultStr);
+			}
 		}
-
-		if (!resultStr.empty())
+		catch (const std::exception& e)
 		{
-			if (m_WorldState)
-				m_WorldState->AddConsoleOutputChunk(resultStr);
-			else
-				LogError("WorldState was nullptr when we tried to give it the result: "s << resultStr);
+			LogError(std::string(__FUNCTION__) << "(): " << e.what());
 		}
 
 		m_RunningCommands.pop();
