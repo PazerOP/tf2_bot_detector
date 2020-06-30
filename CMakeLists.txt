@@ -15,17 +15,27 @@ if (MSVC AND (CMAKE_BUILD_TYPE MATCHES "Release"))
 	add_link_options(/OPT:REF /OPT:ICF)
 endif()
 
-FetchContent_Declare(mh_stuff GIT_REPOSITORY https://github.com/PazerOP/stuff.git)
+FetchContent_Declare(mh_stuff
+	GIT_REPOSITORY https://github.com/PazerOP/stuff.git
+	GIT_SHALLOW true
+)
 if (NOT mh_stuff_POPULATED)
 	FetchContent_MakeAvailable(mh_stuff)
 endif()
 
-FetchContent_Declare(imgui_desktop GIT_REPOSITORY https://github.com/PazerOP/imgui_desktop.git)
+FetchContent_Declare(imgui_desktop
+	GIT_REPOSITORY https://github.com/PazerOP/imgui_desktop.git
+	GIT_SHALLOW true
+)
 if (NOT imgui_desktop_POPULATED)
 	FetchContent_MakeAvailable(imgui_desktop)
 endif()
 
-FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json.git)
+FetchContent_Declare(nlohmann_json
+	GIT_REPOSITORY https://github.com/nlohmann/json.git
+	GIT_SHALLOW true
+	GIT_PROGRESS true
+)
 set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
 set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
 if (NOT nlohmann_json_POPULATED)
