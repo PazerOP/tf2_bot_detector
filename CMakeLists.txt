@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.17.2)
 project(tf2_bot_detector VERSION 1.0.0.26)
 
 include(FetchContent)
+# set(FETCHCONTENT_QUIET off)
 
 # Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 if (MSVC)
@@ -18,29 +19,21 @@ endif()
 FetchContent_Declare(mh_stuff
 	GIT_REPOSITORY https://github.com/PazerOP/stuff.git
 	GIT_SHALLOW true
+	GIT_SUBMODULES_RECURSE false
 )
-if (NOT mh_stuff_POPULATED)
-	FetchContent_MakeAvailable(mh_stuff)
-endif()
-
 FetchContent_Declare(imgui_desktop
 	GIT_REPOSITORY https://github.com/PazerOP/imgui_desktop.git
 	GIT_SHALLOW true
+	GIT_SUBMODULES_RECURSE false
 )
-if (NOT imgui_desktop_POPULATED)
-	FetchContent_MakeAvailable(imgui_desktop)
-endif()
-
 FetchContent_Declare(nlohmann_json
 	GIT_REPOSITORY https://github.com/nlohmann/json.git
 	GIT_SHALLOW true
-	GIT_PROGRESS true
+	GIT_SUBMODULES_RECURSE false
 )
 set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
 set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
-if (NOT nlohmann_json_POPULATED)
-	FetchContent_MakeAvailable(nlohmann_json)
-endif()
+FetchContent_MakeAvailable(mh_stuff imgui_desktop nlohmann_json)
 
 add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
