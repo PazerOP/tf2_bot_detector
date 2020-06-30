@@ -43,23 +43,33 @@ namespace tf2_bot_detector
 			std::string m_Message;
 		};
 
+		struct TF2CommandLine
+		{
+			static TF2CommandLine Parse(const std::string_view& cmdLine);
+
+			bool m_UseRCON = false;
+			std::string m_IP;
+			std::string m_RCONPassword;
+			std::optional<uint16_t> m_RCONPort;
+
+			bool IsPopulated() const;
+		};
+
 		struct Data
 		{
-			std::optional<bool> m_LastUpdateValidationSuccess;
-
-			std::vector<std::string> m_CommandLineArgs;
+			bool m_MultipleInstances = false;
+			std::optional<TF2CommandLine> m_CommandLineArgs;
 			std::shared_future<std::vector<std::string>> m_CommandLineArgsFuture;
-			bool m_Ready = false;
+			bool m_AtLeastOneUpdateRun = false;
 
 			time_point_t m_LastCLUpdate{};
 
-			std::string m_RCONPassword;
-			uint16_t m_RCONPort;
+			std::string m_RandomRCONPassword;
+			uint16_t m_RandomRCONPort;
 			bool m_RCONSuccess = false;
 			std::optional<RCONClientData> m_TestRCONClient;
 
 			void TryUpdateCmdlineArgs();
-			bool HasUseRconCmdLineFlag() const;
 
 		} m_Data;
 	};
