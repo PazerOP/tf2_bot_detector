@@ -6,8 +6,7 @@
 #include "Config/Settings.h"
 #include "RegexHelpers.h"
 #include "SteamID.h"
-#include "PlatformSpecific/Shell.h"
-#include "PlatformSpecific/Steam.h"
+#include "Platform/Platform.h"
 #include "Version.h"
 
 #include <imgui_desktop/ScopeGuards.h>

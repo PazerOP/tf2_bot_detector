@@ -16,6 +16,7 @@ namespace tf2_bot_detector
 	std::string ToMB(const std::u8string_view& input);
 	std::string ToMB(const std::u16string_view& input);
 	std::string ToMB(const std::wstring_view& input);
+	std::wstring ToWC(const std::string_view& input);
 
 	std::u16string ReadWideFile(const std::filesystem::path& filename);
 	void WriteWideFile(const std::filesystem::path& filename, const std::u16string_view& text);

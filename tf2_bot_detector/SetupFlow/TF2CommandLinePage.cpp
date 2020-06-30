@@ -2,8 +2,7 @@
 #include "Config/Settings.h"
 #include "ImGui_TF2BotDetector.h"
 #include "Log.h"
-#include "PlatformSpecific/Processes.h"
-#include "PlatformSpecific/Shell.h"
+#include "Platform/Platform.h"
 
 #include <srcon/srcon.h>
 #include <mh/text/string_insertion.hpp>

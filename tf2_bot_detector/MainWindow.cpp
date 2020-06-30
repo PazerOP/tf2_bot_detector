@@ -3,7 +3,7 @@
 #include "Networking/GithubAPI.h"
 #include "ConsoleLog/NetworkStatus.h"
 #include "RegexHelpers.h"
-#include "PlatformSpecific/Shell.h"
+#include "Platform/Platform.h"
 #include "ImGui_TF2BotDetector.h"
 #include "Actions/ActionGenerators.h"
 #include "Log.h"

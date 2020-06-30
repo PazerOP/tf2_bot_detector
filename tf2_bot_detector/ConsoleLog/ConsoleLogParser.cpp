@@ -5,7 +5,7 @@
 #include "RegexHelpers.h"
 #include "Config/Settings.h"
 #include "WorldState.h"
-#include "PlatformSpecific/Processes.h"
+#include "Platform/Platform.h"
 
 #include <mh/text/string_insertion.hpp>
 

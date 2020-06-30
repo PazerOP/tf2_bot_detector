@@ -1,4 +1,4 @@
-#include "../Processes.h"
+#include "../Platform.h"
 #include "Log.h"
 #include "TextUtils.h"
 

@@ -1,4 +1,4 @@
-#include "PlatformSpecific/Steam.h"
+#include "../Platform.h"
 #include "Log.h"
 #include "TextUtils.h"
 
@@ -11,7 +11,7 @@ using namespace tf2_bot_detector;
 
 static constexpr char STEAM_ACTIVE_PROCESS_KEY[] = "Software\\Valve\\Steam\\ActiveProcess";
 
-std::filesystem::path tf2_bot_detector::GetCurrentSteamDir()
+std::filesystem::path tf2_bot_detector::Platform::GetCurrentSteamDir()
 {
 	char steamDLLstr[256];
 	DWORD dataSize = sizeof(steamDLLstr);
@@ -33,7 +33,7 @@ std::filesystem::path tf2_bot_detector::GetCurrentSteamDir()
 	return steamDir;
 }
 
-SteamID tf2_bot_detector::GetCurrentActiveSteamID()
+SteamID tf2_bot_detector::Platform::GetCurrentActiveSteamID()
 {
 	DWORD type;
 	DWORD data;

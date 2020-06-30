@@ -7,7 +7,7 @@
 #include "Config/Settings.h"
 #include "PathUtils.h"
 #include "ImGui_TF2BotDetector.h"
-#include "PlatformSpecific/Steam.h"
+#include "Platform/Platform.h"
 #include "Version.h"
 
 #include <imgui.h>

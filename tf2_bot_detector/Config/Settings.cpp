@@ -4,7 +4,7 @@
 #include "Log.h"
 #include "PathUtils.h"
 #include "PlayerListJSON.h"
-#include "PlatformSpecific/Steam.h"
+#include "Platform/Platform.h"
 #include "Networking/NetworkHelpers.h"
 
 #include <mh/text/case_insensitive_string.hpp>
