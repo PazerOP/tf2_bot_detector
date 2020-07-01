@@ -55,6 +55,7 @@
 - [License](#license)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
+  - [Sponsors](#sponsors)
 
 
 <!-- GETTING STARTED -->
@@ -120,6 +121,11 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 * Artwork/icon by S-Purple - [@spurpleheart](https://twitter.com/spurpleheart) (NSFW)
 * Documentation by [Nicholas "ClusterConsultant" Flamel](https://github.com/ClusterConsultant)
 
+### Sponsors
+Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-sponsors-pazerop]:
+* [Crazy Gunman](https://github.com/CrazyGunman2C4U)
+* [ClusterConsultant](https://github.com/ClusterConsultant)
+
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [stars-shield]: https://img.shields.io/github/stars/PazerOP/tf2_bot_detector
@@ -137,3 +143,4 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
 [mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
 [zip-image]: https://user-images.githubusercontent.com/6569500/85929969-8de89f00-b86d-11ea-859e-2632a1034ea7.png
+[github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
