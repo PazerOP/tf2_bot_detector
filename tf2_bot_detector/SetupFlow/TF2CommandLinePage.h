@@ -47,6 +47,8 @@ namespace tf2_bot_detector
 		{
 			static TF2CommandLine Parse(const std::string_view& cmdLine);
 
+			std::string m_FullCommandLine;
+
 			bool m_UseRCON = false;
 			std::string m_IP;
 			std::string m_RCONPassword;

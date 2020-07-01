@@ -91,14 +91,14 @@ namespace
 		{
 			if (lFlags == WBEM_STATUS_COMPLETE)
 			{
-				DebugLog(""s << __FUNCTION__ << "(): Call completed");
+				//DebugLog(""s << __FUNCTION__ << "(): Call completed");
 				assert(!m_Done);
 				if (bool expected = false; m_Done.compare_exchange_strong(expected, true))
 					OnComplete();
 			}
 			else if (lFlags == WBEM_STATUS_PROGRESS)
 			{
-				DebugLog(""s << __FUNCTION__ << "(): Call in progress");
+				//DebugLog(""s << __FUNCTION__ << "(): Call in progress");
 			}
 
 			return WBEM_S_NO_ERROR;
@@ -128,7 +128,7 @@ namespace
 
 					std::lock_guard lock(m_ArgsMutex);
 					m_Args.push_back(ToMB(cmdLine.bstrVal ? cmdLine.bstrVal : L""));
-					DebugLog("Name: "s << std::wstring_view(name.bstrVal) << ", Command Line: " << m_Args.back());
+					//DebugLog("Name: "s << std::wstring_view(name.bstrVal) << ", Command Line: " << m_Args.back());
 				}
 			}
 			catch (const GetLastErrorException& e)

@@ -101,6 +101,7 @@ auto TF2CommandLinePage::TF2CommandLine::Parse(const std::string_view& cmdLine) 
 	const auto args = Shell::SplitCommandLineArgs(cmdLine);
 
 	TF2CommandLine cli{};
+	cli.m_FullCommandLine = cmdLine;
 
 	for (size_t i = 0; i < args.size(); i++)
 	{
@@ -265,13 +266,43 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 		ImGui::EnabledSwitch(false, LaunchTF2Button, "TF2 is currently running. Please close it first.");
 	}
-	else if (!m_Data.m_CommandLineArgs.has_value() || !m_Data.m_CommandLineArgs->IsPopulated())
+	else if (auto& args = m_Data.m_CommandLineArgs.value(); !args.IsPopulated())
 	{
 		m_Data.m_TestRCONClient.reset();
 		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Invalid TF2 command line arguments");
 		ImGui::NewLine();
 		ImGui::TextUnformatted("TF2 must be launched via TF2 Bot Detector. Please close it, then open it again with the button below.");
 		ImGui::EnabledSwitch(false, LaunchTF2Button, "TF2 is currently running. Please close it first.");
+
+		ImGui::NewLine();
+
+		ImGuiDesktop::ScopeGuards::GlobalAlpha alpha(0.65f);
+		ImGui::TextUnformatted("Details:");
+		ImGui::TextUnformatted("- Instance:");
+		ImGui::SameLine();
+		ImGui::TextUnformatted(args.m_FullCommandLine);
+
+		ImGuiDesktop::ScopeGuards::Indent indent;
+
+		if (!args.m_UseRCON)
+			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unable to find \"-usercon\"");
+		else
+			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "-usercon");
+
+		if (args.m_IP.empty())
+			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unable to find \"+ip\"");
+		else
+			ImGui::TextColored({ 0, 1, 0, 1 }, "+ip %s", args.m_IP.c_str());
+
+		if (args.m_RCONPassword.empty())
+			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unable to find \"+rcon_password\"");
+		else
+			ImGui::TextColored({ 0, 1, 0, 1 }, "+rcon_password %s", args.m_RCONPassword.c_str());
+
+		if (!args.m_RCONPort.has_value())
+			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unable to find \"+hostport\"");
+		else
+			ImGui::TextColored({ 0, 1, 0, 1 }, "+hostport %u", args.m_RCONPort.value());
 	}
 	else if (!m_Data.m_RCONSuccess)
 	{
