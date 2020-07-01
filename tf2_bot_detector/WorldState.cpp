@@ -490,12 +490,14 @@ void WorldState::ApplyPlayerSummaries()
 {
 	for (auto it = m_PlayerSummaryRequests.begin(); it != m_PlayerSummaryRequests.end(); )
 	{
-		auto& summaryReq = *it;
-		if (!summaryReq.is_ready())
+		if (!it->is_ready())
 		{
 			++it;
 			break;
 		}
+
+		auto summaryReq = std::move(*it);
+		it = m_PlayerSummaryRequests.erase(it);
 
 		try
 		{
@@ -506,7 +508,6 @@ void WorldState::ApplyPlayerSummaries()
 			}
 
 			DebugLog("Applied "s << summaryReq->size() << " player summaries from Steam web API");
-			it = m_PlayerSummaryRequests.erase(it);
 		}
 		catch (const std::exception& e)
 		{
