@@ -64,11 +64,11 @@ These instructions will give a quick overview of getting started with TF2BD.
 
 ### Prerequisites
 
-This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
+>A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
+
+This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] ([32bit version][mscr86-link])
 
 ### Installation
-
->A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
 
 1. Go to the [releases page][releases-link]
 2. Download the zip
@@ -135,4 +135,5 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 [releases-link]: https://github.com/PazerOP/tf2_bot_detector/releases
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
+[mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
 [zip-image]: https://user-images.githubusercontent.com/6569500/85929969-8de89f00-b86d-11ea-859e-2632a1034ea7.png
