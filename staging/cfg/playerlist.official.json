@@ -513,6 +513,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Terry A Davis",
+				"time": 1593560898
+			},
+			"steamid": "[U:1:472944587]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"steamid": "[U:1:477738533]"
@@ -3630,6 +3640,16 @@
 				"time": 1592031679
 			},
 			"steamid": "[U:1:1106031176]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "www.myg0t.gg",
+				"time": 1593561647
+			},
+			"steamid": "[U:1:1106118347]"
 		},
 		{
 			"attributes": [
