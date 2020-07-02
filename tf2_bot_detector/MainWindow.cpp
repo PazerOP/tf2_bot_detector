@@ -344,6 +344,15 @@ void MainWindow::OnDrawScoreboard()
 						bgColor.w = std::min(bgColor.w + 0.5f, 1.0f);
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
+
+						if (ImGui::IsItemHovered())
+						{
+							ImGui::BeginTooltip();
+							ImGui::Text("Your Thirst: %u", player.GetScores().m_LocalDeaths);
+							ImGui::Text("Their Thirst: %u", player.GetScores().m_LocalKills);
+							ImGui::EndTooltip();
+						}
+
 						ImGui::NextColumn();
 					}
 

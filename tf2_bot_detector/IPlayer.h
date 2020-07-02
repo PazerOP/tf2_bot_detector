@@ -26,6 +26,8 @@ namespace tf2_bot_detector
 	{
 		uint16_t m_Kills = 0;
 		uint16_t m_Deaths = 0;
+		uint16_t m_LocalKills = 0;
+		uint16_t m_LocalDeaths = 0;
 	};
 
 	class IPlayer

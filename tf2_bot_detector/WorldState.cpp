@@ -406,11 +406,27 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	case ConsoleLineType::KillNotification:
 	{
 		auto& killLine = static_cast<const KillNotificationLine&>(parsed);
+		const auto localSteamID = m_Settings->GetLocalSteamID();
+		const auto attackerSteamID = FindSteamIDForName(killLine.GetAttackerName());
+		const auto victimSteamID = FindSteamIDForName(killLine.GetVictimName());
 
-		if (const auto attackerSteamID = FindSteamIDForName(killLine.GetAttackerName()))
-			FindOrCreatePlayer(*attackerSteamID).m_Scores.m_Kills++;
-		if (const auto victimSteamID = FindSteamIDForName(killLine.GetVictimName()))
-			FindOrCreatePlayer(*victimSteamID).m_Scores.m_Deaths++;
+		if (attackerSteamID)
+		{
+			auto& attacker = FindOrCreatePlayer(*attackerSteamID);
+			attacker.m_Scores.m_Kills++;
+
+			if (victimSteamID == localSteamID)
+				attacker.m_Scores.m_LocalKills++;
+		}
+
+		if (victimSteamID)
+		{
+			auto& victim = FindOrCreatePlayer(*victimSteamID);
+			victim.m_Scores.m_Deaths++;
+
+			if (attackerSteamID == localSteamID)
+				victim.m_Scores.m_LocalDeaths++;
+		}
 
 		break;
 	}
