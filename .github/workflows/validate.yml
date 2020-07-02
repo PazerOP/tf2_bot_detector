@@ -6,8 +6,8 @@ jobs:
   validate-json-files:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
 
       - name: Install validator
         run: go get github.com/neilpa/yajsv
@@ -17,9 +17,3 @@ jobs:
 
       - name: Validate rules
         run: yajsv -s schemas/v3/rules.schema.json staging/cfg/rules.official.json
-
-      - name: Validate rules
-        uses: docker://orrosenblatt/validate-json-action:latest
-        env:
-          INPUT_SCHEMA: /schemas/v3/rules.schema.json
-          INPUT_JSONS: /staging/cfg/rules.official.json
