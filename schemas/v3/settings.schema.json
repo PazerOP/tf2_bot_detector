@@ -1,6 +1,6 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"$id": "settings.schema.json",
+	"$id": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/settings.schema.json",
 	"title": "TF2 Bot Detector Settings Schema",
 	"type": "object",
 	"additionalProperties": false,
