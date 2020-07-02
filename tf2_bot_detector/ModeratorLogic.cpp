@@ -109,6 +109,7 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 				continue;
 
 			OnRuleMatch(rule, player);
+			DebugLog("Chat message rule match: "s << std::quoted(msg));
 		}
 	}
 }
