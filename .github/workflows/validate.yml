@@ -1,0 +1,22 @@
+name: Validate JSONs
+
+on: [push, pull_request]
+
+jobs:
+  validate-json-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Validate playerlist
+        uses: docker://orrosenblatt/validate-json-action:latest
+        env:
+          INPUT_SCHEMA: /schemas/v3/playerlist.schema.json
+          INPUT_JSONS: /staging/cfg/playerlist.official.json
+
+      - name: Validate rules
+        uses: docker://orrosenblatt/validate-json-action:latest
+        env:
+          INPUT_SCHEMA: /schemas/v3/rules.schema.json
+          INPUT_JSONS: /staging/cfg/rules.official.json
