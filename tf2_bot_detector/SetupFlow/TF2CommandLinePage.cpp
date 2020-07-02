@@ -31,7 +31,7 @@ static std::string GenerateRandomRCONPassword(size_t length = 16)
 	}
 
 	constexpr char PALETTE[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	std::uniform_int_distribution<size_t> dist(0, std::size(PALETTE) - 1);
+	std::uniform_int_distribution<size_t> dist(0, std::size(PALETTE) - 2);
 
 	std::string retVal(length, '\0');
 	for (size_t i = 0; i < length; i++)
