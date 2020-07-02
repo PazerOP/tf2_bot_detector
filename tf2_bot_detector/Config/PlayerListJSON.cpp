@@ -120,6 +120,7 @@ namespace tf2_bot_detector
 }
 
 PlayerListJSON::PlayerListJSON(const Settings& settings) :
+	m_Settings(&settings),
 	m_CFGGroup(settings)
 {
 	// Immediately load and resave to normalize any formatting
@@ -211,6 +212,9 @@ bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attr
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const
 {
+	if (id == m_Settings->GetLocalSteamID())
+		return false;
+
 	for (const PlayerAttributesList& found : FindPlayerAttributes(id))
 	{
 		for (auto attr : attributes)
@@ -233,6 +237,12 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	ModifyPlayerAction(*func)(PlayerListData& data, const void* userData), const void* userData)
 {
+	if (id == m_Settings->GetLocalSteamID())
+	{
+		LogWarning("Attempted to modify player attributes for local SteamID "s << id);
+		return ModifyPlayerResult::NoChanges;
+	}
+
 	PlayerListData* data = nullptr;
 	auto& mutableList = m_CFGGroup.GetMutableList();
 	if (auto found = mutableList.m_Players.find(id); found != mutableList.m_Players.end())

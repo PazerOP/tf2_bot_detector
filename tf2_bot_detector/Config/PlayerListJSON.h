@@ -115,6 +115,8 @@ namespace tf2_bot_detector
 		size_t GetPlayerCount() const { return m_CFGGroup.size(); }
 
 	private:
+		const Settings* m_Settings = nullptr;
+
 		using PlayerMap_t = std::map<SteamID, PlayerListData>;
 
 		struct PlayerListFile final : public SharedConfigFileBase
