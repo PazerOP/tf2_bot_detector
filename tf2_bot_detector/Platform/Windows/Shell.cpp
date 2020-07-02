@@ -13,6 +13,7 @@
 #include <ShObjIdl_core.h>
 #include <ShlObj.h>
 
+using namespace std::string_literals;
 using namespace tf2_bot_detector::Windows;
 
 namespace
@@ -70,6 +71,7 @@ std::filesystem::path tf2_bot_detector::Shell::BrowseForFolderDialog()
 
 void tf2_bot_detector::Shell::OpenURL(const char* url)
 {
+	DebugLog("Shell opening "s << std::quoted(url));
 	ShellExecuteA(NULL, "open", url, nullptr, nullptr, SW_SHOWNORMAL);
 }
 
