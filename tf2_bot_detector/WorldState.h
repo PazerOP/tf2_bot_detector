@@ -79,6 +79,8 @@ namespace tf2_bot_detector
 		cppcoro::generator<const IPlayer&> GetPlayers() const;
 		cppcoro::generator<IPlayer&> GetPlayers();
 
+		time_point_t GetLastStatusUpdateTime() const { return m_LastStatusUpdateTime; }
+
 	private:
 		const Settings* m_Settings = nullptr;
 

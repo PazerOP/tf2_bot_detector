@@ -1088,7 +1088,7 @@ cppcoro::generator<IPlayer&> MainWindow::ConsoleLogParserExtra::GeneratePlayerPr
 			// Just find the most recent status updates.
 			for (IPlayer& playerData : world.GetPlayers())
 			{
-				if (playerData.GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
+				if (playerData.GetLastStatusUpdateTime() >= (m_Parent->GetWorld().GetLastStatusUpdateTime() - 15s))
 				{
 					*current = &playerData;
 					current++;
@@ -1159,6 +1159,11 @@ void MainWindow::UpdateServerPing(time_point_t timestamp)
 
 	while ((timestamp - m_ServerPingSamples.front().m_Timestamp) > 5min)
 		m_ServerPingSamples.erase(m_ServerPingSamples.begin());
+}
+
+time_point_t MainWindow::GetLastStatusUpdateTime() const
+{
+	return GetWorld().GetLastStatusUpdateTime();
 }
 
 float MainWindow::PlayerExtraData::GetAveragePing() const

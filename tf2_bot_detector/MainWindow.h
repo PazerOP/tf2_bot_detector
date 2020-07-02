@@ -139,6 +139,8 @@ namespace tf2_bot_detector
 		ModeratorLogic m_ModeratorLogic{ m_WorldState, m_Settings, m_ActionManager };
 		SetupFlow m_SetupFlow;
 
+		time_point_t GetLastStatusUpdateTime() const;
+
 		struct ConsoleLogParserExtra
 		{
 			ConsoleLogParserExtra(MainWindow& parent);
@@ -148,8 +150,6 @@ namespace tf2_bot_detector
 			std::list<std::shared_ptr<const IConsoleLine>> m_PrintingLines;  // newest to oldest order
 			static constexpr size_t MAX_PRINTING_LINES = 512;
 			cppcoro::generator<IPlayer&> GeneratePlayerPrintData();
-
-			time_point_t m_LastStatusUpdateTime{};
 		};
 		std::optional<ConsoleLogParserExtra> m_ConsoleLogParser;
 	};
