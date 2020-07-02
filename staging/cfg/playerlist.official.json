@@ -11,6 +11,12 @@
 	"players": [
 		{
 			"attributes": [
+				"racist"
+			],
+			"steamid": "[U:1:948219720]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
