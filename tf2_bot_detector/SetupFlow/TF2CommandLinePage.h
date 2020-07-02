@@ -57,8 +57,15 @@ namespace tf2_bot_detector
 			bool IsPopulated() const;
 		};
 
+		// We don't want the user to get stuck in an annoying loop of
+		// tf2 auto-relaunching the moment they close the game.
+		bool m_IsAutoLaunchAllowed = true;
+
 		struct Data
 		{
+			bool m_AutoLaunchTF2 = false;
+			time_point_t m_LastTF2LaunchTime{};
+
 			bool m_MultipleInstances = false;
 			std::optional<TF2CommandLine> m_CommandLineArgs;
 			std::shared_future<std::vector<std::string>> m_CommandLineArgsFuture;

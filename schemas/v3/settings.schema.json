@@ -18,6 +18,10 @@
 					"description": "Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.",
 					"type": "boolean"
 				},
+				"auto_launch_tf2": {
+					"description": "Controls whether TF2 will automatically be launched when TF2BD is opened.",
+					"type": "boolean"
+				},
 				"local_steamid_override": {
 					"description": "The SteamID of the player running the tool. Overrides the auto-detected value.",
 					"$ref": "./shared.schema.json#definitions/steamid"
