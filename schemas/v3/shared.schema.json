@@ -6,7 +6,7 @@
 		"tfbd_player_attributes": {
 			"oneOf": [
 				{
-					"description": "A player who uses software to modify the game state to gain an advantage.",
+					"description": "A player who uses external software to modify the game state to gain an advantage.",
 					"const": "cheater"
 				},
 				{
