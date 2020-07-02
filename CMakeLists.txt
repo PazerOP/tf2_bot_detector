@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.30)
+project(tf2_bot_detector VERSION 1.0.0.31)
 
 include(FetchContent)
 # set(FETCHCONTENT_QUIET off)
