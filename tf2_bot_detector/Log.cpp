@@ -18,6 +18,7 @@ using namespace tf2_bot_detector;
 
 static std::recursive_mutex s_LogMutex;
 static std::vector<LogMessage> s_LogMessages;
+static size_t s_VisibleLogMessagesStart = 0;
 
 namespace tf2_bot_detector
 {
@@ -123,12 +124,19 @@ void tf2_bot_detector::DebugLogWarning(std::string msg)
 	Log(std::move(msg), { COLOR_WARNING.r, COLOR_WARNING.g, COLOR_WARNING.b, 0.67f });
 }
 
-auto tf2_bot_detector::GetLogMsgs() -> cppcoro::generator<const LogMessage&>
+auto tf2_bot_detector::GetVisibleLogMsgs() -> cppcoro::generator<const LogMessage&>
 {
 	std::lock_guard lock(s_LogMutex);
 
-	for (const auto& msg : s_LogMessages)
-		co_yield msg;
+	for (size_t i = s_VisibleLogMessagesStart; i < s_LogMessages.size(); i++)
+		co_yield s_LogMessages[i];
+}
+
+void tf2_bot_detector::ClearVisibleLogMessages()
+{
+	std::lock_guard lock(s_LogMutex);
+	DebugLog("Clearing visible log messages...");
+	s_VisibleLogMessagesStart = s_LogMessages.size();
 }
 
 LogMessageColor::LogMessageColor(const ImVec4& vec) :

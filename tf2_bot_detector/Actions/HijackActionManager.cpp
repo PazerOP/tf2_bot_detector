@@ -1,69 +1,22 @@
-#include "ActionManager.h"
+#ifdef _WIN32
+#include "HijackActionManager.h"
 #include "Actions.h"
-#include "Config/Settings.h"
-#include "ConsoleLines.h"
+#include "ICommandSource.h"
 #include "Log.h"
-#include "Actions/ActionGenerators.h"
+#include "Config/Settings.h"
 
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
 
-#include <filesystem>
+#include <cassert>
 #include <fstream>
-#include <regex>
 
-#define WIN32_LEAN_AND_MEAN 1
 #include <Windows.h>
 
-#undef min
-#undef max
-
-static const std::regex s_SingleCommandRegex(R"regex(((?:\w+)(?:\ +\w+)?)(?:\n)?)regex", std::regex::optimize);
-
-using namespace tf2_bot_detector;
-using namespace std::chrono_literals;
 using namespace std::string_literals;
-using namespace std::string_view_literals;
+using namespace tf2_bot_detector;
 
-namespace tfbd_paths
-{
-	namespace local
-	{
-		static std::filesystem::path cfg()
-		{
-			return "tf2_bot_detector";
-		}
-		static std::filesystem::path cfg_temp()
-		{
-			return cfg() / "temp";
-		}
-	}
-}
-
-auto ActionManager::absolute_root() const
-{
-	return m_Settings->GetTFDir();// / "custom/tf2_bot_detector";
-}
-auto ActionManager::absolute_cfg() const
-{
-	return absolute_root() / "cfg" / tfbd_paths::local::cfg();
-}
-auto ActionManager::absolute_cfg_temp() const
-{
-	return absolute_root() / "cfg" / tfbd_paths::local::cfg_temp();
-}
-
-ActionManager::ActionManager(const Settings& settings) :
-	m_Settings(&settings)
-{
-	std::filesystem::remove_all(absolute_cfg_temp());
-}
-
-ActionManager::~ActionManager()
-{
-}
-
-struct ActionManager::RunningCommand
+struct HijackActionManager::RunningCommand
 {
 	RunningCommand(HANDLE procHandle, std::string command) : m_ProcHandle(procHandle), m_Command(command) {}
 	RunningCommand(const RunningCommand&) = delete;
@@ -97,38 +50,7 @@ private:
 	time_point_t m_StartTime = clock_t::now();
 };
 
-bool ActionManager::QueueAction(std::unique_ptr<IAction>&& action)
-{
-	if (const auto maxQueuedCount = action->GetMaxQueuedCount();
-		maxQueuedCount <= m_Actions.size())
-	{
-		const ActionType curActionType = action->GetType();
-		size_t count = 0;
-		for (const auto& queuedAction : m_Actions)
-		{
-			if (queuedAction->GetType() == curActionType)
-			{
-				if (++count >= maxQueuedCount)
-					return false;
-			}
-		}
-	}
-
-	m_Actions.push_back(std::move(action));
-	return true;
-}
-
-void ActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActionGenerator>&& action)
-{
-	m_PeriodicActionGenerators.push_back(std::move(action));
-}
-
-void ActionManager::AddPiggybackActionGenerator(std::unique_ptr<IActionGenerator>&& action)
-{
-	m_PiggybackActionGenerators.push_back(std::move(action));
-}
-
-struct ActionManager::Writer final : ICommandWriter
+struct HijackActionManager::Writer final : ICommandWriter
 {
 	void Write(std::string cmd, std::string args) override
 	{
@@ -158,8 +80,83 @@ struct ActionManager::Writer final : ICommandWriter
 	size_t m_CommandArgCount = 0;
 };
 
-bool ActionManager::ProcessSimpleCommands(const Writer& writer)
+void HijackActionManager::ProcessRunningCommands()
 {
+	for (auto it = m_RunningCommands.begin(); it != m_RunningCommands.end();)
+	{
+		bool shouldRemove = false;
+		if (it->IsComplete())
+		{
+			shouldRemove = true;
+		}
+		else if (it->GetElapsed() > std::chrono::duration<float>(m_Settings->m_CommandTimeoutSeconds))
+		{
+			LogWarning("Command timed out: "s << std::quoted(it->m_Command));
+			it->Terminate();
+			shouldRemove = true;
+		}
+
+		if (shouldRemove)
+			it = m_RunningCommands.erase(it);
+		else
+			++it;
+	}
+}
+
+namespace tfbd_paths
+{
+	namespace local
+	{
+		static std::filesystem::path cfg()
+		{
+			return "tf2_bot_detector";
+		}
+		static std::filesystem::path cfg_temp()
+		{
+			return cfg() / "temp";
+		}
+	}
+}
+
+auto HijackActionManager::absolute_root() const
+{
+	return m_Settings->GetTFDir();// / "custom/tf2_bot_detector";
+}
+auto HijackActionManager::absolute_cfg() const
+{
+	return absolute_root() / "cfg" / tfbd_paths::local::cfg();
+}
+auto HijackActionManager::absolute_cfg_temp() const
+{
+	return absolute_root() / "cfg" / tfbd_paths::local::cfg_temp();
+}
+
+HijackActionManager::HijackActionManager(const Settings& settings) :
+	m_Settings(&settings)
+{
+	std::filesystem::remove_all(absolute_cfg_temp());
+}
+
+HijackActionManager::~HijackActionManager()
+{
+}
+
+bool HijackActionManager::RunCommand(std::string cmd, std::string args)
+{
+	Writer writer;
+	writer.Write(std::move(cmd), std::move(args));
+	return SendHijackCommands(writer);
+}
+
+void HijackActionManager::Update()
+{
+	ProcessRunningCommands();
+}
+
+bool HijackActionManager::ProcessSimpleCommands(const Writer& writer)
+{
+	assert(!writer.m_ComplexCommands);
+
 	std::string cmdLine;
 	bool firstCmd = true;
 
@@ -188,12 +185,13 @@ bool ActionManager::ProcessSimpleCommands(const Writer& writer)
 	}
 
 	// A simple command, we can pass this directly to the engine
-	return SendCommandToGame(cmdLine);
+	return SendHijackCommand(cmdLine);
 }
 
-bool ActionManager::ProcessComplexCommands(const Writer& writer)
+bool HijackActionManager::ProcessComplexCommands(const Writer& writer)
 {
 	// More complicated, exec commands from a cfg file
+	assert(writer.m_ComplexCommands);
 
 	std::string cfgFileContents;
 	for (const auto& cmd : writer.m_Commands)
@@ -256,116 +254,26 @@ bool ActionManager::ProcessComplexCommands(const Writer& writer)
 		m_TempCfgFiles.emplace(std::hash<std::string>{}(cfgFileContents), m_LastUpdateIndex);
 	}
 
-	return SendCommandToGame("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
+	return SendHijackCommand("+exec "s << (tfbd_paths::local::cfg_temp() / cfgFilename).generic_string());
 }
 
-void ActionManager::ProcessRunningCommands()
+bool HijackActionManager::SendHijackCommands(const Writer& writer)
 {
-	for (auto it = m_RunningCommands.begin(); it != m_RunningCommands.end();)
-	{
-		bool shouldRemove = false;
-		if (it->IsComplete())
-		{
-			shouldRemove = true;
-		}
-		else if (it->GetElapsed() > std::chrono::duration<float>(m_Settings->m_CommandTimeoutSeconds))
-		{
-			LogWarning("Command timed out: "s << std::quoted(it->m_Command));
-			it->Terminate();
-			shouldRemove = true;
-		}
-
-		if (shouldRemove)
-			it = m_RunningCommands.erase(it);
-		else
-			++it;
-	}
+	// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?
+	if (!writer.m_ComplexCommands && writer.m_CommandArgCount < 200)
+		return ProcessSimpleCommands(writer);
+	else
+		return ProcessComplexCommands(writer);
 }
 
-void ActionManager::Update()
-{
-	const auto curTime = clock_t::now();
-	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
-		return;
-
-	ProcessRunningCommands();
-
-	// Update periodic actions
-	for (const auto& generator : m_PeriodicActionGenerators)
-		generator->Execute(*this);
-
-	if (!m_Actions.empty())
-	{
-		bool actionTypes[(int)ActionType::COUNT]{};
-
-		Writer writer;
-
-		const auto ProcessAction = [&](const IAction* action)
-		{
-			const ActionType type = action->GetType();
-			{
-				auto& previousMsg = actionTypes[(int)type];
-				const auto minInterval = action->GetMinInterval();
-
-				if (minInterval.count() > 0 && (previousMsg || (curTime - m_LastTriggerTime[type]) < minInterval))
-					return false;
-
-				previousMsg = true;
-			}
-
-			action->WriteCommands(writer);
-			//it = m_Actions.erase(it);
-			m_LastTriggerTime[type] = curTime;
-			return true;
-		};
-
-		const auto ProcessActions = [&]()
-		{
-			for (auto it = m_Actions.begin(); it != m_Actions.end(); )
-			{
-				const IAction* action = it->get();
-				if (ProcessAction(it->get()))
-					it = m_Actions.erase(it);
-				else
-					++it;
-			}
-		};
-
-		// Handle normal actions
-		ProcessActions();
-
-		if (!writer.m_Commands.empty())
-		{
-			// Handle piggyback commands
-			for (const auto& generator : m_PiggybackActionGenerators)
-				generator->Execute(*this);
-
-			// Process any actions added by piggyback action generators
-			ProcessActions();
-		}
-
-		// Is this a "simple" command, aka nothing to confuse the engine/OS CLI arg parser?
-		if (!writer.m_ComplexCommands && writer.m_CommandArgCount < 200)
-		{
-			ProcessSimpleCommands(writer);
-		}
-		else
-		{
-			ProcessComplexCommands(writer);
-		}
-	}
-
-	m_LastUpdateTime = curTime;
-}
-
-bool ActionManager::SendCommandToGame(std::string cmd)
+bool HijackActionManager::SendHijackCommand(std::string cmd)
 {
 	if (cmd.empty())
 		return true;
 
 	if (!FindWindowA("Valve001", nullptr))
 	{
-		Log("Attempted to send command \""s << cmd << "\" to game, but game is not running", { 1, 1, 0.8f });
+		DebugLogWarning("Attempted to send command \""s << cmd << "\" to game, but game is not running");
 		return false;
 	}
 
@@ -391,7 +299,7 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 		hl2Dir.c_str(),      // working directory
 		&si,                 // STARTUPINFO
 		&pi                  // PROCESS_INFORMATION
-		);
+	);
 
 	if (!result)
 	{
@@ -408,7 +316,8 @@ bool ActionManager::SendCommandToGame(std::string cmd)
 	m_RunningCommands.emplace_back(pi.hProcess, std::move(cmd));
 
 	if (!CloseHandle(pi.hThread))
-		throw std::runtime_error(__FUNCTION__ ": Failed to close process thread");
+		LogError(__FUNCTION__ ": Failed to close process thread");
 
 	return true;
 }
+#endif

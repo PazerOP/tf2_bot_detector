@@ -4,12 +4,14 @@
 #include "Log.h"
 #include "PathUtils.h"
 #include "PlayerListJSON.h"
-#include "PlatformSpecific/Steam.h"
+#include "Platform/Platform.h"
+#include "Networking/NetworkHelpers.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
 #include <nlohmann/json.hpp>
+#include <srcon/async_client.h>
 
 #include <filesystem>
 #include <fstream>
@@ -226,6 +228,10 @@ bool Settings::SaveFile() const
 	return true;
 }
 
+Settings::Unsaved::~Unsaved()
+{
+}
+
 const HTTPClient* tf2_bot_detector::Settings::GetHTTPClient() const
 {
 	if (!m_AllowInternetUsage.value_or(false))
@@ -254,6 +260,14 @@ std::filesystem::path AutoDetectedSettings::GetTFDir() const
 		return m_TFDirOverride;
 
 	return FindTFDir(GetSteamDir());
+}
+
+std::string tf2_bot_detector::AutoDetectedSettings::GetLocalIP() const
+{
+	if (!m_LocalIPOverride.empty())
+		return m_LocalIPOverride;
+
+	return tf2_bot_detector::Networking::GetLocalIP();
 }
 
 std::filesystem::path AutoDetectedSettings::GetSteamDir() const

@@ -15,7 +15,7 @@ SplitPacketLine::SplitPacketLine(time_point_t timestamp, SplitPacket packet) :
 {
 }
 
-std::unique_ptr<IConsoleLine> SplitPacketLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> SplitPacketLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	static std::regex s_Regex(R"regex(<-- \[(.{3})\] Split packet +(\d+)\/ +(\d+) seq +(\d+) size +(\d+) mtu +(\d+) from ([0-9.:a-fA-F]+:\d+))regex", std::regex::optimize);
 
@@ -52,7 +52,7 @@ std::unique_ptr<IConsoleLine> SplitPacketLine::TryParse(const std::string_view& 
 		from_chars_throw(result[6], packet.m_MTU);
 		packet.m_Address = result[7].str();
 
-		return std::make_unique<SplitPacketLine>(timestamp, std::move(packet));
+		return std::make_shared<SplitPacketLine>(timestamp, std::move(packet));
 	}
 
 	return nullptr;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AsyncObject.h"
+#include "FileMods.h"
 #include "Networking/HTTPClient.h"
 #include "SteamID.h"
 
@@ -8,6 +10,11 @@
 #include <filesystem>
 #include <optional>
 #include <vector>
+
+namespace srcon
+{
+	class async_client;
+}
 
 namespace tf2_bot_detector
 {
@@ -33,6 +40,9 @@ namespace tf2_bot_detector
 
 		std::filesystem::path GetTFDir() const;
 		std::filesystem::path m_TFDirOverride;
+
+		std::string GetLocalIP() const;
+		std::string m_LocalIPOverride;
 	};
 
 	struct GotoProfileSite
@@ -53,12 +63,18 @@ namespace tf2_bot_detector
 
 		// Settings that are not saved in the config file because we want them to
 		// reset to these defaults when the tool is reopened
-		struct
+		struct Unsaved
 		{
+			~Unsaved();
+
 			bool m_EnableChatWarnings = true;
 			bool m_EnableVotekick = true;
 			bool m_EnableAutoMark = true;
 			bool m_DebugShowCommands = false;
+
+			AsyncObject<ChatWrappers> m_ChatMsgWrappers;
+			std::unique_ptr<srcon::async_client> m_RCONClient;
+
 		} m_Unsaved;
 
 		bool m_SleepWhenUnfocused = true;
@@ -71,6 +87,7 @@ namespace tf2_bot_detector
 		std::optional<bool> m_AllowInternetUsage;
 		const HTTPClient* GetHTTPClient() const;
 		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
+		std::string m_LocalIPOverride;
 
 		std::vector<GotoProfileSite> m_GotoProfileSites;
 

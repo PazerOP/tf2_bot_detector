@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IConsoleLineListener.h"
+#include "ConsoleLog/IConsoleLineListener.h"
 #include "IWorldEventListener.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Rules.h"
@@ -11,7 +11,7 @@
 
 namespace tf2_bot_detector
 {
-	class ActionManager;
+	class RCONActionManager;
 	enum class LobbyMemberTeam : uint8_t;
 	class IPlayer;
 	enum class KickReason;
@@ -24,7 +24,9 @@ namespace tf2_bot_detector
 	class ModeratorLogic final : IConsoleLineListener, BaseWorldEventListener
 	{
 	public:
-		ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager);
+		ModeratorLogic(WorldState& world, const Settings& settings, RCONActionManager& actionManager);
+
+		void Update();
 
 		bool InitiateVotekick(const IPlayer& id, KickReason reason);
 
@@ -54,7 +56,7 @@ namespace tf2_bot_detector
 	private:
 		WorldState* m_World = nullptr;
 		const Settings* m_Settings = nullptr;
-		ActionManager* m_ActionManager = nullptr;
+		RCONActionManager* m_ActionManager = nullptr;
 
 		struct PlayerExtraData
 		{
@@ -77,7 +79,6 @@ namespace tf2_bot_detector
 		// Steam IDs of players that we think are running the tool.
 		std::unordered_set<SteamID> m_PlayersRunningTool;
 
-		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 		void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
 		void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override;
 

@@ -51,7 +51,7 @@ namespace tf2_bot_detector
 		Last,
 	};
 
-	class IConsoleLine
+	class IConsoleLine : public std::enable_shared_from_this<IConsoleLine>
 	{
 	public:
 		IConsoleLine(time_point_t timestamp);
@@ -61,12 +61,12 @@ namespace tf2_bot_detector
 		virtual bool ShouldPrint() const { return true; }
 		virtual void Print() const = 0;
 
-		static std::unique_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text, time_point_t timestamp);
 
 		time_point_t GetTimestamp() const { return m_Timestamp; }
 
 	protected:
-		using TryParseFunc = std::unique_ptr<IConsoleLine>(*)(const std::string_view& text, time_point_t timestamp);
+		using TryParseFunc = std::shared_ptr<IConsoleLine>(*)(const std::string_view& text, time_point_t timestamp);
 		struct ConsoleLineTypeData
 		{
 			TryParseFunc m_TryParseFunc = nullptr;

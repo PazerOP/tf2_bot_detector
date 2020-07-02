@@ -109,7 +109,7 @@ namespace tf2_bot_detector
 template<typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::IPlayer& player)
 {
-	return os << '"' << player.GetName() << "\" (" << player.GetSteamID() << ')';
+	return os << '"' << player.GetName() << "\" " << player.GetSteamID();
 }
 
 template<typename CharT, typename Traits>

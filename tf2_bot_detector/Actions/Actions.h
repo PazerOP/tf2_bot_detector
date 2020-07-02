@@ -48,8 +48,6 @@ namespace tf2_bot_detector
 	{
 	public:
 		ActionType GetType() const override { return ActionType::LobbyUpdate; }
-		duration_t GetMinInterval() const override;
-		size_t GetMaxQueuedCount() const { return 1; }
 		void WriteCommands(ICommandWriter& writer) const override;
 	};
 

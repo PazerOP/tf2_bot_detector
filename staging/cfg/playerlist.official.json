@@ -426,6 +426,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "www.myg0t.gg",
+				"time": 1593492086
+			},
+			"steamid": "[U:1:395150304]"
+		},
+		{
+			"attributes": [
 				"suspicious"
 			],
 			"last_seen": {
@@ -462,6 +472,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "steak",
+				"time": 1593490958
+			},
+			"steamid": "[U:1:448257384]"
+		},
+		{
+			"attributes": [
 				"suspicious",
 				"racist"
 			],
@@ -490,6 +510,16 @@
 				"time": 1591768992
 			},
 			"steamid": "[U:1:470923236]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Terry A Davis",
+				"time": 1593560898
+			},
+			"steamid": "[U:1:472944587]"
 		},
 		{
 			"attributes": [
@@ -522,6 +552,16 @@
 				"time": 1592413046
 			},
 			"steamid": "[U:1:857640160]"
+		},
+		{
+			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "christmas chimp",
+				"time": 1593487993
+			},
+			"steamid": "[U:1:873670853]"
 		},
 		{
 			"attributes": [
@@ -782,11 +822,12 @@
 		},
 		{
 			"attributes": [
+				"cheater",
 				"exploiter"
 			],
 			"last_seen": {
-				"player_name": "Stephanie.",
-				"time": 1591436064
+				"player_name": "Alice ^=^",
+				"time": 1593383631
 			},
 			"steamid": "[U:1:1008050763]"
 		},
@@ -1227,6 +1268,15 @@
 				"cheater"
 			],
 			"last_seen": {
+				"time": 1593570468
+			},
+			"steamid": "[U:1:1065143993]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "hammer tf2",
 				"time": 1590736604
 			},
@@ -1657,6 +1707,15 @@
 				"cheater"
 			],
 			"steamid": "[U:1:1090555720]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"time": 1593570616
+			},
+			"steamid": "[U:1:1090574817]"
 		},
 		{
 			"attributes": [
@@ -2600,6 +2659,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "royalhack.net BOT",
+				"time": 1593153940
+			},
+			"steamid": "[U:1:1103700545]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -3457,6 +3526,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "www.myg0t.gg",
+				"time": 1593490628
+			},
+			"steamid": "[U:1:1105917970]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "James Charles",
 				"time": 1592193003
 			},
@@ -3585,6 +3664,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "www.myg0t.gg",
+				"time": 1593561647
+			},
+			"steamid": "[U:1:1106118347]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "[VALVE] Twilight Sparkle",
 				"time": 1592195660
 			},
@@ -3665,6 +3754,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(1)cum",
+				"time": 1593156709
+			},
+			"steamid": "[U:1:1108339510]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "cum",
 				"time": 1592971015
 			},
@@ -3689,6 +3788,16 @@
 				"time": 1592966173
 			},
 			"steamid": "[U:1:1108516588]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "cum",
+				"time": 1593156712
+			},
+			"steamid": "[U:1:1108560184]"
 		},
 		{
 			"attributes": [
@@ -3749,6 +3858,16 @@
 				"time": 1593054985
 			},
 			"steamid": "[U:1:1109069289]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "ANTI BOT BO\u200fT | Owner",
+				"time": 1593391155
+			},
+			"steamid": "[U:1:1109966153]"
 		}
 	]
 }

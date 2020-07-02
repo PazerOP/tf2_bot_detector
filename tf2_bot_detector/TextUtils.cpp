@@ -9,6 +9,10 @@
 #include <codecvt>
 #include <fstream>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 using namespace std::string_literals;
 
 std::u16string tf2_bot_detector::ToU16(const std::u8string_view& input)
@@ -65,6 +69,12 @@ std::string tf2_bot_detector::ToMB(const std::u16string_view& input)
 std::string tf2_bot_detector::ToMB(const std::wstring_view& input)
 {
 	return ToMB(ToU16(input));
+}
+
+std::wstring tf2_bot_detector::ToWC(const std::string_view& input)
+{
+	std::wstring_convert<std::codecvt<wchar_t,char, std::mbstate_t>> converter;
+	return converter.from_bytes(input.data(), input.data() + input.size());
 }
 
 std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filename)

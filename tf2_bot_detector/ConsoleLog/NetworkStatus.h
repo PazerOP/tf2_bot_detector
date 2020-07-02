@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IConsoleLine.h"
+#include "ConsoleLog/IConsoleLine.h"
 
 #include <string>
 #include <string_view>
@@ -46,7 +46,7 @@ namespace tf2_bot_detector
 	public:
 		SplitPacketLine(time_point_t timestamp, SplitPacket packet);
 
-		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		const SplitPacket& GetSplitPacket() const { return m_Packet; }
 
@@ -64,7 +64,7 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase<TSelf>;
 
 	public:
-		static std::unique_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp)
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp)
 		{
 			static const std::regex s_Regex(TSelf::REGEX_PATTERN, std::regex::optimize);
 
@@ -73,7 +73,7 @@ namespace tf2_bot_detector
 				float f0, f1;
 				from_chars_throw(result[1], f0);
 				from_chars_throw(result[2], f1);
-				return std::make_unique<TSelf>(timestamp, f0, f1);
+				return std::make_shared<TSelf>(timestamp, f0, f1);
 			}
 
 			return nullptr;

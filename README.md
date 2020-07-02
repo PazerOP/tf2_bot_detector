@@ -49,10 +49,10 @@
   - [What does it do?](#what-does-it-do)
   - [Will this get me VAC banned?](#will-this-get-me-vac-banned)
   - [How does it work?](#how-does-it-work)
-  - [Sometimes I get these popups!](#sometimes-i-get-these-popups)
 - [License](#license)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
+  - [Sponsors](#sponsors)
 
 
 <!-- GETTING STARTED -->
@@ -62,11 +62,11 @@ These instructions will give a quick overview of getting started with TF2BD.
 
 ### Prerequisites
 
-This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
+>A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
+
+This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] ([32bit version][mscr86-link])
 
 ### Installation
-
->A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
 
 1. Go to the [releases page][releases-link]
 2. Download the zip
@@ -99,11 +99,6 @@ No. It does not modify the game or OS memory in any way. It is only using built-
 
 It monitors the console output (saved to a log file) to get information about the game state. Invoking commands in the game is done via the `-hijack` command line paramter. Getting players in the current game is done via the `tf_lobby_debug` and `status` commands. Cheaters are identified by their behavior and/or their Steam ID.
 
-### Sometimes I get these popups!
-
-![src_engine_declined_request](https://user-images.githubusercontent.com/6569500/83913792-dc01fb00-a724-11ea-83c4-7b5aab364611.png)
-![src_engine_not_running](https://user-images.githubusercontent.com/6569500/83913866-fc31ba00-a724-11ea-914c-5b36c9188d8c.png)
-
 Ignore these. They will automatically close after 5 seconds. A fix to prevent these popups entirely will happen in an upcoming release.
 
 <!-- LICENSE -->
@@ -123,6 +118,11 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 * Artwork/icon by S-Purple - [@spurpleheart](https://twitter.com/spurpleheart) (NSFW)
 * Documentation by [Nicholas "ClusterConsultant" Flamel](https://github.com/ClusterConsultant)
 
+### Sponsors
+Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-sponsors-pazerop]:
+* [Crazy Gunman](https://github.com/CrazyGunman2C4U)
+* [ClusterConsultant](https://github.com/ClusterConsultant)
+
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [stars-shield]: https://img.shields.io/github/stars/PazerOP/tf2_bot_detector
@@ -138,4 +138,6 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 [releases-link]: https://github.com/PazerOP/tf2_bot_detector/releases
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
+[mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
 [zip-image]: https://user-images.githubusercontent.com/6569500/85929969-8de89f00-b86d-11ea-859e-2632a1034ea7.png
+[github-sponsors-pazerop]: https://github.com/sponsors/PazerOP

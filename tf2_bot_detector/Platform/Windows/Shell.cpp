@@ -1,57 +1,22 @@
-#include "../Shell.h"
+#include "../Platform.h"
 #include "Log.h"
+#include "TextUtils.h"
 
 #include <mh/text/string_insertion.hpp>
 
 #include <filesystem>
 #include <memory>
 
+#include "WindowsHelpers.h"
 #include <wrl/client.h>
 #include <Windows.h>
 #include <ShObjIdl_core.h>
 #include <ShlObj.h>
 
+using namespace tf2_bot_detector::Windows;
+
 namespace
 {
-	class GetLastErrorException final : public std::runtime_error
-	{
-		static std::string GetLastErrorString(HRESULT hr, const std::string_view& context, DWORD& errorCode)
-		{
-			errorCode = GetLastError();
-			if (errorCode == 0)
-				return {};
-
-			std::string retVal;
-			if (!context.empty())
-				retVal << context << ": ";
-
-			retVal << std::error_code(errorCode, std::system_category()).message();
-			return retVal;
-		}
-
-	public:
-		GetLastErrorException(HRESULT hr) : GetLastErrorException(hr, std::string_view{}) {}
-		GetLastErrorException(HRESULT hr, const std::string_view& msg) : std::runtime_error(GetLastErrorString(hr, msg, m_ErrorCode)) {}
-
-		HRESULT GetResult() const { return m_Result; }
-		DWORD GetErrorCode() const { return m_ErrorCode; }
-
-	private:
-		HRESULT m_Result;
-		DWORD m_ErrorCode;
-	};
-
-	static bool Failed(HRESULT hr) { return FAILED(hr); }
-	static bool Succeeded(HRESULT hr) { return SUCCEEDED(hr); }
-
-#define MH_STR(x) #x
-
-#define CHECK_HR(x) \
-	if (auto hr_temp_____ = (x); Failed(hr_temp_____)) \
-	{ \
-		throw GetLastErrorException(hr_temp_____, MH_STR(x)); \
-	}
-
 	struct CoTaskMemFreeFn
 	{
 		void operator()(void* p) { CoTaskMemFree(p); }
@@ -132,4 +97,25 @@ void tf2_bot_detector::Shell::ExploreToAndSelect(std::filesystem::path path)
 	{
 		LogError(std::string(__FUNCTION__) << "(): path = " << path << ", " << e.what());
 	}
+}
+
+std::vector<std::string> tf2_bot_detector::Shell::SplitCommandLineArgs(const std::string_view& cmdline)
+{
+	auto cmdLineW = tf2_bot_detector::ToWC(cmdline);
+
+	struct Free
+	{
+		void operator()(LPWSTR* str) const { LocalFree(str); }
+	};
+
+	using argptr_t = std::unique_ptr<std::remove_pointer_t<LPWSTR>*, Free>;
+
+	int argc;
+	argptr_t argvW(CommandLineToArgvW(cmdLineW.c_str(), &argc));
+
+	std::vector<std::string> args;
+	for (int i = 0; i < argc; i++)
+		args.push_back(ToMB(argvW.get()[i]));
+
+	return args;
 }

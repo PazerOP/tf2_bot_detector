@@ -14,7 +14,6 @@ namespace tf2_bot_detector
 	public:
 		virtual ~IWorldEventListener() = default;
 
-		virtual void OnUpdate(WorldState& world, bool consoleLinesUpdated) = 0;
 		virtual void OnTimestampUpdate(WorldState& world) = 0;
 		virtual void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) = 0;
 		virtual void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) = 0;
@@ -23,7 +22,6 @@ namespace tf2_bot_detector
 	class BaseWorldEventListener : public IWorldEventListener
 	{
 	public:
-		void OnUpdate(WorldState& world, bool consoleLinesUpdated) override {}
 		void OnTimestampUpdate(WorldState& world) override {}
 		void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override {}
 		void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override {}

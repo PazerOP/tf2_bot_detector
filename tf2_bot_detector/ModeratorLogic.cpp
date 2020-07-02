@@ -1,10 +1,10 @@
 #include "ModeratorLogic.h"
 #include "Actions/Actions.h"
-#include "Actions/ActionManager.h"
-#include "Log.h"
+#include "Actions/RCONActionManager.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Rules.h"
 #include "Config/Settings.h"
+#include "Log.h"
 #include "WorldState.h"
 
 #include <mh/text/case_insensitive_string.hpp>
@@ -23,10 +23,9 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-void ModeratorLogic::OnUpdate(WorldState& world, bool consoleLinesUpdated)
+void ModeratorLogic::Update()
 {
-	if (consoleLinesUpdated)
-		ProcessPlayerActions();
+	ProcessPlayerActions();
 }
 
 void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& player)
@@ -540,7 +539,7 @@ void ModeratorLogic::ReloadConfigFiles()
 	m_Rules.LoadFiles();
 }
 
-ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, ActionManager& actionManager) :
+ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, RCONActionManager& actionManager) :
 	m_World(&world),
 	m_Settings(&settings),
 	m_ActionManager(&actionManager),

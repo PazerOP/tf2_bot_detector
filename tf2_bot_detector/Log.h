@@ -37,10 +37,11 @@ namespace tf2_bot_detector
 	void LogWarning(std::string msg);
 	void LogError(std::string msg);
 
-	void DebugLog(std::string msg, const LogMessageColor& color = { 1, 1, 1, 0.67f });
+	void DebugLog(std::string msg, const LogMessageColor& color = { 1, 1, 1, float(2.0 / 3.0) });
 	void DebugLogWarning(std::string msg);
 
 	const std::filesystem::path& GetLogFilename();
 
-	cppcoro::generator<const LogMessage&> GetLogMsgs();
+	cppcoro::generator<const LogMessage&> GetVisibleLogMsgs();
+	void ClearVisibleLogMessages();
 }

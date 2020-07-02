@@ -73,20 +73,22 @@ std::string_view ChatMessageAction::GetCommand(ChatMessageType type)
 
 std::string ChatMessageAction::ScrubMessage(std::string msg)
 {
+	msg.erase(std::remove_if(msg.begin(), msg.end(),
+		[](char c)
+		{
+			return
+				c == '\r' ||
+				c == '\0' ||
+				c == '\n';
+		}));
+
 	for (auto& c : msg)
 	{
-		if (c == '\n')
-			c = ' ';
-		else if (c == '"')
+		if (c == '"')
 			c = '\'';
 	}
 
 	return "\""s << msg << '"';
-}
-
-duration_t LobbyUpdateAction::GetMinInterval() const
-{
-	return 1s;
 }
 
 void LobbyUpdateAction::WriteCommands(ICommandWriter& writer) const

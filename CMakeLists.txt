@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.26)
+project(tf2_bot_detector VERSION 1.0.0.28)
 
-set(JSON_BuildTests OFF)
+include(FetchContent)
+# set(FETCHCONTENT_QUIET off)
 
 # Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 if (MSVC)
@@ -15,14 +16,38 @@ if (MSVC AND (CMAKE_BUILD_TYPE MATCHES "Release"))
 	add_link_options(/OPT:REF /OPT:ICF)
 endif()
 
-# set(VCPKG_APPLOCAL_DEPS ON)
+FetchContent_Declare(mh_stuff
+	GIT_REPOSITORY https://github.com/PazerOP/stuff.git
+	GIT_SHALLOW true
+	GIT_SUBMODULES_RECURSE false
+)
+FetchContent_Declare(imgui_desktop
+	GIT_REPOSITORY https://github.com/PazerOP/imgui_desktop.git
+	GIT_SHALLOW true
+	GIT_SUBMODULES_RECURSE false
+)
+FetchContent_Declare(nlohmann_json
+	GIT_REPOSITORY https://github.com/nlohmann/json.git
+	GIT_SHALLOW true
+	GIT_SUBMODULES_RECURSE false
+)
+set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
+set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
+FetchContent_MakeAvailable(mh_stuff imgui_desktop nlohmann_json)
 
-add_subdirectory(submodules/imgui_desktop)
-add_subdirectory(submodules/mh_stuff)
-# add_subdirectory(submodules/nlohmann_json)
 add_subdirectory(submodules/ValveFileVDF)
+add_subdirectory(submodules/SourceRCON)
 
 add_executable(tf2_bot_detector WIN32
+	"tf2_bot_detector/Actions/RCONActionManager.cpp"
+	"tf2_bot_detector/Actions/RCONActionManager.h"
+	"tf2_bot_detector/Actions/ActionGenerators.cpp"
+	"tf2_bot_detector/Actions/ActionGenerators.h"
+	"tf2_bot_detector/Actions/Actions.cpp"
+	"tf2_bot_detector/Actions/Actions.h"
+	"tf2_bot_detector/Actions/HijackActionManager.h"
+	"tf2_bot_detector/Actions/HijackActionManager.cpp"
+	"tf2_bot_detector/Actions/ICommandSource.h"
 	"tf2_bot_detector/Config/ConfigHelpers.cpp"
 	"tf2_bot_detector/Config/ConfigHelpers.h"
 	"tf2_bot_detector/Config/JSONHelpers.h"
@@ -32,33 +57,43 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Config/Rules.h"
 	"tf2_bot_detector/Config/Settings.cpp"
 	"tf2_bot_detector/Config/Settings.h"
+	"tf2_bot_detector/ConsoleLog/ConsoleLogParser.h"
+	"tf2_bot_detector/ConsoleLog/ConsoleLogParser.cpp"
+	"tf2_bot_detector/ConsoleLog/ConsoleLines.cpp"
+	"tf2_bot_detector/ConsoleLog/ConsoleLines.h"
+	"tf2_bot_detector/ConsoleLog/IConsoleLine.h"
+	"tf2_bot_detector/ConsoleLog/IConsoleLineListener.h"
+	"tf2_bot_detector/ConsoleLog/NetworkStatus.cpp"
+	"tf2_bot_detector/ConsoleLog/NetworkStatus.h"
 	"tf2_bot_detector/Networking/GithubAPI.h"
 	"tf2_bot_detector/Networking/GithubAPI.cpp"
 	"tf2_bot_detector/Networking/HTTPClient.h"
 	"tf2_bot_detector/Networking/HTTPClient.cpp"
 	"tf2_bot_detector/Networking/HTTPHelpers.h"
 	"tf2_bot_detector/Networking/HTTPHelpers.cpp"
+	"tf2_bot_detector/Networking/NetworkHelpers.h"
+	"tf2_bot_detector/Networking/NetworkHelpers.cpp"
 	"tf2_bot_detector/Networking/SteamAPI.h"
 	"tf2_bot_detector/Networking/SteamAPI.cpp"
-	"tf2_bot_detector/PlatformSpecific/Shell.h"
-	"tf2_bot_detector/PlatformSpecific/Shitty.h"
-	"tf2_bot_detector/PlatformSpecific/Steam.h"
-	"tf2_bot_detector/Actions/ActionManager.cpp"
-	"tf2_bot_detector/Actions/ActionManager.h"
-	"tf2_bot_detector/Actions/Actions.cpp"
-	"tf2_bot_detector/Actions/Actions.h"
+	"tf2_bot_detector/Platform/Platform.h"
+	"tf2_bot_detector/SetupFlow/BasicSettingsPage.h"
+	"tf2_bot_detector/SetupFlow/BasicSettingsPage.cpp"
+	"tf2_bot_detector/SetupFlow/ChatWrappersGeneratorPage.h"
+	"tf2_bot_detector/SetupFlow/ChatWrappersGeneratorPage.cpp"
+	"tf2_bot_detector/SetupFlow/ISetupFlowPage.h"
+	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.h"
+	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.cpp"
+	"tf2_bot_detector/SetupFlow/SetupFlow.cpp"
+	"tf2_bot_detector/SetupFlow/SetupFlow.h"
+	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
+	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
 	"tf2_bot_detector/AsyncObject.h"
 	"tf2_bot_detector/Clock.cpp"
 	"tf2_bot_detector/Clock.h"
 	"tf2_bot_detector/CompensatedTS.cpp"
 	"tf2_bot_detector/CompensatedTS.h"
-	"tf2_bot_detector/ConsoleLines.cpp"
-	"tf2_bot_detector/ConsoleLines.h"
 	"tf2_bot_detector/FileMods.cpp"
 	"tf2_bot_detector/FileMods.h"
-	"tf2_bot_detector/ICommandSource.h"
-	"tf2_bot_detector/IConsoleLine.h"
-	"tf2_bot_detector/IConsoleLineListener.h"
 	"tf2_bot_detector/ImGui_TF2BotDetector.cpp"
 	"tf2_bot_detector/ImGui_TF2BotDetector.h"
 	"tf2_bot_detector/IPlayer.cpp"
@@ -70,15 +105,9 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/MainWindow.h"
 	"tf2_bot_detector/ModeratorLogic.cpp"
 	"tf2_bot_detector/ModeratorLogic.h"
-	"tf2_bot_detector/NetworkStatus.cpp"
-	"tf2_bot_detector/NetworkStatus.h"
 	"tf2_bot_detector/PathUtils.cpp"
 	"tf2_bot_detector/PathUtils.h"
-	"tf2_bot_detector/Actions/ActionGenerators.cpp"
-	"tf2_bot_detector/Actions/ActionGenerators.h"
 	"tf2_bot_detector/PlayerStatus.h"
-	"tf2_bot_detector/SetupFlow.cpp"
-	"tf2_bot_detector/SetupFlow.h"
 	"tf2_bot_detector/SteamID.cpp"
 	"tf2_bot_detector/SteamID.h"
 	"tf2_bot_detector/TextUtils.cpp"
@@ -95,21 +124,21 @@ target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/
 
 if(WIN32)
 	target_sources(tf2_bot_detector PRIVATE
-		tf2_bot_detector/PlatformSpecific/Windows/CrashHandler.cpp
-		tf2_bot_detector/PlatformSpecific/Windows/Shell.cpp
-		tf2_bot_detector/PlatformSpecific/Windows/Shitty.cpp
-		tf2_bot_detector/PlatformSpecific/Windows/Steam.cpp
+		"tf2_bot_detector/Platform/Windows/CrashHandler.cpp"
+		"tf2_bot_detector/Platform/Windows/Processes.cpp"
+		"tf2_bot_detector/Platform/Windows/Shell.cpp"
+		"tf2_bot_detector/Platform/Windows/Steam.cpp"
+		"tf2_bot_detector/Platform/Windows/WindowsHelpers.h"
+		"tf2_bot_detector/Platform/Windows/WinMain.cpp"
 	)
 endif()
 
 target_include_directories(tf2_bot_detector
 	PRIVATE tf2_bot_detector
-	PRIVATE submodules/nlohmann_json/include
 )
 
-# cpp-httplib requires openssl
 find_package(OpenSSL REQUIRED)
-target_link_libraries(tf2_bot_detector PRIVATE OpenSSL::SSL)
+target_link_libraries(tf2_bot_detector)
 
 find_path(HTTPLIB_PATH NAMES httplib.h)
 target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
@@ -117,13 +146,16 @@ target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 find_package(libzippp CONFIG REQUIRED)
 find_package(cppcoro CONFIG REQUIRED)
 
-target_link_libraries(tf2_bot_detector PRIVATE
-	imgui_desktop
-	mh_stuff
-	ValveFileVDF
-	libzip::libzip
-	libzippp::libzippp
-	cppcoro
+target_link_libraries(tf2_bot_detector
+	PRIVATE imgui_desktop
+	PRIVATE mh_stuff
+	PRIVATE ValveFileVDF
+	PRIVATE libzip::libzip
+	PRIVATE libzippp::libzippp
+	PRIVATE cppcoro
+	PRIVATE SourceRCON
+	PRIVATE OpenSSL::SSL # cpp-httplib requires openssl
+	PRIVATE nlohmann_json::nlohmann_json
 )
 
 # TODO: Find a way to do this locally
@@ -151,26 +183,3 @@ install(DIRECTORY staging/ staging/ DESTINATION "/" FILES_MATCHING
 	PATTERN "staging/logs" EXCLUDE
 )
 install(TARGETS tf2_bot_detector DESTINATION /)
-
-file(GLOB_RECURSE TF2BD_EXTRA_FILES RELATIVE "${CMAKE_SOURCE_DIR}/staging" "staging/cfg/*" "staging/licenses/*")
-list(REMOVE_ITEM TF2BD_EXTRA_FILES "cfg/settings.json")
-foreach(EXTRA_FILE ${TF2BD_EXTRA_FILES})
-	configure_file("staging/${EXTRA_FILE}" "${CMAKE_BINARY_DIR}/${EXTRA_FILE}")
-endforeach()
-
-add_custom_command(
-	OUTPUT tf2_bot_detector.zip
-	DEPENDS tf2_bot_detector
-	COMMAND ${CMAKE_COMMAND} -E tar "cfv" "tf2_bot_detector_${PROJECT_VERSION}.zip" --format=zip $<TARGET_FILE_NAME:tf2_bot_detector> ${TF2BD_EXTRA_FILES} ${TF2BD_INSTALL_DEPS_DLL}
-)
-
-if (WIN32)
-	add_custom_command(
-		OUTPUT symbols.zip
-		DEPENDS tf2_bot_detector
-		COMMAND ${CMAKE_COMMAND} -E tar "cfv" "symbols_${PROJECT_VERSION}.zip" --format=zip $<TARGET_PDB_FILE:tf2_bot_detector>
-	)
-	add_custom_target(tf2_bot_detector_zips ALL DEPENDS tf2_bot_detector.zip symbols.zip)
-else()
-	add_custom_target(tf2_bot_detector_zips ALL DEPENDS tf2_bot_detector.zip)
-endif()
