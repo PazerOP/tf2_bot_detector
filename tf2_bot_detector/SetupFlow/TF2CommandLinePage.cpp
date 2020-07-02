@@ -15,13 +15,6 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
-#ifdef _DEBUG
-namespace tf2_bot_detector
-{
-	extern uint32_t g_StaticRandomSeed;
-}
-#endif
-
 static std::string GenerateRandomRCONPassword(size_t length = 16)
 {
 	std::mt19937 generator;

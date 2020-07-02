@@ -82,8 +82,6 @@ namespace tf2_bot_detector
 
 		std::string m_SteamAPIKey;
 
-		float m_CommandTimeoutSeconds = 5;
-
 		std::optional<bool> m_AllowInternetUsage;
 		const HTTPClient* GetHTTPClient() const;
 		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
