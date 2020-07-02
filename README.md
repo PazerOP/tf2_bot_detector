@@ -66,7 +66,7 @@ These instructions will give a quick overview of getting started with TF2BD.
 
 >A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
 
-This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] ([32bit version][mscr86-link])
+This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] ([32bit version available here][mscr86-link])
 
 ### Installation
 
