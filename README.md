@@ -51,7 +51,6 @@
   - [What does it do?](#what-does-it-do)
   - [Will this get me VAC banned?](#will-this-get-me-vac-banned)
   - [How does it work?](#how-does-it-work)
-  - [Sometimes I get these popups!](#sometimes-i-get-these-popups)
 - [License](#license)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
