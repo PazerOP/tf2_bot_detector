@@ -74,6 +74,12 @@ void RCONActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActi
 
 void RCONActionManager::ProcessRunningCommands()
 {
+	constexpr const char* funcName = __func__;
+	const auto PrintErrorMsg = [funcName](const std::string_view& msg)
+	{
+		return LogError(""s << funcName << "(): " << msg);
+	};
+
 	while (!m_RunningCommands.empty())
 	{
 		auto& cmd = m_RunningCommands.front();
@@ -103,9 +109,16 @@ void RCONActionManager::ProcessRunningCommands()
 					LogError("WorldState was nullptr when we tried to give it the result: "s << resultStr);
 			}
 		}
+		catch (const std::future_error& e)
+		{
+			if (e.code() == std::future_errc::broken_promise)
+				LogWarning(std::string(__FUNCTION__) << "(): " << e.code().message() << ": " << e.what());
+			else
+				PrintErrorMsg(e.code().message() << ": " << e.what());
+		}
 		catch (const std::exception& e)
 		{
-			LogError(std::string(__FUNCTION__) << "(): " << e.what());
+			PrintErrorMsg(e.what());
 		}
 
 		m_RunningCommands.pop();
