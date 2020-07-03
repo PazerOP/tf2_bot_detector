@@ -33,7 +33,7 @@ ConsoleLogParser::ConsoleLogParser(WorldState& world, const Settings& settings, 
 
 void ConsoleLogParser::Update()
 {
-	if (mh::is_future_ready(m_Settings->m_Unsaved.m_ChatMsgWrappers))
+	if (!mh::is_future_ready(m_Settings->m_Unsaved.m_ChatMsgWrappers))
 		return;
 
 	if (!m_File)
