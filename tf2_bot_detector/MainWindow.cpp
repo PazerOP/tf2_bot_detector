@@ -16,6 +16,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/case_insensitive_string.hpp>
+#include <mh/text/stringops.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -361,7 +362,7 @@ void MainWindow::OnDrawScoreboard()
 					// player names column
 					{
 						if (const auto& name = player.GetName(); !name.empty())
-							ImGui::TextUnformatted(name);
+							ImGui::TextUnformatted(mh::find_and_replace(name, "\n"sv, "\\n"sv));
 						else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
 							ImGui::TextUnformatted(summary->m_Nickname);
 						else
