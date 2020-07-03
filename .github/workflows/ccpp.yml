@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'schemas/**.json'
       - 'staging/cfg/**.json'
+      - '*.md'
 
 jobs:
   ci:
