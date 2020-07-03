@@ -515,6 +515,9 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::SetHoverTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
 		}
 
+		if (AutoLaunchTF2Checkbox(m_Settings.m_AutoLaunchTF2))
+			m_Settings.SaveFile();
+
 		// Auto temp mute
 		{
 			if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
@@ -522,7 +525,8 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
 		}
 
-		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false); ImGui::Checkbox("Allow internet connectivity", &allowInternet))
+		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
+			ImGui::Checkbox("Allow internet connectivity", &allowInternet))
 		{
 			m_Settings.m_AllowInternetUsage = allowInternet;
 			m_Settings.SaveFile();
@@ -710,6 +714,7 @@ void MainWindow::OnDraw()
 	{
 		ISetupFlowPage::DrawState ds;
 		ds.m_ActionManager = &m_ActionManager;
+		ds.m_Settings = &m_Settings;
 
 		if (m_SetupFlow.OnDraw(m_Settings, ds))
 			return;
