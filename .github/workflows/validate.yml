@@ -28,4 +28,4 @@ jobs:
         run: yajsv -s schemas/v3/rules.schema.json staging/cfg/rules.official.json
 
       - name: Validate sponsors
-        run: yajsv -s schemas/v3/rules.schema.json staging/cfg/rules.official.json
+        run: yajsv -s schemas/v3/sponsors.schema.json staging/cfg/sponsors.official.json
