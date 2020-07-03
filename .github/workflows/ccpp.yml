@@ -47,7 +47,7 @@ jobs:
 
     - name: Config artifact name (SHA)
       if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-      run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.sha }}"
+      run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
 
     - name: Debug
       run: |
@@ -79,23 +79,23 @@ jobs:
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_$${{ env.TF2BD_VERSION }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
     - name: "Artifacts: *.dll"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_$${{ env.TF2BD_VERSION }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
 
     - name: "Artifacts: *.pdb"
       if: ${{ matrix.triplet == 'x86-windows' || matrix.triplet == 'x64-windows' }}
       uses: actions/upload-artifact@v2
       with:
-        name: "symbols_${{ matrix.triplet }}_$${{ env.TF2BD_VERSION }}"
+        name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.pdb"
 
     - name: "Artifacts: staging dir"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_$${{ env.TF2BD_VERSION }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ github.workspace }}/staging"
