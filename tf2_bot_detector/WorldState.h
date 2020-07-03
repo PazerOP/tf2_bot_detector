@@ -90,12 +90,13 @@ namespace tf2_bot_detector
 
 		struct PlayerExtraData final : IPlayer
 		{
-			PlayerExtraData(WorldState& world) : m_World(&world) {}
+			PlayerExtraData(WorldState& world, SteamID id);
 
 			using IPlayer::GetWorld;
 			const WorldState& GetWorld() const override { return *m_World; }
 			const LobbyMember* GetLobbyMember() const override;
-			std::string_view GetName() const override { return m_Status.m_Name; }
+			std::string_view GetNameUnsafe() const override { return m_Status.m_Name; }
+			std::string_view GetNameSafe() const override { return m_PlayerNameSafe; }
 			SteamID GetSteamID() const override { return m_Status.m_SteamID; }
 			PlayerStatusState GetConnectionState() const override { return m_Status.m_State; }
 			std::optional<UserID_t> GetUserID() const override;
@@ -108,19 +109,28 @@ namespace tf2_bot_detector
 			const SteamAPI::PlayerSummary* GetPlayerSummary() const override { return m_PlayerSummary ? &*m_PlayerSummary : nullptr; }
 
 			WorldState* m_World{};
-			PlayerStatus m_Status{};
 			PlayerScores m_Scores{};
 			TFTeam m_Team{};
 
 			uint8_t m_ClientIndex{};
-			time_point_t m_LastStatusUpdateTime{};
-			time_point_t m_LastPingUpdateTime{};
 			std::optional<SteamAPI::PlayerSummary> m_PlayerSummary;
+
+			void SetStatus(PlayerStatus status, time_point_t timestamp);
+			const PlayerStatus& GetStatus() const { return m_Status; }
+
+			void SetPing(uint16_t ping, time_point_t timestamp);
 
 		protected:
 			std::map<std::type_index, std::any> m_UserData;
 			const std::any* FindDataStorage(const std::type_index& type) const override;
 			std::any& GetOrCreateDataStorage(const std::type_index& type) override;
+
+		private:
+			PlayerStatus m_Status{};
+			std::string m_PlayerNameSafe;
+
+			time_point_t m_LastStatusUpdateTime{};
+			time_point_t m_LastPingUpdateTime{};
 		};
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);

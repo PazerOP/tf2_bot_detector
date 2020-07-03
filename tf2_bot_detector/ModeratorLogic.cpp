@@ -46,7 +46,7 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 {
 	ProcessDelayedBans(world.GetCurrentTime(), player);
 
-	const auto name = player.GetName();
+	const auto name = player.GetNameUnsafe();
 	const auto steamID = player.GetSteamID();
 
 	if (m_Settings->m_Unsaved.m_EnableAutoMark)
@@ -192,11 +192,11 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& e
 	std::vector<std::string> chatMsgCheaterNames;
 	for (IPlayer* cheater : enemyCheaters)
 	{
-		if (cheater->GetName().empty())
+		if (cheater->GetNameSafe().empty())
 			continue; // Theoretically this should never happen, but don't embarass ourselves
 
 		logMsg << "\n\t" << cheater;
-		chatMsgCheaterNames.emplace_back(cheater->GetName());
+		chatMsgCheaterNames.emplace_back(cheater->GetNameSafe());
 
 		auto& cheaterData = cheater->GetOrCreateData<PlayerExtraData>();
 
@@ -415,7 +415,7 @@ void ModeratorLogic::ProcessPlayerActions()
 
 				break;
 			case TeamShareResult::OppositeTeams:
-				if (!player.GetName().empty() && isPlayerConnected)
+				if (!player.GetNameSafe().empty() && isPlayerConnected)
 					enemyCheaters.push_back(&player);
 				else if (!isPlayerConnected)
 					connectingEnemyCheaters.push_back(&player);
@@ -444,7 +444,7 @@ bool ModeratorLogic::SetPlayerAttribute(const IPlayer& player, PlayerAttributes 
 
 			data.m_LastSeen->m_Time = m_World->GetCurrentTime();
 
-			if (const auto& name = player.GetName(); !name.empty())
+			if (const auto& name = player.GetNameUnsafe(); !name.empty())
 				data.m_LastSeen->m_PlayerName = name;
 
 			return ModifyPlayerAction::Modified;
@@ -587,7 +587,7 @@ void ModeratorLogic::ProcessDelayedBans(time_point_t timestamp, const IPlayer& u
 			continue;
 		}
 
-		if (ban.m_PlayerName == updatedStatus.GetName())
+		if (ban.m_PlayerName == updatedStatus.GetNameUnsafe())
 		{
 			if (SetPlayerAttribute(updatedStatus, PlayerAttributes::Cheater))
 			{

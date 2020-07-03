@@ -289,11 +289,12 @@ void MainWindow::OnDrawScoreboard()
 			{
 				for (IPlayer& player : m_ConsoleLogParser->GeneratePlayerPrintData())
 				{
+					const auto& playerName = player.GetNameSafe();
 					ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
 					ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
 
 					std::optional<ImGuiDesktop::ScopeGuards::StyleColor> textColor;
-					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetName().empty())
+					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetNameSafe().empty())
 						textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
 					else if (player.GetSteamID() == m_Settings.GetLocalSteamID())
 						textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYou);
@@ -361,8 +362,8 @@ void MainWindow::OnDrawScoreboard()
 
 					// player names column
 					{
-						if (const auto& name = player.GetName(); !name.empty())
-							ImGui::TextUnformatted(CollapseNewlines(name));
+						if (!playerName.empty())
+							ImGui::TextUnformatted(playerName);
 						else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
 							ImGui::TextUnformatted(summary->m_Nickname);
 						else
@@ -370,7 +371,7 @@ void MainWindow::OnDrawScoreboard()
 
 						// If their steamcommunity name doesn't match their ingame name
 						if (auto summary = player.GetPlayerSummary();
-							summary && !player.GetName().empty() && summary->m_Nickname != player.GetName())
+							summary && !playerName.empty() && summary->m_Nickname != playerName)
 						{
 							ImGui::SameLine();
 							ImGui::TextColored({ 1, 0, 0, 1 }, "(%s)", summary->m_Nickname.c_str());
@@ -381,7 +382,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Kills column
 					{
-						if (player.GetName().empty())
+						if (playerName.empty())
 							ImGui::TextRightAligned("?");
 						else
 							ImGui::TextRightAlignedF("%u", player.GetScores().m_Kills);
@@ -391,7 +392,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Deaths column
 					{
-						if (player.GetName().empty())
+						if (playerName.empty())
 							ImGui::TextRightAligned("?");
 						else
 							ImGui::TextRightAlignedF("%u", player.GetScores().m_Deaths);
@@ -401,7 +402,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Connected time column
 					{
-						if (player.GetName().empty())
+						if (playerName.empty())
 						{
 							ImGui::TextRightAligned("?");
 						}
@@ -417,7 +418,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Ping column
 					{
-						if (player.GetName().empty())
+						if (playerName.empty())
 							ImGui::TextRightAligned("?");
 						else
 							ImGui::TextRightAlignedF("%u", player.GetPing());
