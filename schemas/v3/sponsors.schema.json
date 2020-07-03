@@ -1,0 +1,34 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/sponsors.schema.json",
+	"title": "TF2 Bot Detector Sponsors Schema",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"description": "The JSON schema to validate this file against.",
+			"type": "string"
+		},
+		"file_info": {
+			"$ref": "./shared.schema.json#/definitions/file_info"
+		},
+		"sponsors": {
+			"description": "List of sponsors",
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "Sponsor name"
+					},
+					"message": {
+						"type": "string",
+						"description": "Sponsor message"
+					}
+				}
+			}
+		}
+	}
+}

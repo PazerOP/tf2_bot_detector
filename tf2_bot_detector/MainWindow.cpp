@@ -648,6 +648,96 @@ void MainWindow::OpenUpdateAvailablePopup()
 	m_UpdateAvailablePopupOpen = true;
 }
 
+void MainWindow::OnDrawAboutPopup()
+{
+	static constexpr char POPUP_NAME[] = "About##Popup";
+
+	static bool s_Open = false;
+	if (m_AboutPopupOpen)
+	{
+		m_AboutPopupOpen = false;
+		ImGui::OpenPopup(POPUP_NAME);
+		s_Open = true;
+	}
+
+	ImGui::SetNextWindowSize({ 600, 450 }, ImGuiCond_Appearing);
+	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open))
+	{
+		ImGui::PushTextWrapPos();
+
+		static const std::string ABOUT_TEXT =
+			"TF2 Bot Detector v"s << VERSION << "\n"
+			"\n"
+			"Automatically detects and votekicks cheaters in Team Fortress 2 Casual.\n"
+			"\n"
+			"This program is free, open source software licensed under the MIT license. Full license text"
+			" for this program and its dependencies can be found in the licenses subfolder next to this"
+			" executable.";
+
+		ImGui::TextUnformatted(ABOUT_TEXT);
+
+		ImGui::NewLine();
+		ImGui::Separator();
+		ImGui::NewLine();
+
+		ImGui::TextUnformatted("Credits");
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Code/concept by Matt \"pazer\" Haynie"))
+		{
+			if (ImGui::Selectable("GitHub - PazerOP", false, ImGuiSelectableFlags_DontClosePopups))
+				Shell::OpenURL("https://github.com/PazerOP");
+			if (ImGui::Selectable("Twitter - @PazerFromSilver", false, ImGuiSelectableFlags_DontClosePopups))
+				Shell::OpenURL("https://twitter.com/PazerFromSilver");
+
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Artwork/icon by S-Purple"))
+		{
+			if (ImGui::Selectable("Twitter (NSFW)", false, ImGuiSelectableFlags_DontClosePopups))
+				Shell::OpenURL("https://twitter.com/spurpleheart");
+
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Documentation/moderation by Nicholas \"ClusterConsultant\" Flamel"))
+		{
+			if (ImGui::Selectable("GitHub - ClusterConsultant", false, ImGuiSelectableFlags_DontClosePopups))
+				Shell::OpenURL("https://github.com/ClusterConsultant");
+
+			ImGui::TreePop();
+		}
+
+		ImGui::NewLine();
+		ImGui::Separator();
+		ImGui::NewLine();
+
+		if (const auto sponsors = m_SponsorsList.GetSponsors(); !sponsors.empty())
+		{
+			ImGui::TextUnformatted("Sponsors\n"
+				"Huge thanks to the people sponsoring this project via GitHub Sponsors:");
+
+			ImGui::NewLine();
+
+			for (const auto& sponsor : sponsors)
+			{
+				ImGui::Bullet();
+				ImGui::TextUnformatted(sponsor.m_Name);
+				ImGui::SameLine();
+				ImGui::TextUnformatted("-");
+				ImGui::SameLine();
+				ImGui::TextUnformatted(sponsor.m_Message);
+			}
+
+			ImGui::NewLine();
+		}
+
+		ImGui::TextUnformatted("If you're feeling generous, you can make a small donation to help support my work.");
+		if (ImGui::Button("GitHub Sponsors"))
+			Shell::OpenURL("https://github.com/sponsors/PazerOP");
+
+		ImGui::EndPopup();
+	}
+}
+
 #include <libzippp/libzippp.h>
 void MainWindow::GenerateDebugReport()
 {
@@ -711,6 +801,11 @@ void MainWindow::OnDrawServerStats()
 
 void MainWindow::OnDraw()
 {
+	OnDrawSettingsPopup();
+	OnDrawUpdateAvailablePopup();
+	OnDrawUpdateCheckPopup();
+	OnDrawAboutPopup();
+
 	{
 		ISetupFlowPage::DrawState ds;
 		ds.m_ActionManager = &m_ActionManager;
@@ -790,27 +885,25 @@ void MainWindow::OnDraw()
 	OnDrawScoreboard();
 	OnDrawAppLog();
 	ImGui::NextColumn();
-
-	OnDrawSettingsPopup();
-	OnDrawUpdateAvailablePopup();
-	OnDrawUpdateCheckPopup();
 }
 
 void MainWindow::OnDrawMenuBar()
 {
-	if (m_SetupFlow.ShouldDraw())
-		return;
+	const bool isInSetupFlow = m_SetupFlow.ShouldDraw();
 
 	if (ImGui::BeginMenu("File"))
 	{
-		if (ImGui::MenuItem("Reload Playerlists/Rules"))
-			GetModLogic().ReloadConfigFiles();
-		if (ImGui::MenuItem("Reload Settings"))
-			m_Settings.LoadFile();
-		if (ImGui::MenuItem("Generate Debug Report"))
-			GenerateDebugReport();
+		if (!isInSetupFlow)
+		{
+			if (ImGui::MenuItem("Reload Playerlists/Rules"))
+				GetModLogic().ReloadConfigFiles();
+			if (ImGui::MenuItem("Reload Settings"))
+				m_Settings.LoadFile();
+			if (ImGui::MenuItem("Generate Debug Report"))
+				GenerateDebugReport();
 
-		ImGui::Separator();
+			ImGui::Separator();
+		}
 
 		if (ImGui::MenuItem("Exit", "Alt+F4"))
 			SetShouldClose(true);
@@ -856,8 +949,11 @@ void MainWindow::OnDrawMenuBar()
 #endif
 #endif
 
-	if (ImGui::MenuItem("Settings"))
-		OpenSettingsPopup();
+	if (!isInSetupFlow)
+	{
+		if (ImGui::MenuItem("Settings"))
+			OpenSettingsPopup();
+	}
 
 	if (ImGui::BeginMenu("Help"))
 	{
@@ -908,33 +1004,11 @@ void MainWindow::OnDrawMenuBar()
 
 		ImGui::Separator();
 
-		if (ImGui::BeginMenu("Code by pazer"))
-		{
-			if (ImGui::MenuItem("GitHub"))
-				Shell::OpenURL("https://github.com/PazerOP");
-			if (ImGui::MenuItem("Twitter"))
-				Shell::OpenURL("https://twitter.com/PazerFromSilver");
-
-			ImGui::EndMenu();
-		}
-		if (ImGui::BeginMenu("Artwork by S-Purple"))
-		{
-			if (ImGui::MenuItem("Twitter (NSFW)"))
-				Shell::OpenURL("https://twitter.com/spurpleheart");
-
-			ImGui::EndMenu();
-		}
+		if (ImGui::MenuItem("About TF2 Bot Detector"))
+			OpenAboutPopup();
 
 		ImGui::EndMenu();
 	}
-}
-
-bool MainWindow::HasMenuBar() const
-{
-	if (m_SetupFlow.ShouldDraw())
-		return false;
-
-	return true;
 }
 
 GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
