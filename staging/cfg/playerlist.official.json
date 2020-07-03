@@ -105,6 +105,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "GIGACHAD MEDIC",
+				"time": 1593755294
+			},
+			"steamid": "[U:1:88874778]"
+		},
+		{
+			"attributes": [
 				"racist"
 			],
 			"steamid": "[U:1:91555101]"
@@ -3646,6 +3656,16 @@
 				"time": 1592030818
 			},
 			"steamid": "[U:1:1105979839]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)\n\n\n\n\n\n\n\n\n\nwww.myg0t.gg",
+				"time": 1593757865
+			},
+			"steamid": "[U:1:1105979979]"
 		},
 		{
 			"attributes": [
