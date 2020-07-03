@@ -2,8 +2,9 @@
 
 #include "ConfigHelpers.h"
 
-#include <cppcoro/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
+
+#include <vector>
 
 namespace tf2_bot_detector
 {
@@ -22,7 +23,7 @@ namespace tf2_bot_detector
 			std::string m_Message;
 		};
 
-		cppcoro::generator<Sponsor> GetSponsors() const;
+		std::vector<Sponsor> GetSponsors() const;
 
 	private:
 		const Settings* m_Settings = nullptr;

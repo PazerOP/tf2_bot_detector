@@ -18,13 +18,12 @@ void SponsorsList::LoadFile()
 	m_Sponsors = LoadConfigFileAsync<SponsorsListFile>("cfg/sponsors.json", true, *m_Settings);
 }
 
-auto SponsorsList::GetSponsors() const -> cppcoro::generator<Sponsor>
+auto SponsorsList::GetSponsors() const -> std::vector<Sponsor>
 {
 	if (!m_Sponsors.is_ready())
-		co_return;
+		return {};
 
-	for (auto sponsor : m_Sponsors->m_Sponsors)
-		co_yield sponsor;
+	return m_Sponsors->m_Sponsors;
 }
 
 void SponsorsList::SponsorsListFile::Deserialize(const nlohmann::json& json)
