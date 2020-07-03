@@ -4,9 +4,10 @@
 #include "Log.h"
 #include "Platform/Platform.h"
 
-#include <srcon/srcon.h>
+#include <mh/future.hpp>
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <srcon/srcon.h>
 
 #include <chrono>
 #include <random>
@@ -49,8 +50,7 @@ static uint16_t GenerateRandomRCONPort()
 
 void TF2CommandLinePage::Data::TryUpdateCmdlineArgs()
 {
-	if (m_CommandLineArgsFuture.valid() &&
-		m_CommandLineArgsFuture.wait_for(0s) == std::future_status::ready)
+	if (mh::is_future_ready(m_CommandLineArgsFuture))
 	{
 		const auto& args = m_CommandLineArgsFuture.get();
 		m_MultipleInstances = args.size() > 1;
@@ -179,7 +179,7 @@ bool TF2CommandLinePage::RCONClientData::Update()
 {
 	if (!m_Success)
 	{
-		if (m_Future.valid() && m_Future.wait_for(0s) == std::future_status::ready)
+		if (mh::is_future_ready(m_Future))
 		{
 			try
 			{

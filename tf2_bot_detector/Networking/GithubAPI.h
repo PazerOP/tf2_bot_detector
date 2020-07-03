@@ -1,8 +1,8 @@
 #pragma once
 
-#include "AsyncObject.h"
 #include "Version.h"
 
+#include <future>
 #include <optional>
 #include <string>
 
@@ -41,5 +41,5 @@ namespace tf2_bot_detector::GithubAPI
 		std::optional<Release> m_Preview;
 	};
 
-	[[nodiscard]] AsyncObject<NewVersionResult> CheckForNewVersion(const HTTPClient& client);
+	[[nodiscard]] std::future<NewVersionResult> CheckForNewVersion(const HTTPClient& client);
 }

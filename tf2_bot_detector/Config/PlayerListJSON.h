@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AsyncObject.h"
 #include "ConfigHelpers.h"
 #include "SteamID.h"
 

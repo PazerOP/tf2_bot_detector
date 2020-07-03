@@ -181,9 +181,9 @@ bool ModerationRules::SaveFile() const
 
 cppcoro::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules() const
 {
-	if (m_CFGGroup.m_OfficialList.is_ready())
+	if (mh::is_future_ready(m_CFGGroup.m_OfficialList))
 	{
-		for (const auto& rule : m_CFGGroup.m_OfficialList->m_Rules)
+		for (const auto& rule : m_CFGGroup.m_OfficialList.get().m_Rules)
 			co_yield rule;
 	}
 
@@ -193,7 +193,7 @@ cppcoro::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::Get
 			co_yield rule;
 	}
 
-	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
+	if (mh::is_future_ready(m_CFGGroup.m_ThirdPartyLists))
 	{
 		for (const auto& rule : m_CFGGroup.m_ThirdPartyLists.get())
 			co_yield rule;

@@ -566,7 +566,7 @@ void MainWindow::OnDrawUpdateCheckPopup()
 		ImGui::TextUnformatted("You have chosen to disable internet connectivity for TF2 Bot Detector. You can still manually check for updates below.");
 		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Reminder: if you use antivirus software, connecting to the internet may trigger warnings.");
 
-		ImGui::EnabledSwitch(!m_UpdateInfo.is_valid(), [&]
+		ImGui::EnabledSwitch(!m_UpdateInfo.valid(), [&]
 			{
 				if (ImGui::Button("Check for updates"))
 					GetUpdateInfo();
@@ -574,9 +574,9 @@ void MainWindow::OnDrawUpdateCheckPopup()
 
 		ImGui::NewLine();
 
-		if (m_UpdateInfo.is_ready())
+		if (mh::is_future_ready(m_UpdateInfo))
 		{
-			auto& updateInfo = *m_UpdateInfo;
+			auto& updateInfo = m_UpdateInfo.get();
 
 			if (updateInfo.IsUpToDate())
 			{
@@ -599,7 +599,7 @@ void MainWindow::OnDrawUpdateCheckPopup()
 				ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "There was an error checking for updates.");
 			}
 		}
-		else if (m_UpdateInfo.is_valid())
+		else if (m_UpdateInfo.valid())
 		{
 			ImGui::TextUnformatted("Checking for updates...");
 		}
@@ -632,11 +632,11 @@ void MainWindow::OnDrawUpdateAvailablePopup()
 
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo->IsPreviewAvailable() ? " preview" : "")
+		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo.get().IsPreviewAvailable() ? " preview" : "")
 			<< " version of TF2 Bot Detector available for download.");
 
 		if (ImGui::Button("View on Github"))
-			Shell::OpenURL(m_UpdateInfo->GetURL());
+			Shell::OpenURL(m_UpdateInfo.get().GetURL());
 
 		ImGui::EndPopup();
 	}
@@ -1013,7 +1013,7 @@ void MainWindow::OnDrawMenuBar()
 
 GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
 {
-	if (!m_UpdateInfo.is_valid())
+	if (!m_UpdateInfo.valid())
 	{
 		if (auto client = m_Settings.GetHTTPClient())
 			m_UpdateInfo = GithubAPI::CheckForNewVersion(*client);
@@ -1021,8 +1021,8 @@ GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
 			return nullptr;
 	}
 
-	if (m_UpdateInfo.is_ready())
-		return &m_UpdateInfo.get();
+	if (mh::is_future_ready(m_UpdateInfo))
+		return const_cast<GithubAPI::NewVersionResult*>(&m_UpdateInfo.get());
 
 	return nullptr;
 }

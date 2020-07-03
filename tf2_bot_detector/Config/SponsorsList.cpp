@@ -20,10 +20,10 @@ void SponsorsList::LoadFile()
 
 auto SponsorsList::GetSponsors() const -> std::vector<Sponsor>
 {
-	if (!m_Sponsors.is_ready())
+	if (!mh::is_future_ready(m_Sponsors))
 		return {};
 
-	return m_Sponsors->m_Sponsors;
+	return m_Sponsors.get().m_Sponsors;
 }
 
 void SponsorsList::SponsorsListFile::Deserialize(const nlohmann::json& json)
@@ -39,7 +39,7 @@ void SponsorsList::SponsorsListFile::Serialize(nlohmann::json& json) const
 	BaseClass::Serialize(json);
 
 	if (!m_Schema || m_Schema->m_Version != SPONSORS_SCHEMA_VERSION)
-		json["$schema"] = ConfigSchemaInfo("playerlist", SPONSORS_SCHEMA_VERSION);
+		json["$schema"] = ConfigSchemaInfo("sponsors", SPONSORS_SCHEMA_VERSION);
 
 	json["sponsors"] = m_Sponsors;
 }
@@ -49,9 +49,9 @@ void SponsorsList::SponsorsListFile::ValidateSchema(const ConfigSchemaInfo& sche
 	BaseClass::ValidateSchema(schema);
 
 	if (schema.m_Type != "sponsors")
-		throw std::runtime_error("Schema is not a sponsors list");
+		throw std::runtime_error("Schema "s << std::quoted(schema.m_Type) << " is not a sponsors list");
 	if (schema.m_Version != SPONSORS_SCHEMA_VERSION)
-		throw std::runtime_error("Sponsors schema must be version "s << SPONSORS_SCHEMA_VERSION);
+		throw std::runtime_error("Sponsors schema must be version "s << SPONSORS_SCHEMA_VERSION << ", but was " << schema.m_Version);
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const SponsorsList::Sponsor& d)

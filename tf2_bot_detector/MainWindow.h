@@ -70,7 +70,7 @@ namespace tf2_bot_detector
 		void GenerateDebugReport();
 
 		GithubAPI::NewVersionResult* GetUpdateInfo();
-		AsyncObject<GithubAPI::NewVersionResult> m_UpdateInfo;
+		std::shared_future<GithubAPI::NewVersionResult> m_UpdateInfo;
 		bool m_NotifyOnUpdateAvailable = true;
 		void HandleUpdateCheck();
 

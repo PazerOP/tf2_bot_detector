@@ -1,9 +1,9 @@
 #pragma once
 
-#include "AsyncObject.h"
 #include "Clock.h"
 #include "SteamID.h"
 
+#include <future>
 #include <string>
 #include <vector>
 
@@ -47,6 +47,6 @@ namespace tf2_bot_detector::SteamAPI
 	//void to_json(nlohmann::json& j, const SteamID& d);
 	void from_json(const nlohmann::json& j, PlayerSummary& d);
 
-	tf2_bot_detector::AsyncObject<std::vector<PlayerSummary>> GetPlayerSummariesAsync(
+	std::future<std::vector<PlayerSummary>> GetPlayerSummariesAsync(
 		std::string apikey, std::vector<SteamID> steamIDs, const HTTPClient& client);
 }

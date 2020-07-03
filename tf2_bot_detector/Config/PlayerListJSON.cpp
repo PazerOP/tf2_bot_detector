@@ -184,18 +184,27 @@ cppcoro::generator<const PlayerListData&> PlayerListJSON::FindPlayerData(const S
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
-		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id); found != m_CFGGroup.m_UserList->m_Players.end())
+		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id);
+			found != m_CFGGroup.m_UserList->m_Players.end())
+		{
 			co_yield found->second;
+		}
 	}
-	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
+	if (mh::is_future_ready(m_CFGGroup.m_ThirdPartyLists))
 	{
-		if (auto found = m_CFGGroup.m_ThirdPartyLists->find(id); found != m_CFGGroup.m_ThirdPartyLists->end())
+		if (auto found = m_CFGGroup.m_ThirdPartyLists.get().find(id);
+			found != m_CFGGroup.m_ThirdPartyLists.get().end())
+		{
 			co_yield found->second;
+		}
 	}
-	if (m_CFGGroup.m_OfficialList.is_ready())
+	if (mh::is_future_ready(m_CFGGroup.m_OfficialList))
 	{
-		if (auto found = m_CFGGroup.m_OfficialList->m_Players.find(id); found != m_CFGGroup.m_OfficialList->m_Players.end())
+		if (auto found = m_CFGGroup.m_OfficialList.get().m_Players.find(id);
+			found != m_CFGGroup.m_OfficialList.get().m_Players.end())
+		{
 			co_yield found->second;
+		}
 	}
 }
 

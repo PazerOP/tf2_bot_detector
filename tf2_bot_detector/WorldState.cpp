@@ -7,6 +7,8 @@
 #include "Log.h"
 #include "RegexHelpers.h"
 
+#include <mh/future.hpp>
+
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
@@ -498,7 +500,7 @@ void WorldState::QueuePlayerSummaryUpdate()
 		steamIDs.push_back(member.GetSteamID());
 
 	auto summary = SteamAPI::GetPlayerSummariesAsync(m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
-	if (summary.is_valid())
+	if (summary.valid())
 		m_PlayerSummaryRequests.push_back(std::move(summary));
 }
 
@@ -506,24 +508,25 @@ void WorldState::ApplyPlayerSummaries()
 {
 	for (auto it = m_PlayerSummaryRequests.begin(); it != m_PlayerSummaryRequests.end(); )
 	{
-		if (!it->is_ready())
+		if (!mh::is_future_ready(*it))
 		{
 			++it;
 			break;
 		}
 
-		auto summaryReq = std::move(*it);
+		auto summaryReqFuture = std::move(*it);
 		it = m_PlayerSummaryRequests.erase(it);
 
 		try
 		{
-			for (SteamAPI::PlayerSummary& entry : *summaryReq)
+			auto summaryReq = summaryReqFuture.get();
+			for (SteamAPI::PlayerSummary& entry : summaryReq)
 			{
 				const auto steamID = entry.m_SteamID;
 				FindOrCreatePlayer(steamID).m_PlayerSummary = std::move(entry);
 			}
 
-			DebugLog("Applied "s << summaryReq->size() << " player summaries from Steam web API");
+			DebugLog("Applied "s << summaryReq.size() << " player summaries from Steam web API");
 		}
 		catch (const std::exception& e)
 		{

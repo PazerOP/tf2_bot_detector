@@ -137,7 +137,7 @@ static const std::shared_future<GithubAPI::NewVersionResult>& GetVersionCheckFut
 }
 #endif
 
-auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> AsyncObject<NewVersionResult>
+auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> std::future<NewVersionResult>
 {
 	return std::async([&] { return GetLatestVersion(client); });
 }

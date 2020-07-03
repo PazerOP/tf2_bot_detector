@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.31)
+project(tf2_bot_detector VERSION 1.0.0.32)
 
 include(FetchContent)
 # set(FETCHCONTENT_QUIET off)
@@ -89,7 +89,6 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/SetupFlow/SetupFlow.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
-	"tf2_bot_detector/AsyncObject.h"
 	"tf2_bot_detector/Clock.cpp"
 	"tf2_bot_detector/Clock.h"
 	"tf2_bot_detector/CompensatedTS.cpp"

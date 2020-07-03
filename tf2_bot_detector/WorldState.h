@@ -125,7 +125,7 @@ namespace tf2_bot_detector
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);
 
-		std::list<AsyncObject<std::vector<SteamAPI::PlayerSummary>>> m_PlayerSummaryRequests;
+		std::list<std::future<std::vector<SteamAPI::PlayerSummary>>> m_PlayerSummaryRequests;
 		void QueuePlayerSummaryUpdate();
 		void ApplyPlayerSummaries();
 
