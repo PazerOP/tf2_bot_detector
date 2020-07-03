@@ -4035,6 +4035,16 @@
 			],
 			"last_seen": {
 				"player_name": "Elkay EZH2O",
+				"time": 1593815390
+			},
+			"steamid": "[U:1:1110797668]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Elkay EZH2O",
 				"time": 1593813868
 			},
 			"steamid": "[U:1:1110880477]"
@@ -4058,6 +4068,16 @@
 				"time": 1593813951
 			},
 			"steamid": "[U:1:1110954072]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "1337hax0rm9",
+				"time": 1593815458
+			},
+			"steamid": "[U:1:1111113367]"
 		}
 	]
 }
