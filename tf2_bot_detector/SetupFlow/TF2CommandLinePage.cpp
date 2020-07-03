@@ -237,8 +237,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 	const auto AutoLaunchTF2Checkbox = [&]
 	{
-		if (ImGui::Checkbox("Automatically launch TF2 when TF2 Bot Detector is opened", &m_Data.m_AutoLaunchTF2))
-			m_IsAutoLaunchAllowed = true;
+		ImGui::Checkbox("Automatically launch TF2 when TF2 Bot Detector is opened", &m_Data.m_AutoLaunchTF2);
 	};
 
 	const auto LaunchTF2Button = [&]
@@ -254,6 +253,8 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 					OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
 					m_Data.m_LastTF2LaunchTime = curTime;
 				}
+
+				m_IsAutoLaunchAllowed = false;
 
 			}, "Finding command line arguments...");
 
