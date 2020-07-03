@@ -237,7 +237,8 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 	const auto AutoLaunchTF2Checkbox = [&]
 	{
-		ImGui::Checkbox("Automatically launch TF2 when TF2 Bot Detector is opened", &m_Data.m_AutoLaunchTF2);
+		if (ImGui::Checkbox("Automatically launch TF2 when TF2 Bot Detector is opened", &ds.m_Settings->m_AutoLaunchTF2))
+			ds.m_Settings->SaveFile();
 	};
 
 	const auto LaunchTF2Button = [&]
@@ -248,7 +249,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 		ImGui::NewLine();
 		ImGui::EnabledSwitch(m_Data.m_AtLeastOneUpdateRun && canLaunchTF2, [&]
 			{
-				if ((ImGui::Button("Launch TF2") || (m_IsAutoLaunchAllowed && m_Data.m_AutoLaunchTF2)) && canLaunchTF2)
+				if ((ImGui::Button("Launch TF2") || (m_IsAutoLaunchAllowed && ds.m_Settings->m_AutoLaunchTF2)) && canLaunchTF2)
 				{
 					OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
 					m_Data.m_LastTF2LaunchTime = curTime;
@@ -339,7 +340,6 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 void TF2CommandLinePage::Init(const Settings& settings)
 {
 	m_Data = {};
-	m_Data.m_AutoLaunchTF2 = settings.m_AutoLaunchTF2;
 	m_Data.m_RandomRCONPassword = GenerateRandomRCONPassword();
 	m_Data.m_RandomRCONPort = GenerateRandomRCONPort();
 }
@@ -347,7 +347,6 @@ void TF2CommandLinePage::Init(const Settings& settings)
 void TF2CommandLinePage::Commit(Settings& settings)
 {
 	m_IsAutoLaunchAllowed = false;
-	settings.m_AutoLaunchTF2 = m_Data.m_AutoLaunchTF2;
 	settings.m_Unsaved.m_RCONClient = std::move(m_Data.m_TestRCONClient.value().m_Client);
 	m_Data.m_TestRCONClient.reset();
 }

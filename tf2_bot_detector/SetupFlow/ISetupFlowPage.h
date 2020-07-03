@@ -30,6 +30,7 @@ namespace tf2_bot_detector
 			HijackActionManager* m_HijackActionManager = nullptr;
 #endif
 			RCONActionManager* m_ActionManager = nullptr;
+			Settings* m_Settings = nullptr;
 		};
 
 		[[nodiscard]] virtual OnDrawResult OnDraw(const DrawState& ds) = 0;

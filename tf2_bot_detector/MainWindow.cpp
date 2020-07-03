@@ -710,6 +710,7 @@ void MainWindow::OnDraw()
 	{
 		ISetupFlowPage::DrawState ds;
 		ds.m_ActionManager = &m_ActionManager;
+		ds.m_Settings = &m_Settings;
 
 		if (m_SetupFlow.OnDraw(m_Settings, ds))
 			return;

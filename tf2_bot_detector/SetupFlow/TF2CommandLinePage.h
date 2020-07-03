@@ -63,7 +63,6 @@ namespace tf2_bot_detector
 
 		struct Data
 		{
-			bool m_AutoLaunchTF2 = false;
 			time_point_t m_LastTF2LaunchTime{};
 
 			bool m_MultipleInstances = false;
