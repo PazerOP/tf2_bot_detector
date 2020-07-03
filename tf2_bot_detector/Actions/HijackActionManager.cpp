@@ -13,6 +13,7 @@
 
 #include <Windows.h>
 
+using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
@@ -89,7 +90,7 @@ void HijackActionManager::ProcessRunningCommands()
 		{
 			shouldRemove = true;
 		}
-		else if (it->GetElapsed() > std::chrono::duration<float>(m_Settings->m_CommandTimeoutSeconds))
+		else if (it->GetElapsed() > 5s)
 		{
 			LogWarning("Command timed out: "s << std::quoted(it->m_Command));
 			it->Terminate();

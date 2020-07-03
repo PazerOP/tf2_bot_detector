@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.28)
+project(tf2_bot_detector VERSION 1.0.0.33)
 
 include(FetchContent)
 # set(FETCHCONTENT_QUIET off)
@@ -57,6 +57,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Config/Rules.h"
 	"tf2_bot_detector/Config/Settings.cpp"
 	"tf2_bot_detector/Config/Settings.h"
+	"tf2_bot_detector/Config/SponsorsList.h"
+	"tf2_bot_detector/Config/SponsorsList.cpp"
 	"tf2_bot_detector/ConsoleLog/ConsoleLogParser.h"
 	"tf2_bot_detector/ConsoleLog/ConsoleLogParser.cpp"
 	"tf2_bot_detector/ConsoleLog/ConsoleLines.cpp"
@@ -87,7 +89,6 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/SetupFlow/SetupFlow.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
-	"tf2_bot_detector/AsyncObject.h"
 	"tf2_bot_detector/Clock.cpp"
 	"tf2_bot_detector/Clock.h"
 	"tf2_bot_detector/CompensatedTS.cpp"

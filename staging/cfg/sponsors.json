@@ -1,0 +1,16 @@
+{
+	"$schema": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/sponsors.schema.json",
+	"file_info": {
+		"authors": [
+			"pazer"
+		],
+		"title": "TF2 Bot Detector Sponsors",
+		"update_url": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/staging/cfg/sponsors.json"
+	},
+	"sponsors": [
+		{
+			"message": "I like my Bots like I like my Potassium Bonnet: Burning in hell using pazer's tools!",
+			"name": "Crazy Gunman"
+		}
+	]
+}

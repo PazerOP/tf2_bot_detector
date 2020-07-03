@@ -16,6 +16,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/case_insensitive_string.hpp>
+#include <mh/text/stringops.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -28,7 +29,7 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 MainWindow::MainWindow() :
-	ImGuiDesktop::Window(800, 600, "TF2 Bot Detector")
+	ImGuiDesktop::Window(800, 600, ("TF2 Bot Detector v"s << VERSION).c_str())
 {
 	m_WorldState.AddConsoleLineListener(this);
 	m_WorldState.AddWorldEventListener(this);
@@ -344,6 +345,15 @@ void MainWindow::OnDrawScoreboard()
 						bgColor.w = std::min(bgColor.w + 0.5f, 1.0f);
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
+
+						if (ImGui::IsItemHovered())
+						{
+							ImGui::BeginTooltip();
+							ImGui::Text("Your Thirst: %u", player.GetScores().m_LocalDeaths);
+							ImGui::Text("Their Thirst: %u", player.GetScores().m_LocalKills);
+							ImGui::EndTooltip();
+						}
+
 						ImGui::NextColumn();
 					}
 
@@ -352,7 +362,7 @@ void MainWindow::OnDrawScoreboard()
 					// player names column
 					{
 						if (const auto& name = player.GetName(); !name.empty())
-							ImGui::TextUnformatted(name);
+							ImGui::TextUnformatted(mh::find_and_replace(name, "\n"sv, "\\n"sv));
 						else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
 							ImGui::TextUnformatted(summary->m_Nickname);
 						else
@@ -506,6 +516,9 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::SetHoverTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
 		}
 
+		if (AutoLaunchTF2Checkbox(m_Settings.m_AutoLaunchTF2))
+			m_Settings.SaveFile();
+
 		// Auto temp mute
 		{
 			if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
@@ -513,7 +526,8 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
 		}
 
-		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false); ImGui::Checkbox("Allow internet connectivity", &allowInternet))
+		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
+			ImGui::Checkbox("Allow internet connectivity", &allowInternet))
 		{
 			m_Settings.m_AllowInternetUsage = allowInternet;
 			m_Settings.SaveFile();
@@ -553,7 +567,7 @@ void MainWindow::OnDrawUpdateCheckPopup()
 		ImGui::TextUnformatted("You have chosen to disable internet connectivity for TF2 Bot Detector. You can still manually check for updates below.");
 		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Reminder: if you use antivirus software, connecting to the internet may trigger warnings.");
 
-		ImGui::EnabledSwitch(!m_UpdateInfo.is_valid(), [&]
+		ImGui::EnabledSwitch(!m_UpdateInfo.valid(), [&]
 			{
 				if (ImGui::Button("Check for updates"))
 					GetUpdateInfo();
@@ -561,9 +575,9 @@ void MainWindow::OnDrawUpdateCheckPopup()
 
 		ImGui::NewLine();
 
-		if (m_UpdateInfo.is_ready())
+		if (mh::is_future_ready(m_UpdateInfo))
 		{
-			auto& updateInfo = *m_UpdateInfo;
+			auto& updateInfo = m_UpdateInfo.get();
 
 			if (updateInfo.IsUpToDate())
 			{
@@ -586,7 +600,7 @@ void MainWindow::OnDrawUpdateCheckPopup()
 				ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "There was an error checking for updates.");
 			}
 		}
-		else if (m_UpdateInfo.is_valid())
+		else if (m_UpdateInfo.valid())
 		{
 			ImGui::TextUnformatted("Checking for updates...");
 		}
@@ -619,11 +633,11 @@ void MainWindow::OnDrawUpdateAvailablePopup()
 
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo->IsPreviewAvailable() ? " preview" : "")
+		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo.get().IsPreviewAvailable() ? " preview" : "")
 			<< " version of TF2 Bot Detector available for download.");
 
 		if (ImGui::Button("View on Github"))
-			Shell::OpenURL(m_UpdateInfo->GetURL());
+			Shell::OpenURL(m_UpdateInfo.get().GetURL());
 
 		ImGui::EndPopup();
 	}
@@ -633,6 +647,96 @@ void MainWindow::OpenUpdateAvailablePopup()
 {
 	m_NotifyOnUpdateAvailable = false;
 	m_UpdateAvailablePopupOpen = true;
+}
+
+void MainWindow::OnDrawAboutPopup()
+{
+	static constexpr char POPUP_NAME[] = "About##Popup";
+
+	static bool s_Open = false;
+	if (m_AboutPopupOpen)
+	{
+		m_AboutPopupOpen = false;
+		ImGui::OpenPopup(POPUP_NAME);
+		s_Open = true;
+	}
+
+	ImGui::SetNextWindowSize({ 600, 450 }, ImGuiCond_Appearing);
+	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open))
+	{
+		ImGui::PushTextWrapPos();
+
+		static const std::string ABOUT_TEXT =
+			"TF2 Bot Detector v"s << VERSION << "\n"
+			"\n"
+			"Automatically detects and votekicks cheaters in Team Fortress 2 Casual.\n"
+			"\n"
+			"This program is free, open source software licensed under the MIT license. Full license text"
+			" for this program and its dependencies can be found in the licenses subfolder next to this"
+			" executable.";
+
+		ImGui::TextUnformatted(ABOUT_TEXT);
+
+		ImGui::NewLine();
+		ImGui::Separator();
+		ImGui::NewLine();
+
+		ImGui::TextUnformatted("Credits");
+		ImGui::Spacing();
+		if (ImGui::TreeNode("Code/concept by Matt \"pazer\" Haynie"))
+		{
+			if (ImGui::Selectable("GitHub - PazerOP", false, ImGuiSelectableFlags_DontClosePopups))
+				Shell::OpenURL("https://github.com/PazerOP");
+			if (ImGui::Selectable("Twitter - @PazerFromSilver", false, ImGuiSelectableFlags_DontClosePopups))
+				Shell::OpenURL("https://twitter.com/PazerFromSilver");
+
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Artwork/icon by S-Purple"))
+		{
+			if (ImGui::Selectable("Twitter (NSFW)", false, ImGuiSelectableFlags_DontClosePopups))
+				Shell::OpenURL("https://twitter.com/spurpleheart");
+
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Documentation/moderation by Nicholas \"ClusterConsultant\" Flamel"))
+		{
+			if (ImGui::Selectable("GitHub - ClusterConsultant", false, ImGuiSelectableFlags_DontClosePopups))
+				Shell::OpenURL("https://github.com/ClusterConsultant");
+
+			ImGui::TreePop();
+		}
+
+		ImGui::NewLine();
+		ImGui::Separator();
+		ImGui::NewLine();
+
+		if (const auto sponsors = m_SponsorsList.GetSponsors(); !sponsors.empty())
+		{
+			ImGui::TextUnformatted("Sponsors\n"
+				"Huge thanks to the people sponsoring this project via GitHub Sponsors:");
+
+			ImGui::NewLine();
+
+			for (const auto& sponsor : sponsors)
+			{
+				ImGui::Bullet();
+				ImGui::TextUnformatted(sponsor.m_Name);
+				ImGui::SameLine();
+				ImGui::TextUnformatted("-");
+				ImGui::SameLine();
+				ImGui::TextUnformatted(sponsor.m_Message);
+			}
+
+			ImGui::NewLine();
+		}
+
+		ImGui::TextUnformatted("If you're feeling generous, you can make a small donation to help support my work.");
+		if (ImGui::Button("GitHub Sponsors"))
+			Shell::OpenURL("https://github.com/sponsors/PazerOP");
+
+		ImGui::EndPopup();
+	}
 }
 
 #include <libzippp/libzippp.h>
@@ -698,9 +802,15 @@ void MainWindow::OnDrawServerStats()
 
 void MainWindow::OnDraw()
 {
+	OnDrawSettingsPopup();
+	OnDrawUpdateAvailablePopup();
+	OnDrawUpdateCheckPopup();
+	OnDrawAboutPopup();
+
 	{
 		ISetupFlowPage::DrawState ds;
 		ds.m_ActionManager = &m_ActionManager;
+		ds.m_Settings = &m_Settings;
 
 		if (m_SetupFlow.OnDraw(m_Settings, ds))
 			return;
@@ -776,27 +886,25 @@ void MainWindow::OnDraw()
 	OnDrawScoreboard();
 	OnDrawAppLog();
 	ImGui::NextColumn();
-
-	OnDrawSettingsPopup();
-	OnDrawUpdateAvailablePopup();
-	OnDrawUpdateCheckPopup();
 }
 
 void MainWindow::OnDrawMenuBar()
 {
-	if (m_SetupFlow.ShouldDraw())
-		return;
+	const bool isInSetupFlow = m_SetupFlow.ShouldDraw();
 
 	if (ImGui::BeginMenu("File"))
 	{
-		if (ImGui::MenuItem("Reload Playerlists/Rules"))
-			GetModLogic().ReloadConfigFiles();
-		if (ImGui::MenuItem("Reload Settings"))
-			m_Settings.LoadFile();
-		if (ImGui::MenuItem("Generate Debug Report"))
-			GenerateDebugReport();
+		if (!isInSetupFlow)
+		{
+			if (ImGui::MenuItem("Reload Playerlists/Rules"))
+				GetModLogic().ReloadConfigFiles();
+			if (ImGui::MenuItem("Reload Settings"))
+				m_Settings.LoadFile();
+			if (ImGui::MenuItem("Generate Debug Report"))
+				GenerateDebugReport();
 
-		ImGui::Separator();
+			ImGui::Separator();
+		}
 
 		if (ImGui::MenuItem("Exit", "Alt+F4"))
 			SetShouldClose(true);
@@ -842,8 +950,11 @@ void MainWindow::OnDrawMenuBar()
 #endif
 #endif
 
-	if (ImGui::MenuItem("Settings"))
-		OpenSettingsPopup();
+	if (!isInSetupFlow)
+	{
+		if (ImGui::MenuItem("Settings"))
+			OpenSettingsPopup();
+	}
 
 	if (ImGui::BeginMenu("Help"))
 	{
@@ -894,38 +1005,16 @@ void MainWindow::OnDrawMenuBar()
 
 		ImGui::Separator();
 
-		if (ImGui::BeginMenu("Code by pazer"))
-		{
-			if (ImGui::MenuItem("GitHub"))
-				Shell::OpenURL("https://github.com/PazerOP");
-			if (ImGui::MenuItem("Twitter"))
-				Shell::OpenURL("https://twitter.com/PazerFromSilver");
-
-			ImGui::EndMenu();
-		}
-		if (ImGui::BeginMenu("Artwork by S-Purple"))
-		{
-			if (ImGui::MenuItem("Twitter (NSFW)"))
-				Shell::OpenURL("https://twitter.com/spurpleheart");
-
-			ImGui::EndMenu();
-		}
+		if (ImGui::MenuItem("About TF2 Bot Detector"))
+			OpenAboutPopup();
 
 		ImGui::EndMenu();
 	}
 }
 
-bool MainWindow::HasMenuBar() const
-{
-	if (m_SetupFlow.ShouldDraw())
-		return false;
-
-	return true;
-}
-
 GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
 {
-	if (!m_UpdateInfo.is_valid())
+	if (!m_UpdateInfo.valid())
 	{
 		if (auto client = m_Settings.GetHTTPClient())
 			m_UpdateInfo = GithubAPI::CheckForNewVersion(*client);
@@ -933,8 +1022,8 @@ GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
 			return nullptr;
 	}
 
-	if (m_UpdateInfo.is_ready())
-		return &m_UpdateInfo.get();
+	if (mh::is_future_ready(m_UpdateInfo))
+		return const_cast<GithubAPI::NewVersionResult*>(&m_UpdateInfo.get());
 
 	return nullptr;
 }
@@ -1088,7 +1177,7 @@ cppcoro::generator<IPlayer&> MainWindow::ConsoleLogParserExtra::GeneratePlayerPr
 			// Just find the most recent status updates.
 			for (IPlayer& playerData : world.GetPlayers())
 			{
-				if (playerData.GetLastStatusUpdateTime() >= (m_LastStatusUpdateTime - 15s))
+				if (playerData.GetLastStatusUpdateTime() >= (m_Parent->GetWorld().GetLastStatusUpdateTime() - 15s))
 				{
 					*current = &playerData;
 					current++;
@@ -1159,6 +1248,11 @@ void MainWindow::UpdateServerPing(time_point_t timestamp)
 
 	while ((timestamp - m_ServerPingSamples.front().m_Timestamp) > 5min)
 		m_ServerPingSamples.erase(m_ServerPingSamples.begin());
+}
+
+time_point_t MainWindow::GetLastStatusUpdateTime() const
+{
+	return GetWorld().GetLastStatusUpdateTime();
 }
 
 float MainWindow::PlayerExtraData::GetAveragePing() const

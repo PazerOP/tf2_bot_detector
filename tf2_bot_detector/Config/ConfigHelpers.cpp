@@ -305,7 +305,7 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	}
 	catch (const std::exception& e)
 	{
-		throw std::runtime_error("Failed to serialize "s << filename << ": LoadAndValidateSchema threw " << e.what());
+		LogError("Failed to serialize "s << filename << ": LoadAndValidateSchema threw " << std::quoted(e.what()));
 		return false;
 	}
 

@@ -155,6 +155,7 @@ namespace tf2_bot_detector
 	bool InputTextSteamDirOverride(const std::string_view& label_id, std::filesystem::path& path, bool requireValid = false);
 	bool InputTextLocalIPOverride(const std::string_view& label_id, std::string& ip, bool requireValid = false);
 	bool Combo(const char* label_id, ProgramUpdateCheckMode& mode);
+	bool AutoLaunchTF2Checkbox(bool& value);
 }
 
 namespace ImPlot

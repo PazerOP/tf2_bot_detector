@@ -64,7 +64,7 @@ These instructions will give a quick overview of getting started with TF2BD.
 
 >A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
 
-This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] ([32bit version][mscr86-link])
+This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] ([32bit version available here][mscr86-link])
 
 ### Installation
 
@@ -98,8 +98,6 @@ No. It does not modify the game or OS memory in any way. It is only using built-
 ### How does it work?
 
 It monitors the console output (saved to a log file) to get information about the game state. Invoking commands in the game is done via the `-hijack` command line paramter. Getting players in the current game is done via the `tf_lobby_debug` and `status` commands. Cheaters are identified by their behavior and/or their Steam ID.
-
-Ignore these. They will automatically close after 5 seconds. A fix to prevent these popups entirely will happen in an upcoming release.
 
 <!-- LICENSE -->
 ## License

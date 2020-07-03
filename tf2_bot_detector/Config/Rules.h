@@ -1,5 +1,4 @@
 #pragma once
-#include "AsyncObject.h"
 #include "ConfigHelpers.h"
 
 #include <cppcoro/generator.hpp>

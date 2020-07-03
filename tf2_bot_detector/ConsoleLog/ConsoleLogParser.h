@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AsyncObject.h"
 #include "CompensatedTS.h"
 #include "FileMods.h"
 

@@ -1,7 +1,8 @@
 #pragma once
-#include "AsyncObject.h"
+#include "Log.h"
 #include "Settings.h"
 
+#include <mh/future.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
@@ -61,7 +62,7 @@ namespace tf2_bot_detector
 		bool LoadFile(const std::filesystem::path& filename, const HTTPClient* client = nullptr);
 		bool SaveFile(const std::filesystem::path& filename) const;
 
-		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0;
+		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0 {}
 		virtual void Deserialize(const nlohmann::json& json) = 0 {}
 		virtual void Serialize(nlohmann::json& json) const = 0;
 
@@ -85,7 +86,7 @@ namespace tf2_bot_detector
 	{
 		const HTTPClient* client = allowAutoupdate ? settings.GetHTTPClient() : nullptr;
 		if (allowAutoupdate && !client)
-			Log("Disallowing auto-update of "s << filename << " because internet connectivity is disabled or unset in settings");
+			Log(std::string("Disallowing auto-update of ") << filename << " because internet connectivity is disabled or unset in settings");
 
 		// Not going to be doing any async loading
 		if (T file; file.LoadFile(filename, client))
@@ -101,14 +102,14 @@ namespace tf2_bot_detector
 		{
 			if (allowAutoupdate)
 			{
-				return AsyncObject<T>(std::async([filename, &settings]
+				return std::async([filename, &settings]
 					{
 						return LoadConfigFile<T>(filename, true, settings);
-					}));
+					});
 			}
 			else
 			{
-				return AsyncObject<T>(LoadConfigFile<T>(filename, false, settings));
+				return mh::make_ready_future(LoadConfigFile<T>(filename, false, settings));
 			}
 		}
 		else
@@ -183,7 +184,7 @@ namespace tf2_bot_detector
 		T& GetMutableList()
 		{
 			if (IsOfficial())
-				return *m_OfficialList;
+				return const_cast<T&>(m_OfficialList.get()); // forgive me for i have sinned
 
 			if (!m_UserList)
 				m_UserList.emplace();
@@ -205,20 +206,20 @@ namespace tf2_bot_detector
 		{
 			size_t retVal = 0;
 
-			if (m_OfficialList.is_ready())
-				retVal += m_OfficialList->size();
+			if (mh::is_future_ready(m_OfficialList))
+				retVal += m_OfficialList.get().size();
 			if (m_UserList)
 				retVal += m_UserList->size();
-			if (m_ThirdPartyLists.is_ready())
-				retVal += m_ThirdPartyLists->size();
+			if (mh::is_future_ready(m_ThirdPartyLists))
+				retVal += m_ThirdPartyLists.get().size();
 
 			return retVal;
 		}
 
 		const Settings* m_Settings = nullptr;
-		AsyncObject<T> m_OfficialList;
+		std::shared_future<T> m_OfficialList;
 		std::optional<T> m_UserList;
-		AsyncObject<collection_type> m_ThirdPartyLists;
+		std::shared_future<collection_type> m_ThirdPartyLists;
 	};
 }
 

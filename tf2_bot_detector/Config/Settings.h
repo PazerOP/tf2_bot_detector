@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AsyncObject.h"
 #include "FileMods.h"
 #include "Networking/HTTPClient.h"
 #include "SteamID.h"
@@ -8,6 +7,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
+#include <future>
 #include <optional>
 #include <vector>
 
@@ -72,17 +72,16 @@ namespace tf2_bot_detector
 			bool m_EnableAutoMark = true;
 			bool m_DebugShowCommands = false;
 
-			AsyncObject<ChatWrappers> m_ChatMsgWrappers;
+			std::shared_future<ChatWrappers> m_ChatMsgWrappers;
 			std::unique_ptr<srcon::async_client> m_RCONClient;
 
 		} m_Unsaved;
 
 		bool m_SleepWhenUnfocused = true;
 		bool m_AutoTempMute = true;
+		bool m_AutoLaunchTF2 = false;
 
 		std::string m_SteamAPIKey;
-
-		float m_CommandTimeoutSeconds = 5;
 
 		std::optional<bool> m_AllowInternetUsage;
 		const HTTPClient* GetHTTPClient() const;

@@ -80,7 +80,7 @@ std::string ChatMessageAction::ScrubMessage(std::string msg)
 				c == '\r' ||
 				c == '\0' ||
 				c == '\n';
-		}));
+		}), msg.end());
 
 	for (auto& c : msg)
 	{

@@ -79,6 +79,8 @@ namespace tf2_bot_detector
 		cppcoro::generator<const IPlayer&> GetPlayers() const;
 		cppcoro::generator<IPlayer&> GetPlayers();
 
+		time_point_t GetLastStatusUpdateTime() const { return m_LastStatusUpdateTime; }
+
 	private:
 		const Settings* m_Settings = nullptr;
 
@@ -123,7 +125,7 @@ namespace tf2_bot_detector
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);
 
-		std::list<AsyncObject<std::vector<SteamAPI::PlayerSummary>>> m_PlayerSummaryRequests;
+		std::list<std::future<std::vector<SteamAPI::PlayerSummary>>> m_PlayerSummaryRequests;
 		void QueuePlayerSummaryUpdate();
 		void ApplyPlayerSummaries();
 

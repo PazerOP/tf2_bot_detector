@@ -8,6 +8,7 @@
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Settings.h"
+#include "Config/SponsorsList.h"
 #include "Networking/GithubAPI.h"
 #include "ModeratorLogic.h"
 #include "SetupFlow/SetupFlow.h"
@@ -42,7 +43,7 @@ namespace tf2_bot_detector
 	private:
 		void OnDraw() override;
 		void OnDrawMenuBar() override;
-		bool HasMenuBar() const override;
+		bool HasMenuBar() const override { return true; }
 		void OnDrawScoreboard();
 		void OnDrawScoreboardColorPicker(const char* name_id, float color[4]);
 		void OnDrawScoreboardContextMenu(IPlayer& player);
@@ -62,10 +63,14 @@ namespace tf2_bot_detector
 		bool m_UpdateAvailablePopupOpen = false;
 		void OpenUpdateAvailablePopup();
 
+		void OnDrawAboutPopup();
+		bool m_AboutPopupOpen = false;
+		void OpenAboutPopup() { m_AboutPopupOpen = true; }
+
 		void GenerateDebugReport();
 
 		GithubAPI::NewVersionResult* GetUpdateInfo();
-		AsyncObject<GithubAPI::NewVersionResult> m_UpdateInfo;
+		std::shared_future<GithubAPI::NewVersionResult> m_UpdateInfo;
 		bool m_NotifyOnUpdateAvailable = true;
 		void HandleUpdateCheck();
 
@@ -138,6 +143,9 @@ namespace tf2_bot_detector
 		RCONActionManager m_ActionManager{ m_Settings, m_WorldState };
 		ModeratorLogic m_ModeratorLogic{ m_WorldState, m_Settings, m_ActionManager };
 		SetupFlow m_SetupFlow;
+		SponsorsList m_SponsorsList{ m_Settings };
+
+		time_point_t GetLastStatusUpdateTime() const;
 
 		struct ConsoleLogParserExtra
 		{
@@ -148,8 +156,6 @@ namespace tf2_bot_detector
 			std::list<std::shared_ptr<const IConsoleLine>> m_PrintingLines;  // newest to oldest order
 			static constexpr size_t MAX_PRINTING_LINES = 512;
 			cppcoro::generator<IPlayer&> GeneratePlayerPrintData();
-
-			time_point_t m_LastStatusUpdateTime{};
 		};
 		std::optional<ConsoleLogParserExtra> m_ConsoleLogParser;
 	};

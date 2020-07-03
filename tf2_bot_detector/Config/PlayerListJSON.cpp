@@ -120,6 +120,7 @@ namespace tf2_bot_detector
 }
 
 PlayerListJSON::PlayerListJSON(const Settings& settings) :
+	m_Settings(&settings),
 	m_CFGGroup(settings)
 {
 	// Immediately load and resave to normalize any formatting
@@ -183,18 +184,27 @@ cppcoro::generator<const PlayerListData&> PlayerListJSON::FindPlayerData(const S
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
-		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id); found != m_CFGGroup.m_UserList->m_Players.end())
+		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id);
+			found != m_CFGGroup.m_UserList->m_Players.end())
+		{
 			co_yield found->second;
+		}
 	}
-	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
+	if (mh::is_future_ready(m_CFGGroup.m_ThirdPartyLists))
 	{
-		if (auto found = m_CFGGroup.m_ThirdPartyLists->find(id); found != m_CFGGroup.m_ThirdPartyLists->end())
+		if (auto found = m_CFGGroup.m_ThirdPartyLists.get().find(id);
+			found != m_CFGGroup.m_ThirdPartyLists.get().end())
+		{
 			co_yield found->second;
+		}
 	}
-	if (m_CFGGroup.m_OfficialList.is_ready())
+	if (mh::is_future_ready(m_CFGGroup.m_OfficialList))
 	{
-		if (auto found = m_CFGGroup.m_OfficialList->m_Players.find(id); found != m_CFGGroup.m_OfficialList->m_Players.end())
+		if (auto found = m_CFGGroup.m_OfficialList.get().m_Players.find(id);
+			found != m_CFGGroup.m_OfficialList.get().m_Players.end())
+		{
 			co_yield found->second;
+		}
 	}
 }
 
@@ -211,6 +221,9 @@ bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attr
 
 bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const
 {
+	if (id == m_Settings->GetLocalSteamID())
+		return false;
+
 	for (const PlayerAttributesList& found : FindPlayerAttributes(id))
 	{
 		for (auto attr : attributes)
@@ -233,6 +246,12 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	ModifyPlayerAction(*func)(PlayerListData& data, const void* userData), const void* userData)
 {
+	if (id == m_Settings->GetLocalSteamID())
+	{
+		LogWarning("Attempted to modify player attributes for local SteamID "s << id);
+		return ModifyPlayerResult::NoChanges;
+	}
+
 	PlayerListData* data = nullptr;
 	auto& mutableList = m_CFGGroup.GetMutableList();
 	if (auto found = mutableList.m_Players.find(id); found != mutableList.m_Players.end())

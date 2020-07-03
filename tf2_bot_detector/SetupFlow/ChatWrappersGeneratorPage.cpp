@@ -5,7 +5,7 @@ using namespace tf2_bot_detector;
 
 bool ChatWrappersGeneratorPage::ValidateSettings(const Settings& settings) const
 {
-	return settings.m_Unsaved.m_ChatMsgWrappers.is_valid();
+	return settings.m_Unsaved.m_ChatMsgWrappers.valid();
 }
 
 auto ChatWrappersGeneratorPage::OnDraw(const DrawState& ds) -> OnDrawResult

@@ -1,0 +1,31 @@
+name: Validate JSONs
+
+on:
+  push:
+    paths:
+      - 'staging/cfg/**.json'
+      - 'schemas/**.json'
+
+jobs:
+  validate-json-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: fix go path
+        run: |
+          echo "::set-env name=GOPATH::$(go env GOPATH)"
+          echo "::add-path::$(go env GOPATH)/bin"
+        shell: bash
+
+      - name: Install validator
+        run: go get github.com/neilpa/yajsv
+
+      - name: Validate playerlist
+        run: yajsv -s schemas/v3/playerlist.schema.json staging/cfg/playerlist.official.json
+
+      - name: Validate rules
+        run: yajsv -s schemas/v3/rules.schema.json staging/cfg/rules.official.json
+
+      - name: Validate sponsors
+        run: yajsv -s schemas/v3/sponsors.schema.json staging/cfg/sponsors.json

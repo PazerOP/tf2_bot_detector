@@ -4,9 +4,10 @@
 #include "Log.h"
 #include "Platform/Platform.h"
 
-#include <srcon/srcon.h>
+#include <mh/future.hpp>
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <srcon/srcon.h>
 
 #include <chrono>
 #include <random>
@@ -14,13 +15,6 @@
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
-
-#ifdef _DEBUG
-namespace tf2_bot_detector
-{
-	extern uint32_t g_StaticRandomSeed;
-}
-#endif
 
 static std::string GenerateRandomRCONPassword(size_t length = 16)
 {
@@ -31,7 +25,7 @@ static std::string GenerateRandomRCONPassword(size_t length = 16)
 	}
 
 	constexpr char PALETTE[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	std::uniform_int_distribution<size_t> dist(0, std::size(PALETTE) - 1);
+	std::uniform_int_distribution<size_t> dist(0, std::size(PALETTE) - 2);
 
 	std::string retVal(length, '\0');
 	for (size_t i = 0; i < length; i++)
@@ -56,8 +50,7 @@ static uint16_t GenerateRandomRCONPort()
 
 void TF2CommandLinePage::Data::TryUpdateCmdlineArgs()
 {
-	if (m_CommandLineArgsFuture.valid() &&
-		m_CommandLineArgsFuture.wait_for(0s) == std::future_status::ready)
+	if (mh::is_future_ready(m_CommandLineArgsFuture))
 	{
 		const auto& args = m_CommandLineArgsFuture.get();
 		m_MultipleInstances = args.size() > 1;
@@ -186,7 +179,7 @@ bool TF2CommandLinePage::RCONClientData::Update()
 {
 	if (!m_Success)
 	{
-		if (m_Future.valid() && m_Future.wait_for(0s) == std::future_status::ready)
+		if (mh::is_future_ready(m_Future))
 		{
 			try
 			{
@@ -242,15 +235,32 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 {
 	m_Data.TryUpdateCmdlineArgs();
 
+	const auto AutoLaunchTF2Checkbox = [&]
+	{
+		if (tf2_bot_detector::AutoLaunchTF2Checkbox(ds.m_Settings->m_AutoLaunchTF2))
+			ds.m_Settings->SaveFile();
+	};
+
 	const auto LaunchTF2Button = [&]
 	{
+		const auto curTime = clock_t::now();
+		const bool canLaunchTF2 = (curTime - m_Data.m_LastTF2LaunchTime) >= 2500ms;
+
 		ImGui::NewLine();
-		ImGui::EnabledSwitch(m_Data.m_AtLeastOneUpdateRun, [&]
+		ImGui::EnabledSwitch(m_Data.m_AtLeastOneUpdateRun && canLaunchTF2, [&]
 			{
-				if (ImGui::Button("Launch TF2"))
+				if ((ImGui::Button("Launch TF2") || (m_IsAutoLaunchAllowed && ds.m_Settings->m_AutoLaunchTF2)) && canLaunchTF2)
+				{
 					OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
+					m_Data.m_LastTF2LaunchTime = curTime;
+				}
+
+				m_IsAutoLaunchAllowed = false;
 
 			}, "Finding command line arguments...");
+
+		ImGui::NewLine();
+		AutoLaunchTF2Checkbox();
 	};
 
 	if (!m_Data.m_CommandLineArgs.has_value())
@@ -315,6 +325,9 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 		ImGui::NewLine();
 		m_Data.m_RCONSuccess = m_Data.m_TestRCONClient.value().Update();
+
+		ImGui::NewLine();
+		AutoLaunchTF2Checkbox();
 	}
 	else
 	{
@@ -333,6 +346,7 @@ void TF2CommandLinePage::Init(const Settings& settings)
 
 void TF2CommandLinePage::Commit(Settings& settings)
 {
+	m_IsAutoLaunchAllowed = false;
 	settings.m_Unsaved.m_RCONClient = std::move(m_Data.m_TestRCONClient.value().m_Client);
 	m_Data.m_TestRCONClient.reset();
 }

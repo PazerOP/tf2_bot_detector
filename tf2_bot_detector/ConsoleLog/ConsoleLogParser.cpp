@@ -7,6 +7,7 @@
 #include "WorldState.h"
 #include "Platform/Platform.h"
 
+#include <mh/future.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <regex>
@@ -32,7 +33,7 @@ ConsoleLogParser::ConsoleLogParser(WorldState& world, const Settings& settings, 
 
 void ConsoleLogParser::Update()
 {
-	if (!m_Settings->m_Unsaved.m_ChatMsgWrappers.is_ready())
+	if (!mh::is_future_ready(m_Settings->m_Unsaved.m_ChatMsgWrappers))
 		return;
 
 	if (!m_File)
@@ -119,7 +120,7 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 	{
 		const auto category = ChatCategory(i);
 
-		auto& type = m_Settings->m_Unsaved.m_ChatMsgWrappers->m_Types[i];
+		auto& type = m_Settings->m_Unsaved.m_ChatMsgWrappers.get().m_Types[i];
 		if (lineStr.starts_with(type.m_Full.first))
 		{
 			auto searchBuf = std::string_view(m_FileLineBuf).substr(
