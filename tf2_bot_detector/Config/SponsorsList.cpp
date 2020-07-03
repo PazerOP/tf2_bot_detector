@@ -38,7 +38,10 @@ void SponsorsList::SponsorsListFile::Serialize(nlohmann::json& json) const
 {
 	BaseClass::Serialize(json);
 
-	throw std::runtime_error(std::string(__FUNCTION__) << "(): This should never happen");
+	if (!m_Schema || m_Schema->m_Version != SPONSORS_SCHEMA_VERSION)
+		json["$schema"] = ConfigSchemaInfo("playerlist", SPONSORS_SCHEMA_VERSION);
+
+	json["sponsors"] = m_Sponsors;
 }
 
 void SponsorsList::SponsorsListFile::ValidateSchema(const ConfigSchemaInfo& schema) const
