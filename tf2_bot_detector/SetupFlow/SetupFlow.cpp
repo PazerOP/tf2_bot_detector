@@ -75,12 +75,11 @@ bool SetupFlow::OnDraw(Settings& settings, const ISetupFlowPage::DrawState& ds)
 		ImGui::PushTextWrapPos();
 
 		auto page = m_Pages[m_ActivePage].get();
-		if (page->WantsSetupText())
-			ImGui::TextUnformatted("Welcome to TF2 Bot Detector! Some setup is required before first use."sv);
-		else
-			ImGui::NewLine();
 
 		ImGui::NewLine();
+
+		if (page->WantsSetupText())
+			ImGui::TextUnformatted("Welcome to TF2 Bot Detector! Some setup is required before first use."sv);
 
 		if (m_ActivePage != lastPage)
 		{

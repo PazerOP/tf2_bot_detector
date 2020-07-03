@@ -237,7 +237,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 	const auto AutoLaunchTF2Checkbox = [&]
 	{
-		if (ImGui::Checkbox("Automatically launch TF2 when TF2 Bot Detector is opened", &ds.m_Settings->m_AutoLaunchTF2))
+		if (tf2_bot_detector::AutoLaunchTF2Checkbox(ds.m_Settings->m_AutoLaunchTF2))
 			ds.m_Settings->SaveFile();
 	};
 
