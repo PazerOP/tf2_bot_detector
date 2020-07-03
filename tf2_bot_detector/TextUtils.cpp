@@ -9,10 +9,6 @@
 #include <codecvt>
 #include <fstream>
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
-
 using namespace std::string_literals;
 
 std::u16string tf2_bot_detector::ToU16(const std::u8string_view& input)
@@ -114,4 +110,44 @@ void tf2_bot_detector::WriteWideFile(const std::filesystem::path& filename, cons
 	file << '\xFF' << '\xFE'; // BOM - UTF16LE
 
 	file.write(reinterpret_cast<const char*>(text.data()), text.size() * sizeof(text[0]));
+}
+
+std::string tf2_bot_detector::CollapseNewlines(const std::string_view& input)
+{
+	std::string retVal;
+
+	// collapse groups of newlines in the message into red "(\n x <count>)" text
+	bool firstLine = true;
+	for (size_t i = 0; i < input.size(); )
+	{
+		size_t nonNewlineEnd = std::min(input.find('\n', i), input.size());
+		retVal.append(input.substr(i, nonNewlineEnd - i));
+
+		size_t newlineEnd = std::min(input.find_first_not_of('\n', nonNewlineEnd), input.size());
+
+		if (newlineEnd > nonNewlineEnd)
+		{
+			const auto newlineCount = (newlineEnd - nonNewlineEnd);
+
+			const auto smallGroupMsgLength = newlineCount * (std::size("\\n") - 1);
+
+			char buf[64];
+			const auto largeGroupMsgLength = sprintf_s(buf, "(\\n x %zu)", newlineCount);
+
+			if (smallGroupMsgLength >= largeGroupMsgLength)
+			{
+				retVal.append(buf);
+			}
+			else
+			{
+				for (size_t n = 0; n < newlineCount; n++)
+					retVal += "\\n";
+			}
+		}
+
+		i = newlineEnd;
+		firstLine = false;
+	}
+
+	return retVal;
 }

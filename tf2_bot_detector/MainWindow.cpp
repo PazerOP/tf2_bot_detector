@@ -362,7 +362,7 @@ void MainWindow::OnDrawScoreboard()
 					// player names column
 					{
 						if (const auto& name = player.GetName(); !name.empty())
-							ImGui::TextUnformatted(mh::find_and_replace(name, "\n"sv, "\\n"sv));
+							ImGui::TextUnformatted(CollapseNewlines(name));
 						else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
 							ImGui::TextUnformatted(summary->m_Nickname);
 						else

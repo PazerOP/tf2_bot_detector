@@ -2,6 +2,7 @@
 
 #include "Clock.h"
 #include "SteamID.h"
+#include "TextUtils.h"
 #include "TFConstants.h"
 
 #include <any>
@@ -111,7 +112,7 @@ namespace tf2_bot_detector
 template<typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::IPlayer& player)
 {
-	return os << '"' << player.GetName() << "\" " << player.GetSteamID();
+	return os << '"' << CollapseNewlines(player.GetName()) << "\" " << player.GetSteamID();
 }
 
 template<typename CharT, typename Traits>
