@@ -79,6 +79,7 @@ namespace tf2_bot_detector
 
 		bool m_SleepWhenUnfocused = true;
 		bool m_AutoTempMute = true;
+		bool m_AutoLaunchTF2 = false;
 
 		std::string m_SteamAPIKey;
 

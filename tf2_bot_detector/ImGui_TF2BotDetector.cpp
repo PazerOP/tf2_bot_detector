@@ -532,6 +532,11 @@ bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 	return mode != oldMode;
 }
 
+bool tf2_bot_detector::AutoLaunchTF2Checkbox(bool& value)
+{
+	return ImGui::Checkbox("Automatically launch TF2 when TF2 Bot Detector is opened", &value);
+}
+
 ImVec2 ImGui::CalcButtonSize(const char* label)
 {
 	const auto& style = ImGui::GetStyle();

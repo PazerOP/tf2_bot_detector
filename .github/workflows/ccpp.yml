@@ -1,6 +1,11 @@
 name: build
 
-on: [push]
+on:
+  push:
+    paths-ignore:
+      - 'schemas/**.json'
+      - 'staging/cfg/**.json'
+      - '*.md'
 
 jobs:
   ci:
