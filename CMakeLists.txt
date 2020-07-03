@@ -57,6 +57,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Config/Rules.h"
 	"tf2_bot_detector/Config/Settings.cpp"
 	"tf2_bot_detector/Config/Settings.h"
+	"tf2_bot_detector/Config/SponsorsList.h"
+	"tf2_bot_detector/Config/SponsorsList.cpp"
 	"tf2_bot_detector/ConsoleLog/ConsoleLogParser.h"
 	"tf2_bot_detector/ConsoleLog/ConsoleLogParser.cpp"
 	"tf2_bot_detector/ConsoleLog/ConsoleLines.cpp"

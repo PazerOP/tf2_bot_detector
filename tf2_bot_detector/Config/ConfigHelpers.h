@@ -61,7 +61,7 @@ namespace tf2_bot_detector
 		bool LoadFile(const std::filesystem::path& filename, const HTTPClient* client = nullptr);
 		bool SaveFile(const std::filesystem::path& filename) const;
 
-		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0;
+		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0 {}
 		virtual void Deserialize(const nlohmann::json& json) = 0 {}
 		virtual void Serialize(nlohmann::json& json) const = 0;
 
@@ -85,7 +85,7 @@ namespace tf2_bot_detector
 	{
 		const HTTPClient* client = allowAutoupdate ? settings.GetHTTPClient() : nullptr;
 		if (allowAutoupdate && !client)
-			Log("Disallowing auto-update of "s << filename << " because internet connectivity is disabled or unset in settings");
+			Log(std::string("Disallowing auto-update of ") << filename << " because internet connectivity is disabled or unset in settings");
 
 		// Not going to be doing any async loading
 		if (T file; file.LoadFile(filename, client))

@@ -1,0 +1,48 @@
+#pragma once
+
+#include "ConfigHelpers.h"
+
+#include <cppcoro/generator.hpp>
+#include <nlohmann/json_fwd.hpp>
+
+namespace tf2_bot_detector
+{
+	class SponsorsList final
+	{
+	public:
+		SponsorsList(const Settings& settings);
+
+		void LoadFile();
+
+		bool IsLoading() const { return !m_Sponsors.is_ready(); }
+
+		struct Sponsor
+		{
+			std::string m_Name;
+			std::string m_Message;
+		};
+
+		cppcoro::generator<Sponsor> GetSponsors() const;
+
+	private:
+		const Settings* m_Settings = nullptr;
+
+		struct SponsorsListFile final : public SharedConfigFileBase
+		{
+			using BaseClass = SharedConfigFileBase;
+
+			void Deserialize(const nlohmann::json& json) override;
+			void Serialize(nlohmann::json& json) const override;
+			void ValidateSchema(const ConfigSchemaInfo& schema) const override;
+
+			static constexpr int SPONSORS_SCHEMA_VERSION = 3;
+
+			std::vector<Sponsor> m_Sponsors;
+		};
+
+		AsyncObject<SponsorsListFile> m_Sponsors;
+	};
+
+	void to_json(nlohmann::json& j, const SponsorsList::Sponsor& d);
+	void from_json(const nlohmann::json& j, SponsorsList::Sponsor& d);
+}
