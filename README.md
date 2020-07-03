@@ -10,7 +10,7 @@
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 ![Build Status][build-shield]
-
+[![Discord Status][discord-shield]][discord-link]
 
 
 <!-- PROJECT LOGO -->
@@ -132,6 +132,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [license-shield]: https://img.shields.io/github/license/PazerOP/tf2_bot_detector
 [license-url]: https://github.com/PazerOP/tf2_bot_detector/blob/master/LICENSE
 [build-shield]: https://github.com/PazerOP/tf2_bot_detector/workflows/build/badge.svg
+[discord-shield]: https://img.shields.io/discord/716525494421553243
 [repo-link]: https://github.com/PazerOP/tf2_bot_detector
 [wiki-link]: https://github.com/PazerOP/tf2_bot_detector/wiki
 [issues-link]: https://github.com/PazerOP/tf2_bot_detector/issues
