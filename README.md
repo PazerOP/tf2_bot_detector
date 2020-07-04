@@ -9,7 +9,7 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-[![Build Status][build-shield]][actions-build-url]]
+[![Build Status][build-shield]][actions-build-url]
 [![Discord Status][discord-shield]][discord-link]
 
 
