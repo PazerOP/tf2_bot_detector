@@ -104,21 +104,26 @@ void RCONActionManager::ProcessRunningCommands()
 			if (!resultStr.empty())
 			{
 				if (m_WorldState)
+				{
 					m_WorldState->AddConsoleOutputChunk(resultStr);
+				}
 				else
-					LogError("WorldState was nullptr when we tried to give it the result: "s << resultStr);
+				{
+					LogError("WorldState was nullptr when we tried to give it the result for "s
+						<< std::quoted(cmd.m_Command) << ": " << resultStr);
+				}
 			}
 		}
 		catch (const std::future_error& e)
 		{
 			if (e.code() == std::future_errc::broken_promise)
-				LogWarning(std::string(__FUNCTION__) << "(): " << e.code().message() << ": " << e.what());
+				DebugLogWarning(std::string(__FUNCTION__) << "(): " << e.code().message() << ": " << e.what() << ": " << std::quoted(cmd.m_Command));
 			else
-				PrintErrorMsg(e.code().message() << ": " << e.what());
+				PrintErrorMsg(e.code().message() << ": " << e.what() << ": " << std::quoted(cmd.m_Command));
 		}
 		catch (const std::exception& e)
 		{
-			PrintErrorMsg(e.what());
+			PrintErrorMsg(""s << e.what() << ": " << std::quoted(cmd.m_Command));
 		}
 
 		m_RunningCommands.pop();
