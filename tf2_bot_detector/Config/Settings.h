@@ -7,7 +7,6 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
-#include <future>
 #include <optional>
 #include <vector>
 
@@ -72,7 +71,7 @@ namespace tf2_bot_detector
 			bool m_EnableAutoMark = true;
 			bool m_DebugShowCommands = false;
 
-			std::shared_future<ChatWrappers> m_ChatMsgWrappers;
+			std::optional<ChatWrappers> m_ChatMsgWrappers;
 			std::unique_ptr<srcon::async_client> m_RCONClient;
 
 		} m_Unsaved;
