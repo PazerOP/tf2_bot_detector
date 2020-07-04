@@ -316,6 +316,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "winter worg",
+				"time": 1593898893
+			},
+			"steamid": "[U:1:194556854]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -3363,6 +3373,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "/id/h20verdrive",
+				"time": 1593896325
+			},
+			"steamid": "[U:1:1104931417]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "cum",
 				"time": 1592967627
 			},
@@ -4118,6 +4138,16 @@
 				"time": 1593815458
 			},
 			"steamid": "[U:1:1111113367]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "papastallin69",
+				"time": 1593896703
+			},
+			"steamid": "[U:1:1111758512]"
 		}
 	]
 }
