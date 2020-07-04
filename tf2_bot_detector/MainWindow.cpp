@@ -350,8 +350,10 @@ void MainWindow::OnDrawScoreboard()
 						if (ImGui::IsItemHovered())
 						{
 							ImGui::BeginTooltip();
-							ImGui::Text("Your Thirst: %u", player.GetScores().m_LocalDeaths);
-							ImGui::Text("Their Thirst: %u", player.GetScores().m_LocalKills);
+							auto kills = player.GetScores().m_LocalKills;
+							auto deaths = player.GetScores().m_LocalDeaths;
+							//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
+							ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
 							ImGui::EndTooltip();
 						}
 
