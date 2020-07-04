@@ -347,7 +347,7 @@ void MainWindow::OnDrawScoreboard()
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
 
-						if (ImGui::IsItemHovered())
+						if (player.GetSteamID() != m_Settings.GetLocalSteamID() && ImGui::IsItemHovered())
 						{
 							ImGui::BeginTooltip();
 							auto kills = player.GetScores().m_LocalKills;
