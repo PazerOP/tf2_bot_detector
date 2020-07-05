@@ -27,19 +27,9 @@ jobs:
             tf2bd_arch: x64
 
     steps:
-    # - uses: FranzDiebold/github-env-vars-action@v1.0.0
     - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
     - uses: benjlevesque/short-sha@v1.1
       id: short_sha
-
-    # - name: Format Tag Name
-    #   id: artifact_name_tag
-    #   if: startsWith(github.ref, 'refs/tags/')
-    #   uses: frabert/replace-string-action@v1.1
-    #   with:
-    #     pattern: 'refs\/.*?\/(.*)'
-    #     string: ${{ github.ref }}
-    #     replace-with: '$1'
 
     - name: Config artifact name (tag)
       if: startsWith(github.ref, 'refs/tags/')
@@ -68,13 +58,20 @@ jobs:
         vcpkgTriplet: ${{ matrix.triplet }}
         appendedCacheKey: "42-pazer-${{ matrix.triplet }}"
 
-    - name: run-cmake
-      uses: lukka/run-cmake@v2.5
-      with:
-        useVcpkgToolchainFile: true
-        cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }} -DTF2BD_IS_CI_COMPILE=on'
-        cmakeBuildType: "Release"
-        buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
+    - name: CMake
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      run: |
+        mkdir "${{ env.TF2BD_BUILD_DIR }}"
+        cd "${{ env.TF2BD_BUILD_DIR }}"
+        cmake -A${{ matrix.tf2bd_arch }} -DTF2DB_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" --config ${{ matrix.buildType }} -S ../ -B .
+
+    # - name: run-cmake
+    #   uses: lukka/run-cmake@v2.5
+    #   with:
+    #     useVcpkgToolchainFile: true
+    #     cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }} -DTF2BD_IS_CI_COMPILE=on'
+    #     cmakeBuildType: "Release"
+    #     buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
 
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
