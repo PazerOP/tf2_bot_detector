@@ -75,7 +75,7 @@ jobs:
       with:
         cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
         useVcpkgToolchainFile: true
-        cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }} -DTF2BD_IS_CI_COMPILE=on'
+        cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=on'
         #cmakeAppendedArgs: '-DTF2BD_IS_CI_COMPILE=on'
         cmakeBuildType: "Release"
         buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
