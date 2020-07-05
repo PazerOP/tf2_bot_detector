@@ -21,11 +21,6 @@ FetchContent_Declare(mh_stuff
 	GIT_SHALLOW true
 	GIT_SUBMODULES_RECURSE false
 )
-FetchContent_Declare(imgui_desktop
-	GIT_REPOSITORY https://github.com/PazerOP/imgui_desktop.git
-	GIT_SHALLOW true
-	GIT_SUBMODULES_RECURSE false
-)
 FetchContent_Declare(nlohmann_json
 	GIT_REPOSITORY https://github.com/nlohmann/json.git
 	GIT_SHALLOW true
@@ -33,10 +28,11 @@ FetchContent_Declare(nlohmann_json
 )
 set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
 set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
-FetchContent_MakeAvailable(mh_stuff imgui_desktop nlohmann_json)
+FetchContent_MakeAvailable(mh_stuff nlohmann_json)
 
 add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
+add_subdirectory(submodules/imgui_desktop)
 
 add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Actions/RCONActionManager.cpp"

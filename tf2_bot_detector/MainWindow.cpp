@@ -827,14 +827,26 @@ void MainWindow::OnDraw()
 		{
 			ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
 
-			ImGui::Checkbox("Enable Chat Warnings", &m_Settings.m_Unsaved.m_EnableChatWarnings); ImGui::SameLine();
-			ImGui::SetHoverTooltip("Enables chat message warnings about cheaters.");
+			auto& settings = m_Settings;
+			const auto ModerationCheckbox = [&settings](const char* name, bool& value, const char* tooltip)
+			{
+				{
+					ImGuiDesktop::ScopeGuards::TextColor text({ 1, 0.5f, 0, 1 }, !value);
+					if (ImGui::Checkbox(name, &value))
+						settings.SaveFile();
+				}
 
-			ImGui::Checkbox("Enable Votekick", &m_Settings.m_Unsaved.m_EnableVotekick); ImGui::SameLine();
-			ImGui::SetHoverTooltip("Votekicks cheaters on your team.");
+				const char* orangeReason = "";
+				if (!value)
+					orangeReason = "\n\nThis label is orange to highlight the fact that it is currently disabled.";
 
-			ImGui::Checkbox("Enable Auto-mark", &m_Settings.m_Unsaved.m_EnableAutoMark); ImGui::SameLine();
-			ImGui::SetHoverTooltip("Automatically marks players matching the detection rules.");
+				ImGui::SameLine();
+				ImGui::SetHoverTooltip("%s%s", tooltip, orangeReason);
+			};
+
+			ModerationCheckbox("Enable Chat Warnings", m_Settings.m_AutoChatWarnings, "Enables chat message warnings about cheaters.");
+			ModerationCheckbox("Enable Auto Votekick", m_Settings.m_AutoVotekick, "Automatically votekicks cheaters on your team.");
+			ModerationCheckbox("Enable Auto-mark", m_Settings.m_AutoMark, "Automatically marks players matching the detection rules.");
 
 			ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands); ImGui::SameLine();
 			ImGui::SetHoverTooltip("Prints out all game commands to the log.");

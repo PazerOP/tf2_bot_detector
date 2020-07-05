@@ -49,7 +49,7 @@ void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& play
 	const auto name = player.GetNameUnsafe();
 	const auto steamID = player.GetSteamID();
 
-	if (m_Settings->m_Unsaved.m_EnableAutoMark)
+	if (m_Settings->m_AutoMark)
 	{
 		for (const ModerationRule& rule : m_Rules.GetRules())
 		{
@@ -101,7 +101,7 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 		}
 	}
 
-	if (m_Settings->m_Unsaved.m_EnableAutoMark && !botMsgDetected)
+	if (m_Settings->m_AutoMark && !botMsgDetected)
 	{
 		for (const ModerationRule& rule : m_Rules.GetRules())
 		{
@@ -116,7 +116,7 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 
 void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<const IPlayer*>& friendlyCheaters)
 {
-	if (!m_Settings->m_Unsaved.m_EnableVotekick)
+	if (!m_Settings->m_AutoVotekick)
 		return;
 
 	if (friendlyCheaters.empty())
@@ -267,7 +267,7 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& e
 
 		if (now >= m_NextCheaterWarningTime)
 		{
-			if (m_Settings->m_Unsaved.m_EnableChatWarnings && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
+			if (m_Settings->m_AutoChatWarnings && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
 			{
 				Log(logMsg, { 1, 0, 0, 1 });
 				m_NextCheaterWarningTime = now + CHEATER_WARNING_INTERVAL;
@@ -332,7 +332,7 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& 
 		}
 	}
 
-	if (!needsWarning || !m_Settings->m_Unsaved.m_EnableChatWarnings)
+	if (!needsWarning || !m_Settings->m_AutoChatWarnings)
 		return;
 
 	char chatMsg[128];
