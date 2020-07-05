@@ -72,7 +72,7 @@ jobs:
       uses: lukka/run-cmake@v2.5
       with:
         useVcpkgToolchainFile: true
-        cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }}'
+        cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }} -DTF2BD_IS_CI_COMPILE=on'
         cmakeBuildType: "Release"
         buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
 

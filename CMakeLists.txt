@@ -1,11 +1,19 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.35)
+project(tf2_bot_detector VERSION 1.0.0.36)
 
 include(FetchContent)
 # set(FETCHCONTENT_QUIET off)
 
+option(TF2BD_IS_CI_COMPILE "Set to true if this is a compile on a CI service. Used to help determine if user has made modifications to the source code." off)
+if (TF2BD_IS_CI_COMPILE)
+	add_compile_definitions(TF2BD_IS_CI_COMPILE=1)
+else()
+	add_compile_definitions(TF2BD_IS_CI_COMPILE=0)
+endif()
+
 # Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 if (MSVC)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
 	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
 	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")

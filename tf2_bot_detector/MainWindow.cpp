@@ -34,10 +34,17 @@ MainWindow::MainWindow() :
 	m_WorldState.AddConsoleLineListener(this);
 	m_WorldState.AddWorldEventListener(this);
 
-	DebugLog("Steam dir: "s << m_Settings.GetSteamDir());
-	DebugLog("TF dir:    "s << m_Settings.GetTFDir());
-	DebugLog("SteamID:   "s << m_Settings.GetLocalSteamID());
-	DebugLog("Version:   "s << VERSION);
+	DebugLog("Debug Info:"s
+		<< "\n\tSteam dir:         " << m_Settings.GetSteamDir()
+		<< "\n\tTF dir:            " << m_Settings.GetTFDir()
+		<< "\n\tSteamID:           " << m_Settings.GetLocalSteamID()
+		<< "\n\tVersion:           " << VERSION
+		<< "\n\tIs CI Build:       " << std::boolalpha << (TF2BD_IS_CI_COMPILE ? true : false)
+		<< "\n\tCompile Timestamp: " << __TIMESTAMP__
+#ifdef _MSC_FULL_VER
+		<< "\n\t_MSC_FULL_VER:     " << _MSC_FULL_VER
+#endif
+	);
 
 	m_OpenTime = clock_t::now();
 
