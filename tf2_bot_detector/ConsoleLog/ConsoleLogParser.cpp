@@ -33,9 +33,6 @@ ConsoleLogParser::ConsoleLogParser(WorldState& world, const Settings& settings, 
 
 void ConsoleLogParser::Update()
 {
-	if (!mh::is_future_ready(m_Settings->m_Unsaved.m_ChatMsgWrappers))
-		return;
-
 	if (!m_File)
 	{
 		// Try to truncate
@@ -120,7 +117,7 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 	{
 		const auto category = ChatCategory(i);
 
-		auto& type = m_Settings->m_Unsaved.m_ChatMsgWrappers.get().m_Types[i];
+		auto& type = m_Settings->m_Unsaved.m_ChatMsgWrappers.value().m_Types[i];
 		if (lineStr.starts_with(type.m_Full.first))
 		{
 			auto searchBuf = std::string_view(m_FileLineBuf).substr(

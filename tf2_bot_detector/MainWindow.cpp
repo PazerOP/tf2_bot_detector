@@ -289,11 +289,12 @@ void MainWindow::OnDrawScoreboard()
 			{
 				for (IPlayer& player : m_ConsoleLogParser->GeneratePlayerPrintData())
 				{
+					const auto& playerName = player.GetNameSafe();
 					ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
 					ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
 
 					std::optional<ImGuiDesktop::ScopeGuards::StyleColor> textColor;
-					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetName().empty())
+					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetNameSafe().empty())
 						textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
 					else if (player.GetSteamID() == m_Settings.GetLocalSteamID())
 						textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYou);
@@ -346,11 +347,13 @@ void MainWindow::OnDrawScoreboard()
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
 
-						if (ImGui::IsItemHovered())
+						if (player.GetSteamID() != m_Settings.GetLocalSteamID() && ImGui::IsItemHovered())
 						{
 							ImGui::BeginTooltip();
-							ImGui::Text("Your Thirst: %u", player.GetScores().m_LocalDeaths);
-							ImGui::Text("Their Thirst: %u", player.GetScores().m_LocalKills);
+							auto kills = player.GetScores().m_LocalKills;
+							auto deaths = player.GetScores().m_LocalDeaths;
+							//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
+							ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
 							ImGui::EndTooltip();
 						}
 
@@ -361,8 +364,8 @@ void MainWindow::OnDrawScoreboard()
 
 					// player names column
 					{
-						if (const auto& name = player.GetName(); !name.empty())
-							ImGui::TextUnformatted(mh::find_and_replace(name, "\n"sv, "\\n"sv));
+						if (!playerName.empty())
+							ImGui::TextUnformatted(playerName);
 						else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
 							ImGui::TextUnformatted(summary->m_Nickname);
 						else
@@ -370,7 +373,7 @@ void MainWindow::OnDrawScoreboard()
 
 						// If their steamcommunity name doesn't match their ingame name
 						if (auto summary = player.GetPlayerSummary();
-							summary && !player.GetName().empty() && summary->m_Nickname != player.GetName())
+							summary && !playerName.empty() && summary->m_Nickname != playerName)
 						{
 							ImGui::SameLine();
 							ImGui::TextColored({ 1, 0, 0, 1 }, "(%s)", summary->m_Nickname.c_str());
@@ -381,7 +384,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Kills column
 					{
-						if (player.GetName().empty())
+						if (playerName.empty())
 							ImGui::TextRightAligned("?");
 						else
 							ImGui::TextRightAlignedF("%u", player.GetScores().m_Kills);
@@ -391,7 +394,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Deaths column
 					{
-						if (player.GetName().empty())
+						if (playerName.empty())
 							ImGui::TextRightAligned("?");
 						else
 							ImGui::TextRightAlignedF("%u", player.GetScores().m_Deaths);
@@ -401,7 +404,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Connected time column
 					{
-						if (player.GetName().empty())
+						if (playerName.empty())
 						{
 							ImGui::TextRightAligned("?");
 						}
@@ -417,7 +420,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Ping column
 					{
-						if (player.GetName().empty())
+						if (playerName.empty())
 							ImGui::TextRightAligned("?");
 						else
 							ImGui::TextRightAlignedF("%u", player.GetPing());
@@ -824,14 +827,26 @@ void MainWindow::OnDraw()
 		{
 			ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
 
-			ImGui::Checkbox("Enable Chat Warnings", &m_Settings.m_Unsaved.m_EnableChatWarnings); ImGui::SameLine();
-			ImGui::SetHoverTooltip("Enables chat message warnings about cheaters.");
+			auto& settings = m_Settings;
+			const auto ModerationCheckbox = [&settings](const char* name, bool& value, const char* tooltip)
+			{
+				{
+					ImGuiDesktop::ScopeGuards::TextColor text({ 1, 0.5f, 0, 1 }, !value);
+					if (ImGui::Checkbox(name, &value))
+						settings.SaveFile();
+				}
 
-			ImGui::Checkbox("Enable Votekick", &m_Settings.m_Unsaved.m_EnableVotekick); ImGui::SameLine();
-			ImGui::SetHoverTooltip("Votekicks cheaters on your team.");
+				const char* orangeReason = "";
+				if (!value)
+					orangeReason = "\n\nThis label is orange to highlight the fact that it is currently disabled.";
 
-			ImGui::Checkbox("Enable Auto-mark", &m_Settings.m_Unsaved.m_EnableAutoMark); ImGui::SameLine();
-			ImGui::SetHoverTooltip("Automatically marks players matching the detection rules.");
+				ImGui::SameLine();
+				ImGui::SetHoverTooltip("%s%s", tooltip, orangeReason);
+			};
+
+			ModerationCheckbox("Enable Chat Warnings", m_Settings.m_AutoChatWarnings, "Enables chat message warnings about cheaters.");
+			ModerationCheckbox("Enable Auto Votekick", m_Settings.m_AutoVotekick, "Automatically votekicks cheaters on your team.");
+			ModerationCheckbox("Enable Auto-mark", m_Settings.m_AutoMark, "Automatically marks players matching the detection rules.");
 
 			ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands); ImGui::SameLine();
 			ImGui::SetHoverTooltip("Prints out all game commands to the log.");

@@ -112,10 +112,10 @@ std::optional<SteamID> WorldState::FindSteamIDForName(const std::string_view& pl
 
 	for (const auto& data : m_CurrentPlayerData)
 	{
-		if (data.second.m_Status.m_Name == playerName && data.second.m_LastStatusUpdateTime > lastUpdated)
+		if (data.second.GetStatus().m_Name == playerName && data.second.GetLastStatusUpdateTime() > lastUpdated)
 		{
 			retVal = data.second.GetSteamID();
-			lastUpdated = data.second.m_LastStatusUpdateTime;
+			lastUpdated = data.second.GetLastStatusUpdateTime();
 		}
 	}
 
@@ -139,12 +139,12 @@ std::optional<LobbyMemberTeam> WorldState::FindLobbyMemberTeam(const SteamID& id
 	return std::nullopt;
 }
 
-std::optional<uint16_t> WorldState::FindUserID(const SteamID& id) const
+std::optional<UserID_t> WorldState::FindUserID(const SteamID& id) const
 {
 	for (const auto& player : m_CurrentPlayerData)
 	{
-		if (player.second.m_Status.m_SteamID == id)
-			return player.second.m_Status.m_UserID;
+		if (player.second.GetSteamID() == id)
+			return player.second.GetUserID();
 	}
 
 	return std::nullopt;
@@ -369,8 +369,7 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		if (auto found = FindSteamIDForName(pingLine.GetPlayerName()))
 		{
 			auto& playerData = FindOrCreatePlayer(*found);
-			playerData.m_Status.m_Ping = pingLine.GetPing();
-			playerData.m_LastPingUpdateTime = pingLine.GetTimestamp();
+			playerData.SetPing(pingLine.GetPing(), pingLine.GetTimestamp());
 		}
 
 		break;
@@ -382,16 +381,15 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		auto& playerData = FindOrCreatePlayer(newStatus.m_SteamID);
 
 		// Don't introduce stutter to our connection time view
-		if (auto delta = (playerData.m_Status.m_ConnectionTime - newStatus.m_ConnectionTime);
+		if (auto delta = (playerData.GetStatus().m_ConnectionTime - newStatus.m_ConnectionTime);
 			delta < 2s && delta > -2s)
 		{
-			newStatus.m_ConnectionTime = playerData.m_Status.m_ConnectionTime;
+			newStatus.m_ConnectionTime = playerData.GetStatus().m_ConnectionTime;
 		}
 
-		assert(playerData.m_Status.m_SteamID == newStatus.m_SteamID);
-		playerData.m_Status = newStatus;
-		playerData.m_LastStatusUpdateTime = playerData.m_LastPingUpdateTime = statusLine.GetTimestamp();
-		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, playerData.m_LastStatusUpdateTime);
+		assert(playerData.GetStatus().m_SteamID == newStatus.m_SteamID);
+		playerData.SetStatus(newStatus, statusLine.GetTimestamp());
+		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, playerData.GetLastStatusUpdateTime());
 		m_EventBroadcaster.OnPlayerStatusUpdate(*this, playerData);
 
 		break;
@@ -476,12 +474,9 @@ auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
 		data = &found->second;
 	else
-		data = &m_CurrentPlayerData.emplace(id, *this).first->second;
+		data = &m_CurrentPlayerData.emplace(id, PlayerExtraData{ *this, id }).first->second;
 
-	assert(!data->m_Status.m_SteamID.IsValid() || data->m_Status.m_SteamID == id);
-	data->m_Status.m_SteamID = id;
 	assert(data->GetSteamID() == id);
-
 	return *data;
 }
 
@@ -540,6 +535,12 @@ auto WorldState::GetTeamShareResult(const SteamID& id0, const SteamID& id1) cons
 	return GetTeamShareResult(FindLobbyMemberTeam(id0), FindLobbyMemberTeam(id1));
 }
 
+WorldState::PlayerExtraData::PlayerExtraData(WorldState& world, SteamID id) :
+	m_World(&world)
+{
+	m_Status.m_SteamID = id;
+}
+
 const LobbyMember* WorldState::PlayerExtraData::GetLobbyMember() const
 {
 	auto& world = GetWorld();
@@ -572,6 +573,18 @@ duration_t WorldState::PlayerExtraData::GetConnectedTime() const
 	//assert(result >= -1s);
 	result = std::max<duration_t>(result, 0s);
 	return result;
+}
+
+void WorldState::PlayerExtraData::SetStatus(PlayerStatus status, time_point_t timestamp)
+{
+	m_Status = std::move(status);
+	m_PlayerNameSafe = CollapseNewlines(m_Status.m_Name);
+	m_LastStatusUpdateTime = m_LastPingUpdateTime = timestamp;
+}
+void WorldState::PlayerExtraData::SetPing(uint16_t ping, time_point_t timestamp)
+{
+	m_Status.m_Ping = ping;
+	m_LastPingUpdateTime = timestamp;
 }
 
 const std::any* WorldState::PlayerExtraData::FindDataStorage(const std::type_index& type) const

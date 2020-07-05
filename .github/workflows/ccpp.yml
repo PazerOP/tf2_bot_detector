@@ -27,6 +27,34 @@ jobs:
             tf2bd_arch: x64
 
     steps:
+    # - uses: FranzDiebold/github-env-vars-action@v1.0.0
+    - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
+    - uses: benjlevesque/short-sha@v1.1
+      id: short_sha
+
+    # - name: Format Tag Name
+    #   id: artifact_name_tag
+    #   if: startsWith(github.ref, 'refs/tags/')
+    #   uses: frabert/replace-string-action@v1.1
+    #   with:
+    #     pattern: 'refs\/.*?\/(.*)'
+    #     string: ${{ github.ref }}
+    #     replace-with: '$1'
+
+    - name: Config artifact name (tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      run: echo "::set-env name=TF2BD_VERSION::${{ env.GIT_TAG_NAME }}"
+
+    - name: Config artifact name (SHA)
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
+
+    - name: Debug
+      run: |
+        echo "github.event_name = ${{ github.event_name }}"
+        echo "github.sha = ${{ github.sha }}"
+        echo "github.ref = ${{ github.ref }}"
+
     - name: Checkout
       uses: actions/checkout@v2
       with:
@@ -51,23 +79,23 @@ jobs:
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
     - name: "Artifacts: *.dll"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
 
     - name: "Artifacts: *.pdb"
       if: ${{ matrix.triplet == 'x86-windows' || matrix.triplet == 'x64-windows' }}
       uses: actions/upload-artifact@v2
       with:
-        name: "symbols_${{ matrix.triplet }}_${{ github.sha }}"
+        name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.pdb"
 
     - name: "Artifacts: staging dir"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ github.sha }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ github.workspace }}/staging"

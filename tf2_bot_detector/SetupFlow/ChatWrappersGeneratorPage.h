@@ -1,6 +1,9 @@
 #pragma once
 
+#include "FileMods.h"
 #include "ISetupFlowPage.h"
+
+#include <future>
 
 namespace tf2_bot_detector
 {
@@ -13,5 +16,11 @@ namespace tf2_bot_detector
 
 		bool CanCommit() const override;
 		void Commit(Settings& settings);
+
+		bool WantsSetupText() const override { return false; }
+		bool WantsContinueButton() const override { return false; }
+
+	private:
+		std::future<ChatWrappers> m_ChatWrappers;
 	};
 }

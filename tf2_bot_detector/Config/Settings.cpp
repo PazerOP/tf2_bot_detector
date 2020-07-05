@@ -160,6 +160,9 @@ void Settings::LoadFile()
 		try_get_to(*found, "program_update_check_mode", m_ProgramUpdateCheckMode);
 		try_get_to(*found, "steam_api_key", m_SteamAPIKey);
 		try_get_to(*found, "auto_launch_tf2", m_AutoLaunchTF2);
+		try_get_to(*found, "auto_chat_warnings", m_AutoChatWarnings);
+		try_get_to(*found, "auto_votekick", m_AutoVotekick);
+		try_get_to(*found, "auto_mark", m_AutoMark);
 
 		if (auto foundDir = found->find("steam_dir_override"); foundDir != found->end())
 			m_SteamDirOverride = foundDir->get<std::string_view>();
@@ -192,6 +195,9 @@ bool Settings::SaveFile() const
 				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
 				{ "steam_api_key", m_SteamAPIKey },
 				{ "auto_launch_tf2", m_AutoLaunchTF2 },
+				{ "auto_chat_warnings", m_AutoChatWarnings },
+				{ "auto_votekick", m_AutoVotekick },
+				{ "auto_mark", m_AutoMark },
 			}
 		},
 		{ "goto_profile_sites", m_GotoProfileSites },

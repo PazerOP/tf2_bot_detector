@@ -74,6 +74,12 @@ void RCONActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActi
 
 void RCONActionManager::ProcessRunningCommands()
 {
+	constexpr const char* funcName = __func__;
+	const auto PrintErrorMsg = [funcName](const std::string_view& msg)
+	{
+		return LogError(""s << funcName << "(): " << msg);
+	};
+
 	while (!m_RunningCommands.empty())
 	{
 		auto& cmd = m_RunningCommands.front();
@@ -98,14 +104,26 @@ void RCONActionManager::ProcessRunningCommands()
 			if (!resultStr.empty())
 			{
 				if (m_WorldState)
+				{
 					m_WorldState->AddConsoleOutputChunk(resultStr);
+				}
 				else
-					LogError("WorldState was nullptr when we tried to give it the result: "s << resultStr);
+				{
+					LogError("WorldState was nullptr when we tried to give it the result for "s
+						<< std::quoted(cmd.m_Command) << ": " << resultStr);
+				}
 			}
+		}
+		catch (const std::future_error& e)
+		{
+			if (e.code() == std::future_errc::broken_promise)
+				DebugLogWarning(std::string(__FUNCTION__) << "(): " << e.code().message() << ": " << e.what() << ": " << std::quoted(cmd.m_Command));
+			else
+				PrintErrorMsg(e.code().message() << ": " << e.what() << ": " << std::quoted(cmd.m_Command));
 		}
 		catch (const std::exception& e)
 		{
-			LogError(std::string(__FUNCTION__) << "(): " << e.what());
+			PrintErrorMsg(""s << e.what() << ": " << std::quoted(cmd.m_Command));
 		}
 
 		m_RunningCommands.pop();

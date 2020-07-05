@@ -328,7 +328,7 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 		if (!m_Triggers.m_UsernameTextMatch)
 			return false;
 
-		const auto name = player.GetName();
+		const auto name = player.GetNameUnsafe();
 		if (name.empty())
 			return false;
 
