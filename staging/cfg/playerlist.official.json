@@ -300,6 +300,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "123",
+				"time": 1593930219
+			},
+			"steamid": "[U:1:183047003]"
+		},
+		{
+			"attributes": [
 				"suspicious"
 			],
 			"last_seen": {
@@ -606,6 +616,16 @@
 				"cheater"
 			],
 			"steamid": "[U:1:477738533]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Jyggalag",
+				"time": 1593929627
+			},
+			"steamid": "[U:1:480886427]"
 		},
 		{
 			"attributes": [
