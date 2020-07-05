@@ -10,3 +10,9 @@
 [submodule "submodules/imgui_desktop"]
 	path = submodules/imgui_desktop
 	url = https://github.com/PazerOP/imgui_desktop.git
+[submodule "submodules/mh_stuff"]
+	path = submodules/mh_stuff
+	url = https://github.com/PazerOP/stuff.git
+[submodule "submodules/nlohmann_json"]
+	path = submodules/nlohmann_json
+	url = https://github.com/nlohmann/json.git
