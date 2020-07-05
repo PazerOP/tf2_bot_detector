@@ -47,6 +47,7 @@ namespace tf2_bot_detector
 		Type m_Types[(int)ChatCategory::COUNT];
 	};
 
+	static constexpr char TF2BD_CHAT_WRAPPERS_DIR[] = "aaaaaaaaaa_loadfirst_tf2_bot_detector";
 	ChatWrappers RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars = 16);
 }
 

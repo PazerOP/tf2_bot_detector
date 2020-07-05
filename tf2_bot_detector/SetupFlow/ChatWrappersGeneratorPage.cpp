@@ -4,7 +4,12 @@
 #include "Platform/Platform.h"
 
 #include <mh/future.hpp>
+#include <mh/text/string_insertion.hpp>
 
+#include <fstream>
+#include <random>
+
+using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
 #ifdef _DEBUG
@@ -57,4 +62,24 @@ void ChatWrappersGeneratorPage::Commit(Settings& settings)
 {
 	assert(mh::is_future_ready(m_ChatWrappers));
 	settings.m_Unsaved.m_ChatMsgWrappers = m_ChatWrappers.get();
+
+	{
+		std::random_device generator;
+		settings.m_Unsaved.m_ChatMsgWrappersToken = generator();
+	}
+
+	// Write a cfg file
+	{
+		auto folder = settings.GetTFDir() / "custom" / TF2BD_CHAT_WRAPPERS_DIR / "cfg/";
+		std::filesystem::create_directories(folder);
+
+		auto fileName = folder / VERIFY_CFG_FILE_NAME;
+		std::ofstream file(fileName, std::ios::trunc);
+		file << "echo " << GetChatWrapperStringToken(settings.m_Unsaved.m_ChatMsgWrappersToken);
+	}
+}
+
+std::string ChatWrappersGeneratorPage::GetChatWrapperStringToken(uint32_t token)
+{
+	return "TF2BD_CHAT_WRAPPER_TOKEN_VERIFY_"s << token;
 }

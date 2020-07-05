@@ -1,13 +1,14 @@
 #pragma once
 
-#include "FileMods.h"
+#include "Clock.h"
 #include "ISetupFlowPage.h"
 
+#include <array>
 #include <future>
 
 namespace tf2_bot_detector
 {
-	class ChatWrappersGeneratorPage final : public ISetupFlowPage
+	class ChatWrappersVerifyPage final : public ISetupFlowPage
 	{
 	public:
 		bool ValidateSettings(const Settings& settings) const override;
@@ -20,10 +21,14 @@ namespace tf2_bot_detector
 		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
 
-		static std::string GetChatWrapperStringToken(uint32_t token);
-		static constexpr char VERIFY_CFG_FILE_NAME[] = "__tf2bd_chat_wrappers_verify.cfg";
-
 	private:
-		std::future<ChatWrappers> m_ChatWrappers;
+		std::string m_ExpectedToken;
+		std::shared_future<std::string> m_Validation;
+		std::shared_future<std::string> m_ReloadCommandResult;
+		std::string m_Message;
+		std::array<float, 4> m_MessageColor{ 1, 1, 1, 1 };
+		time_point_t m_NextValidationTime{};
+
+		static constexpr duration_t VALIDATION_INTERVAL = std::chrono::seconds(1);
 	};
 }

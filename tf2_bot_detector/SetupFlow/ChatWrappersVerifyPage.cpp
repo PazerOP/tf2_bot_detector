@@ -1,0 +1,106 @@
+#include "ChatWrappersVerifyPage.h"
+#include "ChatWrappersGeneratorPage.h"
+#include "Config/Settings.h"
+#include "FileMods.h"
+#include "ImGui_TF2BotDetector.h"
+
+#include <mh/future.hpp>
+#include <mh/text/string_insertion.hpp>
+#include <mh/text/stringops.hpp>
+#include <srcon/async_client.h>
+
+using namespace std::string_literals;
+using namespace tf2_bot_detector;
+
+bool ChatWrappersVerifyPage::ValidateSettings(const Settings& settings) const
+{
+	return m_Validation.valid();
+}
+
+auto ChatWrappersVerifyPage::OnDraw(const DrawState& ds) -> OnDrawResult
+{
+	if (!m_Validation.valid())
+	{
+		if (m_Message.empty())
+		{
+			m_Message = "Validating chat wrappers...";
+			m_MessageColor = { 1, 1, 1, 1 };
+		}
+
+		const auto curTime = clock_t::now();
+		if (curTime >= m_NextValidationTime)
+		{
+			m_Validation = ds.m_Settings->m_Unsaved.m_RCONClient->send_command_async(
+				"exec "s << ChatWrappersGeneratorPage::VERIFY_CFG_FILE_NAME, false);
+			m_NextValidationTime = curTime + VALIDATION_INTERVAL;
+		}
+	}
+	else if (mh::is_future_ready(m_Validation) && !m_ReloadCommandResult.valid())
+	{
+		try
+		{
+			auto val = m_Validation.get();
+			val = mh::trim(std::move(val));
+
+			if (val != m_ExpectedToken)
+			{
+				m_Message = "Failed to validate chat wrappers: token "s << std::quoted(val) << " != " << std::quoted(m_ExpectedToken);
+				m_MessageColor = { 1, 0.5, 0, 1 };
+				m_Validation = {};
+			}
+			else
+			{
+				m_Message = "Reloading localization files...";
+				m_MessageColor = { 1, 1, 1, 1 };
+				m_ReloadCommandResult = ds.m_Settings->m_Unsaved.m_RCONClient->send_command_async(
+					"cl_reload_localization_files", false);
+			}
+		}
+		catch (const std::exception& e)
+		{
+			m_Message = "Failed to validate chat wrappers: "s << typeid(e).name() << ": " << e.what();
+			m_MessageColor = { 1, 0.25, 0.25, 1 };
+			m_Validation = {};
+			m_ReloadCommandResult = {};
+		}
+	}
+	else if (mh::is_future_ready(m_Validation) && mh::is_future_ready(m_ReloadCommandResult))
+	{
+		try
+		{
+			auto result = m_ReloadCommandResult.get();
+
+			m_Message = "Validation successful!";
+			m_MessageColor = { 0, 1, 0, 1 };
+		}
+		catch (const std::exception& e)
+		{
+			m_Message = "Failed to reload localization files: "s << typeid(e).name() << ": " << e.what();
+			m_MessageColor = { 1, 0.25, 0.25, 1 };
+			m_Validation = {};
+			m_ReloadCommandResult = {};
+		}
+	}
+
+	ImGui::TextColoredUnformatted(m_MessageColor, m_Message);
+
+	if (mh::is_future_ready(m_Validation) && mh::is_future_ready(m_ReloadCommandResult))
+		return OnDrawResult::EndDrawing;
+
+	return OnDrawResult::ContinueDrawing;
+}
+
+void ChatWrappersVerifyPage::Init(const Settings& settings)
+{
+	m_Validation = {};
+	m_ExpectedToken = ChatWrappersGeneratorPage::GetChatWrapperStringToken(settings.m_Unsaved.m_ChatMsgWrappersToken);
+}
+
+bool ChatWrappersVerifyPage::CanCommit() const
+{
+	return true;
+}
+
+void ChatWrappersVerifyPage::Commit(Settings& settings)
+{
+}

@@ -74,6 +74,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/SetupFlow/BasicSettingsPage.cpp"
 	"tf2_bot_detector/SetupFlow/ChatWrappersGeneratorPage.h"
 	"tf2_bot_detector/SetupFlow/ChatWrappersGeneratorPage.cpp"
+	"tf2_bot_detector/SetupFlow/ChatWrappersVerifyPage.h"
+	"tf2_bot_detector/SetupFlow/ChatWrappersVerifyPage.cpp"
 	"tf2_bot_detector/SetupFlow/ISetupFlowPage.h"
 	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.h"
 	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.cpp"

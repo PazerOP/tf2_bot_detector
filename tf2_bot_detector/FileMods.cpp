@@ -68,8 +68,6 @@ static constexpr const char8_t* INVISIBLE_CHARS[] =
 	u8"\u2060",
 };
 
-static constexpr char TF2BD_LOCALIZATION_DIR[] = "aaaaaaaaaa_loadfirst_tf2_bot_detector";
-
 namespace
 {
 	struct ChatFormatStrings
@@ -285,7 +283,7 @@ static cppcoro::generator<std::filesystem::path> GetLocalizationFiles(
 		if (!std::filesystem::exists(customDir / "resource"))
 			continue;
 
-		if (customDir.filename() == TF2BD_LOCALIZATION_DIR)
+		if (customDir.filename() == TF2BD_CHAT_WRAPPERS_DIR)
 			continue;
 
 		if (auto path = customDir / "resource" / ("tf_"s << language << ".txt"); std::filesystem::exists(path))
@@ -425,7 +423,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 	ChatWrappers wrappers(wrapChars);
 	PrintChatWrappers(wrappers);
 
-	const auto outputDir = tfdir / "custom" / TF2BD_LOCALIZATION_DIR / "resource";
+	const auto outputDir = tfdir / "custom" / TF2BD_CHAT_WRAPPERS_DIR / "resource";
 	std::filesystem::create_directories(outputDir);
 
 	std::for_each(std::execution::par_unseq, std::begin(LANGUAGES), std::end(LANGUAGES),
