@@ -67,7 +67,7 @@ jobs:
       run: |
         mkdir "${{ env.TF2BD_BUILD_DIR }}"
         cd "${{ env.TF2BD_BUILD_DIR }}"
-        cmake -GNinja -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ env.TF2BD_BUILD_DIR }}" ../
+        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ env.TF2BD_BUILD_DIR }}" ../
         cmake --build . --config Release
 
     # - name: run-cmake
