@@ -23,10 +23,12 @@ jobs:
             triplet: x86-windows
             tf2bd_arch: x86
             build_arch: Win32
+            tf2bd_cmake_generator: VS16Win32
           - os: windows-latest
             triplet: x64-windows
             tf2bd_arch: x64
             build_arch: x64
+            tf2bd_cmake_generator: VS16Win64
 
     steps:
     - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
@@ -60,21 +62,24 @@ jobs:
         vcpkgTriplet: ${{ matrix.triplet }}
         appendedCacheKey: "42-pazer-${{ matrix.triplet }}"
 
-    - name: CMake
-      if: ${{ startsWith(matrix.os, 'windows') }}
-      run: |
-        mkdir "${{ env.TF2BD_BUILD_DIR }}"
-        cd "${{ env.TF2BD_BUILD_DIR }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" ../
-        cmake --build . --config Release
+    # - name: CMake
+    #   if: ${{ startsWith(matrix.os, 'windows') }}
+    #   run: |
+    #     mkdir "${{ env.TF2BD_BUILD_DIR }}"
+    #     cd "${{ env.TF2BD_BUILD_DIR }}"
+    #     cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" ../
+    #     cmake --build . --config Release
 
-    # - name: run-cmake
-    #   uses: lukka/run-cmake@v2.5
-    #   with:
-    #     useVcpkgToolchainFile: true
-    #     cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }} -DTF2BD_IS_CI_COMPILE=on'
-    #     cmakeBuildType: "Release"
-    #     buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
+    - name: run-cmake
+      uses: lukka/run-cmake@v2.5
+      with:
+        cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
+        useVcpkgToolchainFile: true
+        #cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }} -DTF2BD_IS_CI_COMPILE=on'
+        cmakeAppendedArgs: '-DTF2BD_IS_CI_COMPILE=on'
+        cmakeBuildType: "Release"
+        buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
+        cmakeGenerator: ${{ matrix.tf2bd_cmake_generator }}
 
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
