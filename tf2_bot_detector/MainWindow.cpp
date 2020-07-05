@@ -42,7 +42,13 @@ MainWindow::MainWindow() :
 		<< "\n\tIs CI Build:       " << std::boolalpha << (TF2BD_IS_CI_COMPILE ? true : false)
 		<< "\n\tCompile Timestamp: " << __TIMESTAMP__
 #ifdef _MSC_FULL_VER
-		<< "\n\t_MSC_FULL_VER:     " << _MSC_FULL_VER
+		<< "\n\t-D _MSC_FULL_VER:  " << _MSC_FULL_VER
+#endif
+#if _M_X64
+		<< "\n\t-D _M_X64:         " << _M_X64
+#endif
+#if _MT
+		<< "\n\t-D _MT:            " << _MT
 #endif
 	);
 
