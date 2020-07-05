@@ -65,7 +65,8 @@ jobs:
       run: |
         mkdir "${{ env.TF2BD_BUILD_DIR }}"
         cd "${{ env.TF2BD_BUILD_DIR }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" --config Release -S ../ -B .
+        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" ../
+        cmake --build . --config Release
 
     # - name: run-cmake
     #   uses: lukka/run-cmake@v2.5
