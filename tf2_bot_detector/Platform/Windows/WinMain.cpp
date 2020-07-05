@@ -11,8 +11,21 @@ extern int main(int argc, const char** argv);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 {
+	using tf2_bot_detector::Windows::GetLastErrorException;
 	try
 	{
+		const auto langID = MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
+
+		//if (!SetThreadLocale(langID))
+		//	throw std::runtime_error("Failed to SetThreadLocale()");
+		if (SetThreadUILanguage(langID) != langID)
+			throw std::runtime_error("Failed to SetThreadUILanguage()");
+		//if (ULONG langs = 1; !SetThreadPreferredUILanguages(MUI_LANGUAGE_NAME, L"pl-PL\0", &langs))
+		//	throw std::runtime_error("Failed to SetThreadPreferredUILanguages()");
+
+		const auto err = std::error_code(10035, std::system_category());
+		const auto errMsg = err.message();
+
 		CHECK_HR(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
 
 		CHECK_HR(CoInitializeSecurity(NULL,
@@ -26,7 +39,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 			NULL)                        // Reserved
 		);
 	}
-	catch (const tf2_bot_detector::Windows::GetLastErrorException& e)
+	catch (const std::exception& e)
 	{
 		MessageBoxA(nullptr, e.what(), "Initialization failed", MB_OK);
 		return 1;
