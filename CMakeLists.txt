@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.17.2)
 project(tf2_bot_detector VERSION 1.0.0.36)
 
-include(FetchContent)
-# set(FETCHCONTENT_QUIET off)
-
 option(TF2BD_IS_CI_COMPILE "Set to true if this is a compile on a CI service. Used to help determine if user has made modifications to the source code." off)
 if (TF2BD_IS_CI_COMPILE)
 	add_compile_definitions(TF2BD_IS_CI_COMPILE=1)
@@ -24,23 +21,14 @@ if (MSVC AND (CMAKE_BUILD_TYPE MATCHES "Release"))
 	add_link_options(/OPT:REF /OPT:ICF)
 endif()
 
-FetchContent_Declare(mh_stuff
-	GIT_REPOSITORY https://github.com/PazerOP/stuff.git
-	GIT_SHALLOW true
-	GIT_SUBMODULES_RECURSE false
-)
-FetchContent_Declare(nlohmann_json
-	GIT_REPOSITORY https://github.com/nlohmann/json.git
-	GIT_SHALLOW true
-	GIT_SUBMODULES_RECURSE false
-)
-set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
-set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
-FetchContent_MakeAvailable(mh_stuff nlohmann_json)
-
 add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
 add_subdirectory(submodules/imgui_desktop)
+add_subdirectory(submodules/mh_stuff)
+
+set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
+set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
+add_subdirectory(submodules/nlohmann_json)
 
 add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Actions/RCONActionManager.cpp"
