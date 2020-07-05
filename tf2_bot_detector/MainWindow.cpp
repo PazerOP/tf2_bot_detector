@@ -529,6 +529,18 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
 		}
 
+		// Send warnings for connecting cheaters
+		{
+			if (ImGui::Checkbox("Chat message warnings for connecting cheaters", &m_Settings.m_AutoChatWarningsConnecting))
+				m_Settings.SaveFile();
+
+			ImGui::SetHoverTooltip("Automatically sends a chat message if a cheater has joined the lobby,"
+				" but is not yet in the game. Only has an effect if \"Enable Chat Warnings\""
+				" is enabled (upper left of main window).\n"
+				"\n"
+				"Looks like: \"Heads up! There are N known cheaters joining the other team! Names unknown until they fully join.\"");
+		}
+
 		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
 			ImGui::Checkbox("Allow internet connectivity", &allowInternet))
 		{

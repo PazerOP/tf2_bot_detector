@@ -161,6 +161,7 @@ void Settings::LoadFile()
 		try_get_to(*found, "steam_api_key", m_SteamAPIKey);
 		try_get_to(*found, "auto_launch_tf2", m_AutoLaunchTF2);
 		try_get_to(*found, "auto_chat_warnings", m_AutoChatWarnings);
+		try_get_to(*found, "auto_chat_warnings_connecting", m_AutoChatWarningsConnecting);
 		try_get_to(*found, "auto_votekick", m_AutoVotekick);
 		try_get_to(*found, "auto_mark", m_AutoMark);
 
@@ -196,6 +197,7 @@ bool Settings::SaveFile() const
 				{ "steam_api_key", m_SteamAPIKey },
 				{ "auto_launch_tf2", m_AutoLaunchTF2 },
 				{ "auto_chat_warnings", m_AutoChatWarnings },
+				{ "auto_chat_warnings_connecting", m_AutoChatWarningsConnecting },
 				{ "auto_votekick", m_AutoVotekick },
 				{ "auto_mark", m_AutoMark },
 			}

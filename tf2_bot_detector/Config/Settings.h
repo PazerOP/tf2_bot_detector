@@ -74,6 +74,7 @@ namespace tf2_bot_detector
 		} m_Unsaved;
 
 		bool m_AutoChatWarnings = true;
+		bool m_AutoChatWarningsConnecting = false;
 		bool m_AutoVotekick = true;
 		bool m_AutoMark = true;
 

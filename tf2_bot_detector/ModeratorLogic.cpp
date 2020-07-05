@@ -175,8 +175,8 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 	if (!enemyCheaters.empty())
 		HandleConnectedEnemyCheaters(enemyCheaters);
-	//else if (!connectingEnemyCheaters.empty())
-	//	HandleConnectingEnemyCheaters(connectingEnemyCheaters);
+	else if (!connectingEnemyCheaters.empty())
+		HandleConnectingEnemyCheaters(connectingEnemyCheaters);
 }
 
 void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& enemyCheaters)
@@ -332,7 +332,7 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& 
 		}
 	}
 
-	if (!needsWarning || !m_Settings->m_AutoChatWarnings)
+	if (!needsWarning || !m_Settings->m_AutoChatWarnings || !m_Settings->m_AutoChatWarningsConnecting)
 		return;
 
 	char chatMsg[128];
