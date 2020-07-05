@@ -22,9 +22,11 @@ jobs:
           - os: windows-latest
             triplet: x86-windows
             tf2bd_arch: x86
+            build_arch: Win32
           - os: windows-latest
             triplet: x64-windows
             tf2bd_arch: x64
+            build_arch: x64
 
     steps:
     - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
@@ -63,7 +65,7 @@ jobs:
       run: |
         mkdir "${{ env.TF2BD_BUILD_DIR }}"
         cd "${{ env.TF2BD_BUILD_DIR }}"
-        cmake -A${{ matrix.tf2bd_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" --config Release -S ../ -B .
+        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" --config Release -S ../ -B .
 
     # - name: run-cmake
     #   uses: lukka/run-cmake@v2.5
