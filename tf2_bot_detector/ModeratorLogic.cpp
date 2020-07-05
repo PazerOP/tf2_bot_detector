@@ -175,8 +175,8 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 	if (!enemyCheaters.empty())
 		HandleConnectedEnemyCheaters(enemyCheaters);
-	else if (!connectingEnemyCheaters.empty())
-		HandleConnectingEnemyCheaters(connectingEnemyCheaters);
+	//else if (!connectingEnemyCheaters.empty())
+	//	HandleConnectingEnemyCheaters(connectingEnemyCheaters);
 }
 
 void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& enemyCheaters)
