@@ -1,5 +1,8 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
+#include <array>
 #include <cassert>
 #include <filesystem>
 #include <ostream>
@@ -14,12 +17,15 @@ namespace tf2_bot_detector
 		AllDead,
 		Team,
 		TeamDead,
-		AllSpec,
-		TeamSpec,
+		Spec,
+		SpecTeam,
 		Coach,
 
 		COUNT,
 	};
+
+	void to_json(nlohmann::json& j, const ChatCategory& d);
+	void from_json(const nlohmann::json& j, ChatCategory& d);
 
 	inline constexpr bool IsDead(ChatCategory category)
 	{
@@ -35,7 +41,12 @@ namespace tf2_bot_detector
 		explicit ChatWrappers(size_t wrapChars = 16);
 
 		using wrapper_t = std::string;
-		using wrapper_pair_t = std::pair<wrapper_t, wrapper_t>;
+		struct WrapperPair
+		{
+			wrapper_t m_Start;
+			wrapper_t m_End;
+		};
+		using wrapper_pair_t = WrapperPair;
 
 		struct Type
 		{
@@ -44,9 +55,19 @@ namespace tf2_bot_detector
 			wrapper_pair_t m_Message;
 		};
 
-		Type m_Types[(int)ChatCategory::COUNT];
+		std::array<Type, (size_t)ChatCategory::COUNT> m_Types;
 	};
 
+	void to_json(nlohmann::json& j, const ChatWrappers::WrapperPair& d);
+	void from_json(const nlohmann::json& j, ChatWrappers::WrapperPair& d);
+
+	void to_json(nlohmann::json& j, const ChatWrappers::Type& d);
+	void from_json(const nlohmann::json& j, ChatWrappers::Type& d);
+
+	void to_json(nlohmann::json& j, const ChatWrappers& d);
+	void from_json(const nlohmann::json& j, ChatWrappers& d);
+
+	static constexpr char TF2BD_CHAT_WRAPPERS_DIR[] = "aaaaaaaaaa_loadfirst_tf2_bot_detector";
 	ChatWrappers RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars = 16);
 }
 
@@ -60,8 +81,8 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 	case ChatCategory::AllDead:   return os << "ChatCategory::AllDead";
 	case ChatCategory::Team:      return os << "ChatCategory::Team";
 	case ChatCategory::TeamDead:  return os << "ChatCategory::TeamDead";
-	case ChatCategory::AllSpec:   return os << "ChatCategory::AllSpec";
-	case ChatCategory::TeamSpec:  return os << "ChatCategory::TeamSpec";
+	case ChatCategory::Spec:      return os << "ChatCategory::Spec";
+	case ChatCategory::SpecTeam:  return os << "ChatCategory::SpecTeam";
 	case ChatCategory::Coach:     return os << "ChatCategory::Coach";
 
 	default:

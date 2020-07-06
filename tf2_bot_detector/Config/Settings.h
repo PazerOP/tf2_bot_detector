@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FileMods.h"
+#include "ChatWrappers.h"
 #include "Networking/HTTPClient.h"
 #include "SteamID.h"
 
@@ -68,6 +68,7 @@ namespace tf2_bot_detector
 
 			bool m_DebugShowCommands = false;
 
+			uint32_t m_ChatMsgWrappersToken{};
 			std::optional<ChatWrappers> m_ChatMsgWrappers;
 			std::unique_ptr<srcon::async_client> m_RCONClient;
 

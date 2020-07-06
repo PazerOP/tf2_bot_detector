@@ -1,12 +1,14 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING 1
 
-#include "FileMods.h"
+#include "ChatWrappers.h"
 #include "Log.h"
 #include "TextUtils.h"
+#include "Config/JSONHelpers.h"
 
 #include <vdf_parser.hpp>
 #include <cppcoro/generator.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <nlohmann/json.hpp>
 
 #include <array>
 #include <compare>
@@ -68,8 +70,6 @@ static constexpr const char8_t* INVISIBLE_CHARS[] =
 	u8"\u2060",
 };
 
-static constexpr char TF2BD_LOCALIZATION_DIR[] = "aaaaaaaaaa_loadfirst_tf2_bot_detector";
-
 namespace
 {
 	struct ChatFormatStrings
@@ -128,12 +128,12 @@ ChatWrappers::ChatWrappers(size_t wrapChars)
 
 	for (Type& type : m_Types)
 	{
-		ProcessWrapper(type.m_Full.first);
-		ProcessWrapper(type.m_Full.second);
-		ProcessWrapper(type.m_Name.first);
-		ProcessWrapper(type.m_Name.second);
-		ProcessWrapper(type.m_Message.first);
-		ProcessWrapper(type.m_Message.second);
+		ProcessWrapper(type.m_Full.m_Start);
+		ProcessWrapper(type.m_Full.m_End);
+		ProcessWrapper(type.m_Name.m_Start);
+		ProcessWrapper(type.m_Name.m_End);
+		ProcessWrapper(type.m_Message.m_Start);
+		ProcessWrapper(type.m_Message.m_End);
 	}
 }
 
@@ -194,9 +194,9 @@ static bool GetChatCategory(const std::string* src, std::string_view* name, Chat
 	else if (*name == "Team_Dead")
 		*category = ChatCategory::TeamDead;
 	else if (*name == "Spec")
-		*category = ChatCategory::TeamSpec;
+		*category = ChatCategory::SpecTeam;
 	else if (*name == "AllSpec")
-		*category = ChatCategory::AllSpec;
+		*category = ChatCategory::Spec;
 	else if (*name == "All")
 		*category = ChatCategory::All;
 	else if (*name == "AllDead")
@@ -248,12 +248,12 @@ static void ApplyChatWrappers(ChatCategory cat, std::string& translation, const 
 		std::regex::optimize | std::regex::icase);
 
 	const auto& wrapper = wrappers.m_Types[(int)cat];
-	const auto replaceStr = "$1"s << wrapper.m_Full.first << "$2"
-		<< wrapper.m_Name.first << "%s1" << wrapper.m_Name.second
+	const auto replaceStr = "$1"s << wrapper.m_Full.m_Start << "$2"
+		<< wrapper.m_Name.m_Start << "%s1" << wrapper.m_Name.m_End
 		<< "$3"
-		<< wrapper.m_Message.first << "%s2" << wrapper.m_Message.second
+		<< wrapper.m_Message.m_Start << "%s2" << wrapper.m_Message.m_End
 		<< "$4"
-		<< wrapper.m_Full.second;
+		<< wrapper.m_Full.m_End;
 
 	auto replaced = std::regex_replace(translation, s_Regex, replaceStr);
 	if (replaced == translation)
@@ -285,7 +285,7 @@ static cppcoro::generator<std::filesystem::path> GetLocalizationFiles(
 		if (!std::filesystem::exists(customDir / "resource"))
 			continue;
 
-		if (customDir.filename() == TF2BD_LOCALIZATION_DIR)
+		if (customDir.filename() == TF2BD_CHAT_WRAPPERS_DIR)
 			continue;
 
 		if (auto path = customDir / "resource" / ("tf_"s << language << ".txt"); std::filesystem::exists(path))
@@ -337,8 +337,8 @@ static constexpr std::string_view GetChatCategoryKey(ChatCategory cat, bool isEn
 		case ChatCategory::AllDead:   return "[english]TF_Chat_AllDead"sv;
 		case ChatCategory::Team:      return "[english]TF_Chat_Team"sv;
 		case ChatCategory::TeamDead:  return "[english]TF_Chat_Team_Dead"sv;
-		case ChatCategory::AllSpec:   return "[english]TF_Chat_AllSpec"sv;
-		case ChatCategory::TeamSpec:  return "[english]TF_Chat_Spec"sv;
+		case ChatCategory::Spec:   return "[english]TF_Chat_AllSpec"sv;
+		case ChatCategory::SpecTeam:  return "[english]TF_Chat_Spec"sv;
 		case ChatCategory::Coach:     return "[english]TF_Chat_Coach"sv;
 		}
 	}
@@ -350,8 +350,8 @@ static constexpr std::string_view GetChatCategoryKey(ChatCategory cat, bool isEn
 		case ChatCategory::AllDead:   return "TF_Chat_AllDead"sv;
 		case ChatCategory::Team:      return "TF_Chat_Team"sv;
 		case ChatCategory::TeamDead:  return "TF_Chat_Team_Dead"sv;
-		case ChatCategory::AllSpec:   return "TF_Chat_AllSpec"sv;
-		case ChatCategory::TeamSpec:  return "TF_Chat_Spec"sv;
+		case ChatCategory::Spec:   return "TF_Chat_AllSpec"sv;
+		case ChatCategory::SpecTeam:  return "TF_Chat_Spec"sv;
 		case ChatCategory::Coach:     return "TF_Chat_Coach"sv;
 		}
 	}
@@ -385,12 +385,12 @@ static void PrintChatWrappers(const ChatWrappers& wrappers)
 
 		Indent(str, indentLevels + 1);
 		str << "begin: ";
-		PrintWrapper(str, wrapper.first);
+		PrintWrapper(str, wrapper.m_Start);
 
 		str << '\n';
 		Indent(str, indentLevels + 1);
 		str << "end:   ";
-		PrintWrapper(str, wrapper.second);
+		PrintWrapper(str, wrapper.m_End);
 	};
 
 	std::string logMsg = "Generated chat message wrappers:";// for "s << cat << '\n';
@@ -412,6 +412,95 @@ static void PrintChatWrappers(const ChatWrappers& wrappers)
 	DebugLog(std::move(logMsg));
 }
 
+void tf2_bot_detector::to_json(nlohmann::json& j, const ChatCategory& d)
+{
+	switch (d)
+	{
+	case ChatCategory::All:       j = "all"; return;
+	case ChatCategory::AllDead:   j = "all_dead"; return;
+	case ChatCategory::Team:      j = "team"; return;
+	case ChatCategory::TeamDead:  j = "team_dead"; return;
+	case ChatCategory::Spec:      j = "spec"; return;
+	case ChatCategory::SpecTeam:  j = "spec_team"; return;
+	case ChatCategory::Coach:     j = "coach"; return;
+
+	default:
+		throw std::invalid_argument("Invalid ChatCategory("s << std::underlying_type_t<ChatCategory>(d) << ')');
+	}
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, ChatCategory& d)
+{
+	if (j == "all")
+		d = ChatCategory::All;
+	else if (j == "all_dead")
+		d = ChatCategory::AllDead;
+	else if (j == "team")
+		d = ChatCategory::Team;
+	else if (j == "team_dead")
+		d = ChatCategory::TeamDead;
+	else if (j == "spec")
+		d = ChatCategory::Spec;
+	else if (j == "spec_team")
+		d = ChatCategory::SpecTeam;
+	else if (j == "coach")
+		d = ChatCategory::Coach;
+	else
+		throw std::invalid_argument("Unknown ChatCategory "s << std::quoted(j.get<std::string_view>()));
+}
+
+void tf2_bot_detector::to_json(nlohmann::json& j, const ChatWrappers::WrapperPair& d)
+{
+	j =
+	{
+		{ "start", d.m_Start },
+		{ "end", d.m_End },
+	};
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, ChatWrappers::WrapperPair& d)
+{
+	j.at("start").get_to(d.m_Start);
+	j.at("end").get_to(d.m_End);
+}
+
+void tf2_bot_detector::to_json(nlohmann::json& j, const ChatWrappers::Type& d)
+{
+	j =
+	{
+		{ "full", d.m_Full },
+		{ "name", d.m_Name },
+		{ "message", d.m_Message },
+	};
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, ChatWrappers::Type& d)
+{
+	j.at("full").get_to(d.m_Full);
+	j.at("name").get_to(d.m_Name);
+	j.at("message").get_to(d.m_Message);
+}
+
+void tf2_bot_detector::to_json(nlohmann::json& j, const ChatWrappers& d)
+{
+	j = nlohmann::json::array();
+
+	for (size_t i = 0; i < std::size(d.m_Types); i++)
+	{
+		auto& elem = j.emplace_back(d.m_Types[i]);
+		elem["type"] = ChatCategory(i);
+	}
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, ChatWrappers& d)
+{
+	for (const auto& obj : j)
+	{
+		auto type = (ChatCategory)obj.at("type");
+		d.m_Types.at(size_t(type)) = obj;
+	}
+}
+
 ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
 {
 	assert(!tfdir.empty());
@@ -425,7 +514,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 	ChatWrappers wrappers(wrapChars);
 	PrintChatWrappers(wrappers);
 
-	const auto outputDir = tfdir / "custom" / TF2BD_LOCALIZATION_DIR / "resource";
+	const auto outputDir = tfdir / "custom" / TF2BD_CHAT_WRAPPERS_DIR / "resource";
 	std::filesystem::create_directories(outputDir);
 
 	std::for_each(std::execution::par_unseq, std::begin(LANGUAGES), std::end(LANGUAGES),

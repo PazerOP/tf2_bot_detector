@@ -3,7 +3,6 @@
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "ConsoleLog/ConsoleLogParser.h"
-#include "FileMods.h"
 #include "Log.h"
 #include "RegexHelpers.h"
 

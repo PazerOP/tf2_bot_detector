@@ -154,6 +154,7 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 		" +sv_rcon_whitelist_address 127.0.0.1 +alias sv_rcon_whitelist_address"
 		" +rcon_password " << rconPassword << " +alias rcon_password"
 		" +hostport " << rconPort << " +alias hostport"
+		" +alias cl_reload_localization_files" // This command reloads files in backwards order, so any customizations get overwritten by stuff from the base game
 		" +net_start"
 		" +con_timestamp 1 +alias con_timestamp"
 		" -condebug"
