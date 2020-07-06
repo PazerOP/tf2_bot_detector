@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FileMods.h"
+#include "ChatWrappers.h"
 #include "Networking/HTTPClient.h"
 #include "SteamID.h"
 

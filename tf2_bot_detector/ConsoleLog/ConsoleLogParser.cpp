@@ -1,7 +1,7 @@
+#include "Config/ChatWrappers.h"
 #include "ConsoleLogParser.h"
 #include "ConsoleLines.h"
 #include "Log.h"
-#include "FileMods.h"
 #include "RegexHelpers.h"
 #include "Config/Settings.h"
 #include "WorldState.h"
@@ -118,12 +118,12 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 		const auto category = ChatCategory(i);
 
 		auto& type = m_Settings->m_Unsaved.m_ChatMsgWrappers.value().m_Types[i];
-		if (lineStr.starts_with(type.m_Full.first))
+		if (lineStr.starts_with(type.m_Full.m_Start))
 		{
 			auto searchBuf = std::string_view(m_FileLineBuf).substr(
-				&*lineStr.begin() - m_FileLineBuf.data() + type.m_Full.first.size());
+				&*lineStr.begin() - m_FileLineBuf.data() + type.m_Full.m_Start.size());
 
-			if (auto found = searchBuf.find(type.m_Full.second); found != lineStr.npos)
+			if (auto found = searchBuf.find(type.m_Full.m_End); found != lineStr.npos)
 			{
 				if (found > 512)
 				{
@@ -133,16 +133,16 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 
 				searchBuf = searchBuf.substr(0, found);
 
-				auto nameBegin = searchBuf.find(type.m_Name.first);
-				auto nameEnd = searchBuf.find(type.m_Name.second);
-				auto msgBegin = searchBuf.find(type.m_Message.first);
-				auto msgEnd = searchBuf.find(type.m_Message.second);
+				auto nameBegin = searchBuf.find(type.m_Name.m_Start);
+				auto nameEnd = searchBuf.find(type.m_Name.m_End);
+				auto msgBegin = searchBuf.find(type.m_Message.m_Start);
+				auto msgEnd = searchBuf.find(type.m_Message.m_End);
 
 				if (nameBegin != searchBuf.npos && nameEnd != searchBuf.npos && msgBegin != searchBuf.npos && msgEnd != searchBuf.npos)
 				{
 					parsed = std::make_unique<ChatConsoleLine>(m_WorldState->GetCurrentTime(),
-						std::string(searchBuf.substr(nameBegin + type.m_Name.first.size(), nameEnd - nameBegin - type.m_Name.first.size())),
-						std::string(searchBuf.substr(msgBegin + type.m_Message.first.size(), msgEnd - msgBegin - type.m_Message.first.size())),
+						std::string(searchBuf.substr(nameBegin + type.m_Name.m_Start.size(), nameEnd - nameBegin - type.m_Name.m_Start.size())),
+						std::string(searchBuf.substr(msgBegin + type.m_Message.m_Start.size(), msgEnd - msgBegin - type.m_Message.m_Start.size())),
 						IsDead(category), IsTeam(category));
 				}
 				else
@@ -157,7 +157,7 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 						LogError("Failed to find message end sequence in chat message of type "s << category);
 				}
 
-				parseEnd += type.m_Full.first.size() + found + type.m_Full.second.size();
+				parseEnd += type.m_Full.m_Start.size() + found + type.m_Full.m_End.size();
 				return true;
 			}
 			else

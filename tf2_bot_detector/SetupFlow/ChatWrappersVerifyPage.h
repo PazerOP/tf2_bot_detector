@@ -24,7 +24,6 @@ namespace tf2_bot_detector
 	private:
 		std::string m_ExpectedToken;
 		std::shared_future<std::string> m_Validation;
-		std::shared_future<std::string> m_ReloadCommandResult;
 		std::string m_Message;
 		std::array<float, 4> m_MessageColor{ 1, 1, 1, 1 };
 		time_point_t m_NextValidationTime{};
