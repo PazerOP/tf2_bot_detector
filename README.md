@@ -11,6 +11,7 @@
 [![MIT License][license-shield]][license-url]
 [![Build Status][build-shield]][actions-build-url]
 [![Discord Status][discord-shield]][discord-link]
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FPazerOP%2Ftf2_bot_detector.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FPazerOP%2Ftf2_bot_detector?ref=badge_shield)
 
 
 <!-- PROJECT LOGO -->
@@ -107,6 +108,9 @@ It monitors the console output (saved to a log file) to get information about th
 Distributed under the MIT License. See [`LICENSE`][license-url] for more information.
 
 <!-- CONTACT -->
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FPazerOP%2Ftf2_bot_detector.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FPazerOP%2Ftf2_bot_detector?ref=badge_large)
+
 ## Contact
 Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 
