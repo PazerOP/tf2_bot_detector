@@ -49,6 +49,10 @@ auto ChatWrappersGeneratorPage::OnDraw(const DrawState& ds) -> OnDrawResult
 			return OnDrawResult::EndDrawing;
 	}
 
+	ImGui::NewLine();
+	if (AutoLaunchTF2Checkbox(ds.m_Settings->m_AutoLaunchTF2))
+		ds.m_Settings->SaveFile();
+
 	return OnDrawResult::ContinueDrawing;
 }
 
