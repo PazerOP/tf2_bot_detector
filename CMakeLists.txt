@@ -111,13 +111,19 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
-	"tf2_bot_detector/Resources.rc"
 )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
 
 if(WIN32)
+	if ((CMAKE_BUILD_TYPE MATCHES "Release"))
+		set(TF2BD_RESOURCE_FILEFLAGS "VER_DBG")
+	else()
+		set(TF2BD_RESOURCE_FILEFLAGS "0")
+	endif()
+	configure_file(tf2_bot_detector/Resources.base.rc tf2_bot_detector/Resources.rc)
+
 	target_sources(tf2_bot_detector PRIVATE
 		"tf2_bot_detector/Platform/Windows/CrashHandler.cpp"
 		"tf2_bot_detector/Platform/Windows/Processes.cpp"
@@ -125,6 +131,7 @@ if(WIN32)
 		"tf2_bot_detector/Platform/Windows/Steam.cpp"
 		"tf2_bot_detector/Platform/Windows/WindowsHelpers.h"
 		"tf2_bot_detector/Platform/Windows/WinMain.cpp"
+		"tf2_bot_detector/Resources.rc"
 	)
 endif()
 
