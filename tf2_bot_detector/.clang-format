@@ -1,0 +1,37 @@
+# Format Style Options - Created with Clang Power Tools
+---
+Language: Cpp
+Standard: c++20
+
+IndentWidth: 4
+TabWidth: 4
+ContinuationIndentWidth: 4
+UseTab: ForContinuationAndIndentation
+
+BinPackArguments: true
+BinPackParameters: true
+AllowShortLambdasOnASingleLine: false
+BreakInheritanceList: AfterColon
+Cpp11BracedListStyle: true
+
+ColumnLimit: 120
+UseCRLF: false
+DeriveLineEnding: false
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+AlignEscapedNewlines: Left
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  BeforeLambdaBody: true
+  SplitEmptyFunction: true
+  BeforeCatch: true
+  BeforeElse: true
+
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^(<(mh|srcon)/)'
+    Priority: 2
+...
