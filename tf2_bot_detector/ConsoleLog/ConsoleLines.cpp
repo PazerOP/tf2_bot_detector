@@ -65,41 +65,43 @@ std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_vie
 	return nullptr;
 }
 
-void ChatConsoleLine::Print() const
+template<typename TTextFunc, typename TSameLineFunc>
+static void ProcessChatMessage(const ChatConsoleLine& msgLine, TTextFunc&& textFunc, TSameLineFunc& sameLineFunc)
 {
 	const auto PrintLHS = [&]
 	{
-		if (m_IsDead)
+		if (msgLine.IsDead())
 		{
-			ImGui::TextColoredUnformatted(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "*DEAD*");
-			ImGui::SameLine();
+			textFunc(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "*DEAD*");
+			sameLineFunc();
 		}
 
-		if (m_IsTeam)
+		if (msgLine.IsTeam())
 		{
-			ImGui::TextColoredUnformatted(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(TEAM)");
-			ImGui::SameLine();
+			textFunc(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(TEAM)");
+			sameLineFunc();
 		}
 
-		ImGui::TextColoredUnformatted(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), m_PlayerName);
-		ImGui::SameLine();
+		textFunc(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), msgLine.GetPlayerName());
+		sameLineFunc();
 
-		ImGui::TextColoredUnformatted(ImVec4(1, 1, 1, 1), ": ");
-		ImGui::SameLine();
+		textFunc(ImVec4(1, 1, 1, 1), ": ");
+		sameLineFunc();
 	};
 
 	PrintLHS();
 
+	const auto& msg = msgLine.GetMessage();
 	const ImVec4 msgColor(0.8f, 0.8f, 0.8f, 1.0f);
-	if (m_Message.find('\n') == m_Message.npos)
+	if (msg.find('\n') == msg.npos)
 	{
-		ImGui::TextColoredUnformatted(msgColor, m_Message);
+		textFunc(msgColor, msg);
 	}
 	else
 	{
 		// collapse groups of newlines in the message into red "(\n x <count>)" text
 		bool firstLine = true;
-		for (size_t i = 0; i < m_Message.size(); )
+		for (size_t i = 0; i < msg.size(); )
 		{
 			if (!firstLine)
 			{
@@ -107,19 +109,56 @@ void ChatConsoleLine::Print() const
 				PrintLHS();
 			}
 
-			size_t nonNewlineEnd = std::min(m_Message.find('\n', i), m_Message.size());
-			ImGui::TextUnformatted(m_Message.data() + i, m_Message.data() + nonNewlineEnd);
+			size_t nonNewlineEnd = std::min(msg.find('\n', i), msg.size());
+			{
+				auto start = msg.data() + i;
+				auto end = msg.data() + nonNewlineEnd;
+				textFunc({ 1, 1, 1, 1 }, std::string_view(start, end - start));
+			}
 
-			size_t newlineEnd = std::min(m_Message.find_first_not_of('\n', nonNewlineEnd), m_Message.size());
+			size_t newlineEnd = std::min(msg.find_first_not_of('\n', nonNewlineEnd), msg.size());
 
 			if (newlineEnd > nonNewlineEnd)
 			{
-				ImGui::SameLine();
-				ImGui::TextColored(ImVec4(1, 0.5f, 0.5f, 1.0f), "(\\n x %i)", (newlineEnd - nonNewlineEnd));
+				char buf[64];
+				sprintf_s(buf, "(\\n x %zu)", (newlineEnd - nonNewlineEnd));
+				textFunc(ImVec4(1, 0.5f, 0.5f, 1.0f), buf);
+				sameLineFunc();
 			}
 
 			i = newlineEnd;
 			firstLine = false;
+		}
+	}
+}
+
+void ChatConsoleLine::Print() const
+{
+	ImGuiDesktop::ScopeGuards::ID id(this);
+
+	ImGui::BeginGroup();
+	ProcessChatMessage(*this,
+		[](const ImVec4& color, const std::string_view& msg) { ImGui::TextColoredUnformatted(color, msg); },
+		[] { ImGui::SameLine(); });
+	ImGui::EndGroup();
+
+	if (auto scope = ImGui::BeginPopupContextItemScope("ChatConsoleLineContextMenu"))
+	{
+		if (ImGui::MenuItem("Copy"))
+		{
+			std::string fullText;
+
+			ProcessChatMessage(*this,
+				[&](const ImVec4&, const std::string_view& msg)
+				{
+					if (!fullText.empty())
+						fullText += ' ';
+
+					fullText.append(msg);
+				},
+				[] {});
+
+			ImGui::SetClipboardText(fullText.c_str());
 		}
 	}
 }

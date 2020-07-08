@@ -488,11 +488,21 @@ void MainWindow::OnDrawAppLog()
 			{
 				const std::tm timestamp = ToTM(msg.m_Timestamp);
 
+				ImGuiDesktop::ScopeGuards::ID id(&msg);
+
+				ImGui::BeginGroup();
 				ImGui::TextColored({ 0.25f, 1.0f, 0.25f, 0.25f }, "[%02i:%02i:%02i]",
 					timestamp.tm_hour, timestamp.tm_min, timestamp.tm_sec);
 
 				ImGui::SameLine();
 				ImGui::TextColoredUnformatted({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a }, msg.m_Text);
+				ImGui::EndGroup();
+
+				if (auto scope = ImGui::BeginPopupContextItemScope("AppLogContextMenu"))
+				{
+					if (ImGui::MenuItem("Copy"))
+						ImGui::SetClipboardText(msg.m_Text.c_str());
+				}
 			}
 
 			ImGui::PopTextWrapPos();
