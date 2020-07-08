@@ -273,8 +273,12 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 	case ConsoleLineType::LobbyStatusFailed:
 	{
-		m_CurrentLobbyMembers.clear();
-		m_PendingLobbyMembers.clear();
+		if (!m_CurrentLobbyMembers.empty() || !m_PendingLobbyMembers.empty())
+		{
+			m_CurrentLobbyMembers.clear();
+			m_PendingLobbyMembers.clear();
+			m_CurrentPlayerData.clear();
+		}
 		break;
 	}
 	case ConsoleLineType::LobbyChanged:
