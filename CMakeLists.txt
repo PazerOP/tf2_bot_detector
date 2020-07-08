@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.36)
+project(tf2_bot_detector VERSION 1.0.0.37)
 
 option(TF2BD_IS_CI_COMPILE "Set to true if this is a compile on a CI service. Used to help determine if user has made modifications to the source code." off)
 if (TF2BD_IS_CI_COMPILE)
