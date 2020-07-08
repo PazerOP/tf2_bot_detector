@@ -58,4 +58,13 @@ namespace tf2_bot_detector
 	protected:
 		bool ExecuteImpl(RCONActionManager& manager) override;
 	};
+
+	class LobbyDebugActionGenerator final : public IPeriodicActionGenerator
+	{
+	public:
+		duration_t GetInterval() const override { return std::chrono::seconds(1); }
+
+	protected:
+		bool ExecuteImpl(RCONActionManager& manager) override;
+	};
 }

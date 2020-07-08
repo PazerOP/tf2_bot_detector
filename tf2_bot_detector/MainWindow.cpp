@@ -56,6 +56,7 @@ MainWindow::MainWindow() :
 
 	m_ActionManager.AddPeriodicActionGenerator<StatusUpdateActionGenerator>();
 	m_ActionManager.AddPeriodicActionGenerator<ConfigActionGenerator>();
+	m_ActionManager.AddPeriodicActionGenerator<LobbyDebugActionGenerator>();
 	//m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 }
 
