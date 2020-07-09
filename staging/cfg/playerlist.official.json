@@ -3101,6 +3101,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "www.myg0t.gg",
+				"time": 1594262334
+			},
+			"steamid": "[U:1:1104162628]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
