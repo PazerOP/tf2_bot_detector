@@ -122,6 +122,7 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-sponsors-pazerop]:
 * [Crazy Gunman](https://github.com/CrazyGunman2C4U)
 * [ClusterConsultant](https://github.com/ClusterConsultant)
+* [KTachibanaM](https://github.com/KTachibanaM)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
