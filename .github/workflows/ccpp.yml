@@ -82,7 +82,7 @@ jobs:
     #     #cmakeGenerator: ${{ matrix.tf2bd_cmake_generator }}
 
     - name: Sign artifacts
-      uses: PazerOP/code-sign-action@v1.1
+      uses: PazerOP/code-sign-action@v2
       with:
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
