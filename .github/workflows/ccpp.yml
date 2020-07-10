@@ -84,9 +84,9 @@ jobs:
     - name: Sign artifacts
       uses: PazerOP/code-sign-action@v2
       with:
+        folder: '${{ env.TF2BD_BUILD_DIR }}'
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
-        folder: '${{ env.TF2BD_BUILD_DIR }}'
 
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
