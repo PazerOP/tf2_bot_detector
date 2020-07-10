@@ -81,6 +81,11 @@ jobs:
     #     buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
     #     #cmakeGenerator: ${{ matrix.tf2bd_cmake_generator }}
 
+    - uses: dlemstra/code-sign-action@v1
+      with:
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        folder: "${{ env.TF2BD_BUILD_DIR }}"
+
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
       with:
