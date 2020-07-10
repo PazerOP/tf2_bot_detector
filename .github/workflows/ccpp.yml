@@ -81,6 +81,13 @@ jobs:
     #     buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
     #     #cmakeGenerator: ${{ matrix.tf2bd_cmake_generator }}
 
+    - name: Sign artifacts
+      uses: PazerOP/code-sign-action@v3
+      with:
+        folder: '${{ env.TF2BD_BUILD_DIR }}'
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
       with:
