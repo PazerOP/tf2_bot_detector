@@ -54,8 +54,8 @@ bool ConfigActionGenerator::ExecuteImpl(RCONActionManager& manager)
 	if (!manager.QueueAction<GenericCommandAction>("tf_mm_debug_level", "4"))
 		return false; // This is defaulted to 4, but mastercom's stupid config turns this off
 
-	// Need this for robust chat message detection
-	//manager.QueueAction<GenericCommandAction>("net_showmsg", "svc_UserMessage");
+	if (!manager.QueueAction<GenericCommandAction>("net_showmsg", "svc_UserMessage"))
+		return false;
 
 	return true;
 }

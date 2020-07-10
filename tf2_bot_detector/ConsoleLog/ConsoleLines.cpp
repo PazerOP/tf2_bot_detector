@@ -1,4 +1,5 @@
 #include "ConsoleLines.h"
+#include "GameData/UserMessageType.h"
 #include "Log.h"
 #include "RegexHelpers.h"
 
@@ -605,35 +606,61 @@ void PingLine::Print() const
 	ImGui::Text("%4u : %s", m_Ping, m_PlayerName.c_str());
 }
 
-SVCUserMessageLine::SVCUserMessageLine(time_point_t timestamp, std::string address, uint16_t type, uint16_t bytes) :
+SVCUserMessageLine::SVCUserMessageLine(time_point_t timestamp, std::string address, UserMessageType type, uint16_t bytes) :
 	BaseClass(timestamp), m_Address(std::move(address)), m_MsgType(type), m_MsgBytes(bytes)
 {
 }
 
 std::shared_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
-	static const std::regex s_Regex(R"regex(Msg from (\d+\.\d+\.\d+\.\d+:\d+): svc_UserMessage: type (\d+), bytes (\d+))regex", std::regex::optimize);
+	static const std::regex s_Regex(R"regex(Msg from ((?:\d+\.\d+\.\d+\.\d+:\d+)|loopback): svc_UserMessage: type (\d+), bytes (\d+))regex", std::regex::optimize);
 
 	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
 	{
 		uint16_t type, bytes;
 		from_chars_throw(result[2], type);
 
-		// for now, we only care about SayText2
-		if (type != 4)
-			return nullptr;
-
 		from_chars_throw(result[3], bytes);
 
-		return std::make_shared<SVCUserMessageLine>(timestamp, result[1].str(), type, bytes);
+		return std::make_shared<SVCUserMessageLine>(timestamp, result[1].str(), UserMessageType(type), bytes);
 	}
 
 	return nullptr;
 }
 
+bool SVCUserMessageLine::ShouldPrint() const
+{
+#ifdef _DEBUG
+	switch (m_MsgType)
+	{
+	case UserMessageType::CallVoteFailed:
+	case UserMessageType::VoteFailed:
+	case UserMessageType::VotePass:
+	case UserMessageType::VoteSetup:
+	case UserMessageType::VoteStart:
+		return true;
+	}
+#endif
+
+	return false;
+}
+
 void SVCUserMessageLine::Print() const
 {
-	ImGui::Text("Msg from %s: svc_UserMessage: type %u, bytes %u", m_Address.c_str(), m_MsgType, m_MsgBytes);
+	switch (m_MsgType)
+	{
+	case UserMessageType::CallVoteFailed:
+	case UserMessageType::VoteFailed:
+	case UserMessageType::VotePass:
+	case UserMessageType::VoteSetup:
+	case UserMessageType::VoteStart:
+		ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, ""s << m_MsgType);
+		break;
+
+	default:
+		ImGui::Text("Msg from %s: svc_UserMessage: type %u, bytes %u", m_Address.c_str(), m_MsgType, m_MsgBytes);
+		break;
+	}
 }
 
 std::shared_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const std::string_view& text, time_point_t timestamp)
