@@ -19,6 +19,16 @@
 			},
 			"steamid": "[U:1:1254884]"
 		},
+		        {
+            "attributes": [
+                "cheater"
+            ],
+            "last_seen": {
+                "player_name": "dry nuts",
+                "time": 1594326232
+            },
+            "steamid": "[U:1:312085969]"
+        },
 		{
 			"attributes": [
 				"cheater"
@@ -206,6 +216,16 @@
 				"time": 1591238458
 			},
 			"steamid": "[U:1:113829888]"
+		},
+		{
+			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "CDG Cashel",
+				"time": 1594355980
+			},
+			"steamid": "[U:1:116063413]"
 		},
 		{
 			"attributes": [
@@ -1731,6 +1751,16 @@
 				"time": 1591480184
 			},
 			"steamid": "[U:1:1089158437]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "partyrocker69",
+				"time": 1594352154
+			},
+			"steamid": "[U:1:1089187183]"
 		},
 		{
 			"attributes": [
@@ -4178,6 +4208,16 @@
 				"time": 1593815458
 			},
 			"steamid": "[U:1:1111113367]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Itemtest",
+				"time": 1594352151
+			},
+			"steamid": "[U:1:1111749183]"
 		},
 		{
 			"attributes": [
