@@ -10,6 +10,7 @@
 
 namespace tf2_bot_detector
 {
+	enum class TFClassType;
 	enum class UserMessageType;
 
 	class GenericConsoleLine final : public ConsoleLineBase<GenericConsoleLine, false>
@@ -329,5 +330,23 @@ namespace tf2_bot_detector
 		std::string m_Address{};
 		UserMessageType m_MsgType{};
 		uint16_t m_MsgBytes{};
+	};
+
+	class ConfigExecLine final : public ConsoleLineBase<ConfigExecLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ConfigExecLine(time_point_t timestamp, std::string configFileName);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::ConfigExec; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+		const std::string& GetConfigFileName() const { return m_ConfigFileName; }
+
+	private:
+		std::string m_ConfigFileName;
 	};
 }

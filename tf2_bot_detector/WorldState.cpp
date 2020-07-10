@@ -305,6 +305,8 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	{
 		// Reset current lobby members/player statuses
 		//ClearLobbyState();
+		m_IsLocalPlayerInitialized = false;
+		DebugLogWarning("Client reached server spawn");
 		break;
 	}
 	case ConsoleLineType::Chat:
@@ -326,6 +328,26 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		{
 			LogWarning("Dropped chat message with unknown SteamID from "s
 				<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
+		}
+
+		break;
+	}
+	case ConsoleLineType::ConfigExec:
+	{
+		auto& execLine = static_cast<const ConfigExecLine&>(parsed);
+		const std::string_view& cfgName = execLine.GetConfigFileName();
+		if (cfgName == "scout.cfg"sv ||
+			cfgName == "sniper.cfg"sv ||
+			cfgName == "soldier.cfg"sv ||
+			cfgName == "demoman.cfg"sv ||
+			cfgName == "medic.cfg"sv ||
+			cfgName == "heavyweapons.cfg"sv ||
+			cfgName == "pyro.cfg"sv ||
+			cfgName == "spy.cfg"sv ||
+			cfgName == "engineer.cfg"sv)
+		{
+			DebugLog("Spawned as "s << cfgName.substr(0, cfgName.size() - 3));
+			m_IsLocalPlayerInitialized = true;
 		}
 
 		break;

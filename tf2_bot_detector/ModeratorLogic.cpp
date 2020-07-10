@@ -377,7 +377,8 @@ void ModeratorLogic::ProcessPlayerActions()
 	}
 
 	if (auto self = m_World->FindPlayer(m_Settings->GetLocalSteamID());
-		self && self->GetConnectionState() != PlayerStatusState::Active)
+		(self && self->GetConnectionState() != PlayerStatusState::Active) ||
+		!m_World->IsLocalPlayerInitialized())
 	{
 		DebugLog("Skipping ProcessPlayerActions() because we are not fully connected yet");
 		return;

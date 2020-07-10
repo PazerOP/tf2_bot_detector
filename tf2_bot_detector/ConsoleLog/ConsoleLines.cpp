@@ -675,3 +675,22 @@ void LobbyStatusFailedLine::Print() const
 {
 	ImGui::Text("Failed to find lobby shared object");
 }
+
+ConfigExecLine::ConfigExecLine(time_point_t timestamp, std::string configFileName) :
+	BaseClass(timestamp), m_ConfigFileName(std::move(configFileName))
+{
+}
+
+std::shared_ptr<IConsoleLine> ConfigExecLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	constexpr auto prefix = "execing "sv;
+	if (text.starts_with(prefix))
+		return std::make_shared<ConfigExecLine>(timestamp, std::string(text.substr(prefix.size())));
+
+	return nullptr;
+}
+
+void ConfigExecLine::Print() const
+{
+	ImGui::Text("execing %s", m_ConfigFileName.c_str());
+}

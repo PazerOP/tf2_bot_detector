@@ -27,6 +27,7 @@ namespace tf2_bot_detector
 		EdictUsage,
 		SplitPacket,
 		SVC_UserMessage,
+		ConfigExec,
 
 		NetLatency,
 		NetLoss,
