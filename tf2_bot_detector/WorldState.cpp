@@ -3,6 +3,7 @@
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "ConsoleLog/ConsoleLogParser.h"
+#include "GameData/UserMessageType.h"
 #include "Log.h"
 #include "RegexHelpers.h"
 
@@ -306,6 +307,7 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		// Reset current lobby members/player statuses
 		//ClearLobbyState();
 		m_IsLocalPlayerInitialized = false;
+		m_IsVoteInProgress = false;
 		DebugLogWarning("Client reached server spawn");
 		break;
 	}
@@ -451,6 +453,22 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 
 			if (attackerSteamID == localSteamID)
 				victim.m_Scores.m_LocalDeaths++;
+		}
+
+		break;
+	}
+	case ConsoleLineType::SVC_UserMessage:
+	{
+		auto& userMsg = static_cast<const SVCUserMessageLine&>(parsed);
+		switch (userMsg.GetUserMessageType())
+		{
+		case UserMessageType::VoteStart:
+			m_IsVoteInProgress = true;
+			break;
+		case UserMessageType::VoteFailed:
+		case UserMessageType::VotePass:
+			m_IsVoteInProgress = false;
+			break;
 		}
 
 		break;

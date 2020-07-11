@@ -82,6 +82,7 @@ namespace tf2_bot_detector
 
 		// Have we joined a team and picked a class?
 		bool IsLocalPlayerInitialized() const { return m_IsLocalPlayerInitialized; }
+		bool IsVoteInProgress() const { return m_IsVoteInProgress; }
 
 	private:
 		const Settings* m_Settings = nullptr;
@@ -145,6 +146,7 @@ namespace tf2_bot_detector
 		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
 		bool m_IsLocalPlayerInitialized = false;
+		bool m_IsVoteInProgress = false;
 
 		time_point_t m_LastStatusUpdateTime{};
 

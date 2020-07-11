@@ -904,8 +904,13 @@ void MainWindow::OnDraw()
 	{
 		auto leader = m_ModeratorLogic.GetBotLeader();
 		ImGui::Value("Bot Leader", leader ? (""s << *leader).c_str() : "");
-		ImGui::Value("Time to next connecting cheater warning", to_seconds(m_ModeratorLogic.TimeToConnectingCheaterWarning()));
-		ImGui::Value("Time to next cheater warning", to_seconds(m_ModeratorLogic.TimeToCheaterWarning()));
+
+		ImGui::TextUnformatted("Is vote in progress:");
+		ImGui::SameLine();
+		if (m_WorldState.IsVoteInProgress())
+			ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "YES");
+		else
+			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "NO");
 	}
 #endif
 
