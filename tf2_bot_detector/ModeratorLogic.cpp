@@ -114,7 +114,8 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 	}
 }
 
-void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<const IPlayer*>& friendlyCheaters)
+void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t connectedFriendlyPlayerCount,
+	const std::vector<const IPlayer*>& friendlyCheaters)
 {
 	if (!m_Settings->m_AutoVotekick)
 		return;
@@ -122,10 +123,19 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const s
 	if (friendlyCheaters.empty())
 		return; // Nothing to do
 
-	if (uint8_t(friendlyPlayerCount / 2) <= friendlyCheaters.size())
+	constexpr float MIN_QUORUM = 0.6f;
+	if (auto quorum = float(connectedFriendlyPlayerCount) / friendlyPlayerCount; quorum <= MIN_QUORUM)
+	{
+		LogWarning("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
+			<< " friendly cheaters: only " << int(quorum * 100)
+			<< "% of players on our team are connected right now (need >= " << int(MIN_QUORUM * 100) << "%)");
+		return;
+	}
+
+	if (auto ratio = float(friendlyPlayerCount) / friendlyCheaters.size(); ratio <= 0.501f)
 	{
 		Log("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
-			<< " friendly cheaters", { 1, 0.5f, 0 });
+			<< " friendly cheaters: our team is " << (100 - int(ratio * 100)) << "% cheaters");
 		return;
 	}
 
@@ -367,7 +377,8 @@ void ModeratorLogic::ProcessPlayerActions()
 	}
 
 	if (auto self = m_World->FindPlayer(m_Settings->GetLocalSteamID());
-		self && self->GetConnectionState() != PlayerStatusState::Active)
+		(self && self->GetConnectionState() != PlayerStatusState::Active) ||
+		!m_World->IsLocalPlayerInitialized())
 	{
 		DebugLog("Skipping ProcessPlayerActions() because we are not fully connected yet");
 		return;
@@ -383,7 +394,9 @@ void ModeratorLogic::ProcessPlayerActions()
 		return; // We don't know what team we're on, so we can't really take any actions.
 
 	uint8_t totalEnemyPlayers = 0;
+	uint8_t connectedEnemyPlayers = 0;
 	uint8_t totalFriendlyPlayers = 0;
+	uint8_t connectedFriendlyPlayers = 0;
 	std::vector<IPlayer*> enemyCheaters;
 	std::vector<const IPlayer*> friendlyCheaters;
 	std::vector<IPlayer*> connectingEnemyCheaters;
@@ -392,41 +405,42 @@ void ModeratorLogic::ProcessPlayerActions()
 	bool needsEnemyWarning = false;
 	for (IPlayer& player : m_World->GetLobbyMembers())
 	{
-		const SteamID steamID = player.GetSteamID();
-
 		const bool isPlayerConnected = player.GetConnectionState() == PlayerStatusState::Active;
-		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, steamID);
-		if (isPlayerConnected)
+		const bool isCheater = HasPlayerAttribute(player, PlayerAttributes::Cheater);
+		const auto teamShareResult = m_World->GetTeamShareResult(*myTeam, player);
+		if (teamShareResult == TeamShareResult::SameTeams)
 		{
-			switch (teamShareResult)
+			if (isPlayerConnected)
 			{
-			case TeamShareResult::SameTeams:      totalFriendlyPlayers++; break;
-			case TeamShareResult::OppositeTeams:  totalEnemyPlayers++; break;
-			}
-		}
+				connectedFriendlyPlayers++;
 
-		if (HasPlayerAttribute(steamID, PlayerAttributes::Cheater))
-		{
-			switch (teamShareResult)
-			{
-			case TeamShareResult::SameTeams:
-				if (isPlayerConnected)
+				if (isCheater)
 					friendlyCheaters.push_back(&player);
-
-				break;
-			case TeamShareResult::OppositeTeams:
-				if (!player.GetNameSafe().empty() && isPlayerConnected)
-					enemyCheaters.push_back(&player);
-				else if (!isPlayerConnected)
-					connectingEnemyCheaters.push_back(&player);
-
-				break;
 			}
+
+			totalFriendlyPlayers++;
+		}
+		else if (teamShareResult == TeamShareResult::OppositeTeams)
+		{
+			if (isPlayerConnected)
+			{
+				connectedEnemyPlayers++;
+
+				if (isCheater && !player.GetNameSafe().empty())
+					enemyCheaters.push_back(&player);
+			}
+			else
+			{
+				if (isCheater)
+					connectingEnemyCheaters.push_back(&player);
+			}
+
+			totalEnemyPlayers++;
 		}
 	}
 
 	HandleEnemyCheaters(totalEnemyPlayers, enemyCheaters, connectingEnemyCheaters);
-	HandleFriendlyCheaters(totalFriendlyPlayers, friendlyCheaters);
+	HandleFriendlyCheaters(totalFriendlyPlayers, connectedFriendlyPlayers, friendlyCheaters);
 }
 
 bool ModeratorLogic::SetPlayerAttribute(const IPlayer& player, PlayerAttributes attribute, bool set)

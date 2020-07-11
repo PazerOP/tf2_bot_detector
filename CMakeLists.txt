@@ -111,6 +111,7 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
+	"tf2_bot_detector/GameData/UserMessageType.h"
 )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)

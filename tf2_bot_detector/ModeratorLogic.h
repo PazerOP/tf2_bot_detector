@@ -107,7 +107,8 @@ namespace tf2_bot_detector
 		time_point_t m_NextCheaterWarningTime{};            // The soonest we can warn about connected cheaters on the other team
 		time_point_t m_LastPlayerActionsUpdate{};
 		void ProcessPlayerActions();
-		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, const std::vector<const IPlayer*>& friendlyCheaters);
+		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t connectedFriendlyPlayerCount,
+			const std::vector<const IPlayer*>& friendlyCheaters);
 		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<IPlayer*>& enemyCheaters,
 			const std::vector<IPlayer*>& connectingEnemyCheaters);
 		void HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& enemyCheaters);

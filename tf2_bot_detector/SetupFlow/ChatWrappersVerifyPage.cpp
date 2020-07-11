@@ -42,9 +42,20 @@ auto ChatWrappersVerifyPage::OnDraw(const DrawState& ds) -> OnDrawResult
 			auto val = m_Validation.get();
 			val = mh::trim(std::move(val));
 
+			const auto developerPrefix = "execing "s << ChatWrappersGeneratorPage::VERIFY_CFG_FILE_NAME;
+			if (val.starts_with(developerPrefix))
+			{
+				val.erase(0, developerPrefix.size());
+				val = mh::trim(std::move(val));
+			}
+
 			if (val != m_ExpectedToken)
 			{
-				m_Message = "Failed to validate chat wrappers: token "s << std::quoted(val) << " != " << std::quoted(m_ExpectedToken);
+				m_Message = ""s <<
+					"Failed to validate chat wrappers: \n"
+					"\tExpected token : " << std::quoted(m_ExpectedToken) << "\n"
+					"\tActual token     " << std::quoted(val);
+
 				m_MessageColor = { 1, 0.5, 0, 1 };
 				m_Validation = {};
 			}

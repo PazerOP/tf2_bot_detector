@@ -80,6 +80,9 @@ namespace tf2_bot_detector
 
 		time_point_t GetLastStatusUpdateTime() const { return m_LastStatusUpdateTime; }
 
+		// Have we joined a team and picked a class?
+		bool IsLocalPlayerInitialized() const { return m_IsLocalPlayerInitialized; }
+
 	private:
 		const Settings* m_Settings = nullptr;
 
@@ -141,6 +144,7 @@ namespace tf2_bot_detector
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
+		bool m_IsLocalPlayerInitialized = false;
 
 		time_point_t m_LastStatusUpdateTime{};
 

@@ -10,6 +10,9 @@
 
 namespace tf2_bot_detector
 {
+	enum class TFClassType;
+	enum class UserMessageType;
+
 	class GenericConsoleLine final : public ConsoleLineBase<GenericConsoleLine, false>
 	{
 		using BaseClass = ConsoleLineBase;
@@ -313,19 +316,37 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase;
 
 	public:
-		SVCUserMessageLine(time_point_t timestamp, std::string address, uint16_t type, uint16_t bytes);
+		SVCUserMessageLine(time_point_t timestamp, std::string address, UserMessageType type, uint16_t bytes);
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::SVC_UserMessage; }
-		bool ShouldPrint() const override { return false; }
+		bool ShouldPrint() const override;
 		void Print() const override;
 
-		uint16_t GetUserMessageType() const { return m_MsgType; }
+		UserMessageType GetUserMessageType() const { return m_MsgType; }
 		uint16_t GetUserMessageBytes() const { return m_MsgBytes; }
 
 	private:
 		std::string m_Address{};
-		uint16_t m_MsgType{};
+		UserMessageType m_MsgType{};
 		uint16_t m_MsgBytes{};
+	};
+
+	class ConfigExecLine final : public ConsoleLineBase<ConfigExecLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ConfigExecLine(time_point_t timestamp, std::string configFileName);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::ConfigExec; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+		const std::string& GetConfigFileName() const { return m_ConfigFileName; }
+
+	private:
+		std::string m_ConfigFileName;
 	};
 }
