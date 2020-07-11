@@ -68,6 +68,9 @@ namespace tf2_bot_detector
 
 		if (d.m_LastSeen)
 			j["last_seen"] = *d.m_LastSeen;
+
+		if (!d.m_Proof.empty())
+			j["proof"] = d.m_Proof;
 	}
 
 	void from_json(const nlohmann::json& j, PlayerAttributes& d)
@@ -116,6 +119,8 @@ namespace tf2_bot_detector
 
 		if (auto lastSeen = j.find("last_seen"); lastSeen != j.end())
 			lastSeen->get_to(d.m_LastSeen.emplace());
+
+		try_get_to(j, "proof", d.m_Proof);
 	}
 }
 
@@ -277,6 +282,10 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 
 PlayerListData::PlayerListData(const SteamID& id) :
 	m_SteamID(id)
+{
+}
+
+PlayerListData::~PlayerListData()
 {
 }
 

@@ -47,6 +47,7 @@ namespace tf2_bot_detector
 	struct PlayerListData
 	{
 		PlayerListData(const SteamID& id);
+		~PlayerListData();
 
 		SteamID GetSteamID() const { return m_SteamID; }
 
@@ -60,6 +61,8 @@ namespace tf2_bot_detector
 			auto operator<=>(const LastSeen& other) const { return m_Time.time_since_epoch().count() <=> other.m_Time.time_since_epoch().count(); }
 		};
 		std::optional<LastSeen> m_LastSeen;
+
+		std::vector<nlohmann::json> m_Proof;
 
 	private:
 		SteamID m_SteamID;
