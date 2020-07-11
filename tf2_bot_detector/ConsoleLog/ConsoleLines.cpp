@@ -676,21 +676,30 @@ void LobbyStatusFailedLine::Print() const
 	ImGui::Text("Failed to find lobby shared object");
 }
 
-ConfigExecLine::ConfigExecLine(time_point_t timestamp, std::string configFileName) :
-	BaseClass(timestamp), m_ConfigFileName(std::move(configFileName))
+ConfigExecLine::ConfigExecLine(time_point_t timestamp, std::string configFileName, bool success) :
+	BaseClass(timestamp), m_ConfigFileName(std::move(configFileName)), m_Success(success)
 {
 }
 
 std::shared_ptr<IConsoleLine> ConfigExecLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
+	// Success
 	constexpr auto prefix = "execing "sv;
 	if (text.starts_with(prefix))
-		return std::make_shared<ConfigExecLine>(timestamp, std::string(text.substr(prefix.size())));
+		return std::make_shared<ConfigExecLine>(timestamp, std::string(text.substr(prefix.size())), true);
+
+	// Failure
+	static const std::regex s_Regex(R"regex('(.*)' not present; not executing\.)regex", std::regex::optimize);
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+		return std::make_shared<ConfigExecLine>(timestamp, result[1].str(), false);
 
 	return nullptr;
 }
 
 void ConfigExecLine::Print() const
 {
-	ImGui::Text("execing %s", m_ConfigFileName.c_str());
+	if (m_Success)
+		ImGui::Text("execing %s", m_ConfigFileName.c_str());
+	else
+		ImGui::Text("'%s' not present; not executing.", m_ConfigFileName.c_str());
 }

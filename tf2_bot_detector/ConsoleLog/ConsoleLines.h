@@ -337,7 +337,7 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase;
 
 	public:
-		ConfigExecLine(time_point_t timestamp, std::string configFileName);
+		ConfigExecLine(time_point_t timestamp, std::string configFileName, bool success);
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::ConfigExec; }
@@ -345,8 +345,10 @@ namespace tf2_bot_detector
 		void Print() const override;
 
 		const std::string& GetConfigFileName() const { return m_ConfigFileName; }
+		bool IsSuccessful() const { return m_Success; }
 
 	private:
 		std::string m_ConfigFileName;
+		bool m_Success = false;
 	};
 }
