@@ -653,6 +653,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "LazyMexican",
+				"time": 1594434732
+			},
+			"steamid": "[U:1:488225671]"
+		},
+		{
+			"attributes": [
 				"suspicious"
 			],
 			"last_seen": {
@@ -1438,6 +1448,16 @@
 				"time": 1593041231
 			},
 			"steamid": "[U:1:1072232395]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[aeiou] Toasty",
+				"time": 1594429758
+			},
+			"steamid": "[U:1:1074018119]"
 		},
 		{
 			"attributes": [
@@ -3424,6 +3444,26 @@
 				"time": 1592206053
 			},
 			"steamid": "[U:1:1104775339]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "irc.myg0t.gg:6667",
+				"time": 1594429502
+			},
+			"steamid": "[U:1:1104833330]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "irc.myg0t.gg:6667",
+				"time": 1594429992
+			},
+			"steamid": "[U:1:1104887243]"
 		},
 		{
 			"attributes": [
