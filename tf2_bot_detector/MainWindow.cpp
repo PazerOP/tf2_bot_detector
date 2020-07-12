@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "DiscordRichPresence.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "Networking/GithubAPI.h"
 #include "ConsoleLog/NetworkStatus.h"
@@ -1112,6 +1113,10 @@ void MainWindow::OnUpdate()
 {
 	if (m_Paused)
 		return;
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+	Discord::Update();
+#endif
 
 #ifdef _WIN32
 	m_HijackActionManager.Update();

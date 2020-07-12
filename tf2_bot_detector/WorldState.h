@@ -18,6 +18,7 @@
 namespace tf2_bot_detector
 {
 	class ChatConsoleLine;
+	class ConfigExecLine;
 	class ConsoleLogParser;
 	enum class LobbyMemberTeam : uint8_t;
 	class Settings;
@@ -90,6 +91,7 @@ namespace tf2_bot_detector
 		CompensatedTS m_CurrentTimestamp;
 
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed) override;
+		void OnConfigExecLineParsed(const ConfigExecLine& execLine);
 
 		struct PlayerExtraData final : IPlayer
 		{

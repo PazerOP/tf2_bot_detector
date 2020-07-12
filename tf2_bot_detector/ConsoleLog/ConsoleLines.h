@@ -5,6 +5,7 @@
 #include "PlayerStatus.h"
 #include "IConsoleLine.h"
 
+#include <array>
 #include <memory>
 #include <string_view>
 
@@ -187,6 +188,26 @@ namespace tf2_bot_detector
 		uint8_t m_PlayerCount;
 		uint8_t m_BotCount;
 		uint8_t m_MaxPlayers;
+	};
+
+	class ServerStatusMapLine final : public ConsoleLineBase<ServerStatusMapLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ServerStatusMapLine(time_point_t timestamp, std::string mapName, const std::array<float, 3>& position);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		const std::string& GetMapName() const { return m_MapName; }
+		const std::array<float, 3>& GetPosition() const { return m_Position; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusMapPosition; }
+		bool ShouldPrint() const override { return false; }
+		void Print() const override;
+
+	private:
+		std::string m_MapName;
+		std::array<float, 3> m_Position{};
 	};
 
 	class EdictUsageLine final : public ConsoleLineBase<EdictUsageLine>

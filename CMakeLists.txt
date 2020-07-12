@@ -59,6 +59,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/ConsoleLog/IConsoleLineListener.h"
 	"tf2_bot_detector/ConsoleLog/NetworkStatus.cpp"
 	"tf2_bot_detector/ConsoleLog/NetworkStatus.h"
+	"tf2_bot_detector/GameData/TFClassType.h"
+	"tf2_bot_detector/GameData/UserMessageType.h"
 	"tf2_bot_detector/Networking/GithubAPI.h"
 	"tf2_bot_detector/Networking/GithubAPI.cpp"
 	"tf2_bot_detector/Networking/HTTPClient.h"
@@ -111,7 +113,6 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
-	"tf2_bot_detector/GameData/UserMessageType.h"
 )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
@@ -139,6 +140,24 @@ endif()
 target_include_directories(tf2_bot_detector
 	PRIVATE tf2_bot_detector
 )
+
+option(TF2BD_ENABLE_DISCORD_INTEGRATION "Enable discord integration" on)
+if (TF2BD_ENABLE_DISCORD_INTEGRATION)
+	target_compile_definitions(tf2_bot_detector PRIVATE TF2BD_ENABLE_DISCORD_INTEGRATION)
+	find_library(DISCORD_GAME_SDK discord_game_sdk)
+	target_link_libraries(tf2_bot_detector PRIVATE ${DISCORD_GAME_SDK})
+
+	find_path(GAME_SDK_INCLUDE discord-game-sdk/discord.h)
+	target_include_directories(tf2_bot_detector PRIVATE ${DISCORD_GAME_SDK_INCLUDE})
+
+	find_library(DISCORD_CPP_GAME_SDK discord_game_sdk_cpp)
+	target_link_libraries(tf2_bot_detector PRIVATE ${DISCORD_CPP_GAME_SDK})
+
+	target_sources(tf2_bot_detector PRIVATE
+		"tf2_bot_detector/DiscordRichPresence.cpp"
+		"tf2_bot_detector/DiscordRichPresence.h"
+	)
+endif()
 
 find_package(OpenSSL REQUIRED)
 target_link_libraries(tf2_bot_detector)

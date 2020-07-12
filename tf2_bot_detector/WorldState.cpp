@@ -7,6 +7,10 @@
 #include "Log.h"
 #include "RegexHelpers.h"
 
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+#include "DiscordRichPresence.h"
+#endif
+
 #include <mh/future.hpp>
 
 using namespace std::chrono_literals;
@@ -252,6 +256,50 @@ cppcoro::generator<IPlayer&> WorldState::GetPlayers()
 		co_yield const_cast<IPlayer&>(player);
 }
 
+void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
+{
+	const std::string_view& cfgName = execLine.GetConfigFileName();
+	if (cfgName == "scout.cfg"sv ||
+		cfgName == "sniper.cfg"sv ||
+		cfgName == "soldier.cfg"sv ||
+		cfgName == "demoman.cfg"sv ||
+		cfgName == "medic.cfg"sv ||
+		cfgName == "heavyweapons.cfg"sv ||
+		cfgName == "pyro.cfg"sv ||
+		cfgName == "spy.cfg"sv ||
+		cfgName == "engineer.cfg"sv)
+	{
+		DebugLog("Spawned as "s << cfgName.substr(0, cfgName.size() - 3));
+		m_IsLocalPlayerInitialized = true;
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+		TFClassType cl = TFClassType::Undefined;
+		if (cfgName.starts_with("scout"))
+			cl = TFClassType::Scout;
+		else if (cfgName.starts_with("sniper"))
+			cl = TFClassType::Sniper;
+		else if (cfgName.starts_with("soldier"))
+			cl = TFClassType::Soldier;
+		else if (cfgName.starts_with("demoman"))
+			cl = TFClassType::Demoman;
+		else if (cfgName.starts_with("medic"))
+			cl = TFClassType::Medic;
+		else if (cfgName.starts_with("heavyweapons"))
+			cl = TFClassType::Heavy;
+		else if (cfgName.starts_with("pyro"))
+			cl = TFClassType::Pyro;
+		else if (cfgName.starts_with("spy"))
+			cl = TFClassType::Spy;
+		else if (cfgName.starts_with("engineer"))
+			cl = TFClassType::Engie;
+
+		assert(cl != TFClassType::Undefined);
+		if (cl != TFClassType::Undefined)
+			Discord::SetClass(cl);
+#endif
+	}
+}
+
 void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 {
 	assert(&world == this);
@@ -336,22 +384,7 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 	case ConsoleLineType::ConfigExec:
 	{
-		auto& execLine = static_cast<const ConfigExecLine&>(parsed);
-		const std::string_view& cfgName = execLine.GetConfigFileName();
-		if (cfgName == "scout.cfg"sv ||
-			cfgName == "sniper.cfg"sv ||
-			cfgName == "soldier.cfg"sv ||
-			cfgName == "demoman.cfg"sv ||
-			cfgName == "medic.cfg"sv ||
-			cfgName == "heavyweapons.cfg"sv ||
-			cfgName == "pyro.cfg"sv ||
-			cfgName == "spy.cfg"sv ||
-			cfgName == "engineer.cfg"sv)
-		{
-			DebugLog("Spawned as "s << cfgName.substr(0, cfgName.size() - 3));
-			m_IsLocalPlayerInitialized = true;
-		}
-
+		OnConfigExecLineParsed(static_cast<const ConfigExecLine&>(parsed));
 		break;
 	}
 
@@ -430,6 +463,16 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 
 		break;
 	}
+	case ConsoleLineType::PlayerStatusMapPosition:
+	{
+		auto& statusLine = static_cast<const ServerStatusMapLine&>(parsed);
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+		Discord::SetMap(statusLine.GetMapName());
+#endif
+
+		break;
+	};
 	case ConsoleLineType::KillNotification:
 	{
 		auto& killLine = static_cast<const KillNotificationLine&>(parsed);
