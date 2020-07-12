@@ -55,19 +55,18 @@ jobs:
         submodules: recursive
 
     - name: run-vcpkg
-      uses: lukka/run-vcpkg@v3.0
+      uses: lukka/run-vcpkg@v3.2
       with:
         vcpkgGitCommitId: 7c82b03faf93e607c722e518819a54e4359aeddc
         vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp cppcoro'
         vcpkgTriplet: ${{ matrix.triplet }}
-        appendedCacheKey: "42-pazer-${{ matrix.triplet }}"
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
       run: |
         mkdir "${{ env.TF2BD_BUILD_DIR }}"
         cd "${{ env.TF2BD_BUILD_DIR }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ env.TF2BD_BUILD_DIR }}" ../
+        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ env.TF2BD_BUILD_DIR }}" ../
         cmake --build . --config Release
 
     - name: Sign artifacts
