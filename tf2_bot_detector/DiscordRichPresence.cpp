@@ -11,6 +11,68 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, discord::Result result)
+{
+	using Result = discord::Result;
+
+#undef OS_CASE
+#define OS_CASE(v) case v : return os << #v
+	switch (result)
+	{
+		OS_CASE(Result::Ok);
+		OS_CASE(Result::ServiceUnavailable);
+		OS_CASE(Result::InvalidVersion);
+		OS_CASE(Result::LockFailed);
+		OS_CASE(Result::InternalError);
+		OS_CASE(Result::InvalidPayload);
+		OS_CASE(Result::InvalidCommand);
+		OS_CASE(Result::InvalidPermissions);
+		OS_CASE(Result::NotFetched);
+		OS_CASE(Result::NotFound);
+		OS_CASE(Result::Conflict);
+		OS_CASE(Result::InvalidSecret);
+		OS_CASE(Result::InvalidJoinSecret);
+		OS_CASE(Result::NoEligibleActivity);
+		OS_CASE(Result::InvalidInvite);
+		OS_CASE(Result::NotAuthenticated);
+		OS_CASE(Result::InvalidAccessToken);
+		OS_CASE(Result::ApplicationMismatch);
+		OS_CASE(Result::InvalidDataUrl);
+		OS_CASE(Result::InvalidBase64);
+		OS_CASE(Result::NotFiltered);
+		OS_CASE(Result::LobbyFull);
+		OS_CASE(Result::InvalidLobbySecret);
+		OS_CASE(Result::InvalidFilename);
+		OS_CASE(Result::InvalidFileSize);
+		OS_CASE(Result::InvalidEntitlement);
+		OS_CASE(Result::NotInstalled);
+		OS_CASE(Result::NotRunning);
+		OS_CASE(Result::InsufficientBuffer);
+		OS_CASE(Result::PurchaseCanceled);
+		OS_CASE(Result::InvalidGuild);
+		OS_CASE(Result::InvalidEvent);
+		OS_CASE(Result::InvalidChannel);
+		OS_CASE(Result::InvalidOrigin);
+		OS_CASE(Result::RateLimited);
+		OS_CASE(Result::OAuth2Error);
+		OS_CASE(Result::SelectChannelTimeout);
+		OS_CASE(Result::GetGuildTimeout);
+		OS_CASE(Result::SelectVoiceForceRequired);
+		OS_CASE(Result::CaptureShortcutAlreadyListening);
+		OS_CASE(Result::UnauthorizedForAchievement);
+		OS_CASE(Result::InvalidGiftCode);
+		OS_CASE(Result::PurchaseError);
+		OS_CASE(Result::TransactionAborted);
+
+	default:
+		return os << "Result(" << +std::underlying_type_t<Result>(result) << ')';
+	}
+
+#undef OS_CASE
+}
+
 namespace
 {
 	struct DiscordState
@@ -42,8 +104,11 @@ namespace
 
 	DiscordState::DiscordState()
 	{
-		auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_Default, &m_Core);
-		m_Core->ActivityManager().RegisterSteam(440);
+		if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_Default, &m_Core); result != discord::Result::Ok)
+			throw std::runtime_error("Failed to initialize discord: "s << result);
+
+		if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
+			LogError("Failed to register discord integration as steam appid 440: "s << result);
 	}
 
 	bool DiscordState::TryUpdate()
@@ -86,7 +151,7 @@ namespace
 		m_Core->ActivityManager().UpdateActivity(act, [](discord::Result result)
 			{
 				if (result != discord::Result::Ok)
-					LogWarning("Failed to update discord activity state: "s << +std::underlying_type_t<discord::Result>(result));
+					LogWarning("Failed to update discord activity state: "s << result);
 			});
 	}
 }
@@ -121,7 +186,7 @@ void Discord::Update()
 		state.TryUpdate();
 
 	if (auto result = state.m_Core->RunCallbacks(); result != discord::Result::Ok)
-		LogError("Failed to run discord callbacks: "s << +std::underlying_type_t<discord::Result>(result));
+		LogError("Failed to run discord callbacks: "s << result);
 }
 
 void Discord::SetClass(TFClassType classType)
