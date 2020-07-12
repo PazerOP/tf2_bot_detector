@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.17.2)
 project(tf2_bot_detector VERSION 1.0.0.41)
 
+message("TF2BD CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+
 option(TF2BD_IS_CI_COMPILE "Set to true if this is a compile on a CI service. Used to help determine if user has made modifications to the source code." off)
 if (TF2BD_IS_CI_COMPILE)
 	add_compile_definitions(TF2BD_IS_CI_COMPILE=1)
@@ -145,12 +147,14 @@ option(TF2BD_ENABLE_DISCORD_INTEGRATION "Enable discord integration" on)
 if (TF2BD_ENABLE_DISCORD_INTEGRATION)
 	target_compile_definitions(tf2_bot_detector PRIVATE TF2BD_ENABLE_DISCORD_INTEGRATION)
 	find_library(DISCORD_GAME_SDK discord_game_sdk)
+	message("DISCORD_GAME_SDK = ${DISCORD_GAME_SDK}")
 	target_link_libraries(tf2_bot_detector PRIVATE ${DISCORD_GAME_SDK})
 
 	find_path(GAME_SDK_INCLUDE discord-game-sdk/discord.h)
 	target_include_directories(tf2_bot_detector PRIVATE ${DISCORD_GAME_SDK_INCLUDE})
 
 	find_library(DISCORD_CPP_GAME_SDK discord_game_sdk_cpp)
+	message("DISCORD_CPP_GAME_SDK = ${DISCORD_CPP_GAME_SDK}")
 	target_link_libraries(tf2_bot_detector PRIVATE ${DISCORD_CPP_GAME_SDK})
 
 	target_sources(tf2_bot_detector PRIVATE
