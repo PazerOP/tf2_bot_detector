@@ -57,7 +57,7 @@ jobs:
     - name: run-vcpkg
       uses: lukka/run-vcpkg@v3.0
       with:
-        vcpkgGitCommitId: 7192d3affa4b1d8f88e3e730eb561612c24f7d78
+        vcpkgGitCommitId: 7c82b03faf93e607c722e518819a54e4359aeddc
         vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp cppcoro discord-game-sdk'
         vcpkgTriplet: ${{ matrix.triplet }}
         appendedCacheKey: "42-pazer-${{ matrix.triplet }}"
