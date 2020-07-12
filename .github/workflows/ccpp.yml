@@ -70,17 +70,6 @@ jobs:
         cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ env.TF2BD_BUILD_DIR }}" ../
         cmake --build . --config Release
 
-    # - name: run-cmake
-    #   uses: lukka/run-cmake@v2.5
-    #   with:
-    #     cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
-    #     useVcpkgToolchainFile: true
-    #     cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=on'
-    #     #cmakeAppendedArgs: '-DTF2BD_IS_CI_COMPILE=on'
-    #     cmakeBuildType: "Release"
-    #     buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
-    #     #cmakeGenerator: ${{ matrix.tf2bd_cmake_generator }}
-
     - name: Sign artifacts
       uses: PazerOP/code-sign-action@v3
       with:
