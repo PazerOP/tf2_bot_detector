@@ -120,9 +120,9 @@ target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/
 
 if(WIN32)
 	if ((CMAKE_BUILD_TYPE MATCHES "Release"))
-		set(TF2BD_RESOURCE_FILEFLAGS "VER_DBG")
-	else()
 		set(TF2BD_RESOURCE_FILEFLAGS "0")
+	else()
+		set(TF2BD_RESOURCE_FILEFLAGS "VS_FF_DEBUG")
 	endif()
 	configure_file(tf2_bot_detector/Resources.base.rc tf2_bot_detector/Resources.rc)
 
