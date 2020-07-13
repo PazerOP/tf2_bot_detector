@@ -1,16 +1,33 @@
-#include "TextUtils.h"
+#include "DLLMain.h"
+
+#include "MainWindow.h"
+#include "Log.h"
 
 #include <mh/text/string_insertion.hpp>
 
-#include "WindowsHelpers.h"
+#ifdef WIN32
+#include "Platform/Windows/WindowsHelpers.h"
 #include <Windows.h>
+#endif
 
 using namespace std::string_literals;
 
-extern int main(int argc, const char** argv);
-
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+namespace tf2_bot_detector
 {
+#ifdef _DEBUG
+	uint32_t g_StaticRandomSeed = 0;
+	bool g_SkipOpenTF2Check = false;
+#endif
+
+	static void ImGuiDesktopLogFunc(const std::string_view& msg)
+	{
+		DebugLog("[ImGuiDesktop] "s << msg);
+	}
+}
+
+TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** argv)
+{
+#ifdef WIN32
 	using tf2_bot_detector::Windows::GetLastErrorException;
 	try
 	{
@@ -44,20 +61,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 		MessageBoxA(nullptr, e.what(), "Initialization failed", MB_OK);
 		return 1;
 	}
+#endif
 
-	int argc;
-	auto argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
-
-	std::vector<std::string> argvStrings;
-	std::vector<const char*> argv;
-	argvStrings.reserve(argc);
-	argv.reserve(argc);
-
-	for (int i = 0; i < argc; i++)
+	for (int i = 1; i < argc; i++)
 	{
-		argvStrings.push_back(tf2_bot_detector::ToMB(argvw[i]));
-		argv.push_back(argvStrings.back().c_str());
+#ifdef _DEBUG
+		if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
+			tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--allow-open-tf2"))
+			tf2_bot_detector::g_SkipOpenTF2Check = true;
+#endif
 	}
 
-	return main(argc, argv.data());
+	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
+
+	tf2_bot_detector::MainWindow window;
+
+	while (!window.ShouldClose())
+		window.Update();
+
+	return 0;
 }
