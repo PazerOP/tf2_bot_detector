@@ -34,7 +34,7 @@ add_subdirectory(submodules/nlohmann_json)
 
 if (WIN32)
 	add_library(tf2_bot_detector SHARED)
-	set_target_properties(tf2_bot_detector PROPERTIES OUTPUT_NAME "tf2_bot_detector_dll")
+	set_target_properties(tf2_bot_detector PROPERTIES PDB_NAME "tf2_bot_detector_dll")
 
 	generate_export_header(tf2_bot_detector
 		EXPORT_FILE_NAME "tf2_bot_detector/tf2_bot_detector_export.h"
