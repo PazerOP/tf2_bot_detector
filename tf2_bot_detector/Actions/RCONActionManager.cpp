@@ -158,7 +158,7 @@ void RCONActionManager::ProcessQueuedCommands()
 					{
 						.m_StartTime = clock_t::now(),
 						.m_Command = cmd,
-						.m_Future = m_Manager->m_Settings->m_Unsaved.m_RCONClient->send_command_async(cmd),
+						.m_Future = m_Manager->m_Settings->m_Unsaved.m_RCONClient->send_command_async(cmd, false),
 					});
 			}
 
