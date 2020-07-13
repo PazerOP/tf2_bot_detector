@@ -1,4 +1,4 @@
-#include "DLLMain.h"
+#include "../DLLMain.h"
 
 int main(int argc, const char** argv)
 {

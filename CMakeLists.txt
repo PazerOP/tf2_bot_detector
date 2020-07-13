@@ -42,6 +42,7 @@ if (WIN32)
 
 	add_executable(tf2_bot_detector_launcher WIN32
 		"tf2_bot_detector/Launcher/main.cpp"
+		"tf2_bot_detector/Launcher/Resources.rc"
 	)
 
 	target_include_directories(tf2_bot_detector_launcher PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
@@ -134,8 +135,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
 	"tf2_bot_detector/GameData/UserMessageType.h"
-	"tf2_bot_detector/Launcher/DLLMain.cpp"
-	"tf2_bot_detector/Launcher/DLLMain.h"
+	"tf2_bot_detector/DLLMain.cpp"
+	"tf2_bot_detector/DLLMain.h"
 )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
