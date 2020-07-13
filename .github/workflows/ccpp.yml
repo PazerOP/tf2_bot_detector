@@ -76,6 +76,15 @@ jobs:
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
+    - name: Smartscreen workaround
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      run: |
+        echo "Hash of current exe: "
+        sha1sum tf2_bot_detector.exe
+        copy "${{ github.workspace }}/smartscreen/${{ matrix.tf2bd_arch }}/tf2_bot_detector.exe" tf2_bot_detector.exe
+        echo "Hash of cached exe: "
+        sha1sum tf2_bot_detector.exe
+
     - name: "Artifacts: *.exe"
       uses: actions/upload-artifact@v2
       with:
