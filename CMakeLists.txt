@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.41)
+project(tf2_bot_detector VERSION 1.0.0.42)
+
+include(GenerateExportHeader)
 
 option(TF2BD_IS_CI_COMPILE "Set to true if this is a compile on a CI service. Used to help determine if user has made modifications to the source code." off)
 if (TF2BD_IS_CI_COMPILE)
@@ -30,7 +32,29 @@ set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode"
 set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
 add_subdirectory(submodules/nlohmann_json)
 
-add_executable(tf2_bot_detector WIN32
+if (WIN32)
+	add_library(tf2_bot_detector SHARED)
+	set_target_properties(tf2_bot_detector PROPERTIES PDB_NAME "tf2_bot_detector_dll")
+
+	generate_export_header(tf2_bot_detector
+		EXPORT_FILE_NAME "tf2_bot_detector/tf2_bot_detector_export.h"
+	)
+
+	add_executable(tf2_bot_detector_launcher WIN32
+		"tf2_bot_detector/Launcher/main.cpp"
+		"tf2_bot_detector/Launcher/Resources.rc"
+	)
+
+	target_include_directories(tf2_bot_detector_launcher PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
+	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector)
+	set_target_properties(tf2_bot_detector_launcher PROPERTIES OUTPUT_NAME "tf2_bot_detector")
+else()
+	add_executable(tf2_bot_detector
+		"tf2_bot_detector/Launcher/main.cpp"
+	)
+endif()
+
+target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/Actions/RCONActionManager.cpp"
 	"tf2_bot_detector/Actions/RCONActionManager.h"
 	"tf2_bot_detector/Actions/ActionGenerators.cpp"
@@ -95,7 +119,6 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/IPlayer.h"
 	"tf2_bot_detector/Log.cpp"
 	"tf2_bot_detector/Log.h"
-	"tf2_bot_detector/main.cpp"
 	"tf2_bot_detector/MainWindow.cpp"
 	"tf2_bot_detector/MainWindow.h"
 	"tf2_bot_detector/ModeratorLogic.cpp"
@@ -112,6 +135,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
 	"tf2_bot_detector/GameData/UserMessageType.h"
+	"tf2_bot_detector/DLLMain.cpp"
+	"tf2_bot_detector/DLLMain.h"
 )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
@@ -131,7 +156,6 @@ if(WIN32)
 		"tf2_bot_detector/Platform/Windows/Shell.cpp"
 		"tf2_bot_detector/Platform/Windows/Steam.cpp"
 		"tf2_bot_detector/Platform/Windows/WindowsHelpers.h"
-		"tf2_bot_detector/Platform/Windows/WinMain.cpp"
 		"tf2_bot_detector/Resources.rc"
 	)
 endif()

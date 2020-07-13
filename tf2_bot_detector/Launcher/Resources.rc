@@ -1,0 +1,21 @@
+#include <winver.h>
+#include <ntdef.h>
+
+IDI_ICON1 ICON "../Art/TF2BotDetector.ico"
+
+VS_VERSION_INFO VERSIONINFO
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904b0"
+	BEGIN
+		VALUE "FileDescription",  "TF2 Bot Detector"
+		VALUE "Comments",         "Automatically detects and votekicks cheaters/bots in TF2 casual."
+		VALUE "ProductName",      "TF2 Bot Detector"
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x0409,1200
+	END
+END
