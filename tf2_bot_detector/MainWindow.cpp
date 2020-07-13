@@ -41,6 +41,7 @@ MainWindow::MainWindow() :
 		<< "\n\tVersion:           " << VERSION
 		<< "\n\tIs CI Build:       " << std::boolalpha << (TF2BD_IS_CI_COMPILE ? true : false)
 		<< "\n\tCompile Timestamp: " << __TIMESTAMP__
+		<< "\n\tOpenGL Version:    " << GetGLContextVersion()
 #ifdef _MSC_FULL_VER
 		<< "\n\t-D _MSC_FULL_VER:  " << _MSC_FULL_VER
 #endif

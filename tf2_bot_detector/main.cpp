@@ -1,12 +1,22 @@
 #include "MainWindow.h"
+#include "Log.h"
 
-#ifdef _DEBUG
+#include <mh/text/string_insertion.hpp>
+
+using namespace std::string_literals;
+
 namespace tf2_bot_detector
 {
+#ifdef _DEBUG
 	uint32_t g_StaticRandomSeed = 0;
 	bool g_SkipOpenTF2Check = false;
-}
 #endif
+
+	static void ImGuiDesktopLogFunc(const std::string_view& msg)
+	{
+		DebugLog("[ImGuiDesktop] "s << msg);
+	}
+}
 
 int main(int argc, const char** argv)
 {
@@ -19,6 +29,8 @@ int main(int argc, const char** argv)
 			tf2_bot_detector::g_SkipOpenTF2Check = true;
 #endif
 	}
+
+	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
 
 	tf2_bot_detector::MainWindow window;
 
