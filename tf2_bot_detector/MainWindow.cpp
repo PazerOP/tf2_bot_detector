@@ -957,11 +957,12 @@ void MainWindow::OnDrawMenuBar()
 				GetModLogic().ReloadConfigFiles();
 			if (ImGui::MenuItem("Reload Settings"))
 				m_Settings.LoadFile();
-			if (ImGui::MenuItem("Generate Debug Report"))
-				GenerateDebugReport();
-
-			ImGui::Separator();
 		}
+
+		if (ImGui::MenuItem("Generate Debug Report"))
+			GenerateDebugReport();
+
+		ImGui::Separator();
 
 		if (ImGui::MenuItem("Exit", "Alt+F4"))
 			SetShouldClose(true);
