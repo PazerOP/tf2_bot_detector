@@ -121,7 +121,7 @@ void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 
 void tf2_bot_detector::DebugLogWarning(std::string msg)
 {
-	Log(std::move(msg), { COLOR_WARNING.r, COLOR_WARNING.g, COLOR_WARNING.b, 0.67f });
+	DebugLog(std::move(msg), { COLOR_WARNING.r, COLOR_WARNING.g, COLOR_WARNING.b, 0.67f });
 }
 
 auto tf2_bot_detector::GetVisibleLogMsgs() -> cppcoro::generator<const LogMessage&>
