@@ -1,5 +1,7 @@
 #ifdef _WIN32
 
+#include "Log.h"
+
 #include <ctime>
 #include <mutex>
 #include <thread>
@@ -9,6 +11,8 @@
 #pragma comment(lib, "DbgHelp.lib")
 #include <DbgHelp.h>
 
+using namespace tf2_bot_detector;
+
 namespace
 {
 	static LONG WINAPI ExceptionFilter(_EXCEPTION_POINTERS* exception);
@@ -16,6 +20,7 @@ namespace
 	{
 		Init()
 		{
+			DebugLog("[Platform][Windows] Initializing DbgHelp...");
 			m_IsInitialized = SymInitialize(GetCurrentProcess(), nullptr, TRUE);
 			m_OldFilter = SetUnhandledExceptionFilter(&ExceptionFilter);
 		}

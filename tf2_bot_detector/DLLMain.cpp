@@ -80,5 +80,6 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 	while (!window.ShouldClose())
 		window.Update();
 
+	DebugLog(""s << __func__ << "(): Graceful shutdown");
 	return 0;
 }
