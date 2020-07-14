@@ -77,7 +77,7 @@ void RCONActionManager::ProcessRunningCommands()
 	constexpr const char* funcName = __func__;
 	const auto PrintErrorMsg = [funcName](const std::string_view& msg)
 	{
-		return LogError(""s << funcName << "(): " << msg);
+		return DebugLogWarning(""s << funcName << "(): " << msg);
 	};
 
 	while (!m_RunningCommands.empty())
