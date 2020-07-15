@@ -511,6 +511,12 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 		std::filesystem::remove_all(path);
 	}
 
+	if (auto path = tfdir / "custom" / TF2BD_CHAT_WRAPPERS_DIR; std::filesystem::exists(path))
+	{
+		Log("Deleting "s << path);
+		std::filesystem::remove_all(path);
+	}
+
 	ChatWrappers wrappers(wrapChars);
 	PrintChatWrappers(wrappers);
 
@@ -529,28 +535,6 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 			file.add_attribute("Language", std::string(lang));
 			auto& tokens = file.childs["Tokens"] = std::make_shared<obj>();
 			tokens->name = "Tokens";
-
-			// Copy all from existing
-			if (auto existing = FindExistingChatTranslationFile(tfdir, lang); !existing.empty())
-			{
-				auto baseFile = ToMB(ReadWideFile(existing));
-
-				std::error_code ec;
-				auto values = tyti::vdf::read(baseFile.begin(), baseFile.end(), ec);
-				if (ec)
-				{
-					LogError("Failed to parse keyvalues from "s << existing);
-				}
-				else if (auto existingTokens = values.childs["Tokens"])
-				{
-					for (auto& attrib : existingTokens->attribs)
-						tokens->attribs[attrib.first] = attrib.second;
-				}
-				else
-				{
-					LogError("Missing \"Tokens\" key in "s << existing);
-				}
-			}
 
 			for (size_t i = 0; i < translationsSet.m_Localized.size(); i++)
 			{
@@ -572,7 +556,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 			mh::strwrapperstream stream(outFile);
 			tyti::vdf::write(stream, file);
 
-			WriteWideFile(outputDir / ("chat_"s << lang << ".txt"), ToU16(outFile));
+			WriteWideFile(outputDir / ("closecaption_"s << lang << ".txt"), ToU16(outFile));
 		});
 
 	Log("Wrote "s << std::size(LANGUAGES) << " modified translations to " << outputDir);
