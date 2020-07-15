@@ -150,6 +150,7 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 	std::string url;
 	url << "steam://run/440//"
 		" -usercon"
+		" -high"
 		" +developer 1 +alias developer"
 		" +contimes 0 +alias contimes"   // the text in the top left when developer >= 1
 		" +ip 0.0.0.0 +alias ip"
