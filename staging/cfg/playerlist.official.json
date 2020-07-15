@@ -1110,6 +1110,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "irc.myg0t.gg:6969#myg0t",
+				"time": 1594790507
+			},
+			"steamid": "[U:1:1026273898]"
+		},
+		{
+			"attributes": [
 				"suspicious"
 			],
 			"steamid": "[U:1:1030957078]"
