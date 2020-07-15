@@ -501,7 +501,8 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ChatWrappers& d)
 	}
 }
 
-ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
+ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir,
+	ChatWrappersProgress* progress, size_t wrapChars)
 {
 	assert(!tfdir.empty());
 
@@ -523,10 +524,20 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 	const auto outputDir = tfdir / "custom" / TF2BD_CHAT_WRAPPERS_DIR / "resource";
 	std::filesystem::create_directories(outputDir);
 
+	if (progress)
+		progress->m_MaxValue = std::size(LANGUAGES) * 5;
+
+	const auto IncrementProgress = [&]
+	{
+		if (progress)
+			++progress->m_Value;
+	};
+
 	std::for_each(std::execution::par_unseq, std::begin(LANGUAGES), std::end(LANGUAGES),
 		[&](const std::string_view& lang)
 		{
 			auto translationsSet = FindExistingTranslations(tfdir, lang);
+			IncrementProgress();
 
 			// Create our own chat localization file
 			using obj = tyti::vdf::object;
@@ -551,12 +562,15 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 				const auto key = GetChatCategoryKey(ChatCategory(i), true);
 				tokens->attribs[std::string(key)] = translationsSet.m_English[i];
 			}
+			IncrementProgress();
 
 			std::string outFile;
 			mh::strwrapperstream stream(outFile);
 			tyti::vdf::write(stream, file);
+			IncrementProgress();
 
 			WriteWideFile(outputDir / ("closecaption_"s << lang << ".txt"), ToU16(outFile));
+			IncrementProgress();
 		});
 
 	Log("Wrote "s << std::size(LANGUAGES) << " modified translations to " << outputDir);
