@@ -25,6 +25,8 @@ namespace tf2_bot_detector
 		static constexpr char VERIFY_CFG_FILE_NAME[] = "__tf2bd_chat_wrappers_verify.cfg";
 
 	private:
+		std::shared_ptr<ChatWrappersProgress> m_Progress;
+
 		std::future<ChatWrappers> m_ChatWrappersGenerated;
 		bool m_WasInitiallyClosed = true;
 		std::optional<ChatWrappers> m_ChatWrappersLoaded;
