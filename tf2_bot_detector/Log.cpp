@@ -13,6 +13,8 @@
 #include <Windows.h>
 #endif
 
+#undef max
+
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
@@ -128,7 +130,11 @@ auto tf2_bot_detector::GetVisibleLogMsgs() -> cppcoro::generator<const LogMessag
 {
 	std::lock_guard lock(s_LogMutex);
 
-	for (size_t i = s_VisibleLogMessagesStart; i < s_LogMessages.size(); i++)
+	size_t start = s_VisibleLogMessagesStart;
+	if (s_LogMessages.size() > 500)
+		start = std::max(start, s_LogMessages.size() - 500);
+
+	for (size_t i = start; i < s_LogMessages.size(); i++)
 		co_yield s_LogMessages[i];
 }
 
