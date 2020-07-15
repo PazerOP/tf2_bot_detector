@@ -564,7 +564,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 					continue;
 
 				ApplyChatWrappers(ChatCategory(i), translationsSet.m_English[i], wrappers);
-				const auto key = GetChatCategoryKey(ChatCategory(i), false);
+				const auto key = GetChatCategoryKey(ChatCategory(i), true);
 				tokens->attribs[std::string(key)] = translationsSet.m_English[i];
 			}
 
