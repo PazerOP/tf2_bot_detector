@@ -124,16 +124,16 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 
 		if (ImGui::BeginMenu("Mark"))
 		{
-			for (int i = 0; i < (int)PlayerAttributes::COUNT; i++)
+			for (int i = 0; i < (int)PlayerAttribute::COUNT; i++)
 			{
-				const bool existingMarked = modLogic.HasPlayerAttribute(player, PlayerAttributes(i));
+				const bool existingMarked = modLogic.HasPlayerAttributes(player, PlayerAttribute(i));
 
 				std::string name;
-				name << PlayerAttributes(i);
+				name << PlayerAttribute(i);
 				if (ImGui::MenuItem(name.c_str(), nullptr, existingMarked))
 				{
-					if (modLogic.SetPlayerAttribute(player, PlayerAttributes(i), !existingMarked))
-						Log("Manually marked "s << player << ' ' << (existingMarked ? "NOT" : "") << ' ' << PlayerAttributes(i));
+					if (modLogic.SetPlayerAttribute(player, PlayerAttribute(i), !existingMarked))
+						Log("Manually marked "s << player << ' ' << (existingMarked ? "NOT" : "") << ' ' << PlayerAttribute(i));
 				}
 			}
 
@@ -352,13 +352,13 @@ void MainWindow::OnDrawScoreboard()
 						}();
 
 						const auto& modLogic = GetModLogic();
-						if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Cheater))
+						if (modLogic.HasPlayerAttributes(player, PlayerAttribute::Cheater))
 							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheater));
-						else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Suspicious))
+						else if (modLogic.HasPlayerAttributes(player, PlayerAttribute::Suspicious))
 							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious));
-						else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Exploiter))
+						else if (modLogic.HasPlayerAttributes(player, PlayerAttribute::Exploiter))
 							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter));
-						else if (modLogic.HasPlayerAttribute(player, PlayerAttributes::Racist))
+						else if (modLogic.HasPlayerAttributes(player, PlayerAttribute::Racist))
 							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacist));
 
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);

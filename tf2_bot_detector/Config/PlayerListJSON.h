@@ -6,6 +6,7 @@
 #include <cppcoro/generator.hpp>
 #include <nlohmann/json_fwd.hpp>
 
+#include <bitset>
 #include <chrono>
 #include <filesystem>
 #include <future>
@@ -16,7 +17,7 @@ namespace tf2_bot_detector
 {
 	class Settings;
 
-	enum class PlayerAttributes
+	enum class PlayerAttribute
 	{
 		Cheater,
 		Suspicious,
@@ -26,22 +27,42 @@ namespace tf2_bot_detector
 		COUNT,
 	};
 
-	struct PlayerAttributesList
+	struct PlayerAttributesList final
 	{
+		using bits_t = std::bitset<size_t(PlayerAttribute::COUNT)>;
+
 		constexpr PlayerAttributesList() = default;
+		explicit PlayerAttributesList(const bits_t& bits) : m_Bits(bits) {}
+		PlayerAttributesList(const std::initializer_list<PlayerAttribute>& attributes);
+		PlayerAttributesList(PlayerAttribute attribute);
 
-		bool HasAttribute(PlayerAttributes attribute) const;
-		bool SetAttribute(PlayerAttributes attribute, bool set = true);
+		bool HasAttribute(PlayerAttribute attribute) const { return m_Bits.test(size_t(attribute)); }
+		bool SetAttribute(PlayerAttribute attribute, bool set = true);
 
-		bool empty() const;
-		PlayerAttributesList& operator|=(const PlayerAttributesList& other);
+		friend PlayerAttributesList operator|(const PlayerAttributesList& lhs, const PlayerAttributesList& rhs)
+		{
+			return PlayerAttributesList(lhs.m_Bits | rhs.m_Bits);
+		}
+		friend PlayerAttributesList& operator|=(PlayerAttributesList& lhs, const PlayerAttributesList& rhs)
+		{
+			lhs.m_Bits |= rhs.m_Bits;
+			return lhs;
+		}
+		friend PlayerAttributesList operator&(const PlayerAttributesList& lhs, const PlayerAttributesList& rhs)
+		{
+			return PlayerAttributesList(lhs.m_Bits & rhs.m_Bits);
+		}
+		friend PlayerAttributesList& operator&=(PlayerAttributesList& lhs, const PlayerAttributesList& rhs)
+		{
+			lhs.m_Bits &= rhs.m_Bits;
+			return lhs;
+		}
+
+		bool empty() const { return m_Bits.none(); }
+		operator bool() const { return m_Bits.any(); }
 
 	private:
-		// For now... just implemented with bools for simplicity
-		bool m_Cheater : 1 = false;
-		bool m_Suspicious : 1 = false;
-		bool m_Exploiter : 1 = false;
-		bool m_Racist : 1 = false;
+		bits_t m_Bits;
 	};
 
 	struct PlayerListData
@@ -88,6 +109,24 @@ namespace tf2_bot_detector
 #endif
 	};
 
+	struct PlayerMarks final
+	{
+		struct Mark final
+		{
+			Mark(const PlayerAttributesList& attr, const ConfigFileInfo& file) :
+				m_Attributes(attr), m_File(&file)
+			{
+			}
+
+			PlayerAttributesList m_Attributes;
+			const ConfigFileInfo* m_File = nullptr;
+		};
+
+		operator bool() const { return !m_Marks.empty(); }
+
+		std::vector<Mark> m_Marks;
+	};
+
 	class PlayerListJSON final
 	{
 	public:
@@ -96,10 +135,11 @@ namespace tf2_bot_detector
 		bool LoadFiles();
 		void SaveFile() const;
 
-		cppcoro::generator<const PlayerListData&> FindPlayerData(const SteamID& id) const;
-		cppcoro::generator<const PlayerAttributesList&> FindPlayerAttributes(const SteamID& id) const;
-		bool HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const;
-		bool HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const;
+		cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerListData&>>
+			FindPlayerData(const SteamID& id) const;
+		cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerAttributesList&>>
+			FindPlayerAttributes(const SteamID& id) const;
+		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const;
 
 		template<typename TFunc>
 		ModifyPlayerResult ModifyPlayer(const SteamID& id, TFunc&& func)
@@ -134,33 +174,35 @@ namespace tf2_bot_detector
 
 		static constexpr int PLAYERLIST_SCHEMA_VERSION = 3;
 
-		struct ConfigFileGroup final : ConfigFileGroupBase<PlayerListFile, PlayerMap_t>
+		struct ConfigFileGroup final : ConfigFileGroupBase<PlayerListFile, std::vector<std::pair<ConfigFileInfo, PlayerMap_t>>>
 		{
+			using BaseClass = ConfigFileGroupBase;
+
 			using ConfigFileGroupBase::ConfigFileGroupBase;
-			void CombineEntries(PlayerMap_t& map, const PlayerListFile& file) const override;
+			void CombineEntries(BaseClass::collection_type& map, const PlayerListFile& file) const override;
 			std::string GetBaseFileName() const override { return "playerlist"; }
 
 		} m_CFGGroup;
 	};
 
-	void to_json(nlohmann::json& j, const PlayerAttributes& d);
-	void from_json(const nlohmann::json& j, PlayerAttributes& d);
+	void to_json(nlohmann::json& j, const PlayerAttribute& d);
+	void from_json(const nlohmann::json& j, PlayerAttribute& d);
 }
 
 template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::PlayerAttributes type)
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::PlayerAttribute type)
 {
-	using tf2_bot_detector::PlayerAttributes;
+	using tf2_bot_detector::PlayerAttribute;
 
 	switch (type)
 	{
-	case PlayerAttributes::Cheater:     return os << "PlayerAttributes::Cheater";
-	case PlayerAttributes::Exploiter:   return os << "PlayerAttributes::Exploiter";
-	case PlayerAttributes::Racist:      return os << "PlayerAttributes::Racist";
-	case PlayerAttributes::Suspicious:  return os << "PlayerAttributes::Suspicious";
+	case PlayerAttribute::Cheater:     return os << "PlayerAttribute::Cheater";
+	case PlayerAttribute::Exploiter:   return os << "PlayerAttribute::Exploiter";
+	case PlayerAttribute::Racist:      return os << "PlayerAttribute::Racist";
+	case PlayerAttribute::Suspicious:  return os << "PlayerAttribute::Suspicious";
 
 	default:
-		assert(!"Unknown PlayerAttributes");
+		assert(!"Unknown PlayerAttribute");
 		return os << "<UNKNOWN>";
 	}
 }
