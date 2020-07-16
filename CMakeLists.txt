@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.44)
+project(tf2_bot_detector VERSION 1.0.0.45)
 
 include(GenerateExportHeader)
 
@@ -41,6 +41,7 @@ if (WIN32)
 	)
 
 	add_executable(tf2_bot_detector_launcher WIN32
+		"tf2_bot_detector/Platform/Windows/CrashHandler.cpp"
 		"tf2_bot_detector/Launcher/main.cpp"
 		"tf2_bot_detector/Launcher/Resources.rc"
 	)
@@ -48,6 +49,7 @@ if (WIN32)
 	target_include_directories(tf2_bot_detector_launcher PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
 	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector)
 	set_target_properties(tf2_bot_detector_launcher PROPERTIES OUTPUT_NAME "tf2_bot_detector")
+	set_property(TARGET tf2_bot_detector_launcher PROPERTY CXX_STANDARD 17)
 else()
 	add_executable(tf2_bot_detector
 		"tf2_bot_detector/Launcher/main.cpp"
@@ -151,7 +153,6 @@ if(WIN32)
 	configure_file(tf2_bot_detector/Resources.base.rc tf2_bot_detector/Resources.rc)
 
 	target_sources(tf2_bot_detector PRIVATE
-		"tf2_bot_detector/Platform/Windows/CrashHandler.cpp"
 		"tf2_bot_detector/Platform/Windows/Processes.cpp"
 		"tf2_bot_detector/Platform/Windows/Shell.cpp"
 		"tf2_bot_detector/Platform/Windows/Steam.cpp"

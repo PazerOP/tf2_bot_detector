@@ -96,14 +96,6 @@ namespace tf2_bot_detector
 
 		void OnRuleMatch(const ModerationRule& rule, const IPlayer& player);
 
-		struct DelayedChatBan
-		{
-			time_point_t m_Timestamp;
-			std::string m_PlayerName;
-		};
-		std::vector<DelayedChatBan> m_DelayedBans;
-		void ProcessDelayedBans(time_point_t timestamp, const IPlayer& updatedStatus);
-
 		// How long inbetween accusations
 		static constexpr duration_t CHEATER_WARNING_INTERVAL = std::chrono::seconds(20);
 
