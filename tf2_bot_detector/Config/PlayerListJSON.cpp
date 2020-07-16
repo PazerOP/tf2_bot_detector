@@ -23,17 +23,17 @@ static std::filesystem::path s_PlayerListPath("cfg/playerlist.json");
 
 namespace tf2_bot_detector
 {
-	void to_json(nlohmann::json& j, const PlayerAttributes& d)
+	void to_json(nlohmann::json& j, const PlayerAttribute& d)
 	{
 		switch (d)
 		{
-		case PlayerAttributes::Cheater:     j = "cheater"; break;
-		case PlayerAttributes::Suspicious:  j = "suspicious"; break;
-		case PlayerAttributes::Exploiter:   j = "exploiter"; break;
-		case PlayerAttributes::Racist:      j = "racist"; break;
+		case PlayerAttribute::Cheater:     j = "cheater"; break;
+		case PlayerAttribute::Suspicious:  j = "suspicious"; break;
+		case PlayerAttribute::Exploiter:   j = "exploiter"; break;
+		case PlayerAttribute::Racist:      j = "racist"; break;
 
 		default:
-			throw std::runtime_error("Unknown PlayerAttributes value "s << +std::underlying_type_t<PlayerAttributes>(d));
+			throw std::runtime_error("Unknown PlayerAttribute value "s << +std::underlying_type_t<PlayerAttribute>(d));
 		}
 	}
 
@@ -44,11 +44,11 @@ namespace tf2_bot_detector
 		else
 			j.clear();
 
-		using ut = std::underlying_type_t<PlayerAttributes>;
-		for (ut i = 0; i < ut(PlayerAttributes::COUNT); i++)
+		using ut = std::underlying_type_t<PlayerAttribute>;
+		for (ut i = 0; i < ut(PlayerAttribute::COUNT); i++)
 		{
-			if (d.HasAttribute(PlayerAttributes(i)))
-				j.push_back(PlayerAttributes(i));
+			if (d.HasAttribute(PlayerAttribute(i)))
+				j.push_back(PlayerAttribute(i));
 		}
 	}
 	void to_json(nlohmann::json& j, const PlayerListData::LastSeen& d)
@@ -73,17 +73,17 @@ namespace tf2_bot_detector
 			j["proof"] = d.m_Proof;
 	}
 
-	void from_json(const nlohmann::json& j, PlayerAttributes& d)
+	void from_json(const nlohmann::json& j, PlayerAttribute& d)
 	{
 		const auto& str = j.get<std::string_view>();
 		if (str == "suspicious"sv)
-			d = PlayerAttributes::Suspicious;
+			d = PlayerAttribute::Suspicious;
 		else if (str == "cheater"sv)
-			d = PlayerAttributes::Cheater;
+			d = PlayerAttribute::Cheater;
 		else if (str == "exploiter"sv)
-			d = PlayerAttributes::Exploiter;
+			d = PlayerAttribute::Exploiter;
 		else if (str == "racist"sv)
-			d = PlayerAttributes::Racist;
+			d = PlayerAttribute::Racist;
 		else
 			throw std::runtime_error("Unknown player attribute type "s << std::quoted(str));
 	}
@@ -185,60 +185,72 @@ void PlayerListJSON::SaveFile() const
 	m_CFGGroup.SaveFile();
 }
 
-cppcoro::generator<const PlayerListData&> PlayerListJSON::FindPlayerData(const SteamID& id) const
+cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerListData&>>
+PlayerListJSON::FindPlayerData(const SteamID& id) const
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
 		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id);
 			found != m_CFGGroup.m_UserList->m_Players.end())
 		{
-			co_yield found->second;
+			co_yield { m_CFGGroup.m_UserList->m_FileInfo, found->second };
 		}
 	}
 	if (mh::is_future_ready(m_CFGGroup.m_ThirdPartyLists))
 	{
-		if (auto found = m_CFGGroup.m_ThirdPartyLists.get().find(id);
-			found != m_CFGGroup.m_ThirdPartyLists.get().end())
+		for (auto& file : m_CFGGroup.m_ThirdPartyLists.get())
 		{
-			co_yield found->second;
+			if (auto found = file.second.find(id); found != file.second.end())
+				co_yield { file.first, found->second };
 		}
+
 	}
 	if (mh::is_future_ready(m_CFGGroup.m_OfficialList))
 	{
 		if (auto found = m_CFGGroup.m_OfficialList.get().m_Players.find(id);
 			found != m_CFGGroup.m_OfficialList.get().m_Players.end())
 		{
-			co_yield found->second;
+			co_yield { m_CFGGroup.m_OfficialList.get().m_FileInfo, found->second };
 		}
 	}
 }
 
-cppcoro::generator<const PlayerAttributesList&> PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
+cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerAttributesList&>>
+PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
 {
-	for (const PlayerListData& found : FindPlayerData(id))
-		co_yield found.m_Attributes;
+	for (auto& [file, found] : FindPlayerData(id))
+		co_yield { file, found.m_Attributes };
 }
 
-bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, PlayerAttributes attribute) const
-{
-	return HasPlayerAttribute(id, { attribute });
-}
-
-bool PlayerListJSON::HasPlayerAttribute(const SteamID& id, const std::initializer_list<PlayerAttributes>& attributes) const
+PlayerMarks PlayerListJSON::GetPlayerAttributes(const SteamID& id) const
 {
 	if (id == m_Settings->GetLocalSteamID())
-		return false;
+		return {};
 
-	for (const PlayerAttributesList& found : FindPlayerAttributes(id))
+	PlayerMarks marks;
+	for (const auto& [file, found] : FindPlayerAttributes(id))
 	{
-		for (auto attr : attributes)
-		{
-			if (found.HasAttribute(attr))
-				return true;
-		}
+		if (found)
+			marks.m_Marks.push_back({ found, file });
 	}
 
-	return false;
+	return marks;
+}
+
+PlayerMarks PlayerListJSON::HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const
+{
+	if (id == m_Settings->GetLocalSteamID())
+		return {};
+
+	PlayerMarks marks;
+	for (const auto& [file, found] : FindPlayerAttributes(id))
+	{
+		auto attr = found & attributes;
+		if (attr)
+			marks.m_Marks.push_back({ attr, file });
+	}
+
+	return marks;
 }
 
 ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
@@ -289,20 +301,18 @@ PlayerListData::~PlayerListData()
 {
 }
 
-bool PlayerAttributesList::HasAttribute(PlayerAttributes attribute) const
+PlayerAttributesList::PlayerAttributesList(const std::initializer_list<PlayerAttribute>& attributes)
 {
-	switch (attribute)
-	{
-	case PlayerAttributes::Cheater:     return m_Cheater;
-	case PlayerAttributes::Suspicious:  return m_Suspicious;
-	case PlayerAttributes::Exploiter:   return m_Exploiter;
-	case PlayerAttributes::Racist:      return m_Racist;
-	}
-
-	throw std::runtime_error("Unknown PlayerAttributes value "s << +std::underlying_type_t<PlayerAttributes>(attribute));
+	for (const auto& attr : attributes)
+		SetAttribute(attr);
 }
 
-bool PlayerAttributesList::SetAttribute(PlayerAttributes attribute, bool set)
+PlayerAttributesList::PlayerAttributesList(PlayerAttribute attribute)
+{
+	SetAttribute(attribute);
+}
+
+bool PlayerAttributesList::SetAttribute(PlayerAttribute attribute, bool set)
 {
 #undef HELPER
 #define HELPER(value) \
@@ -313,66 +323,42 @@ bool PlayerAttributesList::SetAttribute(PlayerAttributes attribute, bool set)
 		return old != (value); \
 	} while(false)
 
+	const auto ApplyChange = [&]
+	{
+		auto old = HasAttribute(attribute);
+		m_Bits.set(size_t(attribute), set);
+		return old != set;
+	};
+
 	switch (attribute)
 	{
-	case PlayerAttributes::Cheater:
+	case PlayerAttribute::Cheater:
 	{
-		bool result = false;
-		if (m_Suspicious)
-		{
-			m_Suspicious = false;
-			result = true;
-		}
-
-		if (m_Cheater != set)
-		{
-			m_Cheater = set;
-			result = true;
-		}
-
-		return result;
+		auto retVal = SetAttribute(PlayerAttribute::Suspicious, false);
+		retVal |= ApplyChange();
+		return retVal;
 	}
-	case PlayerAttributes::Suspicious:
-		if (!HasAttribute(PlayerAttributes::Cheater))
-			HELPER(m_Suspicious);
-		else
-			return false;
-	case PlayerAttributes::Exploiter:   HELPER(m_Exploiter);
-	case PlayerAttributes::Racist:      HELPER(m_Racist);
+
+	case PlayerAttribute::Suspicious:
+		return !HasAttribute(PlayerAttribute::Cheater) ? ApplyChange() : false;
 
 	default:
-		throw std::runtime_error("Unknown PlayerAttributes value "s << +std::underlying_type_t<PlayerAttributes>(attribute));
+		return ApplyChange();
 	}
 }
 
-bool PlayerAttributesList::empty() const
+void PlayerListJSON::ConfigFileGroup::CombineEntries(BaseClass::collection_type& map, const PlayerListFile& file) const
 {
-	return !m_Cheater && !m_Suspicious && !m_Exploiter && !m_Racist;
+	map.push_back({ file.m_FileInfo, file.m_Players });
 }
 
-PlayerAttributesList& PlayerAttributesList::operator|=(const PlayerAttributesList& other)
+bool PlayerMarks::Has(const PlayerAttributesList& attr) const
 {
-	m_Cheater = m_Cheater || other.m_Cheater;
-	m_Suspicious = m_Suspicious || other.m_Suspicious;
-	m_Exploiter = m_Exploiter || other.m_Exploiter;
-	m_Racist = m_Racist || other.m_Racist;
-
-	return *this;
-}
-
-void PlayerListJSON::ConfigFileGroup::CombineEntries(PlayerMap_t& map, const PlayerListFile& file) const
-{
-	for (auto& otherEntryPair : file.m_Players)
+	for (const auto& mark : m_Marks)
 	{
-		auto newEntryResult = map.emplace(otherEntryPair.first, otherEntryPair.second);
-		if (!newEntryResult.second)
-		{
-			auto& otherEntry = otherEntryPair.second;
-			auto& newEntry = newEntryResult.first->second;
-
-			newEntry.m_Attributes |= otherEntry.m_Attributes; // Merge if it already existed
-			if (otherEntry.m_LastSeen && !newEntry.m_LastSeen || otherEntry.m_LastSeen > newEntry.m_LastSeen)
-				newEntry.m_LastSeen = otherEntry.m_LastSeen;
-		}
+		if (mark.m_Attributes & attr)
+			return true;
 	}
+
+	return false;
 }

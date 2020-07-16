@@ -11,7 +11,7 @@
 namespace tf2_bot_detector
 {
 	class IPlayer;
-	enum class PlayerAttributes;
+	enum class PlayerAttribute;
 	class Settings;
 
 	enum class TriggerMatchMode
@@ -62,8 +62,8 @@ namespace tf2_bot_detector
 
 		struct Actions
 		{
-			std::vector<PlayerAttributes> m_Mark;
-			std::vector<PlayerAttributes> m_Unmark;
+			std::vector<PlayerAttribute> m_Mark;
+			std::vector<PlayerAttribute> m_Unmark;
 		} m_Actions;
 	};
 

@@ -65,7 +65,7 @@ static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann
 static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, const nlohmann::json& json)
 {
 	ConfigSchemaInfo schema(nullptr);
-	if (!try_get_to(json, "$schema", schema))
+	if (!try_get_to<ConfigSchemaInfo, false>(json, "$schema", schema))
 		throw std::runtime_error("JSON missing $schema property");
 
 	config.ValidateSchema(schema);
@@ -112,6 +112,22 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 			<< ": new json failed schema validation: " << e.what());
 		return false;
 	}
+
+	ConfigFileInfo fileInfo;
+
+	try
+	{
+		try_get_to(newJson, "file_info", fileInfo);
+	}
+	catch (const std::exception& e)
+	{
+		LogError("Failed to auto-update "s << filename << " from " << info.m_UpdateURL
+			<< ": failed to parse file info from new json: " << e.what());
+		return false;
+	}
+
+	if (fileInfo.m_Title.empty())
+		fileInfo.m_Title = filename.string();
 
 	try
 	{
@@ -226,29 +242,27 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		return false;
 	}
 
+	bool fileInfoParsed = false;
+	if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
+	{
+		try
+		{
+			if (try_get_to(json, "file_info", shared->m_FileInfo))
+				fileInfoParsed = true;
+		}
+		catch (const std::exception& e)
+		{
+			LogWarning("Skipping auto-update for "s << filename << ": failed to parse file_info: " << e.what());
+		}
+
+		if (shared->m_FileInfo.m_Title.empty())
+			shared->m_FileInfo.m_Title = filename.string();
+	}
+
 	if (client)
 	{
 		if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
 		{
-			bool fileInfoParsed = false;
-
-			try
-			{
-				if (ConfigFileInfo info; try_get_to(json, "file_info", info))
-				{
-					shared->m_FileInfo = std::move(info);
-					fileInfoParsed = true;
-				}
-				else
-				{
-					shared->m_FileInfo.reset();
-				}
-			}
-			catch (const std::exception& e)
-			{
-				LogWarning("Skipping auto-update for "s << filename << ": failed to parse file_info: " << e.what());
-			}
-
 			if (fileInfoParsed && TryAutoUpdate(filename, json, *shared, *client))
 				return true;
 		}
@@ -352,16 +366,10 @@ ConfigSchemaInfo::ConfigSchemaInfo(std::string type, unsigned version, std::stri
 void SharedConfigFileBase::Deserialize(const nlohmann::json& json)
 {
 	ConfigFileBase::Deserialize(json);
-
-	if (ConfigFileInfo info; try_get_to(json, "file_info", info))
-		m_FileInfo = std::move(info);
-	else
-		m_FileInfo.reset();
 }
 
 void SharedConfigFileBase::Serialize(nlohmann::json& json) const
 {
 	ConfigFileBase::Serialize(json);
-	if (m_FileInfo)
-		json["file_info"] = m_FileInfo.value();
+	json["file_info"] = m_FileInfo;
 }

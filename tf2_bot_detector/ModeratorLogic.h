@@ -5,6 +5,7 @@
 #include "Config/PlayerListJSON.h"
 #include "Config/Rules.h"
 
+#include <functional>
 #include <optional>
 #include <unordered_set>
 #include <vector>
@@ -16,7 +17,7 @@ namespace tf2_bot_detector
 	class IPlayer;
 	enum class KickReason;
 	struct ModerationRule;
-	enum class PlayerAttributes;
+	enum class PlayerAttribute;
 	class Settings;
 	class SteamID;
 	enum class TeamShareResult;
@@ -28,10 +29,21 @@ namespace tf2_bot_detector
 
 		void Update();
 
-		bool InitiateVotekick(const IPlayer& id, KickReason reason);
+		struct Cheater
+		{
+			Cheater(IPlayer& player, PlayerMarks marks) : m_Player(player), m_Marks(std::move(marks)) {}
 
-		bool SetPlayerAttribute(const IPlayer& id, PlayerAttributes markType, bool set = true);
-		bool HasPlayerAttribute(const SteamID& id, PlayerAttributes markType) const;
+			std::reference_wrapper<IPlayer> m_Player;
+			PlayerMarks m_Marks;
+
+			IPlayer* operator->() const { return &m_Player.get(); }
+		};
+
+		PlayerMarks GetPlayerAttributes(const SteamID& id) const;
+		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const;
+		bool InitiateVotekick(const IPlayer& player, KickReason reason, const PlayerMarks* marks = nullptr);
+
+		bool SetPlayerAttribute(const IPlayer& id, PlayerAttribute markType, bool set = true);
 
 		std::optional<LobbyMemberTeam> TryGetMyTeam() const;
 		TeamShareResult GetTeamShareResult(const SteamID& id) const;
@@ -100,13 +112,38 @@ namespace tf2_bot_detector
 		time_point_t m_LastPlayerActionsUpdate{};
 		void ProcessPlayerActions();
 		void HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t connectedFriendlyPlayerCount,
-			const std::vector<const IPlayer*>& friendlyCheaters);
-		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<IPlayer*>& enemyCheaters,
-			const std::vector<IPlayer*>& connectingEnemyCheaters);
-		void HandleConnectedEnemyCheaters(const std::vector<IPlayer*>& enemyCheaters);
-		void HandleConnectingEnemyCheaters(const std::vector<IPlayer*>& connectingEnemyCheaters);
+			const std::vector<Cheater>& friendlyCheaters);
+		void HandleEnemyCheaters(uint8_t enemyPlayerCount, const std::vector<Cheater>& enemyCheaters,
+			const std::vector<Cheater>& connectingEnemyCheaters);
+		void HandleConnectedEnemyCheaters(const std::vector<Cheater>& enemyCheaters);
+		void HandleConnectingEnemyCheaters(const std::vector<Cheater>& connectingEnemyCheaters);
 
 		PlayerListJSON m_PlayerList;
 		ModerationRules m_Rules;
 	};
+}
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::ModeratorLogic::Cheater& cheater)
+{
+	assert(cheater.m_Marks);
+	os << cheater.m_Player << " (marked in ";
+
+	const auto markCount = cheater.m_Marks.m_Marks.size();
+	for (size_t i = 0; i < markCount; i++)
+	{
+		const auto& mark = cheater.m_Marks.m_Marks[i];
+
+		if (i != 0)
+			os << ", ";
+
+		if (i == (markCount - 1) && markCount > 1)
+			os << "and ";
+
+		os << std::quoted(mark.m_File.get().m_Title);
+	}
+
+	os << ')';
+
+	return os;
 }

@@ -7,7 +7,7 @@
 
 namespace tf2_bot_detector
 {
-	template<typename T>
+	template<typename T, bool initOnError = true>
 	bool try_get_to(const nlohmann::json& j, const std::string_view& name, T& value)
 	{
 		try
@@ -23,6 +23,18 @@ namespace tf2_bot_detector
 			LogError(std::string(__FUNCTION__) << ": Exception when getting " << name << ": " << e.what());
 		}
 
+		if constexpr (initOnError)
+		{
+			if constexpr (std::is_array_v<T>)
+			{
+				for (auto& val : value)
+					val = {};
+			}
+			else
+			{
+				value = T{};
+			}
+		}
 		return false;
 	}
 

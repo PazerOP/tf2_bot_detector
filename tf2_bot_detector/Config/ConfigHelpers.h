@@ -78,7 +78,7 @@ namespace tf2_bot_detector
 		void Deserialize(const nlohmann::json& json) override = 0;
 		void Serialize(nlohmann::json& json) const override = 0;
 
-		std::optional<ConfigFileInfo> m_FileInfo;
+		ConfigFileInfo m_FileInfo;
 	};
 
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
