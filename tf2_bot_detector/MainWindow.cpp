@@ -395,18 +395,7 @@ void MainWindow::OnDrawScoreboard()
 								if (contentDrawn)
 									ImGui::NewLine();
 
-								std::string attribsText;
-								attribsText << "Player " << player << " marked in playerlist";
-
-								if (playerAttribs.m_Marks.size() != 1)
-									attribsText << 's';
-
-								attribsText << ':';
-
-								for (auto& mark : playerAttribs)
-									attribsText << "\n\t - " << mark;
-
-								ImGui::TextUnformatted(attribsText);
+								ImGui::TextUnformatted("Player "s << player << " marked in playerlist(s):" << playerAttribs);
 								contentDrawn = true;
 							}
 

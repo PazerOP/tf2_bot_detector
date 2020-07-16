@@ -242,3 +242,13 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 {
 	return os << std::quoted(mark.m_File.get().m_Title) << " (" << mark.m_Attributes << ')';
 }
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
+	const tf2_bot_detector::PlayerMarks& marks)
+{
+	for (auto& mark : marks.m_Marks)
+		os << "\n\t - " << mark;
+
+	return os;
+}
