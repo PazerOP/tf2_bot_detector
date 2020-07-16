@@ -581,9 +581,7 @@ bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason, 
 	{
 		std::string logMsg = "InitiateVotekick on "s << player << ": " << reason;
 		if (marks)
-		{
 			logMsg << ", in playerlist(s)" << *marks;
-		}
 
 		Log(std::move(logMsg));
 	}
