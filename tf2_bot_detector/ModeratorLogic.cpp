@@ -44,8 +44,6 @@ void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& play
 
 void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& player)
 {
-	ProcessDelayedBans(world.GetCurrentTime(), player);
-
 	const auto name = player.GetNameUnsafe();
 	const auto steamID = player.GetSteamID();
 
@@ -578,38 +576,4 @@ bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason)
 		Log("InitiateVotekick on "s << player << ": " << reason);
 
 	return true;
-}
-
-void ModeratorLogic::ProcessDelayedBans(time_point_t timestamp, const IPlayer& updatedStatus)
-{
-	for (size_t i = 0; i < m_DelayedBans.size(); i++)
-	{
-		const auto& ban = m_DelayedBans[i];
-		const auto timeSince = timestamp - ban.m_Timestamp;
-
-		const auto RemoveBan = [&]()
-		{
-			m_DelayedBans.erase(m_DelayedBans.begin() + i);
-			i--;
-		};
-
-		if (timeSince > 10s)
-		{
-			RemoveBan();
-			Log("Expiring delayed ban for user with name "s << std::quoted(ban.m_PlayerName)
-				<< " (" << to_seconds(timeSince) << " second delay)");
-			continue;
-		}
-
-		if (ban.m_PlayerName == updatedStatus.GetNameUnsafe())
-		{
-			if (SetPlayerAttribute(updatedStatus, PlayerAttributes::Cheater))
-			{
-				Log("Applying delayed ban ("s << to_seconds(timeSince) << " second delay) to player " << updatedStatus);
-			}
-
-			RemoveBan();
-			break;
-		}
-	}
 }
