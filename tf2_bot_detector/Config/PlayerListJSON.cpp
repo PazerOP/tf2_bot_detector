@@ -222,6 +222,21 @@ PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
 		co_yield { file, found.m_Attributes };
 }
 
+PlayerMarks PlayerListJSON::GetPlayerAttributes(const SteamID& id) const
+{
+	if (id == m_Settings->GetLocalSteamID())
+		return {};
+
+	PlayerMarks marks;
+	for (const auto& [file, found] : FindPlayerAttributes(id))
+	{
+		if (found)
+			marks.m_Marks.push_back({ found, file });
+	}
+
+	return marks;
+}
+
 PlayerMarks PlayerListJSON::HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const
 {
 	if (id == m_Settings->GetLocalSteamID())
@@ -335,4 +350,15 @@ bool PlayerAttributesList::SetAttribute(PlayerAttribute attribute, bool set)
 void PlayerListJSON::ConfigFileGroup::CombineEntries(BaseClass::collection_type& map, const PlayerListFile& file) const
 {
 	map.push_back({ file.m_FileInfo, file.m_Players });
+}
+
+bool PlayerMarks::Has(const PlayerAttributesList& attr) const
+{
+	for (const auto& mark : m_Marks)
+	{
+		if (mark.m_Attributes & attr)
+			return true;
+	}
+
+	return false;
 }

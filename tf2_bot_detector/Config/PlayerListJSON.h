@@ -36,6 +36,7 @@ namespace tf2_bot_detector
 		PlayerAttributesList(const std::initializer_list<PlayerAttribute>& attributes);
 		PlayerAttributesList(PlayerAttribute attribute);
 
+		static constexpr size_t size() { return size_t(PlayerAttribute::COUNT); }
 		bool HasAttribute(PlayerAttribute attribute) const { return m_Bits.test(size_t(attribute)); }
 		bool SetAttribute(PlayerAttribute attribute, bool set = true);
 
@@ -114,16 +115,22 @@ namespace tf2_bot_detector
 		struct Mark final
 		{
 			Mark(const PlayerAttributesList& attr, const ConfigFileInfo& file) :
-				m_Attributes(attr), m_File(&file)
+				m_Attributes(attr), m_File(file)
 			{
 			}
 
 			PlayerAttributesList m_Attributes;
-			const ConfigFileInfo* m_File = nullptr;
+			std::reference_wrapper<const ConfigFileInfo> m_File;
 		};
+
+		bool Has(const PlayerAttributesList& attr) const;
 
 		operator bool() const { return !m_Marks.empty(); }
 
+		auto begin() { return m_Marks.begin(); }
+		auto end() { return m_Marks.end(); }
+		auto begin() const { return m_Marks.begin(); }
+		auto end() const { return m_Marks.end(); }
 		std::vector<Mark> m_Marks;
 	};
 
@@ -139,6 +146,7 @@ namespace tf2_bot_detector
 			FindPlayerData(const SteamID& id) const;
 		cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerAttributesList&>>
 			FindPlayerAttributes(const SteamID& id) const;
+		PlayerMarks GetPlayerAttributes(const SteamID& id) const;
 		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const;
 
 		template<typename TFunc>
@@ -196,13 +204,41 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 
 	switch (type)
 	{
-	case PlayerAttribute::Cheater:     return os << "PlayerAttribute::Cheater";
-	case PlayerAttribute::Exploiter:   return os << "PlayerAttribute::Exploiter";
-	case PlayerAttribute::Racist:      return os << "PlayerAttribute::Racist";
-	case PlayerAttribute::Suspicious:  return os << "PlayerAttribute::Suspicious";
+	case PlayerAttribute::Cheater:     return os << "Cheater";
+	case PlayerAttribute::Exploiter:   return os << "Exploiter";
+	case PlayerAttribute::Racist:      return os << "Racist";
+	case PlayerAttribute::Suspicious:  return os << "Suspicious";
 
 	default:
 		assert(!"Unknown PlayerAttribute");
 		return os << "<UNKNOWN>";
 	}
+}
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
+	const tf2_bot_detector::PlayerAttributesList& list)
+{
+	bool printed = false;
+	for (size_t i = 0; i < list.size(); i++)
+	{
+		const auto thisAttr = tf2_bot_detector::PlayerAttribute(i);
+		if (!list.HasAttribute(thisAttr))
+			continue;
+
+		if (printed)
+			os << ", ";
+
+		os << thisAttr;
+		printed = true;
+	}
+
+	return os;
+}
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
+	const tf2_bot_detector::PlayerMarks::Mark& mark)
+{
+	return os << std::quoted(mark.m_File.get().m_Title) << " (" << mark.m_Attributes << ')';
 }

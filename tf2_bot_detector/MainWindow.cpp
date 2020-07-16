@@ -335,9 +335,10 @@ void MainWindow::OnDrawScoreboard()
 
 					// Selectable
 					{
+						const auto teamShareResult = m_ModeratorLogic.GetTeamShareResult(player);
 						ImVec4 bgColor = [&]() -> ImVec4
 						{
-							switch (m_ModeratorLogic.GetTeamShareResult(player))
+							switch (teamShareResult)
 							{
 							case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_FriendlyTeam;
 							case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_EnemyTeam;
@@ -352,13 +353,14 @@ void MainWindow::OnDrawScoreboard()
 						}();
 
 						const auto& modLogic = GetModLogic();
-						if (modLogic.HasPlayerAttributes(player, PlayerAttribute::Cheater))
+						const auto playerAttribs = modLogic.GetPlayerAttributes(player);
+						if (playerAttribs.Has(PlayerAttribute::Cheater))
 							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheater));
-						else if (modLogic.HasPlayerAttributes(player, PlayerAttribute::Suspicious))
+						else if (playerAttribs.Has(PlayerAttribute::Suspicious))
 							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious));
-						else if (modLogic.HasPlayerAttributes(player, PlayerAttribute::Exploiter))
+						else if (playerAttribs.Has(PlayerAttribute::Exploiter))
 							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter));
-						else if (modLogic.HasPlayerAttributes(player, PlayerAttribute::Racist))
+						else if (playerAttribs.Has(PlayerAttribute::Racist))
 							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacist));
 
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
@@ -370,13 +372,44 @@ void MainWindow::OnDrawScoreboard()
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
 
-						if (player.GetSteamID() != m_Settings.GetLocalSteamID() && ImGui::IsItemHovered())
+						if ((player.GetSteamID() != m_Settings.GetLocalSteamID()) &&
+							ImGui::IsItemHovered() &&
+							(playerAttribs || (teamShareResult != TeamShareResult::SameTeams)))
 						{
+							ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
+
 							ImGui::BeginTooltip();
-							auto kills = player.GetScores().m_LocalKills;
-							auto deaths = player.GetScores().m_LocalDeaths;
-							//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
-							ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
+
+							bool contentDrawn = false;
+							if (teamShareResult != TeamShareResult::SameTeams)
+							{
+								auto kills = player.GetScores().m_LocalKills;
+								auto deaths = player.GetScores().m_LocalDeaths;
+								//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
+								ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
+								contentDrawn = true;
+							}
+
+							if (playerAttribs)
+							{
+								if (contentDrawn)
+									ImGui::NewLine();
+
+								std::string attribsText;
+								attribsText << "Player " << player << " marked in playerlist";
+
+								if (playerAttribs.m_Marks.size() != 1)
+									attribsText << 's';
+
+								attribsText << ':';
+
+								for (auto& mark : playerAttribs)
+									attribsText << "\n\t - " << mark;
+
+								ImGui::TextUnformatted(attribsText);
+								contentDrawn = true;
+							}
+
 							ImGui::EndTooltip();
 						}
 

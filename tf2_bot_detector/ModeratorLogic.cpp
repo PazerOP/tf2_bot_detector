@@ -558,6 +558,11 @@ ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, RCON
 	m_World->AddWorldEventListener(this);
 }
 
+PlayerMarks ModeratorLogic::GetPlayerAttributes(const SteamID& id) const
+{
+	return m_PlayerList.GetPlayerAttributes(id);
+}
+
 PlayerMarks ModeratorLogic::HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const
 {
 	return m_PlayerList.HasPlayerAttributes(id, attributes);

@@ -39,6 +39,7 @@ namespace tf2_bot_detector
 			IPlayer* operator->() const { return &m_Player.get(); }
 		};
 
+		PlayerMarks GetPlayerAttributes(const SteamID& id) const;
 		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const;
 		bool InitiateVotekick(const IPlayer& player, KickReason reason, const PlayerMarks* marks = nullptr);
 
@@ -147,10 +148,7 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 		if (i == (markCount - 1) && markCount > 1)
 			os << "and ";
 
-		if (mark.m_File)
-			os << std::quoted(mark.m_File->m_Title);
-		else
-			os << "<NULL>";
+		os << std::quoted(mark.m_File.get().m_Title);
 	}
 
 	os << ')';
