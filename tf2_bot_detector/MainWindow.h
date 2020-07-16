@@ -48,8 +48,10 @@ namespace tf2_bot_detector
 		void OnDrawScoreboardColorPicker(const char* name_id, float color[4]);
 		void OnDrawScoreboardContextMenu(IPlayer& player);
 		void OnDrawChat();
-		void OnDrawAppLog();
 		void OnDrawServerStats();
+
+		void OnDrawAppLog();
+		const void* m_LastLogMessage = nullptr;
 
 		void OnDrawSettingsPopup();
 		bool m_SettingsPopupOpen = false;

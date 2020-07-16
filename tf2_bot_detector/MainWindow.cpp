@@ -493,6 +493,7 @@ void MainWindow::OnDrawAppLog()
 		{
 			ImGui::PushTextWrapPos();
 
+			const void* lastLogMsg = nullptr;
 			for (const LogMessage& msg : GetVisibleLogMsgs())
 			{
 				const std::tm timestamp = ToTM(msg.m_Timestamp);
@@ -512,6 +513,14 @@ void MainWindow::OnDrawAppLog()
 					if (ImGui::MenuItem("Copy"))
 						ImGui::SetClipboardText(msg.m_Text.c_str());
 				}
+
+				lastLogMsg = &msg;
+			}
+
+			if (m_LastLogMessage != lastLogMsg)
+			{
+				m_LastLogMessage = lastLogMsg;
+				QueueUpdate();
 			}
 
 			ImGui::PopTextWrapPos();
