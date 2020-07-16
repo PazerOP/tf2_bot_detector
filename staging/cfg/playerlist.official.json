@@ -219,6 +219,12 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"steamid": "[U:1:111160048]"
+		},
+		{
+			"attributes": [
 				"suspicious"
 			],
 			"last_seen": {
@@ -266,6 +272,16 @@
 				"time": 1591238458
 			},
 			"steamid": "[U:1:116453236]"
+		},
+		{
+			"attributes": [
+				"exploiter"
+			],
+			"last_seen": {
+				"player_name": "videogames9000",
+				"time": 1594860958
+			},
+			"steamid": "[U:1:120629753]"
 		},
 		{
 			"attributes": [
