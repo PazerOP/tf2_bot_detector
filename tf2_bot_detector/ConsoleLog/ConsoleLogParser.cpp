@@ -140,10 +140,14 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 
 				if (nameBegin != searchBuf.npos && nameEnd != searchBuf.npos && msgBegin != searchBuf.npos && msgEnd != searchBuf.npos)
 				{
+					const auto name = searchBuf.substr(nameBegin + type.m_Name.m_Start.size(), nameEnd - nameBegin - type.m_Name.m_Start.size());
+					const auto msg = searchBuf.substr(msgBegin + type.m_Message.m_Start.size(), msgEnd - msgBegin - type.m_Message.m_Start.size());
+					TeamShareResult teamShareResult = TeamShareResult::Neither;
+					if (auto player = m_WorldState->FindSteamIDForName(name))
+						teamShareResult = m_WorldState->GetTeamShareResult(*player);
+
 					parsed = std::make_unique<ChatConsoleLine>(m_WorldState->GetCurrentTime(),
-						std::string(searchBuf.substr(nameBegin + type.m_Name.m_Start.size(), nameEnd - nameBegin - type.m_Name.m_Start.size())),
-						std::string(searchBuf.substr(msgBegin + type.m_Message.m_Start.size(), msgEnd - msgBegin - type.m_Message.m_Start.size())),
-						IsDead(category), IsTeam(category));
+						std::string(name), std::string(msg), IsDead(category), IsTeam(category), teamShareResult);
 				}
 				else
 				{

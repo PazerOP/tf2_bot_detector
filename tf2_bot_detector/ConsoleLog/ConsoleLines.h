@@ -10,6 +10,7 @@
 
 namespace tf2_bot_detector
 {
+	enum class TeamShareResult;
 	enum class TFClassType;
 	enum class UserMessageType;
 
@@ -34,9 +35,10 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase;
 
 	public:
-		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead, bool isTeam);
+		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead,
+			bool isTeam, TeamShareResult teamShare);
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
-		static std::shared_ptr<ChatConsoleLine> TryParseFlexible(const std::string_view& text, time_point_t timestamp);
+		//static std::shared_ptr<ChatConsoleLine> TryParseFlexible(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Chat; }
 		void Print() const override;
@@ -45,12 +47,14 @@ namespace tf2_bot_detector
 		const std::string& GetMessage() const { return m_Message; }
 		bool IsDead() const { return m_IsDead; }
 		bool IsTeam() const { return m_IsTeam; }
+		TeamShareResult GetTeamShareResult() const { return m_TeamShareResult; }
 
 	private:
-		static std::shared_ptr<ChatConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp, bool flexible);
+		//static std::shared_ptr<ChatConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp, bool flexible);
 
 		std::string m_PlayerName;
 		std::string m_Message;
+		TeamShareResult m_TeamShareResult;
 		bool m_IsDead : 1;
 		bool m_IsTeam : 1;
 	};

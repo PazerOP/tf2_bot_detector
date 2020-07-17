@@ -32,8 +32,10 @@ void GenericConsoleLine::Print() const
 	ImGui::TextUnformatted(m_Text.data(), m_Text.data() + m_Text.size());
 }
 
-ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead, bool isTeam) :
-	ConsoleLineBase(timestamp), m_PlayerName(std::move(playerName)), m_Message(std::move(message)), m_IsDead(isDead), m_IsTeam(isTeam)
+ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message,
+	bool isDead, bool isTeam, TeamShareResult teamShareResult) :
+	ConsoleLineBase(timestamp), m_PlayerName(std::move(playerName)), m_Message(std::move(message)),
+	m_IsDead(isDead), m_IsTeam(isTeam), m_TeamShareResult(teamShareResult)
 {
 	m_PlayerName.shrink_to_fit();
 	m_Message.shrink_to_fit();
@@ -41,9 +43,11 @@ ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName,
 
 std::shared_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
-	return TryParse(text, timestamp, false);
+	LogError(MH_SOURCE_LOCATION_CURRENT(), "This should never happen!");
+	return nullptr;
 }
 
+#if 0
 std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParseFlexible(const std::string_view& text, time_point_t timestamp)
 {
 	return TryParse(text, timestamp, true);
@@ -65,6 +69,7 @@ std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_vie
 
 	return nullptr;
 }
+#endif
 
 template<typename TTextFunc, typename TSameLineFunc>
 static void ProcessChatMessage(const ChatConsoleLine& msgLine, TTextFunc&& textFunc, TSameLineFunc& sameLineFunc)

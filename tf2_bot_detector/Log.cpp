@@ -97,9 +97,23 @@ static constexpr LogMessageColor COLOR_DEFAULT = { 1, 1, 1, 1 };
 static constexpr LogMessageColor COLOR_WARNING = { 1, 0.5, 0, 1 };
 static constexpr LogMessageColor COLOR_ERROR =   { 1, 0.25, 0, 1 };
 
+namespace
+{
+	template<typename CharT, typename Traits>
+	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const mh::source_location& location)
+	{
+		return os << location.file_name() << '@' << location.line() << ':' << location.function_name() << "()";
+	}
+}
+
 void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 {
 	LogInternal(std::move(msg), color, GetLogFile());
+}
+
+void tf2_bot_detector::Log(const mh::source_location& location, std::string msg, const LogMessageColor& color)
+{
+	Log(""s << location << ": " << msg, color);
 }
 
 void tf2_bot_detector::LogWarning(std::string msg)
@@ -107,9 +121,19 @@ void tf2_bot_detector::LogWarning(std::string msg)
 	Log(std::move(msg), COLOR_WARNING);
 }
 
+void tf2_bot_detector::LogWarning(const mh::source_location& location, std::string msg)
+{
+	LogWarning(""s << location << ": " << msg);
+}
+
 void tf2_bot_detector::LogError(std::string msg)
 {
 	Log(std::move(msg), COLOR_ERROR);
+}
+
+void tf2_bot_detector::LogError(const mh::source_location& location, std::string msg)
+{
+	LogError(""s << location << ": " << msg);
 }
 
 void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
@@ -121,9 +145,19 @@ void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 #endif
 }
 
+void tf2_bot_detector::DebugLog(const mh::source_location& location, std::string msg, const LogMessageColor& color)
+{
+	DebugLog(""s << location << ": " << msg, color);
+}
+
 void tf2_bot_detector::DebugLogWarning(std::string msg)
 {
 	DebugLog(std::move(msg), { COLOR_WARNING.r, COLOR_WARNING.g, COLOR_WARNING.b, 0.67f });
+}
+
+void tf2_bot_detector::DebugLogWarning(const mh::source_location& location, std::string msg)
+{
+	DebugLogWarning(""s << location << ": " << msg);
 }
 
 auto tf2_bot_detector::GetVisibleLogMsgs() -> cppcoro::generator<const LogMessage&>
