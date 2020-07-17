@@ -45,7 +45,7 @@ namespace tf2_bot_detector
 		void OnDrawMenuBar() override;
 		bool HasMenuBar() const override { return true; }
 		void OnDrawScoreboard();
-		void OnDrawScoreboardColorPicker(const char* name_id, float color[4]);
+		void OnDrawScoreboardColorPicker(const char* name_id, std::array<float, 4>& color);
 		void OnDrawScoreboardContextMenu(IPlayer& player);
 		void OnDrawChat();
 		void OnDrawServerStats();

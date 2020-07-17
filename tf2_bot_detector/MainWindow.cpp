@@ -152,9 +152,9 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 	}
 }
 
-void MainWindow::OnDrawScoreboardColorPicker(const char* name, float color[4])
+void MainWindow::OnDrawScoreboardColorPicker(const char* name, std::array<float, 4>& color)
 {
-	if (ImGui::ColorEdit4(name, color, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaPreview))
+	if (ImGui::ColorEdit4(name, color.data(), ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaPreview))
 		m_Settings.SaveFile();
 }
 
@@ -499,10 +499,11 @@ void MainWindow::OnDrawChat()
 
 			ImGui::PushTextWrapPos();
 
+			const IConsoleLine::PrintArgs args{ m_Settings };
 			for (auto it = m_ConsoleLogParser->m_PrintingLines.rbegin(); it != m_ConsoleLogParser->m_PrintingLines.rend(); ++it)
 			{
 				assert(*it);
-				(*it)->Print();
+				(*it)->Print(args);
 			}
 
 			ImGui::PopTextWrapPos();

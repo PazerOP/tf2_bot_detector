@@ -1,7 +1,9 @@
 #include "ConsoleLines.h"
+#include "Config/Settings.h"
 #include "GameData/UserMessageType.h"
 #include "Log.h"
 #include "RegexHelpers.h"
+#include "WorldState.h"
 
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -27,7 +29,7 @@ std::shared_ptr<IConsoleLine> GenericConsoleLine::TryParse(const std::string_vie
 	return std::make_shared<GenericConsoleLine>(timestamp, std::string(text));
 }
 
-void GenericConsoleLine::Print() const
+void GenericConsoleLine::Print(const PrintArgs& args) const
 {
 	ImGui::TextUnformatted(m_Text.data(), m_Text.data() + m_Text.size());
 }
@@ -72,8 +74,17 @@ std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_vie
 #endif
 
 template<typename TTextFunc, typename TSameLineFunc>
-static void ProcessChatMessage(const ChatConsoleLine& msgLine, TTextFunc&& textFunc, TSameLineFunc& sameLineFunc)
+static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLine::PrintArgs& args,
+	TTextFunc&& textFunc, TSameLineFunc& sameLineFunc)
 {
+	auto& colorSettings = args.m_Settings.get().m_Theme.m_Colors;
+	std::array<float, 4> colors{ 0.8f, 0.8f, 1.0f, 1.0f };
+
+	if (msgLine.GetTeamShareResult() == TeamShareResult::SameTeams)
+		colors = colorSettings.m_FriendlyTeam;
+	else if (msgLine.GetTeamShareResult() == TeamShareResult::OppositeTeams)
+		colors = colorSettings.m_EnemyTeam;
+
 	const auto PrintLHS = [&]
 	{
 		if (msgLine.IsDead())
@@ -84,11 +95,11 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, TTextFunc&& textF
 
 		if (msgLine.IsTeam())
 		{
-			textFunc(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "(TEAM)");
+			textFunc(ImVec4(colors[0], colors[1], colors[2], 1.0f), "(TEAM)");
 			sameLineFunc();
 		}
 
-		textFunc(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), msgLine.GetPlayerName());
+		textFunc(ImVec4(colors[0], colors[1], colors[2], 1.0f), msgLine.GetPlayerName());
 		sameLineFunc();
 
 		textFunc(ImVec4(1, 1, 1, 1), ": ");
@@ -138,12 +149,12 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, TTextFunc&& textF
 	}
 }
 
-void ChatConsoleLine::Print() const
+void ChatConsoleLine::Print(const PrintArgs& args) const
 {
 	ImGuiDesktop::ScopeGuards::ID id(this);
 
 	ImGui::BeginGroup();
-	ProcessChatMessage(*this,
+	ProcessChatMessage(*this, args,
 		[](const ImVec4& color, const std::string_view& msg) { ImGui::TextColoredUnformatted(color, msg); },
 		[] { ImGui::SameLine(); });
 	ImGui::EndGroup();
@@ -154,7 +165,7 @@ void ChatConsoleLine::Print() const
 		{
 			std::string fullText;
 
-			ProcessChatMessage(*this,
+			ProcessChatMessage(*this, args,
 				[&](const ImVec4&, const std::string_view& msg)
 				{
 					if (!fullText.empty())
@@ -192,7 +203,7 @@ std::shared_ptr<IConsoleLine> LobbyHeaderLine::TryParse(const std::string_view& 
 	return nullptr;
 }
 
-void LobbyHeaderLine::Print() const
+void LobbyHeaderLine::Print(const PrintArgs& args) const
 {
 	ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.8f, 1.0f), "CTFLobbyShared: %u member(s), %u pending",
 		m_MemberCount, m_PendingCount);
@@ -240,7 +251,7 @@ std::shared_ptr<IConsoleLine> LobbyMemberLine::TryParse(const std::string_view& 
 	return nullptr;
 }
 
-void LobbyMemberLine::Print() const
+void LobbyMemberLine::Print(const PrintArgs& args) const
 {
 	const char* team;
 	switch (m_LobbyMember.m_Team)
@@ -371,7 +382,7 @@ std::shared_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string
 	return nullptr;
 }
 
-void ServerStatusPlayerLine::Print() const
+void ServerStatusPlayerLine::Print(const PrintArgs& args) const
 {
 	const PlayerStatus& s = m_PlayerStatus;
 	ImGui::Text("# %6u \"%-19s\" %-19s %4u %4u",
@@ -390,7 +401,7 @@ std::shared_ptr<IConsoleLine> ClientReachedServerSpawnLine::TryParse(const std::
 	return nullptr;
 }
 
-void ClientReachedServerSpawnLine::Print() const
+void ClientReachedServerSpawnLine::Print(const PrintArgs& args) const
 {
 	ImGui::TextUnformatted("Client reached server_spawn.");
 }
@@ -415,7 +426,7 @@ std::shared_ptr<IConsoleLine> KillNotificationLine::TryParse(const std::string_v
 	return nullptr;
 }
 
-void KillNotificationLine::Print() const
+void KillNotificationLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("%s killed %s with %s.%s", m_AttackerName.c_str(),
 		m_VictimName.c_str(), m_WeaponName.c_str(), m_WasCrit ? " (crit)" : "");
@@ -443,7 +454,7 @@ bool LobbyChangedLine::ShouldPrint() const
 	return GetChangeType() == LobbyChangeType::Created;
 }
 
-void LobbyChangedLine::Print() const
+void LobbyChangedLine::Print(const PrintArgs& args) const
 {
 	if (ShouldPrint())
 		ImGui::Separator();
@@ -469,7 +480,7 @@ std::shared_ptr<IConsoleLine> CvarlistConvarLine::TryParse(const std::string_vie
 	return nullptr;
 }
 
-void CvarlistConvarLine::Print() const
+void CvarlistConvarLine::Print(const PrintArgs& args) const
 {
 	// TODO
 	//ImGui::Text("\"%s\" = \"%s\"", m_Name.c_str(), m_ConvarValue.c_str());
@@ -498,7 +509,7 @@ std::shared_ptr<IConsoleLine> ServerStatusShortPlayerLine::TryParse(const std::s
 	return nullptr;
 }
 
-void ServerStatusShortPlayerLine::Print() const
+void ServerStatusShortPlayerLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("#%u - %s", m_PlayerStatus.m_ClientIndex, m_PlayerStatus.m_Name.c_str());
 }
@@ -530,7 +541,7 @@ std::shared_ptr<IConsoleLine> VoiceReceiveLine::TryParse(const std::string_view&
 	return nullptr;
 }
 
-void VoiceReceiveLine::Print() const
+void VoiceReceiveLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("Voice - chan %u, ent %u, bufsize: %u", m_Channel, m_Entindex, m_BufSize);
 }
@@ -557,7 +568,7 @@ std::shared_ptr<IConsoleLine> ServerStatusPlayerCountLine::TryParse(const std::s
 	return nullptr;
 }
 
-void ServerStatusPlayerCountLine::Print() const
+void ServerStatusPlayerCountLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("players : %u humans, %u bots (%u max)", m_PlayerCount, m_BotCount, m_MaxPlayers);
 }
@@ -582,7 +593,7 @@ std::shared_ptr<IConsoleLine> EdictUsageLine::TryParse(const std::string_view& t
 	return nullptr;
 }
 
-void EdictUsageLine::Print() const
+void EdictUsageLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("edicts  : %u used of %u max", m_UsedEdicts, m_TotalEdicts);
 }
@@ -606,7 +617,7 @@ std::shared_ptr<IConsoleLine> PingLine::TryParse(const std::string_view& text, t
 	return nullptr;
 }
 
-void PingLine::Print() const
+void PingLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("%4u : %s", m_Ping, m_PlayerName.c_str());
 }
@@ -650,7 +661,7 @@ bool SVCUserMessageLine::ShouldPrint() const
 	return false;
 }
 
-void SVCUserMessageLine::Print() const
+void SVCUserMessageLine::Print(const PrintArgs& args) const
 {
 	switch (m_MsgType)
 	{
@@ -676,7 +687,7 @@ std::shared_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const std::string_
 	return nullptr;
 }
 
-void LobbyStatusFailedLine::Print() const
+void LobbyStatusFailedLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("Failed to find lobby shared object");
 }
@@ -701,7 +712,7 @@ std::shared_ptr<IConsoleLine> ConfigExecLine::TryParse(const std::string_view& t
 	return nullptr;
 }
 
-void ConfigExecLine::Print() const
+void ConfigExecLine::Print(const PrintArgs& args) const
 {
 	if (m_Success)
 		ImGui::Text("execing %s", m_ConfigFileName.c_str());
