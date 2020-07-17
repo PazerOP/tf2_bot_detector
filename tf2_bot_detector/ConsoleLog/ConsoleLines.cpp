@@ -35,9 +35,9 @@ void GenericConsoleLine::Print(const PrintArgs& args) const
 }
 
 ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message,
-	bool isDead, bool isTeam, TeamShareResult teamShareResult) :
+	bool isDead, bool isTeam, bool isSelf, TeamShareResult teamShareResult) :
 	ConsoleLineBase(timestamp), m_PlayerName(std::move(playerName)), m_Message(std::move(message)),
-	m_IsDead(isDead), m_IsTeam(isTeam), m_TeamShareResult(teamShareResult)
+	m_IsDead(isDead), m_IsTeam(isTeam), m_IsSelf(isSelf), m_TeamShareResult(teamShareResult)
 {
 	m_PlayerName.shrink_to_fit();
 	m_Message.shrink_to_fit();
@@ -80,7 +80,9 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLin
 	auto& colorSettings = args.m_Settings.get().m_Theme.m_Colors;
 	std::array<float, 4> colors{ 0.8f, 0.8f, 1.0f, 1.0f };
 
-	if (msgLine.GetTeamShareResult() == TeamShareResult::SameTeams)
+	if (msgLine.IsSelf())
+		colors = colorSettings.m_ScoreboardYou;
+	else if (msgLine.GetTeamShareResult() == TeamShareResult::SameTeams)
 		colors = colorSettings.m_FriendlyTeam;
 	else if (msgLine.GetTeamShareResult() == TeamShareResult::OppositeTeams)
 		colors = colorSettings.m_EnemyTeam;

@@ -36,7 +36,7 @@ namespace tf2_bot_detector
 
 	public:
 		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead,
-			bool isTeam, TeamShareResult teamShare);
+			bool isTeam, bool isSelf, TeamShareResult teamShare);
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 		//static std::shared_ptr<ChatConsoleLine> TryParseFlexible(const std::string_view& text, time_point_t timestamp);
 
@@ -47,6 +47,7 @@ namespace tf2_bot_detector
 		const std::string& GetMessage() const { return m_Message; }
 		bool IsDead() const { return m_IsDead; }
 		bool IsTeam() const { return m_IsTeam; }
+		bool IsSelf() const { return m_IsSelf; }
 		TeamShareResult GetTeamShareResult() const { return m_TeamShareResult; }
 
 	private:
@@ -57,6 +58,7 @@ namespace tf2_bot_detector
 		TeamShareResult m_TeamShareResult;
 		bool m_IsDead : 1;
 		bool m_IsTeam : 1;
+		bool m_IsSelf : 1;
 	};
 
 	class LobbyStatusFailedLine final : public ConsoleLineBase<LobbyStatusFailedLine>
