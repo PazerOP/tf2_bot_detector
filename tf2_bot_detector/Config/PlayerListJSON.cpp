@@ -185,15 +185,15 @@ void PlayerListJSON::SaveFile() const
 	m_CFGGroup.SaveFile();
 }
 
-cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerListData&>>
-PlayerListJSON::FindPlayerData(const SteamID& id) const
+auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
+	cppcoro::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
 		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id);
 			found != m_CFGGroup.m_UserList->m_Players.end())
 		{
-			co_yield { m_CFGGroup.m_UserList->GetFileInfo(), found->second };
+			co_yield { m_CFGGroup.m_UserList->GetName(), found->second };
 		}
 	}
 	if (mh::is_future_ready(m_CFGGroup.m_ThirdPartyLists))
@@ -210,16 +210,16 @@ PlayerListJSON::FindPlayerData(const SteamID& id) const
 		if (auto found = m_CFGGroup.m_OfficialList.get().m_Players.find(id);
 			found != m_CFGGroup.m_OfficialList.get().m_Players.end())
 		{
-			co_yield { m_CFGGroup.m_OfficialList.get().GetFileInfo(), found->second };
+			co_yield { m_CFGGroup.m_OfficialList.get().GetName(), found->second };
 		}
 	}
 }
 
-cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerAttributesList&>>
-PlayerListJSON::FindPlayerAttributes(const SteamID& id) const
+auto PlayerListJSON::FindPlayerAttributes(const SteamID& id) const ->
+	cppcoro::generator<std::pair<const ConfigFileName&, const PlayerAttributesList&>>
 {
-	for (auto& [file, found] : FindPlayerData(id))
-		co_yield { file, found.m_Attributes };
+	for (auto& [fileName, found] : FindPlayerData(id))
+		co_yield { fileName, found.m_Attributes };
 }
 
 PlayerMarks PlayerListJSON::GetPlayerAttributes(const SteamID& id) const
@@ -349,7 +349,7 @@ bool PlayerAttributesList::SetAttribute(PlayerAttribute attribute, bool set)
 
 void PlayerListJSON::ConfigFileGroup::CombineEntries(BaseClass::collection_type& map, const PlayerListFile& file) const
 {
-	map.push_back({ file.GetFileInfo(), file.m_Players });
+	map.push_back({ file.GetName(), file.m_Players });
 }
 
 bool PlayerMarks::Has(const PlayerAttributesList& attr) const

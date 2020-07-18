@@ -110,17 +110,18 @@ namespace tf2_bot_detector
 #endif
 	};
 
+	using ConfigFileName = std::string;
 	struct PlayerMarks final
 	{
 		struct Mark final
 		{
-			Mark(const PlayerAttributesList& attr, const ConfigFileInfo& file) :
-				m_Attributes(attr), m_File(file)
+			Mark(const PlayerAttributesList& attr, const ConfigFileName& fileName) :
+				m_Attributes(attr), m_FileName(fileName)
 			{
 			}
 
 			PlayerAttributesList m_Attributes;
-			std::reference_wrapper<const ConfigFileInfo> m_File;
+			ConfigFileName m_FileName;
 		};
 
 		bool Has(const PlayerAttributesList& attr) const;
@@ -142,9 +143,9 @@ namespace tf2_bot_detector
 		bool LoadFiles();
 		void SaveFile() const;
 
-		cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerListData&>>
+		cppcoro::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 			FindPlayerData(const SteamID& id) const;
-		cppcoro::generator<std::pair<const ConfigFileInfo&, const PlayerAttributesList&>>
+		cppcoro::generator<std::pair<const ConfigFileName&, const PlayerAttributesList&>>
 			FindPlayerAttributes(const SteamID& id) const;
 		PlayerMarks GetPlayerAttributes(const SteamID& id) const;
 		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const;
@@ -182,7 +183,7 @@ namespace tf2_bot_detector
 
 		static constexpr int PLAYERLIST_SCHEMA_VERSION = 3;
 
-		struct ConfigFileGroup final : ConfigFileGroupBase<PlayerListFile, std::vector<std::pair<ConfigFileInfo, PlayerMap_t>>>
+		struct ConfigFileGroup final : ConfigFileGroupBase<PlayerListFile, std::vector<std::pair<ConfigFileName, PlayerMap_t>>>
 		{
 			using BaseClass = ConfigFileGroupBase;
 
@@ -240,7 +241,7 @@ template<typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
 	const tf2_bot_detector::PlayerMarks::Mark& mark)
 {
-	return os << std::quoted(mark.m_File.get().m_Title) << " (" << mark.m_Attributes << ')';
+	return os << std::quoted(mark.m_FileName) << " (" << mark.m_Attributes << ')';
 }
 
 template<typename CharT, typename Traits>
