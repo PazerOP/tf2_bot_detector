@@ -65,7 +65,7 @@ static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann
 static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, const nlohmann::json& json)
 {
 	ConfigSchemaInfo schema(nullptr);
-	if (!try_get_to<ConfigSchemaInfo, false>(json, "$schema", schema))
+	if (!try_get_to_noinit(json, schema, "$schema"))
 		throw std::runtime_error("JSON missing $schema property");
 
 	config.ValidateSchema(schema);
@@ -117,7 +117,7 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 
 	try
 	{
-		try_get_to(newJson, "file_info", fileInfo);
+		try_get_to_defaulted(newJson, fileInfo, "file_info");
 	}
 	catch (const std::exception& e)
 	{
@@ -185,15 +185,13 @@ void tf2_bot_detector::to_json(nlohmann::json& j, const ConfigFileInfo& d)
 
 void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 {
-	if (!try_get_to(j, "authors", d.m_Authors))
+	if (!try_get_to_noinit(j, d.m_Authors, "authors"))
 		throw std::runtime_error("Failed to parse list of authors");
-	if (!try_get_to(j, "title", d.m_Title))
+	if (!try_get_to_noinit(j, d.m_Title, "title"))
 		throw std::runtime_error("Missing required property \"title\"");
 
-	if (!try_get_to(j, "description", d.m_Description))
-		d.m_Description.clear();
-	if (!try_get_to(j, "update_url", d.m_UpdateURL))
-		d.m_UpdateURL.clear();
+	try_get_to_defaulted(j, d.m_Description, "description");
+	try_get_to_defaulted(j, d.m_UpdateURL, "update_url");
 }
 
 bool ConfigFileBase::LoadFile(const std::filesystem::path& filename, const HTTPClient* client)
@@ -247,7 +245,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 	{
 		try
 		{
-			if (try_get_to(json, "file_info", shared->m_FileInfo))
+			if (try_get_to_defaulted(json, shared->m_FileInfo, "file_info"))
 				fileInfoParsed = true;
 		}
 		catch (const std::exception& e)

@@ -37,16 +37,16 @@ namespace tf2_bot_detector
 	static constexpr LogMessageColor DEBUG_MSG_COLOR = { 1, 1, 1, float(2.0 / 3.0) };
 
 	void Log(std::string msg, const LogMessageColor& color = {});
-	void Log(const mh::source_location& location, std::string msg, const LogMessageColor& color = {});
+	void Log(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color = {});
 	void LogWarning(std::string msg);
-	void LogWarning(const mh::source_location& location, std::string msg);
+	void LogWarning(const mh::source_location& location, const std::string_view& msg);
 	void LogError(std::string msg);
-	void LogError(const mh::source_location& location, std::string msg);
+	void LogError(const mh::source_location& location, const std::string_view& msg);
 
 	void DebugLog(std::string msg, const LogMessageColor& color = DEBUG_MSG_COLOR);
-	void DebugLog(const mh::source_location& location, std::string msg, const LogMessageColor& color = DEBUG_MSG_COLOR);
+	void DebugLog(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color = DEBUG_MSG_COLOR);
 	void DebugLogWarning(std::string msg);
-	void DebugLogWarning(const mh::source_location& location, std::string msg);
+	void DebugLogWarning(const mh::source_location& location, const std::string_view& msg);
 
 	const std::filesystem::path& GetLogFilename();
 

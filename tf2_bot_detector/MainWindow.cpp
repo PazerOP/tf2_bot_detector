@@ -181,14 +181,14 @@ void MainWindow::OnDrawScoreboard()
 		static float s_ColorScrollerHeight = 1;
 		if (ImGui::BeginChild("ColorScroller", { 0, s_ColorScrollerHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
 		{
-			OnDrawScoreboardColorPicker("You", m_Settings.m_Theme.m_Colors.m_ScoreboardYou); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Connecting", m_Settings.m_Theme.m_Colors.m_ScoreboardConnecting); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Friendly", m_Settings.m_Theme.m_Colors.m_FriendlyTeam); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Enemy", m_Settings.m_Theme.m_Colors.m_EnemyTeam); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheater); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacist); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("You", m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Connecting", m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Friendly", m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Enemy", m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG); ImGui::SameLine();
+			OnDrawScoreboardColorPicker("Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG); ImGui::SameLine();
 
 			const auto xPos = ImGui::GetCursorPosX();
 
@@ -320,7 +320,7 @@ void MainWindow::OnDrawScoreboard()
 					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetNameSafe().empty())
 						textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
 					else if (player.GetSteamID() == m_Settings.GetLocalSteamID())
-						textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYou);
+						textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG);
 
 					char buf[32];
 					if (!player.GetUserID().has_value())
@@ -340,8 +340,8 @@ void MainWindow::OnDrawScoreboard()
 						{
 							switch (teamShareResult)
 							{
-							case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_FriendlyTeam;
-							case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_EnemyTeam;
+							case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG;
+							case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG;
 							}
 
 							switch (player.GetTeam())
@@ -355,13 +355,13 @@ void MainWindow::OnDrawScoreboard()
 						const auto& modLogic = GetModLogic();
 						const auto playerAttribs = modLogic.GetPlayerAttributes(player);
 						if (playerAttribs.Has(PlayerAttribute::Cheater))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheater));
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG));
 						else if (playerAttribs.Has(PlayerAttribute::Suspicious))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspicious));
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG));
 						else if (playerAttribs.Has(PlayerAttribute::Exploiter))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiter));
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG));
 						else if (playerAttribs.Has(PlayerAttribute::Racist))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacist));
+							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG));
 
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 

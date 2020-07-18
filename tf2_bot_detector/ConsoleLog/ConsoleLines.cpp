@@ -81,11 +81,11 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLin
 	std::array<float, 4> colors{ 0.8f, 0.8f, 1.0f, 1.0f };
 
 	if (msgLine.IsSelf())
-		colors = colorSettings.m_ScoreboardYou;
+		colors = colorSettings.m_ChatLogYouFG;
 	else if (msgLine.GetTeamShareResult() == TeamShareResult::SameTeams)
-		colors = colorSettings.m_FriendlyTeam;
+		colors = colorSettings.m_ChatLogFriendlyTeamFG;
 	else if (msgLine.GetTeamShareResult() == TeamShareResult::OppositeTeams)
-		colors = colorSettings.m_EnemyTeam;
+		colors = colorSettings.m_ChatLogEnemyTeamFG;
 
 	const auto PrintLHS = [&]
 	{

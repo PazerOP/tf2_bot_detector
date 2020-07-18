@@ -21,7 +21,7 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerSummar
 	d = {};
 
 	d.m_SteamID = j.at("steamid");
-	try_get_to(j, "realname", d.m_RealName);
+	try_get_to_defaulted(j, d.m_RealName, "realname");
 	d.m_Nickname = j.at("personaname");
 	d.m_Status = j.at("personastate");
 	d.m_Visibility = j.at("communityvisibilitystate");

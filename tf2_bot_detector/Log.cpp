@@ -111,7 +111,7 @@ void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 	LogInternal(std::move(msg), color, GetLogFile());
 }
 
-void tf2_bot_detector::Log(const mh::source_location& location, std::string msg, const LogMessageColor& color)
+void tf2_bot_detector::Log(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
 {
 	Log(""s << location << ": " << msg, color);
 }
@@ -121,7 +121,7 @@ void tf2_bot_detector::LogWarning(std::string msg)
 	Log(std::move(msg), COLOR_WARNING);
 }
 
-void tf2_bot_detector::LogWarning(const mh::source_location& location, std::string msg)
+void tf2_bot_detector::LogWarning(const mh::source_location& location, const std::string_view& msg)
 {
 	LogWarning(""s << location << ": " << msg);
 }
@@ -131,7 +131,7 @@ void tf2_bot_detector::LogError(std::string msg)
 	Log(std::move(msg), COLOR_ERROR);
 }
 
-void tf2_bot_detector::LogError(const mh::source_location& location, std::string msg)
+void tf2_bot_detector::LogError(const mh::source_location& location, const std::string_view& msg)
 {
 	LogError(""s << location << ": " << msg);
 }
@@ -145,7 +145,7 @@ void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 #endif
 }
 
-void tf2_bot_detector::DebugLog(const mh::source_location& location, std::string msg, const LogMessageColor& color)
+void tf2_bot_detector::DebugLog(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
 {
 	DebugLog(""s << location << ": " << msg, color);
 }
@@ -155,7 +155,7 @@ void tf2_bot_detector::DebugLogWarning(std::string msg)
 	DebugLog(std::move(msg), { COLOR_WARNING.r, COLOR_WARNING.g, COLOR_WARNING.b, 0.67f });
 }
 
-void tf2_bot_detector::DebugLogWarning(const mh::source_location& location, std::string msg)
+void tf2_bot_detector::DebugLogWarning(const mh::source_location& location, const std::string_view& msg)
 {
 	DebugLogWarning(""s << location << ": " << msg);
 }
