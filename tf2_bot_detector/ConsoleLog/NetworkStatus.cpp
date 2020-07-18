@@ -58,7 +58,7 @@ std::shared_ptr<IConsoleLine> SplitPacketLine::TryParse(const std::string_view& 
 	return nullptr;
 }
 
-void SplitPacketLine::Print() const
+void SplitPacketLine::Print(const PrintArgs& args) const
 {
 	const char* socketType = "???";
 	switch (m_Packet.m_SocketType)

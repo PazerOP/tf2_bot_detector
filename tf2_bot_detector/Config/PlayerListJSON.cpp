@@ -120,7 +120,7 @@ namespace tf2_bot_detector
 		if (auto lastSeen = j.find("last_seen"); lastSeen != j.end())
 			lastSeen->get_to(d.m_LastSeen.emplace());
 
-		try_get_to(j, "proof", d.m_Proof);
+		try_get_to_defaulted(j, d.m_Proof, "proof");
 	}
 }
 

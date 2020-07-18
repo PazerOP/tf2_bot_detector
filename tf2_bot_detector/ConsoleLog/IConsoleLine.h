@@ -2,12 +2,15 @@
 
 #include "Clock.h"
 
+#include <functional>
 #include <list>
 #include <memory>
 #include <string_view>
 
 namespace tf2_bot_detector
 {
+	class Settings;
+
 	enum class ConsoleLineType
 	{
 		Generic,
@@ -60,7 +63,12 @@ namespace tf2_bot_detector
 
 		virtual ConsoleLineType GetType() const = 0;
 		virtual bool ShouldPrint() const { return true; }
-		virtual void Print() const = 0;
+
+		struct PrintArgs
+		{
+			std::reference_wrapper<const Settings> m_Settings;
+		};
+		virtual void Print(const PrintArgs& args) const = 0;
 
 		static std::shared_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text, time_point_t timestamp);
 

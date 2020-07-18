@@ -472,7 +472,7 @@ std::optional<LobbyMemberTeam> ModeratorLogic::TryGetMyTeam() const
 
 TeamShareResult ModeratorLogic::GetTeamShareResult(const SteamID& id) const
 {
-	return m_World->GetTeamShareResult(id, m_Settings->GetLocalSteamID());
+	return m_World->GetTeamShareResult(id);
 }
 
 const IPlayer* ModeratorLogic::GetLocalPlayer() const

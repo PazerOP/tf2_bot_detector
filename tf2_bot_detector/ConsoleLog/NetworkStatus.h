@@ -52,7 +52,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::SplitPacket; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		SplitPacket m_Packet;
@@ -80,7 +80,7 @@ namespace tf2_bot_detector
 		}
 
 		bool ShouldPrint() const override { return false; }
-		void Print() const override final
+		void Print(const IConsoleLine::PrintArgs& args) const override final
 		{
 			ImGui::Text(TSelf::PRINT_FORMAT_STRING, m_Float0, m_Float1);
 		}
