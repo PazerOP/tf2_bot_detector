@@ -11,7 +11,7 @@ namespace tf2_bot_detector
 {
 	namespace detail
 	{
-		inline constexpr bool JSON_TRY_GET_TO_LOGGING = true;
+		inline constexpr bool JSON_TRY_GET_TO_LOGGING = false;
 
 		template<typename T> struct is_clearable_container : std::bool_constant<false> {};
 
