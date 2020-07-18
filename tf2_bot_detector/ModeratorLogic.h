@@ -140,7 +140,7 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 		if (i == (markCount - 1) && markCount > 1)
 			os << "and ";
 
-		os << std::quoted(mark.m_File.get().m_Title);
+		os << std::quoted(mark.m_FileName);
 	}
 
 	os << ')';

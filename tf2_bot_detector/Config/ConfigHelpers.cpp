@@ -240,6 +240,8 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		return false;
 	}
 
+	m_FileName = filename.string();
+
 	bool fileInfoParsed = false;
 	if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
 	{
@@ -252,9 +254,6 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		{
 			LogWarning("Skipping auto-update for "s << filename << ": failed to parse file_info: " << e.what());
 		}
-
-		if (shared->m_FileInfo.m_Title.empty())
-			shared->m_FileInfo.m_Title = filename.string();
 	}
 
 	if (client)
@@ -369,5 +368,25 @@ void SharedConfigFileBase::Deserialize(const nlohmann::json& json)
 void SharedConfigFileBase::Serialize(nlohmann::json& json) const
 {
 	ConfigFileBase::Serialize(json);
-	json["file_info"] = m_FileInfo;
+
+	if (m_FileInfo)
+		json["file_info"] = *m_FileInfo;
+}
+
+const std::string& SharedConfigFileBase::GetName() const
+{
+	if (m_FileInfo && !m_FileInfo->m_Title.empty())
+		return m_FileInfo->m_Title;
+	else
+		return m_FileName;
+}
+
+ConfigFileInfo SharedConfigFileBase::GetFileInfo() const
+{
+	if (m_FileInfo)
+		return *m_FileInfo;
+
+	ConfigFileInfo retVal;
+	retVal.m_Title = m_FileName;
+	return retVal;
 }
