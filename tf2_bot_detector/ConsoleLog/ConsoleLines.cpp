@@ -97,11 +97,11 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLin
 
 		if (msgLine.IsTeam())
 		{
-			textFunc(ImVec4(colors[0], colors[1], colors[2], 1.0f), "(TEAM)");
+			textFunc(ImVec4(colors[0], colors[1], colors[2], colors[3] * 0.75f), "(TEAM)");
 			sameLineFunc();
 		}
 
-		textFunc(ImVec4(colors[0], colors[1], colors[2], 1.0f), msgLine.GetPlayerName());
+		textFunc(colors, msgLine.GetPlayerName());
 		sameLineFunc();
 
 		textFunc(ImVec4(1, 1, 1, 1), ": ");

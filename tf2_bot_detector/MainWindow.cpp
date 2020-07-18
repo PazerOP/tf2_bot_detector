@@ -152,10 +152,32 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 	}
 }
 
-void MainWindow::OnDrawScoreboardColorPicker(const char* name, std::array<float, 4>& color)
+void MainWindow::OnDrawColorPicker(const char* name, std::array<float, 4>& color)
 {
 	if (ImGui::ColorEdit4(name, color.data(), ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_AlphaPreview))
 		m_Settings.SaveFile();
+}
+
+void MainWindow::OnDrawColorPickers(const char* id, const std::initializer_list<ColorPicker>& pickers)
+{
+	static float s_ColorScrollerHeight = 1;
+	if (ImGui::BeginChild(id, { 0, s_ColorScrollerHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
+	{
+		for (const auto& picker : pickers)
+		{
+			OnDrawColorPicker(picker.m_Name, picker.m_Color);
+			ImGui::SameLine();
+		}
+
+		const auto xPos = ImGui::GetCursorPosX();
+
+		ImGui::NewLine();
+
+		s_ColorScrollerHeight = ImGui::GetCursorPosY();
+		if (ImGui::GetWindowSize().x < xPos)
+			s_ColorScrollerHeight += ImGui::GetStyle().ScrollbarSize;
+	}
+	ImGui::EndChild();
 }
 
 void MainWindow::OnDrawScoreboard()
@@ -164,42 +186,19 @@ void MainWindow::OnDrawScoreboard()
 	bool forceRecalc = false;
 
 	static float contentWidthMin = 500;
-	static float extraWidth;
-#if 0
-	ImGui::Value("Work rect width", frameWidth);
-	ImGui::Value("Content width", contentWidth);
-	ImGui::Value("Window content width", windowContentWidth);
-	ImGui::Value("Window width", windowWidth);
-
-	forceRecalc |= ImGui::DragFloat("Content width min", &contentWidthMin);
-
-	forceRecalc |= ImGui::DragFloat("Extra width", &extraWidth, 0.5f);
-#endif
 
 	// Horizontal scroller for color pickers
-	{
-		static float s_ColorScrollerHeight = 1;
-		if (ImGui::BeginChild("ColorScroller", { 0, s_ColorScrollerHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
+	OnDrawColorPickers("ScoreboardColorPickers",
 		{
-			OnDrawScoreboardColorPicker("You", m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Connecting", m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Friendly", m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Enemy", m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG); ImGui::SameLine();
-			OnDrawScoreboardColorPicker("Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG); ImGui::SameLine();
-
-			const auto xPos = ImGui::GetCursorPosX();
-
-			ImGui::NewLine();
-
-			s_ColorScrollerHeight = ImGui::GetCursorPosY();
-			if (ImGui::GetWindowSize().x < xPos)
-				s_ColorScrollerHeight += ImGui::GetStyle().ScrollbarSize;
-		}
-		ImGui::EndChild();
-	}
+			{ "You", m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG },
+			{ "Connecting", m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG },
+			{ "Friendly", m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG },
+			{ "Enemy", m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG },
+			{ "Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG },
+			{ "Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG },
+			{ "Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG },
+			{ "Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG },
+		});
 
 	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
 	//ImGui::SetNextWindowContentSize(ImVec2(500, 0));
@@ -300,7 +299,7 @@ void MainWindow::OnDrawScoreboard()
 					if (scoreboardResized)
 					{
 						nameColumnWidth -= 100;// +ImGui::GetStyle().ItemSpacing.x * 2;
-						ImGui::SetColumnWidth(1, std::max(10.0f, nameColumnWidth - ImGui::GetStyle().ItemSpacing.x * 2 + extraWidth));
+						ImGui::SetColumnWidth(1, std::max(10.0f, nameColumnWidth - ImGui::GetStyle().ItemSpacing.x * 2));
 					}
 
 					ImGui::NextColumn();
@@ -492,6 +491,13 @@ void MainWindow::OnDrawScoreboard()
 
 void MainWindow::OnDrawChat()
 {
+	OnDrawColorPickers("ChatColorPickers",
+		{
+			{ "You", m_Settings.m_Theme.m_Colors.m_ChatLogYouFG },
+			{ "Enemies", m_Settings.m_Theme.m_Colors.m_ChatLogEnemyTeamFG },
+			{ "Friendlies", m_Settings.m_Theme.m_Colors.m_ChatLogFriendlyTeamFG },
+		});
+
 	ImGui::AutoScrollBox("##fileContents", { 0, 0 }, [&]()
 		{
 			if (!m_ConsoleLogParser)
