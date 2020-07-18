@@ -20,11 +20,7 @@
 
 #include <imgui_desktop/Window.h>
 
-#include <chrono>
 #include <optional>
-#include <set>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 struct ImVec4;

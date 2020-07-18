@@ -193,7 +193,7 @@ PlayerListJSON::FindPlayerData(const SteamID& id) const
 		if (auto found = m_CFGGroup.m_UserList->m_Players.find(id);
 			found != m_CFGGroup.m_UserList->m_Players.end())
 		{
-			co_yield { m_CFGGroup.m_UserList->m_FileInfo, found->second };
+			co_yield { m_CFGGroup.m_UserList->GetFileInfo(), found->second };
 		}
 	}
 	if (mh::is_future_ready(m_CFGGroup.m_ThirdPartyLists))
@@ -210,7 +210,7 @@ PlayerListJSON::FindPlayerData(const SteamID& id) const
 		if (auto found = m_CFGGroup.m_OfficialList.get().m_Players.find(id);
 			found != m_CFGGroup.m_OfficialList.get().m_Players.end())
 		{
-			co_yield { m_CFGGroup.m_OfficialList.get().m_FileInfo, found->second };
+			co_yield { m_CFGGroup.m_OfficialList.get().GetFileInfo(), found->second };
 		}
 	}
 }
@@ -349,7 +349,7 @@ bool PlayerAttributesList::SetAttribute(PlayerAttribute attribute, bool set)
 
 void PlayerListJSON::ConfigFileGroup::CombineEntries(BaseClass::collection_type& map, const PlayerListFile& file) const
 {
-	map.push_back({ file.m_FileInfo, file.m_Players });
+	map.push_back({ file.GetFileInfo(), file.m_Players });
 }
 
 bool PlayerMarks::Has(const PlayerAttributesList& attr) const
