@@ -369,7 +369,7 @@ namespace tf2_bot_detector
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::TeamsSwitched; }
-		bool ShouldPrint() const override { return false; }
+		bool ShouldPrint() const override;
 		void Print(const PrintArgs& args) const override;
 
 		const std::string& GetConfigFileName() const { return m_ConfigFileName; }
