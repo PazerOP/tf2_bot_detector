@@ -129,6 +129,34 @@ void ImGui::AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* u
 	ImGui::EndChild();
 }
 
+void ImGui::HorizontalScrollBox(const char* ID, void(*contentsFn)(void* userData), void* userData)
+{
+	ScopeGuards::ID id(ID);
+
+	auto storage = ImGui::GetStateStorage();
+
+	static struct {} s_ScrollerHeight; // Unique pointer
+	const auto scrollerHeightID = ImGui::GetID(&s_ScrollerHeight);
+
+	auto& height = *storage->GetFloatRef(scrollerHeightID, 1);
+	if (ImGui::BeginChild("HorizontalScrollerBox", { 0, height }, false, ImGuiWindowFlags_HorizontalScrollbar))
+	{
+		ImGui::BeginGroup();
+		contentsFn(userData);
+		ImGui::EndGroup();
+		const auto contentRect = ImGui::GetItemRectSize();
+		const auto windowSize = ImGui::GetWindowSize();
+
+		height = contentRect.y;
+		if (contentRect.x > windowSize.x)
+		{
+			auto& style = ImGui::GetStyle();
+			height += style.FramePadding.y + style.ScrollbarSize;
+		}
+	}
+	ImGui::EndChild();
+}
+
 static std::filesystem::path GetLastPathElement(const std::filesystem::path& path)
 {
 	auto begin = path.begin();

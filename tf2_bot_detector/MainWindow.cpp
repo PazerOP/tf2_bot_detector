@@ -160,24 +160,14 @@ void MainWindow::OnDrawColorPicker(const char* name, std::array<float, 4>& color
 
 void MainWindow::OnDrawColorPickers(const char* id, const std::initializer_list<ColorPicker>& pickers)
 {
-	static float s_ColorScrollerHeight = 1;
-	if (ImGui::BeginChild(id, { 0, s_ColorScrollerHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
-	{
-		for (const auto& picker : pickers)
+	ImGui::HorizontalScrollBox(id, [&]
 		{
-			OnDrawColorPicker(picker.m_Name, picker.m_Color);
-			ImGui::SameLine();
-		}
-
-		const auto xPos = ImGui::GetCursorPosX();
-
-		ImGui::NewLine();
-
-		s_ColorScrollerHeight = ImGui::GetCursorPosY();
-		if (ImGui::GetWindowSize().x < xPos)
-			s_ColorScrollerHeight += ImGui::GetStyle().ScrollbarSize;
-	}
-	ImGui::EndChild();
+			for (const auto& picker : pickers)
+			{
+				OnDrawColorPicker(picker.m_Name, picker.m_Color);
+				ImGui::SameLine();
+			}
+		});
 }
 
 void MainWindow::OnDrawScoreboard()
@@ -904,9 +894,7 @@ void MainWindow::OnDraw()
 
 	ImGui::Columns(2, "MainWindowSplit");
 
-	{
-		static float s_SettingsScrollerHeight = 1;
-		if (ImGui::BeginChild("SettingsScroller", { 0, s_SettingsScrollerHeight }, false, ImGuiWindowFlags_HorizontalScrollbar))
+	ImGui::HorizontalScrollBox("SettingsScroller", [&]
 		{
 			ImGui::Checkbox("Pause", &m_Paused); ImGui::SameLine();
 
@@ -933,17 +921,7 @@ void MainWindow::OnDraw()
 
 			ImGui::Checkbox("Show Commands", &m_Settings.m_Unsaved.m_DebugShowCommands); ImGui::SameLine();
 			ImGui::SetHoverTooltip("Prints out all game commands to the log.");
-
-			const auto xPos = ImGui::GetCursorPosX();
-
-			ImGui::NewLine();
-
-			s_SettingsScrollerHeight = ImGui::GetCursorPosY();
-			if (ImGui::GetWindowSize().x < xPos)
-				s_SettingsScrollerHeight += ImGui::GetStyle().ScrollbarSize;
-		}
-		ImGui::EndChild();
-	}
+		});
 
 	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
 

@@ -21,11 +21,24 @@ namespace ImGui
 	{
 		return AutoScrollBox(ID, size, reinterpret_cast<void(*)(void*)>(contentsFn), const_cast<void*>(userData));
 	}
-
 	template<typename TFunc>
 	void AutoScrollBox(const char* ID, ImVec2 size, const TFunc& func)
 	{
 		return AutoScrollBox(ID, size, [](const void* userData)
+			{
+				(*reinterpret_cast<const TFunc*>(userData))();
+			}, reinterpret_cast<const void*>(&func));
+	}
+
+	void HorizontalScrollBox(const char* ID, void(*contentsFn)(void* userData), void* userData = nullptr);
+	inline void HorizontalScrollBox(const char* ID, void(*contentsFn)(const void* userData), const void* userData = nullptr)
+	{
+		return HorizontalScrollBox(ID, reinterpret_cast<void(*)(void*)>(contentsFn), const_cast<void*>(userData));
+	}
+	template<typename TFunc>
+	void HorizontalScrollBox(const char* ID, const TFunc& func)
+	{
+		return HorizontalScrollBox(ID, [](const void* userData)
 			{
 				(*reinterpret_cast<const TFunc*>(userData))();
 			}, reinterpret_cast<const void*>(&func));
