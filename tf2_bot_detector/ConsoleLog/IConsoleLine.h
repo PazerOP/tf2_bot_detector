@@ -31,6 +31,7 @@ namespace tf2_bot_detector
 		SplitPacket,
 		SVC_UserMessage,
 		ConfigExec,
+		TeamsSwitched,
 
 		NetLatency,
 		NetLoss,

@@ -646,10 +646,10 @@ std::shared_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const std::string_vie
 	return nullptr;
 }
 
-bool SVCUserMessageLine::ShouldPrint() const
+bool SVCUserMessageLine::IsSpecial(UserMessageType type)
 {
 #ifdef _DEBUG
-	switch (m_MsgType)
+	switch (type)
 	{
 	case UserMessageType::CallVoteFailed:
 	case UserMessageType::VoteFailed:
@@ -663,22 +663,17 @@ bool SVCUserMessageLine::ShouldPrint() const
 	return false;
 }
 
+bool SVCUserMessageLine::ShouldPrint() const
+{
+	return IsSpecial(m_MsgType);
+}
+
 void SVCUserMessageLine::Print(const PrintArgs& args) const
 {
-	switch (m_MsgType)
-	{
-	case UserMessageType::CallVoteFailed:
-	case UserMessageType::VoteFailed:
-	case UserMessageType::VotePass:
-	case UserMessageType::VoteSetup:
-	case UserMessageType::VoteStart:
-		ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, ""s << m_MsgType);
-		break;
-
-	default:
+	if (IsSpecial(m_MsgType))
+		ImGui::TextColoredUnformatted({ 0, 1, 1, 1 }, ""s << m_MsgType);
+	else
 		ImGui::Text("Msg from %s: svc_UserMessage: type %u, bytes %u", m_Address.c_str(), m_MsgType, m_MsgBytes);
-		break;
-	}
 }
 
 std::shared_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const std::string_view& text, time_point_t timestamp)
@@ -720,4 +715,26 @@ void ConfigExecLine::Print(const PrintArgs& args) const
 		ImGui::Text("execing %s", m_ConfigFileName.c_str());
 	else
 		ImGui::Text("'%s' not present; not executing.", m_ConfigFileName.c_str());
+}
+
+std::shared_ptr<IConsoleLine> TeamsSwitchedLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	if (text == "Teams have been switched."sv)
+		return std::make_unique<TeamsSwitchedLine>(timestamp);
+
+	return nullptr;
+}
+
+bool TeamsSwitchedLine::ShouldPrint() const
+{
+#ifdef _DEBUG
+	return true;
+#else
+	return false;
+#endif
+}
+
+void TeamsSwitchedLine::Print(const PrintArgs& args) const
+{
+	ImGui::TextColoredUnformatted({ 0.98f, 0.73f, 0.01f, 1 }, "Teams have been switched.");
 }

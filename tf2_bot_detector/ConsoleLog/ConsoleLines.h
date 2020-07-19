@@ -333,6 +333,8 @@ namespace tf2_bot_detector
 		uint16_t GetUserMessageBytes() const { return m_MsgBytes; }
 
 	private:
+		static bool IsSpecial(UserMessageType type);
+
 		std::string m_Address{};
 		UserMessageType m_MsgType{};
 		uint16_t m_MsgBytes{};
@@ -347,6 +349,26 @@ namespace tf2_bot_detector
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::ConfigExec; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		const std::string& GetConfigFileName() const { return m_ConfigFileName; }
+		bool IsSuccessful() const { return m_Success; }
+
+	private:
+		std::string m_ConfigFileName;
+		bool m_Success = false;
+	};
+
+	class TeamsSwitchedLine final : public ConsoleLineBase<TeamsSwitchedLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		TeamsSwitchedLine(time_point_t timestamp) : BaseClass(timestamp) {}
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::TeamsSwitched; }
 		bool ShouldPrint() const override { return false; }
 		void Print(const PrintArgs& args) const override;
 
