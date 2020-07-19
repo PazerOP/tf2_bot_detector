@@ -27,7 +27,30 @@ namespace tf2_bot_detector
 
 TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** argv)
 {
+	for (int i = 1; i < argc; i++)
+	{
+#ifdef _DEBUG
+		if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
+			tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--allow-open-tf2"))
+			tf2_bot_detector::g_SkipOpenTF2Check = true;
+#endif
+	}
+
+	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
+
+	tf2_bot_detector::MainWindow window;
+
+	while (!window.ShouldClose())
+		window.Update();
+
+	DebugLog(""s << __func__ << "(): Graceful shutdown");
+	return 0;
+}
+
 #ifdef WIN32
+TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+{
 	using tf2_bot_detector::Windows::GetLastErrorException;
 	try
 	{
@@ -61,25 +84,21 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 		MessageBoxA(nullptr, e.what(), "Initialization failed", MB_OK);
 		return 1;
 	}
-#endif
 
-	for (int i = 1; i < argc; i++)
+	int argc;
+	auto argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+	std::vector<std::string> argvStrings;
+	std::vector<const char*> argv;
+	argvStrings.reserve(argc);
+	argv.reserve(argc);
+
+	for (int i = 0; i < argc; i++)
 	{
-#ifdef _DEBUG
-		if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
-			tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
-		else if (!strcmp(argv[i], "--allow-open-tf2"))
-			tf2_bot_detector::g_SkipOpenTF2Check = true;
-#endif
+		argvStrings.push_back(tf2_bot_detector::ToMB(argvw[i]));
+		argv.push_back(argvStrings.back().c_str());
 	}
 
-	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
-
-	tf2_bot_detector::MainWindow window;
-
-	while (!window.ShouldClose())
-		window.Update();
-
-	DebugLog(""s << __func__ << "(): Graceful shutdown");
-	return 0;
+	return RunProgram(argc, argv.data());
 }
+#endif
