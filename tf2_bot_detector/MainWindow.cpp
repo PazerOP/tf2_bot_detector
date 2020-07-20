@@ -307,7 +307,7 @@ void MainWindow::OnDrawScoreboard()
 
 					std::optional<ImGuiDesktop::ScopeGuards::StyleColor> textColor;
 					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetNameSafe().empty())
-						textColor.emplace(ImGuiCol_Text, ImVec4(1, 1, 0, 0.5f));
+						textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG);
 					else if (player.GetSteamID() == m_Settings.GetLocalSteamID())
 						textColor.emplace(ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG);
 
