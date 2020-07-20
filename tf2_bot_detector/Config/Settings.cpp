@@ -86,7 +86,7 @@ namespace tf2_bot_detector
 		try_get_to_defaulted(j, d.m_ChatLogYouFG, "chat_log_you.fg", DEFAULTS.m_ChatLogYouFG);
 		try_get_to_defaulted(j, d.m_ChatLogFriendlyTeamFG, "chat_log_team_friendly.fg",
 			DEFAULTS.m_ChatLogFriendlyTeamFG);
-		try_get_to_defaulted(j, d.m_ChatLogEnemyTeamFG, "chat_log_team_friendly.bg",
+		try_get_to_defaulted(j, d.m_ChatLogEnemyTeamFG, "chat_log_team_enemy.fg",
 			DEFAULTS.m_ChatLogEnemyTeamFG);
 	}
 
