@@ -107,8 +107,8 @@ namespace tf2_bot_detector
 				std::array<float, 4> m_ScoreboardEnemyTeamBG = { 0.8270000219345093f, 0.42039787769317627f, 0.38951700925827026f, 0.5f };
 
 				std::array<float, 4> m_ChatLogYouFG = { 0, 1, 0, 1 };
-				std::array<float, 4> m_ChatLogFriendlyTeamFG = { 0, 1, 0, 0.5f };
-				std::array<float, 4> m_ChatLogEnemyTeamFG = { 1, 0, 0, 0.5f };
+				std::array<float, 4> m_ChatLogFriendlyTeamFG = { 0.7f, 1, 0.7f, 1 };
+				std::array<float, 4> m_ChatLogEnemyTeamFG = { 1, 0.535f, 0.5f, 1 };
 			} m_Colors;
 
 		} m_Theme;
