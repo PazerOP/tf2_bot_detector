@@ -3301,6 +3301,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "irc.myg0t.gg:6667#myg0t",
+				"time": 1595224672
+			},
+			"steamid": "[U:1:1104114091]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
@@ -3792,6 +3802,16 @@
 				"time": 1593800203
 			},
 			"steamid": "[U:1:1105080124]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "royalhack.net B0T",
+				"time": 1595231015
+			},
+			"steamid": "[U:1:1105095596]"
 		},
 		{
 			"attributes": [
@@ -4543,6 +4563,16 @@
 				"time": 1593815458
 			},
 			"steamid": "[U:1:1111113367]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "discord.io/poohook",
+				"time": 1595224723
+			},
+			"steamid": "[U:1:1111709313]"
 		},
 		{
 			"attributes": [
