@@ -936,6 +936,8 @@ void MainWindow::OnDraw()
 			ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "YES");
 		else
 			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "NO");
+
+		ImGui::Text("FPS: %1.1f", GetFPS());
 	}
 #endif
 
