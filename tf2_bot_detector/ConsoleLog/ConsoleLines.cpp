@@ -740,7 +740,7 @@ std::shared_ptr<IConsoleLine> ServerStatusMapLine::TryParse(const std::string_vi
 	return nullptr;
 }
 
-void ServerStatusMapLine::Print() const
+void ServerStatusMapLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("map     : %s at: %1.0f x, %1.0f y, %1.0f z", m_MapName.c_str(),
 		m_Position[0], m_Position[1], m_Position[2]);

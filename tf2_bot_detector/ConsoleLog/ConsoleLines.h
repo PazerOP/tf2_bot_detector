@@ -209,7 +209,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusMapPosition; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		std::string m_MapName;
