@@ -57,6 +57,40 @@
 		{
 			"actions": {
 				"mark": [
+					"suspicious"
+				]
+			},
+			"description": "Elkay EZH2O",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"Elkay EZH2O"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Poohook",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"discord.io/poohook"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
 					"cheater"
 				]
 			},

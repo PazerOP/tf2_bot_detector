@@ -501,11 +501,18 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ChatWrappers& d)
 	}
 }
 
-ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars)
+ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir,
+	ChatWrappersProgress* progress, size_t wrapChars)
 {
 	assert(!tfdir.empty());
 
 	if (auto path = tfdir / "custom" / "tf2_bot_detector"; std::filesystem::exists(path))
+	{
+		Log("Deleting "s << path);
+		std::filesystem::remove_all(path);
+	}
+
+	if (auto path = tfdir / "custom" / TF2BD_CHAT_WRAPPERS_DIR; std::filesystem::exists(path))
 	{
 		Log("Deleting "s << path);
 		std::filesystem::remove_all(path);
@@ -517,10 +524,20 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 	const auto outputDir = tfdir / "custom" / TF2BD_CHAT_WRAPPERS_DIR / "resource";
 	std::filesystem::create_directories(outputDir);
 
+	if (progress)
+		progress->m_MaxValue = std::size(LANGUAGES) * 5;
+
+	const auto IncrementProgress = [&]
+	{
+		if (progress)
+			++progress->m_Value;
+	};
+
 	std::for_each(std::execution::par_unseq, std::begin(LANGUAGES), std::end(LANGUAGES),
 		[&](const std::string_view& lang)
 		{
 			auto translationsSet = FindExistingTranslations(tfdir, lang);
+			IncrementProgress();
 
 			// Create our own chat localization file
 			using obj = tyti::vdf::object;
@@ -529,28 +546,6 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 			file.add_attribute("Language", std::string(lang));
 			auto& tokens = file.childs["Tokens"] = std::make_shared<obj>();
 			tokens->name = "Tokens";
-
-			// Copy all from existing
-			if (auto existing = FindExistingChatTranslationFile(tfdir, lang); !existing.empty())
-			{
-				auto baseFile = ToMB(ReadWideFile(existing));
-
-				std::error_code ec;
-				auto values = tyti::vdf::read(baseFile.begin(), baseFile.end(), ec);
-				if (ec)
-				{
-					LogError("Failed to parse keyvalues from "s << existing);
-				}
-				else if (auto existingTokens = values.childs["Tokens"])
-				{
-					for (auto& attrib : existingTokens->attribs)
-						tokens->attribs[attrib.first] = attrib.second;
-				}
-				else
-				{
-					LogError("Missing \"Tokens\" key in "s << existing);
-				}
-			}
 
 			for (size_t i = 0; i < translationsSet.m_Localized.size(); i++)
 			{
@@ -564,15 +559,18 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 					continue;
 
 				ApplyChatWrappers(ChatCategory(i), translationsSet.m_English[i], wrappers);
-				const auto key = GetChatCategoryKey(ChatCategory(i), false);
+				const auto key = GetChatCategoryKey(ChatCategory(i), true);
 				tokens->attribs[std::string(key)] = translationsSet.m_English[i];
 			}
+			IncrementProgress();
 
 			std::string outFile;
 			mh::strwrapperstream stream(outFile);
 			tyti::vdf::write(stream, file);
+			IncrementProgress();
 
-			WriteWideFile(outputDir / ("chat_"s << lang << ".txt"), ToU16(outFile));
+			WriteWideFile(outputDir / ("closecaption_"s << lang << ".txt"), ToU16(outFile));
+			IncrementProgress();
 		});
 
 	Log("Wrote "s << std::size(LANGUAGES) << " modified translations to " << outputDir);

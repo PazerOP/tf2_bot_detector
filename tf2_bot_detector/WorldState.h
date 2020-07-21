@@ -64,6 +64,8 @@ namespace tf2_bot_detector
 		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const;
 		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const;
 		std::optional<UserID_t> FindUserID(const SteamID& id) const;
+
+		TeamShareResult GetTeamShareResult(const SteamID& id) const;
 		TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const;
 		TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const;
 		static TeamShareResult GetTeamShareResult(

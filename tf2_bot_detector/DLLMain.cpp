@@ -1,15 +1,55 @@
-#include "TextUtils.h"
+#include "DLLMain.h"
+
+#include "MainWindow.h"
+#include "Log.h"
 
 #include <mh/text/string_insertion.hpp>
 
-#include "WindowsHelpers.h"
+#ifdef WIN32
+#include "Platform/Windows/WindowsHelpers.h"
 #include <Windows.h>
+#endif
 
 using namespace std::string_literals;
 
-extern int main(int argc, const char** argv);
+namespace tf2_bot_detector
+{
+#ifdef _DEBUG
+	uint32_t g_StaticRandomSeed = 0;
+	bool g_SkipOpenTF2Check = false;
+#endif
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+	static void ImGuiDesktopLogFunc(const std::string_view& msg)
+	{
+		DebugLog("[ImGuiDesktop] "s << msg);
+	}
+}
+
+TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** argv)
+{
+	for (int i = 1; i < argc; i++)
+	{
+#ifdef _DEBUG
+		if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
+			tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--allow-open-tf2"))
+			tf2_bot_detector::g_SkipOpenTF2Check = true;
+#endif
+	}
+
+	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
+
+	tf2_bot_detector::MainWindow window;
+
+	while (!window.ShouldClose())
+		window.Update();
+
+	DebugLog(""s << __func__ << "(): Graceful shutdown");
+	return 0;
+}
+
+#ifdef WIN32
+TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 {
 	using tf2_bot_detector::Windows::GetLastErrorException;
 	try
@@ -59,5 +99,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 		argv.push_back(argvStrings.back().c_str());
 	}
 
-	return main(argc, argv.data());
+	return RunProgram(argc, argv.data());
 }
+#endif

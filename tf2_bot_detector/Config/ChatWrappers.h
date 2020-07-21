@@ -3,6 +3,7 @@
 #include <nlohmann/json_fwd.hpp>
 
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <filesystem>
 #include <ostream>
@@ -68,7 +69,14 @@ namespace tf2_bot_detector
 	void from_json(const nlohmann::json& j, ChatWrappers& d);
 
 	static constexpr char TF2BD_CHAT_WRAPPERS_DIR[] = "aaaaaaaaaa_loadfirst_tf2_bot_detector";
-	ChatWrappers RandomizeChatWrappers(const std::filesystem::path& tfdir, size_t wrapChars = 16);
+
+	struct ChatWrappersProgress
+	{
+		std::atomic<uint32_t> m_Value{};
+		std::atomic<uint32_t> m_MaxValue{};
+	};
+	ChatWrappers RandomizeChatWrappers(const std::filesystem::path& tfdir,
+		ChatWrappersProgress* progress = nullptr, size_t wrapChars = 16);
 }
 
 template<typename CharT, typename Traits>

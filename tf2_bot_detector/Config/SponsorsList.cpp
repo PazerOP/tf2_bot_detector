@@ -65,6 +65,10 @@ void tf2_bot_detector::to_json(nlohmann::json& j, const SponsorsList::Sponsor& d
 
 void tf2_bot_detector::from_json(const nlohmann::json& j, SponsorsList::Sponsor& d)
 {
-	try_get_to(j, "name", d.m_Name);
-	try_get_to(j, "message", d.m_Message);
+	using lval_str = std::add_lvalue_reference_t<std::string>;
+	static_assert(std::is_same_v<lval_str, std::string&>);
+	static_assert(std::is_invocable_v<decltype(json_reset_value<std::string>), std::string&>);
+
+	try_get_to_defaulted(j, d.m_Name, "name");
+	try_get_to_defaulted(j, d.m_Message, "message");
 }

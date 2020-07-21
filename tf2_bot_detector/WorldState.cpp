@@ -154,6 +154,11 @@ std::optional<UserID_t> WorldState::FindUserID(const SteamID& id) const
 	return std::nullopt;
 }
 
+TeamShareResult WorldState::GetTeamShareResult(const SteamID& id) const
+{
+	return GetTeamShareResult(id, m_Settings->GetLocalSteamID());
+}
+
 auto WorldState::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
 	const SteamID& id1) const -> TeamShareResult
 {

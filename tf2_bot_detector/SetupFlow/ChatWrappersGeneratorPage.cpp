@@ -8,6 +8,7 @@
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
+#include <atomic>
 #include <fstream>
 #include <random>
 
@@ -44,6 +45,14 @@ auto ChatWrappersGeneratorPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	else
 	{
 		ImGui::TextUnformatted("Generating chat message wrappers...");
+
+		ImGui::NewLine();
+
+		float progress = 0;
+		if (m_Progress && m_Progress->m_MaxValue > 0)
+			progress = m_Progress->m_Value / float(m_Progress->m_MaxValue);
+
+		ImGui::ProgressBar(progress);
 
 		if (mh::is_future_ready(m_ChatWrappersGenerated))
 			return OnDrawResult::EndDrawing;
@@ -104,7 +113,8 @@ void ChatWrappersGeneratorPage::Init(const Settings& settings)
 		}
 
 		DebugLog("Regenerating chat wrappers...");
-		m_ChatWrappersGenerated = std::async([tfDir] { return RandomizeChatWrappers(tfDir); });
+		auto progress = m_Progress = std::make_shared<ChatWrappersProgress>();
+		m_ChatWrappersGenerated = std::async([tfDir, progress] { return RandomizeChatWrappers(tfDir, progress.get()); });
 	}
 }
 

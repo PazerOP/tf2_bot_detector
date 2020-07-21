@@ -150,6 +150,7 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 	std::string url;
 	url << "steam://run/440//"
 		" -usercon"
+		" -high"
 		" +developer 1 +alias developer"
 		" +contimes 0 +alias contimes"   // the text in the top left when developer >= 1
 		" +ip 0.0.0.0 +alias ip"
@@ -169,6 +170,8 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 TF2CommandLinePage::RCONClientData::RCONClientData(std::string pwd, uint16_t port) :
 	m_Client(std::make_unique<srcon::async_client>())
 {
+	m_Client->set_logging(true, true); // TEMP: turn on logging
+
 	srcon::srcon_addr addr;
 	addr.addr = "127.0.0.1";
 	addr.pass = std::move(pwd);
