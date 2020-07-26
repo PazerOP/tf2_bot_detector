@@ -118,12 +118,12 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 		const auto category = ChatCategory(i);
 
 		auto& type = m_Settings->m_Unsaved.m_ChatMsgWrappers.value().m_Types[i];
-		if (lineStr.starts_with(type.m_Full.m_Start))
+		if (lineStr.starts_with(type.m_Full.m_Start.m_Narrow))
 		{
 			auto searchBuf = std::string_view(m_FileLineBuf).substr(
-				&*lineStr.begin() - m_FileLineBuf.data() + type.m_Full.m_Start.size());
+				&*lineStr.begin() - m_FileLineBuf.data() + type.m_Full.m_Start.m_Narrow.size());
 
-			if (auto found = searchBuf.find(type.m_Full.m_End); found != lineStr.npos)
+			if (auto found = searchBuf.find(type.m_Full.m_End.m_Narrow); found != lineStr.npos)
 			{
 				if (found > 512)
 				{
@@ -133,15 +133,21 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 
 				searchBuf = searchBuf.substr(0, found);
 
-				auto nameBegin = searchBuf.find(type.m_Name.m_Start);
-				auto nameEnd = searchBuf.find(type.m_Name.m_End);
-				auto msgBegin = searchBuf.find(type.m_Message.m_Start);
-				auto msgEnd = searchBuf.find(type.m_Message.m_End);
+				auto nameBegin = searchBuf.find(type.m_Name.m_Start.m_Narrow);
+				auto nameEnd = searchBuf.find(type.m_Name.m_End.m_Narrow);
+				auto msgBegin = searchBuf.find(type.m_Message.m_Start.m_Narrow);
+				auto msgEnd = searchBuf.find(type.m_Message.m_End.m_Narrow);
 
 				if (nameBegin != searchBuf.npos && nameEnd != searchBuf.npos && msgBegin != searchBuf.npos && msgEnd != searchBuf.npos)
 				{
-					const auto name = searchBuf.substr(nameBegin + type.m_Name.m_Start.size(), nameEnd - nameBegin - type.m_Name.m_Start.size());
-					const auto msg = searchBuf.substr(msgBegin + type.m_Message.m_Start.size(), msgEnd - msgBegin - type.m_Message.m_Start.size());
+					const auto name = searchBuf.substr(
+						nameBegin + type.m_Name.m_Start.m_Narrow.size(),
+						nameEnd - nameBegin - type.m_Name.m_Start.m_Narrow.size());
+
+					const auto msg = searchBuf.substr(
+						msgBegin + type.m_Message.m_Start.m_Narrow.size(),
+						msgEnd - msgBegin - type.m_Message.m_Start.m_Narrow.size());
+
 					TeamShareResult teamShareResult = TeamShareResult::Neither;
 					bool isSelf = false;
 					if (auto player = m_WorldState->FindSteamIDForName(name))
@@ -165,7 +171,7 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 						LogError("Failed to find message end sequence in chat message of type "s << category);
 				}
 
-				parseEnd += type.m_Full.m_Start.size() + found + type.m_Full.m_End.size();
+				parseEnd += type.m_Full.m_Start.m_Narrow.size() + found + type.m_Full.m_End.m_Narrow.size();
 				return true;
 			}
 			else

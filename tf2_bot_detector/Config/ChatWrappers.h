@@ -5,6 +5,7 @@
 #include <array>
 #include <atomic>
 #include <cassert>
+#include <compare>
 #include <filesystem>
 #include <ostream>
 #include <string>
@@ -37,11 +38,50 @@ namespace tf2_bot_detector
 		return category == ChatCategory::Team || category == ChatCategory::TeamDead;
 	}
 
+	struct ChatFmtStrLengths
+	{
+		ChatFmtStrLengths() = default;
+
+		ChatFmtStrLengths Max(const ChatFmtStrLengths& other) const;
+
+		struct Type
+		{
+			constexpr Type() = default;
+			Type(const std::string_view& str);
+			constexpr Type(size_t pre, size_t sep, size_t post) :
+				m_Prefix(pre), m_Separator(sep), m_Suffix(post)
+			{
+			}
+
+			size_t m_Prefix{};
+			size_t m_Separator{};
+			size_t m_Suffix{};
+
+			Type Max(const Type& other) const;
+			size_t GetAvailableChars() const;
+			size_t GetMaxWrapperLength() const;
+		};
+
+		std::array<Type, (size_t)ChatCategory::COUNT> m_Types;
+	};
+
 	struct ChatWrappers
 	{
-		explicit ChatWrappers(size_t wrapChars = 16);
+		ChatWrappers() = default;
+		explicit ChatWrappers(const ChatFmtStrLengths& availableChars);
 
-		using wrapper_t = std::string;
+		//using wrapper_t = std::string;
+		struct wrapper_t
+		{
+			operator const std::string& () const { return m_Narrow; }
+			operator std::string& () { return m_Narrow; }
+			std::string m_Narrow;
+			std::u16string m_Wide;
+
+			bool operator==(const wrapper_t& rhs) const { return m_Wide == rhs.m_Wide; }
+			bool operator<(const wrapper_t& rhs) const { return m_Wide < rhs.m_Wide; }
+		};
+
 		struct WrapperPair
 		{
 			wrapper_t m_Start;
@@ -54,6 +94,8 @@ namespace tf2_bot_detector
 			wrapper_pair_t m_Full;
 			wrapper_pair_t m_Name;
 			wrapper_pair_t m_Message;
+
+			ChatFmtStrLengths::Type GetLengths() const;
 		};
 
 		std::array<Type, (size_t)ChatCategory::COUNT> m_Types;
@@ -76,7 +118,7 @@ namespace tf2_bot_detector
 		std::atomic<uint32_t> m_MaxValue{};
 	};
 	ChatWrappers RandomizeChatWrappers(const std::filesystem::path& tfdir,
-		ChatWrappersProgress* progress = nullptr, size_t wrapChars = 16);
+		ChatWrappersProgress* progress = nullptr);
 }
 
 template<typename CharT, typename Traits>
