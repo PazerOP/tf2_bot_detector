@@ -7,6 +7,7 @@
 #include "WorldState.h"
 #include "Platform/Platform.h"
 
+#include <mh/format.hpp>
 #include <mh/future.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -33,26 +34,30 @@ ConsoleLogParser::ConsoleLogParser(WorldState& world, const Settings& settings, 
 
 void ConsoleLogParser::Update()
 {
-	if (!m_File)
+	const auto now = clock_t::now();
+	if (!m_File && (now - m_LastFileLoadAttempt) > 1s)
 	{
+		m_LastFileLoadAttempt = now;
+
 		// Try to truncate
 		{
 			std::error_code ec;
 			const auto filesize = std::filesystem::file_size(m_FileName, ec);
-			if (!ec)
-			{
-				std::filesystem::resize_file(m_FileName, 0, ec);
-				if (ec)
-					Log("Unable to truncate console log file, current size is "s << filesize);
-				else
-					Log("Truncated console log file");
-			}
+			if (ec)
+				LogWarning("Failed to get size of "s << m_FileName << ": " << ec.message());
+			else if (std::filesystem::resize_file(m_FileName, 0, ec); ec)
+				Log("Unable to truncate "s << m_FileName << ", current size is " << filesize);
+			else
+				Log("Truncated console log file");
 		}
 
 		{
 			FILE* temp = _fsopen(m_FileName.string().c_str(), "r", _SH_DENYNO);
 			m_File.reset(temp);
 		}
+
+		if (!m_File)
+			DebugLog("Failed to open "s << m_FileName);
 	}
 
 	bool snapshotUpdated = false;
