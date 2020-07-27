@@ -598,9 +598,6 @@ size_t ChatFmtStrLengths::Type::GetAvailableChars() const
 	if (availableChars > MAX_TOTAL_CHATMSG_LENGTH)
 		return 0;
 
-	if (!std::is_constant_evaluated())
-		DebugLog("Available chat message characters: "s << availableChars);
-
 	return availableChars;
 }
 
@@ -610,23 +607,6 @@ size_t ChatFmtStrLengths::Type::GetMaxWrapperLength() const
 
 	constexpr size_t CHATWRAPPER_COUNT_PER_MSG = 6; // line start/end, name start/end, msg start/end
 	const auto maxWrapperLength = availableChars / CHATWRAPPER_COUNT_PER_MSG;
-
-#if 0
-	if (!std::is_constant_evaluated())
-	{
-		size_t permutations = std::size(INVISIBLE_CHARS);
-		for (size_t i = 1; i < maxWrapperLength; i++)
-		{
-			auto newVal = permutations * std::size(INVISIBLE_CHARS);
-			if (newVal < permutations)
-				newVal = std::numeric_limits<size_t>::max();
-
-			permutations = newVal;
-		}
-
-		DebugLog("Maximum chat wrapper permutations: "s << permutations);
-	}
-#endif
 
 	return maxWrapperLength;
 }
@@ -726,6 +706,10 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 				tokens->attribs[std::string(key)] = translationsSet.m_English[i];
 			}
 			IncrementProgress();
+
+			// Not exactly a "chat wrapper"... oh well
+			tokens->get_or_add_attrib("GameUI_vote_failed_vote_in_progress") = "";
+			tokens->get_or_add_attrib("[english]GameUI_vote_failed_vote_in_progress") = "";
 
 			std::string outFile;
 			mh::strwrapperstream stream(outFile);
