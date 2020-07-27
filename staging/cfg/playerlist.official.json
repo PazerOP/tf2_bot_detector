@@ -53,6 +53,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "ozus",
+				"time": 1595832343
+			},
+			"steamid": "[U:1:13219058]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -152,6 +162,16 @@
 				"cheater"
 			],
 			"steamid": "[U:1:67893255]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Rocket Launcher",
+				"time": 1595832340
+			},
+			"steamid": "[U:1:84044797]"
 		},
 		{
 			"attributes": [
@@ -4633,6 +4653,16 @@
 				"time": 1595807644
 			},
 			"steamid": "[U:1:1115483949]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Yomps was a Pedo",
+				"time": 1595826854
+			},
+			"steamid": "[U:1:1116832468]"
 		}
 	]
 }
