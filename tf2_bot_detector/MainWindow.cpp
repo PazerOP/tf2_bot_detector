@@ -174,6 +174,63 @@ void MainWindow::OnDrawColorPickers(const char* id, const std::initializer_list<
 		});
 }
 
+template<bool draw>
+static bool OnDrawPlayerTooltipImpl(IPlayer& player, TeamShareResult teamShareResult,
+	const PlayerMarks& playerAttribs)
+{
+	ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 }, draw);
+
+	bool contentDrawn = false;
+
+#ifdef _DEBUG
+	{
+		if constexpr (draw)
+			ImGui::Text("Active time: %1.0fs", to_seconds(player.GetActiveTime()));
+
+		contentDrawn = true;
+	}
+#endif
+
+	if (teamShareResult != TeamShareResult::SameTeams)
+	{
+		if constexpr (draw)
+		{
+			auto kills = player.GetScores().m_LocalKills;
+			auto deaths = player.GetScores().m_LocalDeaths;
+			//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
+			ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
+		}
+
+		contentDrawn = true;
+	}
+
+	if (playerAttribs)
+	{
+		if constexpr (draw)
+		{
+			if (contentDrawn)
+				ImGui::NewLine();
+
+			ImGui::TextUnformatted("Player "s << player << " marked in playerlist(s):" << playerAttribs);
+		}
+
+		contentDrawn = true;
+	}
+
+	return contentDrawn;
+}
+
+void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult,
+	const PlayerMarks& playerAttribs)
+{
+	if (OnDrawPlayerTooltipImpl<false>(player, teamShareResult, playerAttribs))
+	{
+		ImGui::BeginTooltip();
+		OnDrawPlayerTooltipImpl<true>(player, teamShareResult, playerAttribs);
+		ImGui::EndTooltip();
+	}
+}
+
 void MainWindow::OnDrawScoreboard()
 {
 	static float frameWidth, contentWidth, windowContentWidth, windowWidth;
@@ -365,34 +422,12 @@ void MainWindow::OnDrawScoreboard()
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
 
+						if (ImGui::IsItemHovered())
+							OnDrawPlayerTooltip(player, teamShareResult, playerAttribs);
 						if ((player.GetSteamID() != m_Settings.GetLocalSteamID()) &&
 							ImGui::IsItemHovered() &&
 							(playerAttribs || (teamShareResult != TeamShareResult::SameTeams)))
 						{
-							ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
-
-							ImGui::BeginTooltip();
-
-							bool contentDrawn = false;
-							if (teamShareResult != TeamShareResult::SameTeams)
-							{
-								auto kills = player.GetScores().m_LocalKills;
-								auto deaths = player.GetScores().m_LocalDeaths;
-								//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
-								ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
-								contentDrawn = true;
-							}
-
-							if (playerAttribs)
-							{
-								if (contentDrawn)
-									ImGui::NewLine();
-
-								ImGui::TextUnformatted("Player "s << player << " marked in playerlist(s):" << playerAttribs);
-								contentDrawn = true;
-							}
-
-							ImGui::EndTooltip();
 						}
 
 						ImGui::NextColumn();
@@ -592,6 +627,14 @@ void MainWindow::OnDrawSettingsPopup()
 			if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
 				m_Settings.SaveFile();
 			ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
+		}
+
+		// Auto votekick delay
+		{
+			if (ImGui::SliderFloat("Auto votekick delay", &m_Settings.m_AutoVotekickDelay, 0, 30, "%1.1f seconds"))
+				m_Settings.SaveFile();
+			ImGui::SetHoverTooltip("Delay between a player being registered as fully connected and us expecting them to be ready to vote on an issue.\n\n"
+				"This is needed because players can't vote until they have joined a team and picked a class. If we call a vote before enough people are ready, it might fail.");
 		}
 
 		// Send warnings for connecting cheaters

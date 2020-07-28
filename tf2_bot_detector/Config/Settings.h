@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ChatWrappers.h"
+#include "Clock.h"
 #include "Networking/HTTPClient.h"
 #include "SteamID.h"
 
@@ -49,7 +50,24 @@ namespace tf2_bot_detector
 		std::string CreateProfileURL(const SteamID& id) const;
 	};
 
-	class Settings final : public AutoDetectedSettings
+	struct GeneralSettings
+	{
+		bool m_AutoChatWarnings = true;
+		bool m_AutoChatWarningsConnecting = false;
+		bool m_AutoVotekick = true;
+		float m_AutoVotekickDelay = 15;
+		bool m_AutoMark = true;
+
+		bool m_SleepWhenUnfocused = true;
+		bool m_AutoTempMute = true;
+		bool m_AutoLaunchTF2 = false;
+
+		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
+
+		constexpr auto GetAutoVotekickDelay() const { return std::chrono::duration<float>(m_AutoVotekickDelay); }
+	};
+
+	class Settings final : public AutoDetectedSettings, public GeneralSettings
 	{
 	public:
 		Settings();
@@ -71,21 +89,10 @@ namespace tf2_bot_detector
 
 		} m_Unsaved;
 
-		bool m_AutoChatWarnings = true;
-		bool m_AutoChatWarningsConnecting = false;
-		bool m_AutoVotekick = true;
-		bool m_AutoMark = true;
-
-		bool m_SleepWhenUnfocused = true;
-		bool m_AutoTempMute = true;
-		bool m_AutoLaunchTF2 = false;
-
 		std::string m_SteamAPIKey;
 
 		std::optional<bool> m_AllowInternetUsage;
 		const HTTPClient* GetHTTPClient() const;
-		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
-		float m_FriendlyVotekickDelay = 15;
 
 		std::vector<GotoProfileSite> m_GotoProfileSites;
 

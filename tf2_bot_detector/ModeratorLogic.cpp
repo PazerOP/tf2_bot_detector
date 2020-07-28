@@ -121,7 +121,7 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t
 	if (friendlyCheaters.empty())
 		return; // Nothing to do
 
-	constexpr float MIN_QUORUM = 0.6f;
+	constexpr float MIN_QUORUM = 0.61f;
 	if (auto quorum = float(connectedFriendlyPlayerCount) / friendlyPlayerCount; quorum <= MIN_QUORUM)
 	{
 		LogWarning("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
@@ -410,7 +410,8 @@ void ModeratorLogic::ProcessPlayerActions()
 		{
 			if (isPlayerConnected)
 			{
-				connectedFriendlyPlayers++;
+				if (player.GetActiveTime() > m_Settings->GetAutoVotekickDelay())
+					connectedFriendlyPlayers++;
 
 				if (isCheater)
 					friendlyCheaters.push_back({ player, isCheater });

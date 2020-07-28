@@ -623,8 +623,19 @@ duration_t WorldState::PlayerExtraData::GetConnectedTime() const
 	return result;
 }
 
+duration_t WorldState::PlayerExtraData::GetActiveTime() const
+{
+	if (m_Status.m_State != PlayerStatusState::Active)
+		return 0s;
+
+	return m_LastStatusUpdateTime - m_LastStatusActiveBegin;
+}
+
 void WorldState::PlayerExtraData::SetStatus(PlayerStatus status, time_point_t timestamp)
 {
+	if (m_Status.m_State != PlayerStatusState::Active && status.m_State == PlayerStatusState::Active)
+		m_LastStatusActiveBegin = timestamp;
+
 	m_Status = std::move(status);
 	m_PlayerNameSafe = CollapseNewlines(m_Status.m_Name);
 	m_LastStatusUpdateTime = m_LastPingUpdateTime = timestamp;
