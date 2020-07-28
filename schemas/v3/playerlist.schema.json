@@ -38,6 +38,10 @@
 					"description": "Attributes applied to the player",
 					"$ref": "./shared.schema.json#/definitions/tfbd_player_attributes_array"
 				},
+				"proof": {
+					"description": "Any associated evidence. Left untouched by the tool (for now).",
+					"type": "array"
+				},
 				"last_seen": {
 					"type": "object",
 					"additionalProperties": false,

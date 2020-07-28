@@ -20,11 +20,7 @@
 
 #include <imgui_desktop/Window.h>
 
-#include <chrono>
 #include <optional>
-#include <set>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 struct ImVec4;
@@ -45,11 +41,20 @@ namespace tf2_bot_detector
 		void OnDrawMenuBar() override;
 		bool HasMenuBar() const override { return true; }
 		void OnDrawScoreboard();
-		void OnDrawScoreboardColorPicker(const char* name_id, float color[4]);
+		void OnDrawColorPicker(const char* name_id, std::array<float, 4>& color);
 		void OnDrawScoreboardContextMenu(IPlayer& player);
 		void OnDrawChat();
-		void OnDrawAppLog();
 		void OnDrawServerStats();
+
+		struct ColorPicker
+		{
+			const char* m_Name;
+			std::array<float, 4>& m_Color;
+		};
+		void OnDrawColorPickers(const char* id, const std::initializer_list<ColorPicker>& pickers);
+
+		void OnDrawAppLog();
+		const void* m_LastLogMessage = nullptr;
 
 		void OnDrawSettingsPopup();
 		bool m_SettingsPopupOpen = false;

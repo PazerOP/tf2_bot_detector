@@ -1,6 +1,7 @@
 #include "SetupFlow.h"
 #include "BasicSettingsPage.h"
 #include "ChatWrappersGeneratorPage.h"
+#include "ChatWrappersVerifyPage.h"
 #include "NetworkSettingsPage.h"
 #include "TF2CommandLinePage.h"
 #include "Log.h"
@@ -26,6 +27,7 @@ SetupFlow::SetupFlow()
 	m_Pages.push_back(std::make_unique<NetworkSettingsPage>());
 	//m_Pages.push_back(std::make_unique<UseRCONCmdLinePage>());
 	m_Pages.push_back(std::make_unique<TF2CommandLinePage>());
+	m_Pages.push_back(std::make_unique<ChatWrappersVerifyPage>());
 	//m_Pages.push_back(std::make_unique<RCONConnectionPage>());
 }
 
@@ -44,12 +46,12 @@ void SetupFlow::GetPageState(const Settings& settings, size_t& currentPage, bool
 {
 	hasNextPage = false;
 
-	for (size_t i = (currentPage == INVALID_PAGE ? 0 : currentPage + 1); i < m_Pages.size(); i++)
+	for (size_t i = 0; i < m_Pages.size(); i++)
 	{
 		if (m_Pages[i]->ValidateSettings(settings))
 			continue;
 
-		if (currentPage == INVALID_PAGE)
+		if (currentPage == INVALID_PAGE || i < currentPage)
 			currentPage = i;
 
 		if (i != currentPage)

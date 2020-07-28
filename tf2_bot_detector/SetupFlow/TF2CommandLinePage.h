@@ -29,20 +29,6 @@ namespace tf2_bot_detector
 	private:
 		static constexpr duration_t CL_UPDATE_INTERVAL = std::chrono::seconds(1);
 
-		struct RCONClientData
-		{
-			RCONClientData(std::string pwd, uint16_t port);
-			std::unique_ptr<srcon::async_client> m_Client;
-			std::shared_future<std::string> m_Future;
-
-			[[nodiscard]] bool Update();
-
-		private:
-			bool m_Success = false;
-			std::array<float, 4> m_MessageColor{ 1, 1, 1, 1 };
-			std::string m_Message;
-		};
-
 		struct TF2CommandLine
 		{
 			static TF2CommandLine Parse(const std::string_view& cmdLine);
@@ -55,6 +41,24 @@ namespace tf2_bot_detector
 			std::optional<uint16_t> m_RCONPort;
 
 			bool IsPopulated() const;
+		};
+
+		void DrawAutoLaunchTF2Checkbox(const DrawState& ds);
+		void DrawLaunchTF2Button(const DrawState& ds);
+		void DrawCommandLineArgsInvalid(const DrawState& ds, const TF2CommandLine& args);
+
+		struct RCONClientData
+		{
+			RCONClientData(std::string pwd, uint16_t port);
+			std::unique_ptr<srcon::async_client> m_Client;
+			std::shared_future<std::string> m_Future;
+
+			[[nodiscard]] bool Update();
+
+		private:
+			bool m_Success = false;
+			std::array<float, 4> m_MessageColor{ 1, 1, 1, 1 };
+			std::string m_Message;
 		};
 
 		// We don't want the user to get stuck in an annoying loop of

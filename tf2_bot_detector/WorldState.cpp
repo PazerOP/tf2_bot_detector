@@ -3,7 +3,7 @@
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "ConsoleLog/ConsoleLogParser.h"
-#include "FileMods.h"
+#include "GameData/UserMessageType.h"
 #include "Log.h"
 #include "RegexHelpers.h"
 
@@ -150,6 +150,11 @@ std::optional<UserID_t> WorldState::FindUserID(const SteamID& id) const
 	return std::nullopt;
 }
 
+TeamShareResult WorldState::GetTeamShareResult(const SteamID& id) const
+{
+	return GetTeamShareResult(id, m_Settings->GetLocalSteamID());
+}
+
 auto WorldState::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
 	const SteamID& id1) const -> TeamShareResult
 {
@@ -274,8 +279,12 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 	case ConsoleLineType::LobbyStatusFailed:
 	{
-		m_CurrentLobbyMembers.clear();
-		m_PendingLobbyMembers.clear();
+		if (!m_CurrentLobbyMembers.empty() || !m_PendingLobbyMembers.empty())
+		{
+			m_CurrentLobbyMembers.clear();
+			m_PendingLobbyMembers.clear();
+			m_CurrentPlayerData.clear();
+		}
 		break;
 	}
 	case ConsoleLineType::LobbyChanged:
@@ -302,6 +311,9 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	{
 		// Reset current lobby members/player statuses
 		//ClearLobbyState();
+		m_IsLocalPlayerInitialized = false;
+		m_IsVoteInProgress = false;
+		DebugLogWarning("Client reached server spawn");
 		break;
 	}
 	case ConsoleLineType::Chat:
@@ -323,6 +335,26 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		{
 			LogWarning("Dropped chat message with unknown SteamID from "s
 				<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
+		}
+
+		break;
+	}
+	case ConsoleLineType::ConfigExec:
+	{
+		auto& execLine = static_cast<const ConfigExecLine&>(parsed);
+		const std::string_view& cfgName = execLine.GetConfigFileName();
+		if (cfgName == "scout.cfg"sv ||
+			cfgName == "sniper.cfg"sv ||
+			cfgName == "soldier.cfg"sv ||
+			cfgName == "demoman.cfg"sv ||
+			cfgName == "medic.cfg"sv ||
+			cfgName == "heavyweapons.cfg"sv ||
+			cfgName == "pyro.cfg"sv ||
+			cfgName == "spy.cfg"sv ||
+			cfgName == "engineer.cfg"sv)
+		{
+			DebugLog("Spawned as "s << cfgName.substr(0, cfgName.size() - 3));
+			m_IsLocalPlayerInitialized = true;
 		}
 
 		break;
@@ -426,6 +458,22 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 
 			if (attackerSteamID == localSteamID)
 				victim.m_Scores.m_LocalDeaths++;
+		}
+
+		break;
+	}
+	case ConsoleLineType::SVC_UserMessage:
+	{
+		auto& userMsg = static_cast<const SVCUserMessageLine&>(parsed);
+		switch (userMsg.GetUserMessageType())
+		{
+		case UserMessageType::VoteStart:
+			m_IsVoteInProgress = true;
+			break;
+		case UserMessageType::VoteFailed:
+		case UserMessageType::VotePass:
+			m_IsVoteInProgress = false;
+			break;
 		}
 
 		break;

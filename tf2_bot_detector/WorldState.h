@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CompensatedTS.h"
-#include "FileMods.h"
 #include "ConsoleLog/IConsoleLineListener.h"
 #include "IPlayer.h"
 #include "IWorldEventListener.h"
@@ -64,6 +63,8 @@ namespace tf2_bot_detector
 		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const;
 		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const;
 		std::optional<UserID_t> FindUserID(const SteamID& id) const;
+
+		TeamShareResult GetTeamShareResult(const SteamID& id) const;
 		TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const;
 		TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const;
 		static TeamShareResult GetTeamShareResult(
@@ -80,6 +81,10 @@ namespace tf2_bot_detector
 		cppcoro::generator<IPlayer&> GetPlayers();
 
 		time_point_t GetLastStatusUpdateTime() const { return m_LastStatusUpdateTime; }
+
+		// Have we joined a team and picked a class?
+		bool IsLocalPlayerInitialized() const { return m_IsLocalPlayerInitialized; }
+		bool IsVoteInProgress() const { return m_IsVoteInProgress; }
 
 	private:
 		const Settings* m_Settings = nullptr;
@@ -142,6 +147,8 @@ namespace tf2_bot_detector
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;
 		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
+		bool m_IsLocalPlayerInitialized = false;
+		bool m_IsVoteInProgress = false;
 
 		time_point_t m_LastStatusUpdateTime{};
 

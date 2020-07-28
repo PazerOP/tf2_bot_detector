@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CompensatedTS.h"
-#include "FileMods.h"
 
 #include <filesystem>
 #include <memory>
@@ -52,6 +51,7 @@ namespace tf2_bot_detector
 		};
 		std::filesystem::path m_FileName;
 		std::unique_ptr<FILE, CustomDeleters> m_File;
+		time_point_t m_LastFileLoadAttempt{};
 		std::string m_FileLineBuf;
 		size_t m_ParsedLineCount = 0;
 		float m_ParseProgress = 0;

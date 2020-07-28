@@ -22,24 +22,18 @@ jobs:
           - os: windows-latest
             triplet: x86-windows
             tf2bd_arch: x86
+            build_arch: Win32
+            tf2bd_cmake_generator: VS16Win32
           - os: windows-latest
             triplet: x64-windows
             tf2bd_arch: x64
+            build_arch: x64
+            tf2bd_cmake_generator: VS16Win64
 
     steps:
-    # - uses: FranzDiebold/github-env-vars-action@v1.0.0
     - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
     - uses: benjlevesque/short-sha@v1.1
       id: short_sha
-
-    # - name: Format Tag Name
-    #   id: artifact_name_tag
-    #   if: startsWith(github.ref, 'refs/tags/')
-    #   uses: frabert/replace-string-action@v1.1
-    #   with:
-    #     pattern: 'refs\/.*?\/(.*)'
-    #     string: ${{ github.ref }}
-    #     replace-with: '$1'
 
     - name: Config artifact name (tag)
       if: startsWith(github.ref, 'refs/tags/')
@@ -61,34 +55,59 @@ jobs:
         submodules: recursive
 
     - name: run-vcpkg
-      uses: lukka/run-vcpkg@v3.0
+      uses: lukka/run-vcpkg@v3.2
       with:
-        vcpkgGitCommitId: 7192d3affa4b1d8f88e3e730eb561612c24f7d78
+        vcpkgGitCommitId: 7c82b03faf93e607c722e518819a54e4359aeddc
         vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp cppcoro'
         vcpkgTriplet: ${{ matrix.triplet }}
-        appendedCacheKey: "42-pazer-${{ matrix.triplet }}"
 
-    - name: run-cmake
-      uses: lukka/run-cmake@v2.5
+    - name: CMake
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      run: |
+        mkdir "${{ env.TF2BD_BUILD_DIR }}"
+        cd "${{ env.TF2BD_BUILD_DIR }}"
+        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ env.TF2BD_BUILD_DIR }}" ../
+        cmake --build . --config Release
+
+    - name: Sign artifacts
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      uses: PazerOP/code-sign-action@v3
       with:
-        useVcpkgToolchainFile: true
-        cmakeAppendedArgs: '-G "Visual Studio 16 2019" -A${{ matrix.tf2bd_arch }}'
-        cmakeBuildType: "Release"
-        buildDirectory: "${{ env.TF2BD_BUILD_DIR }}"
+        folder: '${{ env.TF2BD_BUILD_DIR }}'
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+    - name: "Artifacts: Fresh, signed exe"
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: "smartscreen_${{ matrix.triplet }}"
+        path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
+
+    - name: Smartscreen workaround
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      run: |
+        echo "Hash of current exe: "
+        sha1sum "${{ env.TF2BD_BUILD_DIR }}/tf2_bot_detector.exe"
+        copy "${{ github.workspace }}/smartscreen/${{ matrix.tf2bd_arch }}/tf2_bot_detector.exe" "${{ env.TF2BD_BUILD_DIR }}/tf2_bot_detector.exe"
+        echo "Hash of cached exe: "
+        sha1sum "${{ env.TF2BD_BUILD_DIR }}/tf2_bot_detector.exe"
 
     - name: "Artifacts: *.exe"
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v2
       with:
         name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
     - name: "Artifacts: *.dll"
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v2
       with:
         name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
 
     - name: "Artifacts: *.pdb"
-      if: ${{ matrix.triplet == 'x86-windows' || matrix.triplet == 'x64-windows' }}
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v2
       with:
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"

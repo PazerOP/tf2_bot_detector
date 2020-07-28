@@ -10,6 +10,10 @@
 
 namespace tf2_bot_detector
 {
+	enum class TeamShareResult;
+	enum class TFClassType;
+	enum class UserMessageType;
+
 	class GenericConsoleLine final : public ConsoleLineBase<GenericConsoleLine, false>
 	{
 		using BaseClass = ConsoleLineBase;
@@ -20,7 +24,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Generic; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		std::string m_Text;
@@ -31,25 +35,30 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase;
 
 	public:
-		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead, bool isTeam);
+		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead,
+			bool isTeam, bool isSelf, TeamShareResult teamShare);
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
-		static std::shared_ptr<ChatConsoleLine> TryParseFlexible(const std::string_view& text, time_point_t timestamp);
+		//static std::shared_ptr<ChatConsoleLine> TryParseFlexible(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Chat; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 		const std::string& GetPlayerName() const { return m_PlayerName; }
 		const std::string& GetMessage() const { return m_Message; }
 		bool IsDead() const { return m_IsDead; }
 		bool IsTeam() const { return m_IsTeam; }
+		bool IsSelf() const { return m_IsSelf; }
+		TeamShareResult GetTeamShareResult() const { return m_TeamShareResult; }
 
 	private:
-		static std::shared_ptr<ChatConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp, bool flexible);
+		//static std::shared_ptr<ChatConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp, bool flexible);
 
 		std::string m_PlayerName;
 		std::string m_Message;
+		TeamShareResult m_TeamShareResult;
 		bool m_IsDead : 1;
 		bool m_IsTeam : 1;
+		bool m_IsSelf : 1;
 	};
 
 	class LobbyStatusFailedLine final : public ConsoleLineBase<LobbyStatusFailedLine>
@@ -62,7 +71,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyStatusFailed; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 	};
 
 	class LobbyHeaderLine final : public ConsoleLineBase<LobbyHeaderLine>
@@ -78,7 +87,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyHeader; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		unsigned m_MemberCount;
@@ -97,7 +106,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyMember; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		LobbyMember m_LobbyMember;
@@ -121,7 +130,7 @@ namespace tf2_bot_detector
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyChanged; }
 		LobbyChangeType GetChangeType() const { return m_ChangeType; }
 		bool ShouldPrint() const override;
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		LobbyChangeType m_ChangeType;
@@ -139,7 +148,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatus; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		PlayerStatus m_PlayerStatus;
@@ -157,7 +166,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusShort; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		PlayerStatusShort m_PlayerStatus;
@@ -178,7 +187,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusCount; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		uint8_t m_PlayerCount;
@@ -199,7 +208,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::EdictUsage; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		uint16_t m_UsedEdicts;
@@ -216,7 +225,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::ClientReachedServerSpawn; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 	};
 
 	class KillNotificationLine final : public ConsoleLineBase<KillNotificationLine>
@@ -235,7 +244,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::KillNotification; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		std::string m_AttackerName;
@@ -259,7 +268,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::CvarlistConvar; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		std::string m_Name;
@@ -280,7 +289,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::VoiceReceive; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 	private:
 		uint8_t m_Channel;
@@ -298,7 +307,7 @@ namespace tf2_bot_detector
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Ping; }
 		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		void Print(const PrintArgs& args) const override;
 
 		uint16_t GetPing() const { return m_Ping; }
 		const std::string& GetPlayerName() const { return m_PlayerName; }
@@ -313,19 +322,61 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase;
 
 	public:
-		SVCUserMessageLine(time_point_t timestamp, std::string address, uint16_t type, uint16_t bytes);
+		SVCUserMessageLine(time_point_t timestamp, std::string address, UserMessageType type, uint16_t bytes);
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::SVC_UserMessage; }
-		bool ShouldPrint() const override { return false; }
-		void Print() const override;
+		bool ShouldPrint() const override;
+		void Print(const PrintArgs& args) const override;
 
-		uint16_t GetUserMessageType() const { return m_MsgType; }
+		UserMessageType GetUserMessageType() const { return m_MsgType; }
 		uint16_t GetUserMessageBytes() const { return m_MsgBytes; }
 
 	private:
+		static bool IsSpecial(UserMessageType type);
+
 		std::string m_Address{};
-		uint16_t m_MsgType{};
+		UserMessageType m_MsgType{};
 		uint16_t m_MsgBytes{};
+	};
+
+	class ConfigExecLine final : public ConsoleLineBase<ConfigExecLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ConfigExecLine(time_point_t timestamp, std::string configFileName, bool success);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::ConfigExec; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		const std::string& GetConfigFileName() const { return m_ConfigFileName; }
+		bool IsSuccessful() const { return m_Success; }
+
+	private:
+		std::string m_ConfigFileName;
+		bool m_Success = false;
+	};
+
+	class TeamsSwitchedLine final : public ConsoleLineBase<TeamsSwitchedLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		TeamsSwitchedLine(time_point_t timestamp) : BaseClass(timestamp) {}
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::TeamsSwitched; }
+		bool ShouldPrint() const override;
+		void Print(const PrintArgs& args) const override;
+
+		const std::string& GetConfigFileName() const { return m_ConfigFileName; }
+		bool IsSuccessful() const { return m_Success; }
+
+	private:
+		std::string m_ConfigFileName;
+		bool m_Success = false;
 	};
 }
