@@ -24,9 +24,11 @@
 
   <p align="center">
     Automatically detects and votekicks cheaters/bots in TF2 casual.
+    <!-- commented until there is documentation at the wiki
     <br />
     <a href="https://github.com/PazerOP/tf2_bot_detector/wiki"><strong>Explore the docs »</strong></a>
     <br />
+    -->
     <br />
     <a href="https://github.com/PazerOP/tf2_bot_detector/issues">Report a Bug</a>
     ·
@@ -49,6 +51,11 @@
   - [What does it do?](#what-does-it-do)
   - [Will this get me VAC banned?](#will-this-get-me-vac-banned)
   - [How does it work?](#how-does-it-work)
+  - [How is the list of known cheaters curated?](#how-is-the-list-of-known-cheaters-curated)
+  - [I don't like how the tool spams chat. Can I change that?](#i-dont-like-how-the-tool-spams-chat-can-i-change-that)
+  - [I downloaded the tool but I don't see an executable. What did I do wrong?](#i-downloaded-the-tool-but-i-dont-see-an-executable-what-did-i-do-wrong)
+  - [Help! The tool wont open!](#help-the-tool-wont-open)
+  - [I have a question that is not listed here!](#i-have-a-question-that-is-not-listed-here)
 - [License](#license)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
@@ -76,7 +83,7 @@ This program requires [Microsoft Visual C++ Redistributable for Visual Studio 20
 ### How to use
 
 1. Run tf2_bot_detector.exe before TF2
-2. On first run it will ask you if you would like to allow internet connectivity and if you would like to be notified of future updates. Both are heavily recommended
+2. On first run it will ask you if you would like to allow internet connectivity and if you would like to be notified of future updates. Both are highly recommended
 
 >Note: The tool should automatically determine your steamID and tf2 directory. If for whatever reason they are not detected correctly you can override the generated values in the settings menu
 
@@ -89,7 +96,7 @@ Currently the program does not self update. You can update the program by extrac
 
 ### What does it do?
 
-If a cheater is on your team, calls a votekick against them. If a known cheater is on the other team, sends a chat message telling the other team to kick their cheater.
+TF2 Bot Detector calls a votekick against bots (and select human cheaters) on your team. If they are on the other team, sends a chat message telling the other team to kick their cheater.
 
 ### Will this get me VAC banned?
 
@@ -97,7 +104,27 @@ No. It does not modify the game or OS memory in any way. It is only using built-
 
 ### How does it work?
 
-It monitors the console output (saved to a log file) to get information about the game state. Invoking commands in the game is done via the `-hijack` command line paramter. Getting players in the current game is done via the `tf_lobby_debug` and `status` commands. Cheaters are identified by their behavior and/or their Steam ID.
+It monitors the console output (saved to a log file) to get information about the game state. Invoking commands in the game is done via passing rcon commands to your client. Getting players in the current game is done via the `tf_lobby_debug` and `status` commands. Cheaters are identified by some rules but primarily by comparing players steamIDs against a list of known cheaters.
+
+### How is the list of known cheaters curated?
+
+The official list that is included with the program is maintained by Pazer exclusively. No user submissions are accepted at this time and it is unlikely that they will be in the future. While this approach this may seem limiting, it is to avoid false positives and to maintain the integrity of the project as a whole. There are some community player lists that can be added to your own detector. These are not maintained by Pazer. For more information go [here][wiki-customization-link].
+
+### I don't like how the tool spams chat. Can I change that?
+
+You can turn off chat warnings by unchecking the checkbox labeled "Enable Chat Warnings." By default if there are multiple tool users in the same server a "Bot Leader" is chosen and only their tool will send messages. There is no other way to customize chat messages outside of editing the code yourself.
+
+### I downloaded the tool but I don't see an executable. What did I do wrong?
+
+You likely downloaded the source code instead of the actual tool. Make sure you are downloading one of the .ZIPs that is not labeled "Source Code." There are two of them, one labeled with an x86 and one with an x64. If you don't know which one you want, you almost certainly want the one with the x64. For further instructions go [here][wiki-installation-link].
+
+### Help! The tool wont open!
+
+Make sure you have [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] installed. If you just installed it make to to restart your computer after to finish the installation. For further assistance either open an [issue][issues-url] on github or join our [discord][discord-link] for faster, community based support.
+
+### I have a question that is not listed here!
+
+Take a look at the [wiki][wiki-link]. There is not a ton there but that will be the location of all future documentation. If you can't find your answer there, stop by the [discord][discord-link].
 
 <!-- LICENSE -->
 ## License
@@ -118,8 +145,12 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 
 ### Sponsors
 Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-sponsors-pazerop]:
+<!--$10-->
 * [Crazy Gunman](https://github.com/CrazyGunman2C4U)
+<!--$5-->
+* [Admiral Bread Crumbs](https://github.com/AdmiralBreadCrumbs)
 * [ClusterConsultant](https://github.com/ClusterConsultant)
+* [KTachibanaM](https://github.com/KTachibanaM)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
@@ -139,5 +170,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
 [mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
-[zip-image]: https://user-images.githubusercontent.com/6569500/85929969-8de89f00-b86d-11ea-859e-2632a1034ea7.png
+[zip-image]: https://i.imgur.com/ZeCuUul.png
 [github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
+[wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists
+[wiki-installation-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Getting-Started
