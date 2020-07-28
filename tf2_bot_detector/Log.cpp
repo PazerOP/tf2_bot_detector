@@ -16,6 +16,7 @@
 
 #undef max
 
+using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
@@ -38,6 +39,8 @@ namespace
 		std::ofstream& GetFile() { return m_File; }
 
 		void LogConsoleOutput(const std::string_view& consoleOutput) override;
+
+		void CleanupLogFiles() override;
 
 	private:
 		std::filesystem::path m_FileName;
@@ -226,6 +229,53 @@ void LogManager::LogConsoleOutput(const std::string_view& consoleOutput)
 {
 	std::lock_guard lock(m_ConsoleLogMutex);
 	m_ConsoleLogFile << consoleOutput << std::flush;
+}
+
+void LogManager::CleanupLogFiles() try
+{
+	const auto Run = [](const std::filesystem::path& path)
+	{
+		std::vector<std::filesystem::path> files;
+		for (const auto& entry : std::filesystem::directory_iterator(path))
+		{
+			if (!entry.is_regular_file())
+				continue;
+
+			files.push_back(entry.path());
+		}
+
+		using file_time_point_t = std::filesystem::file_time_type;
+		using file_clock_t = file_time_point_t::clock;
+		constexpr auto MAX_LOG_LIFETIME = 24h * 7;
+		const auto now = file_clock_t::now();
+		for (const auto& path : files)
+		{
+			const auto lastWriteTime = std::filesystem::last_write_time(path);
+			const auto age = now - lastWriteTime;
+			if (age > MAX_LOG_LIFETIME)
+			{
+				std::error_code ec;
+				DebugLog(mh::format("Removing old log file {}", path));
+				std::filesystem::remove(path, ec);
+				if (ec)
+					LogWarning(mh::format("Failed to delete {}: {}", path, ec.message()));
+			}
+		}
+	};
+
+	{
+		std::lock_guard lock(m_LogMutex);
+		Run("logs");
+	}
+
+	{
+		std::lock_guard lock2(m_ConsoleLogMutex);
+		Run("logs/console");
+	}
+}
+catch (const std::filesystem::filesystem_error& e)
+{
+	LogError(MH_SOURCE_LOCATION_CURRENT(), e.what());
 }
 
 LogMessageColor::LogMessageColor(const ImVec4& vec) :

@@ -63,5 +63,7 @@ namespace tf2_bot_detector
 		virtual void ClearVisibleMsgs() = 0;
 
 		virtual void LogConsoleOutput(const std::string_view& consoleOutput) = 0;
+
+		virtual void CleanupLogFiles() = 0;
 	};
 }

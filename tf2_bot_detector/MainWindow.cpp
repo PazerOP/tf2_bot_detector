@@ -33,6 +33,8 @@ using namespace std::string_view_literals;
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, ("TF2 Bot Detector v"s << VERSION).c_str())
 {
+	ILogManager::GetInstance().CleanupLogFiles();
+
 	m_WorldState.AddConsoleLineListener(this);
 	m_WorldState.AddWorldEventListener(this);
 
