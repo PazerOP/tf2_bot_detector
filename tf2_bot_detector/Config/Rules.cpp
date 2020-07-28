@@ -130,9 +130,7 @@ namespace tf2_bot_detector
 	{
 		d.m_Mode = j.at("mode");
 		d.m_Patterns = j.at("patterns").get<std::vector<std::string>>();
-
-		if (!try_get_to(j, "case_sensitive", d.m_CaseSensitive))
-			d.m_CaseSensitive = false;
+		try_get_to_defaulted(j, d.m_CaseSensitive, "case_sensitive", false);
 	}
 
 	void from_json(const nlohmann::json& j, ModerationRule::Triggers& d)
@@ -148,8 +146,8 @@ namespace tf2_bot_detector
 
 	void from_json(const nlohmann::json& j, ModerationRule::Actions& d)
 	{
-		try_get_to(j, "mark", d.m_Mark);
-		try_get_to(j, "unmark", d.m_Unmark);
+		try_get_to_defaulted(j, d.m_Mark, "mark");
+		try_get_to_defaulted(j, d.m_Unmark, "unmark");
 	}
 
 	void from_json(const nlohmann::json& j, ModerationRule& d)

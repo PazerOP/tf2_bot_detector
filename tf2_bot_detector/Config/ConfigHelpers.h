@@ -67,6 +67,7 @@ namespace tf2_bot_detector
 		virtual void Serialize(nlohmann::json& json) const = 0;
 
 		std::optional<ConfigSchemaInfo> m_Schema;
+		std::string m_FileName; // Name of the file this was loaded from
 
 	private:
 		bool LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client);
@@ -77,6 +78,12 @@ namespace tf2_bot_detector
 	public:
 		void Deserialize(const nlohmann::json& json) override = 0;
 		void Serialize(nlohmann::json& json) const override = 0;
+
+		const std::string& GetName() const;
+		ConfigFileInfo GetFileInfo() const;
+
+	private:
+		friend class ConfigFileBase;
 
 		std::optional<ConfigFileInfo> m_FileInfo;
 	};

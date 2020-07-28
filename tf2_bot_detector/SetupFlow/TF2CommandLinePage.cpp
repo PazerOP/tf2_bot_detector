@@ -150,14 +150,19 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 	std::string url;
 	url << "steam://run/440//"
 		" -usercon"
+		" -high"
+		" +developer 1 +alias developer"
+		" +contimes 0 +alias contimes"   // the text in the top left when developer >= 1
 		" +ip 0.0.0.0 +alias ip"
 		" +sv_rcon_whitelist_address 127.0.0.1 +alias sv_rcon_whitelist_address"
 		" +rcon_password " << rconPassword << " +alias rcon_password"
 		" +hostport " << rconPort << " +alias hostport"
+		" +alias cl_reload_localization_files" // This command reloads files in backwards order, so any customizations get overwritten by stuff from the base game
 		" +net_start"
 		" +con_timestamp 1 +alias con_timestamp"
 		" -condebug"
-		" -conclearlog";
+		" -conclearlog"
+		;
 
 	Shell::OpenURL(std::move(url));
 }
@@ -165,6 +170,8 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 TF2CommandLinePage::RCONClientData::RCONClientData(std::string pwd, uint16_t port) :
 	m_Client(std::make_unique<srcon::async_client>())
 {
+	m_Client->set_logging(true, true); // TEMP: turn on logging
+
 	srcon::srcon_addr addr;
 	addr.addr = "127.0.0.1";
 	addr.pass = std::move(pwd);
@@ -231,58 +238,51 @@ bool TF2CommandLinePage::RCONClientData::Update()
 	return m_Success;
 }
 
-auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
+void TF2CommandLinePage::DrawAutoLaunchTF2Checkbox(const DrawState& ds)
 {
-	m_Data.TryUpdateCmdlineArgs();
+	if (tf2_bot_detector::AutoLaunchTF2Checkbox(ds.m_Settings->m_AutoLaunchTF2))
+		ds.m_Settings->SaveFile();
+}
 
-	const auto AutoLaunchTF2Checkbox = [&]
-	{
-		if (tf2_bot_detector::AutoLaunchTF2Checkbox(ds.m_Settings->m_AutoLaunchTF2))
-			ds.m_Settings->SaveFile();
-	};
+void TF2CommandLinePage::DrawLaunchTF2Button(const DrawState& ds)
+{
+	const auto curTime = clock_t::now();
+	const bool canLaunchTF2 = (curTime - m_Data.m_LastTF2LaunchTime) >= 2500ms;
 
-	const auto LaunchTF2Button = [&]
-	{
-		const auto curTime = clock_t::now();
-		const bool canLaunchTF2 = (curTime - m_Data.m_LastTF2LaunchTime) >= 2500ms;
-
-		ImGui::NewLine();
-		ImGui::EnabledSwitch(m_Data.m_AtLeastOneUpdateRun && canLaunchTF2, [&]
+	ImGui::NewLine();
+	ImGui::EnabledSwitch(m_Data.m_AtLeastOneUpdateRun && canLaunchTF2, [&]
+		{
+			if ((ImGui::Button("Launch TF2") || (m_IsAutoLaunchAllowed && ds.m_Settings->m_AutoLaunchTF2)) && canLaunchTF2)
 			{
-				if ((ImGui::Button("Launch TF2") || (m_IsAutoLaunchAllowed && ds.m_Settings->m_AutoLaunchTF2)) && canLaunchTF2)
-				{
-					OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
-					m_Data.m_LastTF2LaunchTime = curTime;
-				}
+				OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
+				m_Data.m_LastTF2LaunchTime = curTime;
+			}
 
-				m_IsAutoLaunchAllowed = false;
+			m_IsAutoLaunchAllowed = false;
 
-			}, "Finding command line arguments...");
+		}, "Finding command line arguments...");
 
+	ImGui::NewLine();
+	DrawAutoLaunchTF2Checkbox(ds);
+}
+
+void TF2CommandLinePage::DrawCommandLineArgsInvalid(const DrawState& ds, const TF2CommandLine& args)
+{
+	m_Data.m_TestRCONClient.reset();
+
+	if (args.m_FullCommandLine.empty())
+	{
+		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Failed to get TF2 command line arguments.");
 		ImGui::NewLine();
-		AutoLaunchTF2Checkbox();
-	};
-
-	if (!m_Data.m_CommandLineArgs.has_value())
-	{
-		m_Data.m_TestRCONClient.reset();
-		ImGui::TextUnformatted("TF2 must be launched via TF2 Bot Detector. You can open it by clicking the button below.");
-		LaunchTF2Button();
+		ImGui::TextUnformatted("This might be caused by TF2 or Steam running as administrator. Remove any"
+			" compatibility options that are causing TF2 or Steam to require administrator and try again.");
 	}
-	else if (m_Data.m_MultipleInstances)
+	else
 	{
-		m_Data.m_TestRCONClient.reset();
-		ImGui::TextUnformatted("More than one instance of hl2.exe found. Please close the other instances.");
-
-		ImGui::EnabledSwitch(false, LaunchTF2Button, "TF2 is currently running. Please close it first.");
-	}
-	else if (auto& args = m_Data.m_CommandLineArgs.value(); !args.IsPopulated())
-	{
-		m_Data.m_TestRCONClient.reset();
-		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Invalid TF2 command line arguments");
+		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Invalid TF2 command line arguments.");
 		ImGui::NewLine();
 		ImGui::TextUnformatted("TF2 must be launched via TF2 Bot Detector. Please close it, then open it again with the button below.");
-		ImGui::EnabledSwitch(false, LaunchTF2Button, "TF2 is currently running. Please close it first.");
+		ImGui::EnabledSwitch(false, [&] { DrawLaunchTF2Button(ds); }, "TF2 is currently running. Please close it first.");
 
 		ImGui::NewLine();
 
@@ -314,6 +314,29 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 		else
 			ImGui::TextColored({ 0, 1, 0, 1 }, "+hostport %u", args.m_RCONPort.value());
 	}
+}
+
+auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
+{
+	m_Data.TryUpdateCmdlineArgs();
+
+	if (!m_Data.m_CommandLineArgs.has_value())
+	{
+		m_Data.m_TestRCONClient.reset();
+		ImGui::TextUnformatted("TF2 must be launched via TF2 Bot Detector. You can open it by clicking the button below.");
+		DrawLaunchTF2Button(ds);
+	}
+	else if (m_Data.m_MultipleInstances)
+	{
+		m_Data.m_TestRCONClient.reset();
+		ImGui::TextUnformatted("More than one instance of hl2.exe found. Please close the other instances.");
+
+		ImGui::EnabledSwitch(false, [&] { DrawLaunchTF2Button(ds); }, "TF2 is currently running. Please close it first.");
+	}
+	else if (auto& args = m_Data.m_CommandLineArgs.value(); !args.IsPopulated())
+	{
+		DrawCommandLineArgsInvalid(ds, args);
+	}
 	else if (!m_Data.m_RCONSuccess)
 	{
 		auto& args = m_Data.m_CommandLineArgs.value();
@@ -327,7 +350,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 		m_Data.m_RCONSuccess = m_Data.m_TestRCONClient.value().Update();
 
 		ImGui::NewLine();
-		AutoLaunchTF2Checkbox();
+		DrawAutoLaunchTF2Checkbox(ds);
 	}
 	else
 	{

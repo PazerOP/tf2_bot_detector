@@ -57,6 +57,57 @@
 		{
 			"actions": {
 				"mark": [
+					"suspicious"
+				]
+			},
+			"description": "Elkay EZH2O",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"Elkay EZH2O"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"suspicious"
+				]
+			},
+			"description": "garry :D",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"garry :D"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Poohook",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"discord.io/poohook"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
 					"cheater"
 				]
 			},
@@ -118,6 +169,23 @@
 					"mode": "regex",
 					"patterns": [
 						"Lag-Bot \\d+"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "spikeymikey bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"spikeymikey bot \\d+"
 					]
 				}
 			}

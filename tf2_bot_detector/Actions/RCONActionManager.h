@@ -64,7 +64,7 @@ namespace tf2_bot_detector
 
 		struct Writer;
 
-		static constexpr duration_t UPDATE_INTERVAL = std::chrono::seconds(1);
+		static constexpr duration_t UPDATE_INTERVAL = std::chrono::milliseconds(250);
 
 		WorldState* m_WorldState = nullptr;
 		const Settings* m_Settings = nullptr;

@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.35)
+project(tf2_bot_detector VERSION 1.0.0.50)
 
-include(FetchContent)
-# set(FETCHCONTENT_QUIET off)
+include(GenerateExportHeader)
+
+option(TF2BD_IS_CI_COMPILE "Set to true if this is a compile on a CI service. Used to help determine if user has made modifications to the source code." off)
+if (TF2BD_IS_CI_COMPILE)
+	add_compile_definitions(TF2BD_IS_CI_COMPILE=1)
+else()
+	add_compile_definitions(TF2BD_IS_CI_COMPILE=0)
+endif()
 
 # Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 if (MSVC)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
 	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
 	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
@@ -16,25 +23,40 @@ if (MSVC AND (CMAKE_BUILD_TYPE MATCHES "Release"))
 	add_link_options(/OPT:REF /OPT:ICF)
 endif()
 
-FetchContent_Declare(mh_stuff
-	GIT_REPOSITORY https://github.com/PazerOP/stuff.git
-	GIT_SHALLOW true
-	GIT_SUBMODULES_RECURSE false
-)
-FetchContent_Declare(nlohmann_json
-	GIT_REPOSITORY https://github.com/nlohmann/json.git
-	GIT_SHALLOW true
-	GIT_SUBMODULES_RECURSE false
-)
-set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
-set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
-FetchContent_MakeAvailable(mh_stuff nlohmann_json)
-
 add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
 add_subdirectory(submodules/imgui_desktop)
+add_subdirectory(submodules/mh_stuff)
 
-add_executable(tf2_bot_detector WIN32
+set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
+set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
+add_subdirectory(submodules/nlohmann_json)
+
+if (WIN32)
+	add_library(tf2_bot_detector SHARED)
+	set_target_properties(tf2_bot_detector PROPERTIES PDB_NAME "tf2_bot_detector_dll")
+
+	generate_export_header(tf2_bot_detector
+		EXPORT_FILE_NAME "tf2_bot_detector/tf2_bot_detector_export.h"
+	)
+
+	add_executable(tf2_bot_detector_launcher WIN32
+		"tf2_bot_detector/Platform/Windows/CrashHandler.cpp"
+		"tf2_bot_detector/Launcher/main.cpp"
+		"tf2_bot_detector/Launcher/Resources.rc"
+	)
+
+	target_include_directories(tf2_bot_detector_launcher PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
+	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector)
+	set_target_properties(tf2_bot_detector_launcher PROPERTIES OUTPUT_NAME "tf2_bot_detector")
+	set_property(TARGET tf2_bot_detector_launcher PROPERTY CXX_STANDARD 17)
+else()
+	add_executable(tf2_bot_detector
+		"tf2_bot_detector/Launcher/main.cpp"
+	)
+endif()
+
+target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/Actions/RCONActionManager.cpp"
 	"tf2_bot_detector/Actions/RCONActionManager.h"
 	"tf2_bot_detector/Actions/ActionGenerators.cpp"
@@ -78,6 +100,8 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/SetupFlow/BasicSettingsPage.cpp"
 	"tf2_bot_detector/SetupFlow/ChatWrappersGeneratorPage.h"
 	"tf2_bot_detector/SetupFlow/ChatWrappersGeneratorPage.cpp"
+	"tf2_bot_detector/SetupFlow/ChatWrappersVerifyPage.h"
+	"tf2_bot_detector/SetupFlow/ChatWrappersVerifyPage.cpp"
 	"tf2_bot_detector/SetupFlow/ISetupFlowPage.h"
 	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.h"
 	"tf2_bot_detector/SetupFlow/NetworkSettingsPage.cpp"
@@ -89,15 +113,14 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/Clock.h"
 	"tf2_bot_detector/CompensatedTS.cpp"
 	"tf2_bot_detector/CompensatedTS.h"
-	"tf2_bot_detector/FileMods.cpp"
-	"tf2_bot_detector/FileMods.h"
+	"tf2_bot_detector/Config/ChatWrappers.cpp"
+	"tf2_bot_detector/Config/ChatWrappers.h"
 	"tf2_bot_detector/ImGui_TF2BotDetector.cpp"
 	"tf2_bot_detector/ImGui_TF2BotDetector.h"
 	"tf2_bot_detector/IPlayer.cpp"
 	"tf2_bot_detector/IPlayer.h"
 	"tf2_bot_detector/Log.cpp"
 	"tf2_bot_detector/Log.h"
-	"tf2_bot_detector/main.cpp"
 	"tf2_bot_detector/MainWindow.cpp"
 	"tf2_bot_detector/MainWindow.h"
 	"tf2_bot_detector/ModeratorLogic.cpp"
@@ -113,20 +136,28 @@ add_executable(tf2_bot_detector WIN32
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
-	"tf2_bot_detector/Resources.rc"
+	"tf2_bot_detector/GameData/UserMessageType.h"
+	"tf2_bot_detector/DLLMain.cpp"
+	"tf2_bot_detector/DLLMain.h"
 )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
 
 if(WIN32)
+	if ((CMAKE_BUILD_TYPE MATCHES "Release"))
+		set(TF2BD_RESOURCE_FILEFLAGS "0")
+	else()
+		set(TF2BD_RESOURCE_FILEFLAGS "VS_FF_DEBUG")
+	endif()
+	configure_file(tf2_bot_detector/Resources.base.rc tf2_bot_detector/Resources.rc)
+
 	target_sources(tf2_bot_detector PRIVATE
-		"tf2_bot_detector/Platform/Windows/CrashHandler.cpp"
 		"tf2_bot_detector/Platform/Windows/Processes.cpp"
 		"tf2_bot_detector/Platform/Windows/Shell.cpp"
 		"tf2_bot_detector/Platform/Windows/Steam.cpp"
 		"tf2_bot_detector/Platform/Windows/WindowsHelpers.h"
-		"tf2_bot_detector/Platform/Windows/WinMain.cpp"
+		"tf2_bot_detector/Resources.rc"
 	)
 endif()
 

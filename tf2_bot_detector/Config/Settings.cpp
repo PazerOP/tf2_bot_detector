@@ -30,14 +30,18 @@ namespace tf2_bot_detector
 	{
 		j =
 		{
-			{ "scoreboard_cheater", d.m_ScoreboardCheater },
-			{ "scoreboard_suspicious", d.m_ScoreboardSuspicious },
-			{ "scoreboard_exploiter", d.m_ScoreboardExploiter },
-			{ "scoreboard_racism", d.m_ScoreboardRacist },
-			{ "scoreboard_you", d.m_ScoreboardYou },
-			{ "scoreboard_connecting", d.m_ScoreboardConnecting },
-			{ "friendly_team", d.m_FriendlyTeam },
-			{ "enemy_team", d.m_EnemyTeam },
+			{ "scoreboard_marked_cheater.bg", d.m_ScoreboardCheaterBG },
+			{ "scoreboard_marked_suspicious.bg", d.m_ScoreboardSuspiciousBG },
+			{ "scoreboard_marked_exploiter.bg", d.m_ScoreboardExploiterBG },
+			{ "scoreboard_marked_racism.bg", d.m_ScoreboardRacistBG },
+			{ "scoreboard_you.fg", d.m_ScoreboardYouFG },
+			{ "scoreboard_connecting.fg", d.m_ScoreboardConnectingFG },
+			{ "scoreboard_team_friendly.bg", d.m_ScoreboardFriendlyTeamBG },
+			{ "scoreboard_team_enemy.bg", d.m_ScoreboardEnemyTeamBG },
+
+			{ "chat_log_you.fg", d.m_ChatLogYouFG },
+			{ "chat_log_team_friendly.fg", d.m_ChatLogFriendlyTeamFG },
+			{ "chat_log_team_enemy.fg", d.m_ChatLogEnemyTeamFG },
 		};
 	}
 
@@ -60,14 +64,30 @@ namespace tf2_bot_detector
 
 	void from_json(const nlohmann::json& j, Settings::Theme::Colors& d)
 	{
-		try_get_to(j, "scoreboard_cheater", d.m_ScoreboardCheater);
-		try_get_to(j, "scoreboard_suspicious", d.m_ScoreboardSuspicious);
-		try_get_to(j, "scoreboard_exploiter", d.m_ScoreboardExploiter);
-		try_get_to(j, "scoreboard_racism", d.m_ScoreboardRacist);
-		try_get_to(j, "scoreboard_you", d.m_ScoreboardYou);
-		try_get_to(j, "scoreboard_connecting", d.m_ScoreboardConnecting);
-		try_get_to(j, "friendly_team", d.m_FriendlyTeam);
-		try_get_to(j, "enemy_team", d.m_EnemyTeam);
+		static constexpr Settings::Theme::Colors DEFAULTS;
+
+		try_get_to_defaulted(j, d.m_ScoreboardCheaterBG, { "scoreboard_marked_cheater.bg", "scoreboard_cheater" },
+			DEFAULTS.m_ScoreboardCheaterBG);
+		try_get_to_defaulted(j, d.m_ScoreboardSuspiciousBG, { "scoreboard_marked_suspicious.bg", "scoreboard_suspicious" },
+			DEFAULTS.m_ScoreboardSuspiciousBG);
+		try_get_to_defaulted(j, d.m_ScoreboardExploiterBG, { "scoreboard_marked_exploiter.bg", "scoreboard_exploiter" },
+			DEFAULTS.m_ScoreboardExploiterBG);
+		try_get_to_defaulted(j, d.m_ScoreboardRacistBG, { "scoreboard_marked_racism.bg", "scoreboard_racism" },
+			DEFAULTS.m_ScoreboardRacistBG);
+		try_get_to_defaulted(j, d.m_ScoreboardYouFG, { "scoreboard_you.fg", "scoreboard_you" },
+			DEFAULTS.m_ScoreboardYouFG);
+		try_get_to_defaulted(j, d.m_ScoreboardConnectingFG, { "scoreboard_connecting.fg", "scoreboard_connecting" },
+			DEFAULTS.m_ScoreboardConnectingFG);
+		try_get_to_defaulted(j, d.m_ScoreboardFriendlyTeamBG, { "scoreboard_team_friendly.bg", "friendly_team" },
+			DEFAULTS.m_ScoreboardFriendlyTeamBG);
+		try_get_to_defaulted(j, d.m_ScoreboardEnemyTeamBG, { "scoreboard_team_enemy.bg", "enemy_team" },
+			DEFAULTS.m_ScoreboardEnemyTeamBG);
+
+		try_get_to_defaulted(j, d.m_ChatLogYouFG, "chat_log_you.fg", DEFAULTS.m_ChatLogYouFG);
+		try_get_to_defaulted(j, d.m_ChatLogFriendlyTeamFG, "chat_log_team_friendly.fg",
+			DEFAULTS.m_ChatLogFriendlyTeamFG);
+		try_get_to_defaulted(j, d.m_ChatLogEnemyTeamFG, "chat_log_team_enemy.fg",
+			DEFAULTS.m_ChatLogEnemyTeamFG);
 	}
 
 	void from_json(const nlohmann::json& j, Settings::Theme& d)
@@ -153,16 +173,17 @@ void Settings::LoadFile()
 
 	if (auto found = json.find("general"); found != json.end())
 	{
-		try_get_to(*found, "local_steamid_override", m_LocalSteamIDOverride);
-		try_get_to(*found, "sleep_when_unfocused", m_SleepWhenUnfocused);
-		try_get_to(*found, "auto_temp_mute", m_AutoTempMute);
-		try_get_to(*found, "allow_internet_usage", m_AllowInternetUsage);
-		try_get_to(*found, "program_update_check_mode", m_ProgramUpdateCheckMode);
-		try_get_to(*found, "steam_api_key", m_SteamAPIKey);
-		try_get_to(*found, "auto_launch_tf2", m_AutoLaunchTF2);
-		try_get_to(*found, "auto_chat_warnings", m_AutoChatWarnings);
-		try_get_to(*found, "auto_votekick", m_AutoVotekick);
-		try_get_to(*found, "auto_mark", m_AutoMark);
+		try_get_to_defaulted(*found, m_LocalSteamIDOverride, "local_steamid_override");
+		try_get_to_defaulted(*found, m_SleepWhenUnfocused, "sleep_when_unfocused");
+		try_get_to_defaulted(*found, m_AutoTempMute, "auto_temp_mute");
+		try_get_to_defaulted(*found, m_AllowInternetUsage, "allow_internet_usage");
+		try_get_to_defaulted(*found, m_ProgramUpdateCheckMode, "program_update_check_mode");
+		try_get_to_defaulted(*found, m_SteamAPIKey, "steam_api_key");
+		try_get_to_defaulted(*found, m_AutoLaunchTF2, "auto_launch_tf2");
+		try_get_to_defaulted(*found, m_AutoChatWarnings, "auto_chat_warnings");
+		try_get_to_defaulted(*found, m_AutoChatWarningsConnecting, "auto_chat_warnings_connecting");
+		try_get_to_defaulted(*found, m_AutoVotekick, "auto_votekick");
+		try_get_to_defaulted(*found, m_AutoMark, "auto_mark");
 
 		if (auto foundDir = found->find("steam_dir_override"); foundDir != found->end())
 			m_SteamDirOverride = foundDir->get<std::string_view>();
@@ -170,8 +191,8 @@ void Settings::LoadFile()
 			m_TFDirOverride = foundDir->get<std::string_view>();
 	}
 
-	try_get_to(json, "theme", m_Theme);
-	if (!try_get_to(json, "goto_profile_sites", m_GotoProfileSites))
+	try_get_to_defaulted(json, m_Theme, "theme");
+	if (!try_get_to_defaulted(json, m_GotoProfileSites, "goto_profile_sites"))
 	{
 		// Some defaults
 		m_GotoProfileSites.push_back({ "Steam Community", "https://steamcommunity.com/profiles/%SteamID64%" });
@@ -196,6 +217,7 @@ bool Settings::SaveFile() const
 				{ "steam_api_key", m_SteamAPIKey },
 				{ "auto_launch_tf2", m_AutoLaunchTF2 },
 				{ "auto_chat_warnings", m_AutoChatWarnings },
+				{ "auto_chat_warnings_connecting", m_AutoChatWarningsConnecting },
 				{ "auto_votekick", m_AutoVotekick },
 				{ "auto_mark", m_AutoMark },
 			}
