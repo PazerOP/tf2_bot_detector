@@ -290,14 +290,6 @@ std::filesystem::path AutoDetectedSettings::GetTFDir() const
 	return FindTFDir(GetSteamDir());
 }
 
-std::string tf2_bot_detector::AutoDetectedSettings::GetLocalIP() const
-{
-	if (!m_LocalIPOverride.empty())
-		return m_LocalIPOverride;
-
-	return tf2_bot_detector::Networking::GetLocalIP();
-}
-
 std::filesystem::path AutoDetectedSettings::GetSteamDir() const
 {
 	if (!m_SteamDirOverride.empty())
