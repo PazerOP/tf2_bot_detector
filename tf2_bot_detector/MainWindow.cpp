@@ -13,6 +13,7 @@
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
+#include <libzippp/libzippp.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/case_insensitive_string.hpp>
@@ -20,6 +21,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <filesystem>
 #include <string>
 #include <regex>
 
@@ -513,7 +515,7 @@ void MainWindow::OnDrawAppLog()
 			ImGui::PushTextWrapPos();
 
 			const void* lastLogMsg = nullptr;
-			for (const LogMessage& msg : GetVisibleLogMsgs())
+			for (const LogMessage& msg : ILogManager::GetInstance().GetVisibleMsgs())
 			{
 				const std::tm timestamp = ToTM(msg.m_Timestamp);
 
@@ -815,7 +817,6 @@ void MainWindow::OnDrawAboutPopup()
 	}
 }
 
-#include <libzippp/libzippp.h>
 void MainWindow::GenerateDebugReport()
 {
 	Log("Generating debug_report.zip...");
@@ -828,9 +829,18 @@ void MainWindow::GenerateDebugReport()
 		{
 			LogError("Failed to add console.log to debug report");
 		}
-		if (!archive.addFile("tf2bd.log", GetLogFilename().string()))
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator("logs"))
 		{
-			LogError("Failed to add tf2bd log to debug report");
+			if (!entry.is_regular_file())
+				continue;
+
+			const auto& path = entry.path();
+
+			if (archive.addFile(path.string(), path.string()))
+				Log("Added file to debug report: "s << path);
+			else
+				Log("Failed to add file to debug report: "s << path);
 		}
 
 		if (auto err = archive.close(); err != LIBZIPPP_OK)

@@ -18,39 +18,47 @@
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
-static std::recursive_mutex s_LogMutex;
-static std::vector<LogMessage> s_LogMessages;
-static size_t s_VisibleLogMessagesStart = 0;
-
-namespace tf2_bot_detector
+namespace
 {
-	static void LogToStream(const std::string_view& msg, std::ostream& output, time_point_t timestamp = clock_t::now())
+	class LogManager final : public ILogManager
 	{
-		std::lock_guard lock(s_LogMutex);
+	public:
+		LogManager();
+		LogManager(const LogManager&) = delete;
+		LogManager& operator=(const LogManager&) = delete;
 
-		tm t = ToTM(timestamp);
-		output << '[' << std::put_time(&t, "%T") << "] " << msg << std::endl;
+		void Log(std::string msg, const LogMessageColor& color = {}, time_point_t timestamp = clock_t::now()) override;
+		void LogToStream(const std::string_view& msg, std::ostream& output, time_point_t timestamp = clock_t::now()) const;
 
-#ifdef _WIN32
-		{
-			std::string dbgMsg = "Log: "s << msg << '\n';
-			OutputDebugStringA(dbgMsg.c_str());
-		}
-#endif
-	}
+		const std::filesystem::path& GetFileName() const override { return m_FileName; }
+		cppcoro::generator<const LogMessage&> GetVisibleMsgs() const override;
+		void ClearVisibleMsgs() override;
 
-	static void LogInternal(std::string msg, const LogMessageColor& color, std::ostream& output,
-		time_point_t timestamp = clock_t::now())
+		std::ofstream& GetFile() { return m_File; }
+
+	private:
+		std::filesystem::path m_FileName;
+		std::ofstream m_File;
+		mutable std::recursive_mutex m_LogMutex;
+		std::vector<LogMessage> m_LogMessages;
+		size_t m_VisibleLogMessagesStart = 0;
+	};
+
+	static LogManager& GetLogState()
 	{
-		std::lock_guard lock(s_LogMutex);
-		LogToStream(msg, output, timestamp);
-		s_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
+		static LogManager s_LogState;
+		return s_LogState;
 	}
 }
 
-const std::filesystem::path& tf2_bot_detector::GetLogFilename()
+ILogManager& ILogManager::GetInstance()
 {
-	static const std::filesystem::path s_Path = []() -> std::filesystem::path
+	return ::GetLogState();
+}
+
+LogManager::LogManager()
+{
+	// Pick file name
 	{
 		std::filesystem::path logPath = "logs";
 
@@ -58,39 +66,51 @@ const std::filesystem::path& tf2_bot_detector::GetLogFilename()
 		std::filesystem::create_directories(logPath, ec);
 		if (ec)
 		{
-			LogInternal("Failed to create directory "s << logPath << ". Log output will go to stdout.", {}, std::cout);
-			return {};
+			Log("Failed to create directory "s << logPath << ". Log output will go to stdout.");
 		}
+		else
+		{
+			auto t = ToTM(clock_t::now());
+			m_FileName = logPath / (""s << std::put_time(&t, "%Y-%m-%d_%H-%M-%S") << ".log");
+		}
+	}
 
-		auto t = ToTM(clock_t::now());
-		return logPath / (""s << std::put_time(&t, "%Y-%m-%d_%H-%M-%S") << ".log");
-	}();
-
-	return s_Path;
+	// Try open file
+	if (!m_FileName.empty())
+	{
+		m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
+		if (!m_File.good())
+			Log("Failed to open log file "s << m_FileName << ". Log output will go to stdout only.");
+	}
 }
 
-namespace tf2_bot_detector
+void LogManager::LogToStream(const std::string_view& msg, std::ostream& output, time_point_t timestamp) const
 {
-	static std::ostream& GetLogFile()
+	std::lock_guard lock(m_LogMutex);
+
+	tm t = ToTM(timestamp);
+	const auto WriteToStream = [&](std::ostream& str)
 	{
-		static std::ostream& s_LogFile = []() -> std::ostream&
-		{
-			const auto& logPath = GetLogFilename();
-			if (logPath.empty())
-				return std::cout;
+		str << '[' << std::put_time(&t, "%T") << "] " << msg << std::endl;
+	};
 
-			static std::ofstream s_LogFileLocal(logPath, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
-			if (!s_LogFileLocal.good())
-			{
-				LogInternal("Failed to open log file "s << logPath << ". Log output will go to stdout.", {}, std::cout);
-				return std::cout;
-			}
+	WriteToStream(output);
+	if (&output != &std::cout)
+		WriteToStream(std::cout);
 
-			return s_LogFileLocal;
-		}();
-
-		return s_LogFile;
+#ifdef _WIN32
+	{
+		std::string dbgMsg = "Log: "s << msg << '\n';
+		OutputDebugStringA(dbgMsg.c_str());
 	}
+#endif
+}
+
+void LogManager::Log(std::string msg, const LogMessageColor& color, time_point_t timestamp)
+{
+	std::lock_guard lock(m_LogMutex);
+	LogToStream(msg, m_File, timestamp);
+	m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 }
 
 static constexpr LogMessageColor COLOR_DEFAULT = { 1, 1, 1, 1 };
@@ -108,7 +128,7 @@ namespace
 
 void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 {
-	LogInternal(std::move(msg), color, GetLogFile());
+	GetLogState().Log(std::move(msg), color);
 }
 
 void tf2_bot_detector::Log(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
@@ -123,7 +143,7 @@ void tf2_bot_detector::LogWarning(std::string msg)
 
 void tf2_bot_detector::LogWarning(const mh::source_location& location, const std::string_view& msg)
 {
-	LogWarning(""s << location << ": " << msg);
+	Log(location, msg, COLOR_WARNING);
 }
 
 void tf2_bot_detector::LogError(std::string msg)
@@ -133,7 +153,7 @@ void tf2_bot_detector::LogError(std::string msg)
 
 void tf2_bot_detector::LogError(const mh::source_location& location, const std::string_view& msg)
 {
-	LogError(""s << location << ": " << msg);
+	Log(location, msg, COLOR_ERROR);
 }
 
 void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
@@ -141,7 +161,8 @@ void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 #ifdef _DEBUG
 	Log(std::move(msg), color);
 #else
-	LogToStream(msg, GetLogFile());
+	auto& state = GetLogState();
+	state.LogToStream(msg, state.GetFile());
 #endif
 }
 
@@ -160,23 +181,23 @@ void tf2_bot_detector::DebugLogWarning(const mh::source_location& location, cons
 	DebugLogWarning(""s << location << ": " << msg);
 }
 
-auto tf2_bot_detector::GetVisibleLogMsgs() -> cppcoro::generator<const LogMessage&>
+cppcoro::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
 {
-	std::lock_guard lock(s_LogMutex);
+	std::lock_guard lock(m_LogMutex);
 
-	size_t start = s_VisibleLogMessagesStart;
-	if (s_LogMessages.size() > 500)
-		start = std::max(start, s_LogMessages.size() - 500);
+	size_t start = m_VisibleLogMessagesStart;
+	if (m_LogMessages.size() > 500)
+		start = std::max(start, m_LogMessages.size() - 500);
 
-	for (size_t i = start; i < s_LogMessages.size(); i++)
-		co_yield s_LogMessages[i];
+	for (size_t i = start; i < m_LogMessages.size(); i++)
+		co_yield m_LogMessages[i];
 }
 
-void tf2_bot_detector::ClearVisibleLogMessages()
+void LogManager::ClearVisibleMsgs()
 {
-	std::lock_guard lock(s_LogMutex);
+	std::lock_guard lock(m_LogMutex);
 	DebugLog("Clearing visible log messages...");
-	s_VisibleLogMessagesStart = s_LogMessages.size();
+	m_VisibleLogMessagesStart = m_LogMessages.size();
 }
 
 LogMessageColor::LogMessageColor(const ImVec4& vec) :
