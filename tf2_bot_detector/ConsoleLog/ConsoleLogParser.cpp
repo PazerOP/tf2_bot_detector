@@ -7,7 +7,7 @@
 #include "WorldState.h"
 #include "Platform/Platform.h"
 
-#include <mh/format.hpp>
+#include <mh/text/format.hpp>
 #include <mh/future.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -102,6 +102,7 @@ void ConsoleLogParser::Parse(bool& linesProcessed, bool& snapshotUpdated, bool& 
 		if (readCount > 0)
 		{
 			m_FileLineBuf.append(buf, readCount);
+			ILogManager::GetInstance().LogConsoleOutput(std::string_view(buf, readCount));
 
 			auto parseEnd = m_FileLineBuf.cbegin();
 			ParseChunk(parseEnd, linesProcessed, snapshotUpdated, consoleLinesUpdated);

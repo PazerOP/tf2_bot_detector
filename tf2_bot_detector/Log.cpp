@@ -1,6 +1,7 @@
 #include "Log.h"
 
 #include <imgui.h>
+#include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <filesystem>
@@ -36,12 +37,17 @@ namespace
 
 		std::ofstream& GetFile() { return m_File; }
 
+		void LogConsoleOutput(const std::string_view& consoleOutput) override;
+
 	private:
 		std::filesystem::path m_FileName;
 		std::ofstream m_File;
 		mutable std::recursive_mutex m_LogMutex;
 		std::vector<LogMessage> m_LogMessages;
 		size_t m_VisibleLogMessagesStart = 0;
+
+		mutable std::recursive_mutex m_ConsoleLogMutex;
+		std::ofstream m_ConsoleLogFile;
 	};
 
 	static LogManager& GetLogState()
@@ -56,8 +62,15 @@ ILogManager& ILogManager::GetInstance()
 	return ::GetLogState();
 }
 
+static constexpr LogMessageColor COLOR_DEFAULT = { 1, 1, 1, 1 };
+static constexpr LogMessageColor COLOR_WARNING = { 1, 0.5, 0, 1 };
+static constexpr LogMessageColor COLOR_ERROR = { 1, 0.25, 0, 1 };
+
 LogManager::LogManager()
 {
+	const auto t = ToTM(clock_t::now());
+	const auto timestampStr = mh::format("{}", std::put_time(&t, "%Y-%m-%d_%H-%M-%S"));
+
 	// Pick file name
 	{
 		std::filesystem::path logPath = "logs";
@@ -66,12 +79,11 @@ LogManager::LogManager()
 		std::filesystem::create_directories(logPath, ec);
 		if (ec)
 		{
-			Log("Failed to create directory "s << logPath << ". Log output will go to stdout.");
+			Log("Failed to create directory "s << logPath << ". Log output will go to stdout.", COLOR_WARNING);
 		}
 		else
 		{
-			auto t = ToTM(clock_t::now());
-			m_FileName = logPath / (""s << std::put_time(&t, "%Y-%m-%d_%H-%M-%S") << ".log");
+			m_FileName = logPath / mh::format("{}.log", timestampStr);
 		}
 	}
 
@@ -80,7 +92,24 @@ LogManager::LogManager()
 	{
 		m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
 		if (!m_File.good())
-			Log("Failed to open log file "s << m_FileName << ". Log output will go to stdout only.");
+			Log("Failed to open log file "s << m_FileName << ". Log output will go to stdout only.", COLOR_WARNING);
+	}
+
+	{
+		auto logDir = std::filesystem::path("logs") / "console";
+		std::error_code ec;
+		std::filesystem::create_directories(logDir, ec);
+		if (ec)
+		{
+			Log(mh::format("Failed to create one or more directory in the path {}. Console output will not be logged.", logDir), COLOR_WARNING);
+		}
+		else
+		{
+			auto logPath = logDir / mh::format("console_{}.log", timestampStr);
+			m_ConsoleLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
+			if (!m_ConsoleLogFile.good())
+				Log(mh::format("Failed to open console log file {}. Console output will not be logged.", logPath), COLOR_WARNING);
+		}
 	}
 }
 
@@ -99,10 +128,7 @@ void LogManager::LogToStream(const std::string_view& msg, std::ostream& output, 
 		WriteToStream(std::cout);
 
 #ifdef _WIN32
-	{
-		std::string dbgMsg = "Log: "s << msg << '\n';
-		OutputDebugStringA(dbgMsg.c_str());
-	}
+	OutputDebugStringA(mh::format("Log: {}\n", msg).c_str());
 #endif
 }
 
@@ -112,10 +138,6 @@ void LogManager::Log(std::string msg, const LogMessageColor& color, time_point_t
 	LogToStream(msg, m_File, timestamp);
 	m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 }
-
-static constexpr LogMessageColor COLOR_DEFAULT = { 1, 1, 1, 1 };
-static constexpr LogMessageColor COLOR_WARNING = { 1, 0.5, 0, 1 };
-static constexpr LogMessageColor COLOR_ERROR =   { 1, 0.25, 0, 1 };
 
 namespace
 {
@@ -198,6 +220,12 @@ void LogManager::ClearVisibleMsgs()
 	std::lock_guard lock(m_LogMutex);
 	DebugLog("Clearing visible log messages...");
 	m_VisibleLogMessagesStart = m_LogMessages.size();
+}
+
+void LogManager::LogConsoleOutput(const std::string_view& consoleOutput)
+{
+	std::lock_guard lock(m_ConsoleLogMutex);
+	m_ConsoleLogFile << consoleOutput << std::flush;
 }
 
 LogMessageColor::LogMessageColor(const ImVec4& vec) :
