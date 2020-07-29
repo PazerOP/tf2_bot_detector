@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.50)
+project(tf2_bot_detector VERSION 1.0.0.51)
 
 include(GenerateExportHeader)
 
