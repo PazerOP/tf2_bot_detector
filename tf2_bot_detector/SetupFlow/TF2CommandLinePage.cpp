@@ -155,6 +155,7 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 		" +contimes 0 +alias contimes"   // the text in the top left when developer >= 1
 		" +ip 0.0.0.0 +alias ip"
 		" +sv_rcon_whitelist_address 127.0.0.1 +alias sv_rcon_whitelist_address"
+		" +sv_quota_stringcmdspersecond 10000 +alias sv_quota_stringcmdspersecond"
 		" +rcon_password " << rconPassword << " +alias rcon_password"
 		" +hostport " << rconPort << " +alias hostport"
 		" +alias cl_reload_localization_files" // This command reloads files in backwards order, so any customizations get overwritten by stuff from the base game
