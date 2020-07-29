@@ -693,6 +693,20 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "Nulledcore",
+				"time": 1593560898
+			},
+			"proof": [
+				"https://www.youtube.com/channel/UC2WRDk3I6_cFuM3TIiUQX5A/videos",
+				"self-admitted cheater in discord"
+			],
+			"steamid": "[U:1:410012848]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "enzic3",
 				"time": 1593821733
 			},
