@@ -105,6 +105,12 @@ void WorldState::EventBroadcaster::OnChatMsg(WorldState& world,
 		listener->OnChatMsg(world, player, msg);
 }
 
+void tf2_bot_detector::WorldState::EventBroadcaster::OnLocalPlayerInitialized(WorldState& world, bool initialized)
+{
+	for (auto listener : m_EventListeners)
+		listener->OnLocalPlayerInitialized(world, initialized);
+}
+
 std::optional<SteamID> WorldState::FindSteamIDForName(const std::string_view& playerName) const
 {
 	std::optional<SteamID> retVal;
@@ -307,13 +313,17 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		}
 		break;
 	}
+	case ConsoleLineType::HostNewGame:
+	case ConsoleLineType::Connecting:
 	case ConsoleLineType::ClientReachedServerSpawn:
 	{
-		// Reset current lobby members/player statuses
-		//ClearLobbyState();
-		m_IsLocalPlayerInitialized = false;
+		if (m_IsLocalPlayerInitialized)
+		{
+			m_IsLocalPlayerInitialized = false;
+			m_EventBroadcaster.OnLocalPlayerInitialized(*this, m_IsLocalPlayerInitialized);
+		}
+
 		m_IsVoteInProgress = false;
-		DebugLogWarning("Client reached server spawn");
 		break;
 	}
 	case ConsoleLineType::Chat:
@@ -354,7 +364,12 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 			cfgName == "engineer.cfg"sv)
 		{
 			DebugLog("Spawned as "s << cfgName.substr(0, cfgName.size() - 3));
-			m_IsLocalPlayerInitialized = true;
+
+			if (!m_IsLocalPlayerInitialized)
+			{
+				m_IsLocalPlayerInitialized = true;
+				m_EventBroadcaster.OnLocalPlayerInitialized(*this, m_IsLocalPlayerInitialized);
+			}
 		}
 
 		break;

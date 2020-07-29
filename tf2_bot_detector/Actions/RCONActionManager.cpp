@@ -40,6 +40,7 @@ struct SRCONInit
 RCONActionManager::RCONActionManager(const Settings& settings, WorldState& world) :
 	m_Settings(&settings), m_WorldState(&world)
 {
+	world.AddWorldEventListener(this);
 }
 
 RCONActionManager::~RCONActionManager()
@@ -70,6 +71,12 @@ bool RCONActionManager::QueueAction(std::unique_ptr<IAction>&& action)
 void RCONActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActionGenerator>&& action)
 {
 	m_PeriodicActionGenerators.push_back(std::move(action));
+}
+
+void RCONActionManager::OnLocalPlayerInitialized(WorldState& world, bool initialized)
+{
+	m_IsDiscardingServerCommands = !initialized;
+	DebugLog("m_IsDiscardingServerCommands = "s << m_IsDiscardingServerCommands);
 }
 
 void RCONActionManager::ProcessRunningCommands()
@@ -130,6 +137,18 @@ void RCONActionManager::ProcessRunningCommands()
 	}
 }
 
+bool RCONActionManager::ShouldDiscardCommand(const std::string_view& cmd) const
+{
+	if (!m_IsDiscardingServerCommands)
+		return false;
+
+	if (cmd == "tf_lobby_debug"sv)
+		return false;
+
+	DebugLog("Discarding potential server command "s << std::quoted(cmd));
+	return true;
+}
+
 void RCONActionManager::ProcessQueuedCommands()
 {
 	if (!m_Settings->m_Unsaved.m_RCONClient)
@@ -151,6 +170,9 @@ void RCONActionManager::ProcessQueuedCommands()
 		{
 			void Write(std::string cmd, std::string args) override
 			{
+				if (m_Manager->ShouldDiscardCommand(cmd))
+					return;
+
 				if (!args.empty())
 					cmd << ' ' << args;
 

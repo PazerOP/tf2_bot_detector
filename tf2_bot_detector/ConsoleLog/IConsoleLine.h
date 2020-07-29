@@ -32,6 +32,8 @@ namespace tf2_bot_detector
 		SVC_UserMessage,
 		ConfigExec,
 		TeamsSwitched,
+		Connecting,
+		HostNewGame,
 
 		NetLatency,
 		NetLoss,

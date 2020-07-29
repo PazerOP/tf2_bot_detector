@@ -160,6 +160,7 @@ namespace tf2_bot_detector
 			void OnTimestampUpdate(WorldState& world) override;
 			void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
 			void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override;
+			void OnLocalPlayerInitialized(WorldState& world, bool initialized) override;
 
 			std::unordered_set<IWorldEventListener*> m_EventListeners;
 		} m_EventBroadcaster;
