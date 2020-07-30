@@ -65,7 +65,7 @@
 <!-- GETTING STARTED -->
 ## Getting Started
 
-These instructions will give a quick overview of getting started with TF2BD.
+These instructions will give a quick overview of getting started with TF2BD. There is also a video by CrazyGunman#6724 [here][install-video].
 
 ### Prerequisites
 
@@ -174,3 +174,4 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
 [wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists
 [wiki-installation-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Getting-Started
+[install-video]: https://www.youtube.com/watch?v=MbFDUmsUakQ
