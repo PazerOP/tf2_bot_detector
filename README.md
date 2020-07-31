@@ -100,7 +100,7 @@ TF2 Bot Detector calls a votekick against bots (and select human cheaters) on yo
 
 ### Will this get me VAC banned?
 
-No. It does not modify the game or OS memory in any way. It is only using built-in functionality in the engine, exactly the way it was intended. Anecdotally, myself and several other friends have been using it for several weeks with no issues.
+No. It does not modify the game or OS memory in any way. It is only using built-in functionality in the engine, exactly the way it was intended. Anecdotally, many users have been using this tool for a few months now without issue.
 
 ### How does it work?
 
