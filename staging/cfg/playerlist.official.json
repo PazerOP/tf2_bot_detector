@@ -4773,6 +4773,16 @@
 				"time": 1595987311
 			},
 			"steamid": "[U:1:1117343521]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "lucidranger388",
+				"time": 1596081321
+			},
+			"steamid": "[U:1:1117628231]"
 		}
 	]
 }
