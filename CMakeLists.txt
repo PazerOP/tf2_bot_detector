@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.0.0.48)
+project(tf2_bot_detector VERSION 1.1.0.0)
 
 include(GenerateExportHeader)
 
@@ -196,17 +196,19 @@ target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 
 find_package(libzippp CONFIG REQUIRED)
 find_package(cppcoro CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 
-target_link_libraries(tf2_bot_detector
-	PRIVATE imgui_desktop
-	PRIVATE mh_stuff
-	PRIVATE ValveFileVDF
-	PRIVATE libzip::libzip
-	PRIVATE libzippp::libzippp
-	PRIVATE cppcoro
-	PRIVATE SourceRCON
-	PRIVATE OpenSSL::SSL # cpp-httplib requires openssl
-	PRIVATE nlohmann_json::nlohmann_json
+target_link_libraries(tf2_bot_detector PRIVATE
+	imgui_desktop
+	mh_stuff
+	ValveFileVDF
+	libzip::libzip
+	libzippp::libzippp
+	cppcoro
+	SourceRCON
+	OpenSSL::SSL # cpp-httplib requires openssl
+	nlohmann_json::nlohmann_json
+	fmt::fmt
 )
 
 # TODO: Find a way to do this locally

@@ -48,8 +48,22 @@ namespace tf2_bot_detector
 	void DebugLogWarning(std::string msg);
 	void DebugLogWarning(const mh::source_location& location, const std::string_view& msg);
 
-	const std::filesystem::path& GetLogFilename();
+	class ILogManager
+	{
+	public:
+		virtual ~ILogManager() = default;
 
-	cppcoro::generator<const LogMessage&> GetVisibleLogMsgs();
-	void ClearVisibleLogMessages();
+		static ILogManager& GetInstance();
+
+		virtual void Log(std::string msg, const LogMessageColor& color = {}, time_point_t timestamp = clock_t::now()) = 0;
+
+		virtual const std::filesystem::path& GetFileName() const = 0;
+
+		virtual cppcoro::generator<const LogMessage&> GetVisibleMsgs() const = 0;
+		virtual void ClearVisibleMsgs() = 0;
+
+		virtual void LogConsoleOutput(const std::string_view& consoleOutput) = 0;
+
+		virtual void CleanupLogFiles() = 0;
+	};
 }

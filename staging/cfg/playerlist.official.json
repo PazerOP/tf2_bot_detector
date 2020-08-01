@@ -49,7 +49,33 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "Rage Duck DJ",
+				"time": 1593560898
+			},
+			"proof": [
+				"https://steamcommunity.com/sharedfiles/filedetails/?id=2119236049",
+				"https://steamcommunity.com/sharedfiles/filedetails/?id=2119235520",
+				"https://steamcommunity.com/sharedfiles/filedetails/?id=2113490874",
+				"https://steamcommunity.com/sharedfiles/filedetails/?id=2119008904"
+			],
+			"steamid": "[U:1:7161997]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:11925968]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "ozus",
+				"time": 1595832343
+			},
+			"steamid": "[U:1:13219058]"
 		},
 		{
 			"attributes": [
@@ -152,6 +178,16 @@
 				"cheater"
 			],
 			"steamid": "[U:1:67893255]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Rocket Launcher",
+				"time": 1595832340
+			},
+			"steamid": "[U:1:84044797]"
 		},
 		{
 			"attributes": [
@@ -597,6 +633,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "spikeymikey bot 3",
+				"time": 1595811503
+			},
+			"steamid": "[U:1:383897501]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "Tilar 1488 #TRUMP2020",
 				"time": 1593055211
 			},
@@ -641,6 +687,20 @@
 				"time": 1592720935
 			},
 			"steamid": "[U:1:395396348]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Nulledcore",
+				"time": 1593560898
+			},
+			"proof": [
+				"https://www.youtube.com/channel/UC2WRDk3I6_cFuM3TIiUQX5A/videos",
+				"self-admitted cheater in discord"
+			],
+			"steamid": "[U:1:410012848]"
 		},
 		{
 			"attributes": [
@@ -2248,11 +2308,12 @@
 		},
 		{
 			"attributes": [
-				"cheater"
+				"cheater",
+				"racist"
 			],
 			"last_seen": {
-				"player_name": "Womanhater, Hater of Women\u200f",
-				"time": 1594941508
+				"player_name": "deer",
+				"time": 1595966398
 			},
 			"steamid": "[U:1:1098535939]"
 		},
@@ -4260,6 +4321,16 @@
 			],
 			"last_seen": {
 				"player_name": "James Charles",
+				"time": 1595969097
+			},
+			"steamid": "[U:1:1106486594]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "James Charles",
 				"time": 1592413801
 			},
 			"steamid": "[U:1:1107020129]"
@@ -4579,6 +4650,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "discord.io/poohook",
+				"time": 1595818140
+			},
+			"steamid": "[U:1:1111713390]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "Itemtest",
 				"time": 1594352151
 			},
@@ -4603,6 +4684,105 @@
 				"time": 1595207717
 			},
 			"steamid": "[U:1:1111793410]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)garry :D",
+				"time": 1595807644
+			},
+			"steamid": "[U:1:1115483949]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "cat.jpg",
+				"time": 1595985051
+			},
+			"steamid": "[U:1:1115685582]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)garry :D",
+				"time": 1595987498
+			},
+			"steamid": "[U:1:1115726537]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "garry :D",
+				"time": 1595971283
+			},
+			"steamid": "[U:1:1115739999]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "cat.jpg",
+				"time": 1595969132
+			},
+			"steamid": "[U:1:1115758533]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"time": 1595986970
+			},
+			"steamid": "[U:1:1115781631]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "garry :D",
+				"time": 1595972534
+			},
+			"steamid": "[U:1:1115832132]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Yomps was a Pedo",
+				"time": 1595826854
+			},
+			"steamid": "[U:1:1116832468]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "quizno bot",
+				"time": 1595987311
+			},
+			"steamid": "[U:1:1117343521]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "lucidranger388",
+				"time": 1596081321
+			},
+			"steamid": "[U:1:1117628231]"
 		}
 	]
 }

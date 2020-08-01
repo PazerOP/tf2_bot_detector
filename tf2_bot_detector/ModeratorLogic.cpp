@@ -112,6 +112,14 @@ void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::st
 	}
 }
 
+static bool CanPassVote(size_t totalPlayerCount, size_t cheaterCount, float* cheaterRatio = nullptr)
+{
+	if (cheaterRatio)
+		*cheaterRatio = float(cheaterCount) / totalPlayerCount;
+
+	return (cheaterCount * 2) < totalPlayerCount;
+}
+
 void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t connectedFriendlyPlayerCount,
 	const std::vector<Cheater>& friendlyCheaters)
 {
@@ -121,7 +129,7 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t
 	if (friendlyCheaters.empty())
 		return; // Nothing to do
 
-	constexpr float MIN_QUORUM = 0.6f;
+	constexpr float MIN_QUORUM = 0.61f;
 	if (auto quorum = float(connectedFriendlyPlayerCount) / friendlyPlayerCount; quorum <= MIN_QUORUM)
 	{
 		LogWarning("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
@@ -130,10 +138,10 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t
 		return;
 	}
 
-	if (auto ratio = float(friendlyPlayerCount) / friendlyCheaters.size(); ratio <= 0.501f)
+	if (float cheaterRatio; !CanPassVote(friendlyPlayerCount, friendlyCheaters.size(), &cheaterRatio))
 	{
-		Log("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
-			<< " friendly cheaters: our team is " << (100 - int(ratio * 100)) << "% cheaters");
+		LogWarning("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
+			<< " friendly cheaters: our team is " << int(cheaterRatio * 100) << "% cheaters");
 		return;
 	}
 
@@ -174,10 +182,11 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 	if (enemyCheaters.empty() && connectingEnemyCheaters.empty())
 		return;
 
-	if (const auto cheaterCount = (enemyCheaters.size() + connectingEnemyCheaters.size());
-		uint8_t(enemyPlayerCount / 2) <= cheaterCount)
+	const auto cheaterCount = enemyCheaters.size() + connectingEnemyCheaters.size();
+	if (float cheaterRatio; !CanPassVote(enemyPlayerCount, cheaterCount, &cheaterRatio))
 	{
-		Log("Impossible to pass a successful votekick against "s << cheaterCount << " enemy cheaters. Skipping all warnings.");
+		LogWarning("Impossible to pass a successful votekick against "s << cheaterCount
+			<< " enemy cheaters (enemy team is " << int(cheaterRatio * 100) << "% cheaters). Skipping all warnings.");
 		return;
 	}
 
@@ -410,7 +419,8 @@ void ModeratorLogic::ProcessPlayerActions()
 		{
 			if (isPlayerConnected)
 			{
-				connectedFriendlyPlayers++;
+				if (player.GetActiveTime() > m_Settings->GetAutoVotekickDelay())
+					connectedFriendlyPlayers++;
 
 				if (isCheater)
 					friendlyCheaters.push_back({ player, isCheater });

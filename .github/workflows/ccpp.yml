@@ -58,7 +58,7 @@ jobs:
       uses: lukka/run-vcpkg@v3.2
       with:
         vcpkgGitCommitId: 7c82b03faf93e607c722e518819a54e4359aeddc
-        vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp cppcoro discord-game-sdk'
+        vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp cppcoro fmt discord-game-sdk'
         vcpkgTriplet: ${{ matrix.triplet }}
 
     - name: CMake
@@ -70,11 +70,19 @@ jobs:
         cmake --build . --config Release
 
     - name: Sign artifacts
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: PazerOP/code-sign-action@v3
       with:
         folder: '${{ env.TF2BD_BUILD_DIR }}'
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+    - name: "Artifacts: Fresh, signed exe"
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: "smartscreen_${{ matrix.triplet }}"
+        path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
 
     - name: Smartscreen workaround
       if: ${{ startsWith(matrix.os, 'windows') }}
@@ -86,18 +94,20 @@ jobs:
         sha1sum "${{ env.TF2BD_BUILD_DIR }}/tf2_bot_detector.exe"
 
     - name: "Artifacts: *.exe"
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v2
       with:
         name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
     - name: "Artifacts: *.dll"
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v2
       with:
         name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
 
     - name: "Artifacts: *.pdb"
-      if: ${{ matrix.triplet == 'x86-windows' || matrix.triplet == 'x64-windows' }}
+      if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v2
       with:
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"

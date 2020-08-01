@@ -109,6 +109,12 @@ void WorldState::EventBroadcaster::OnChatMsg(WorldState& world,
 		listener->OnChatMsg(world, player, msg);
 }
 
+void tf2_bot_detector::WorldState::EventBroadcaster::OnLocalPlayerInitialized(WorldState& world, bool initialized)
+{
+	for (auto listener : m_EventListeners)
+		listener->OnLocalPlayerInitialized(world, initialized);
+}
+
 std::optional<SteamID> WorldState::FindSteamIDForName(const std::string_view& playerName) const
 {
 	std::optional<SteamID> retVal;
@@ -275,7 +281,12 @@ void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
 		cfgName == "engineer.cfg"sv)
 	{
 		DebugLog("Spawned as "s << cfgName.substr(0, cfgName.size() - 3));
-		m_IsLocalPlayerInitialized = true;
+
+		if (!m_IsLocalPlayerInitialized)
+		{
+			m_IsLocalPlayerInitialized = true;
+			m_EventBroadcaster.OnLocalPlayerInitialized(*this, m_IsLocalPlayerInitialized);
+		}
 
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 		TFClassType cl = TFClassType::Undefined;
@@ -355,13 +366,17 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		}
 		break;
 	}
+	case ConsoleLineType::HostNewGame:
+	case ConsoleLineType::Connecting:
 	case ConsoleLineType::ClientReachedServerSpawn:
 	{
-		// Reset current lobby members/player statuses
-		//ClearLobbyState();
-		m_IsLocalPlayerInitialized = false;
+		if (m_IsLocalPlayerInitialized)
+		{
+			m_IsLocalPlayerInitialized = false;
+			m_EventBroadcaster.OnLocalPlayerInitialized(*this, m_IsLocalPlayerInitialized);
+		}
+
 		m_IsVoteInProgress = false;
-		DebugLogWarning("Client reached server spawn");
 		break;
 	}
 	case ConsoleLineType::Chat:
@@ -666,8 +681,19 @@ duration_t WorldState::PlayerExtraData::GetConnectedTime() const
 	return result;
 }
 
+duration_t WorldState::PlayerExtraData::GetActiveTime() const
+{
+	if (m_Status.m_State != PlayerStatusState::Active)
+		return 0s;
+
+	return m_LastStatusUpdateTime - m_LastStatusActiveBegin;
+}
+
 void WorldState::PlayerExtraData::SetStatus(PlayerStatus status, time_point_t timestamp)
 {
+	if (m_Status.m_State != PlayerStatusState::Active && status.m_State == PlayerStatusState::Active)
+		m_LastStatusActiveBegin = timestamp;
+
 	m_Status = std::move(status);
 	m_PlayerNameSafe = CollapseNewlines(m_Status.m_Name);
 	m_LastStatusUpdateTime = m_LastPingUpdateTime = timestamp;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Clock.h"
-#include "ConsoleLog/IConsoleLineListener.h"
+#include "IWorldEventListener.h"
 
 #include <cppcoro/cancellation_source.hpp>
 #include <cppcoro/cancellation_token.hpp>
@@ -26,7 +26,7 @@ namespace tf2_bot_detector
 	class Settings;
 	class WorldState;
 
-	class RCONActionManager final
+	class RCONActionManager final : BaseWorldEventListener
 	{
 	public:
 		RCONActionManager(const Settings& settings, WorldState& world);
@@ -52,6 +52,8 @@ namespace tf2_bot_detector
 		}
 
 	private:
+		void OnLocalPlayerInitialized(WorldState& world, bool initialized) override;
+
 		struct RunningCommand
 		{
 			time_point_t m_StartTime{};
@@ -72,5 +74,8 @@ namespace tf2_bot_detector
 		std::vector<std::unique_ptr<IAction>> m_Actions;
 		std::vector<std::unique_ptr<IPeriodicActionGenerator>> m_PeriodicActionGenerators;
 		std::map<ActionType, time_point_t> m_LastTriggerTime;
+
+		bool ShouldDiscardCommand(const std::string_view& cmd) const;
+		bool m_IsDiscardingServerCommands = true;
 	};
 }

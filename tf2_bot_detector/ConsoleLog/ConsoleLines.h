@@ -400,4 +400,37 @@ namespace tf2_bot_detector
 		std::string m_ConfigFileName;
 		bool m_Success = false;
 	};
+
+	class ConnectingLine final : public ConsoleLineBase<ConnectingLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ConnectingLine(time_point_t timestamp, std::string address, bool isMatchmaking, bool isRetrying);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::Connecting; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		const std::string& GetAddress() const { return m_Address; }
+
+	private:
+		std::string m_Address;
+		bool m_IsMatchmaking : 1;
+		bool m_IsRetrying : 1;
+	};
+
+	class HostNewGameLine final : public ConsoleLineBase<HostNewGameLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		HostNewGameLine(time_point_t timestamp) : BaseClass(timestamp) {}
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::HostNewGame; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+	};
 }

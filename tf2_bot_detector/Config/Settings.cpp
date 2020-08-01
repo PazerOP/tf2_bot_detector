@@ -173,17 +173,20 @@ void Settings::LoadFile()
 
 	if (auto found = json.find("general"); found != json.end())
 	{
+		constexpr GeneralSettings DEFAULTS;
+
 		try_get_to_defaulted(*found, m_LocalSteamIDOverride, "local_steamid_override");
 		try_get_to_defaulted(*found, m_SleepWhenUnfocused, "sleep_when_unfocused");
-		try_get_to_defaulted(*found, m_AutoTempMute, "auto_temp_mute");
+		try_get_to_defaulted(*found, m_AutoTempMute, "auto_temp_mute", DEFAULTS.m_AutoTempMute);
 		try_get_to_defaulted(*found, m_AllowInternetUsage, "allow_internet_usage");
-		try_get_to_defaulted(*found, m_ProgramUpdateCheckMode, "program_update_check_mode");
+		try_get_to_defaulted(*found, m_ProgramUpdateCheckMode, "program_update_check_mode", DEFAULTS.m_ProgramUpdateCheckMode);
 		try_get_to_defaulted(*found, m_SteamAPIKey, "steam_api_key");
-		try_get_to_defaulted(*found, m_AutoLaunchTF2, "auto_launch_tf2");
-		try_get_to_defaulted(*found, m_AutoChatWarnings, "auto_chat_warnings");
-		try_get_to_defaulted(*found, m_AutoChatWarningsConnecting, "auto_chat_warnings_connecting");
-		try_get_to_defaulted(*found, m_AutoVotekick, "auto_votekick");
-		try_get_to_defaulted(*found, m_AutoMark, "auto_mark");
+		try_get_to_defaulted(*found, m_AutoLaunchTF2, "auto_launch_tf2", DEFAULTS.m_AutoLaunchTF2);
+		try_get_to_defaulted(*found, m_AutoChatWarnings, "auto_chat_warnings", DEFAULTS.m_AutoChatWarnings);
+		try_get_to_defaulted(*found, m_AutoChatWarningsConnecting, "auto_chat_warnings_connecting", DEFAULTS.m_AutoChatWarningsConnecting);
+		try_get_to_defaulted(*found, m_AutoVotekick, "auto_votekick", DEFAULTS.m_AutoVotekick);
+		try_get_to_defaulted(*found, m_AutoVotekickDelay, "auto_votekick_delay", DEFAULTS.m_AutoVotekickDelay);
+		try_get_to_defaulted(*found, m_AutoMark, "auto_mark", DEFAULTS.m_AutoMark);
 
 		if (auto foundDir = found->find("steam_dir_override"); foundDir != found->end())
 			m_SteamDirOverride = foundDir->get<std::string_view>();
@@ -219,6 +222,7 @@ bool Settings::SaveFile() const
 				{ "auto_chat_warnings", m_AutoChatWarnings },
 				{ "auto_chat_warnings_connecting", m_AutoChatWarningsConnecting },
 				{ "auto_votekick", m_AutoVotekick },
+				{ "auto_votekick_delay", m_AutoVotekickDelay },
 				{ "auto_mark", m_AutoMark },
 			}
 		},
@@ -288,14 +292,6 @@ std::filesystem::path AutoDetectedSettings::GetTFDir() const
 		return m_TFDirOverride;
 
 	return FindTFDir(GetSteamDir());
-}
-
-std::string tf2_bot_detector::AutoDetectedSettings::GetLocalIP() const
-{
-	if (!m_LocalIPOverride.empty())
-		return m_LocalIPOverride;
-
-	return tf2_bot_detector::Networking::GetLocalIP();
 }
 
 std::filesystem::path AutoDetectedSettings::GetSteamDir() const

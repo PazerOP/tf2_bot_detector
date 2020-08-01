@@ -14,6 +14,7 @@
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
+#include <libzippp/libzippp.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/case_insensitive_string.hpp>
@@ -21,6 +22,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <filesystem>
 #include <string>
 #include <regex>
 
@@ -32,6 +34,8 @@ using namespace std::string_view_literals;
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, ("TF2 Bot Detector v"s << VERSION).c_str())
 {
+	ILogManager::GetInstance().CleanupLogFiles();
+
 	m_WorldState.AddConsoleLineListener(this);
 	m_WorldState.AddWorldEventListener(this);
 
@@ -169,6 +173,63 @@ void MainWindow::OnDrawColorPickers(const char* id, const std::initializer_list<
 				ImGui::SameLine();
 			}
 		});
+}
+
+template<bool draw>
+static bool OnDrawPlayerTooltipImpl(IPlayer& player, TeamShareResult teamShareResult,
+	const PlayerMarks& playerAttribs)
+{
+	ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 }, draw);
+
+	bool contentDrawn = false;
+
+#ifdef _DEBUG
+	{
+		if constexpr (draw)
+			ImGui::Text("Active time: %1.0fs", to_seconds(player.GetActiveTime()));
+
+		contentDrawn = true;
+	}
+#endif
+
+	if (teamShareResult != TeamShareResult::SameTeams)
+	{
+		if constexpr (draw)
+		{
+			auto kills = player.GetScores().m_LocalKills;
+			auto deaths = player.GetScores().m_LocalDeaths;
+			//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
+			ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
+		}
+
+		contentDrawn = true;
+	}
+
+	if (playerAttribs)
+	{
+		if constexpr (draw)
+		{
+			if (contentDrawn)
+				ImGui::NewLine();
+
+			ImGui::TextUnformatted("Player "s << player << " marked in playerlist(s):" << playerAttribs);
+		}
+
+		contentDrawn = true;
+	}
+
+	return contentDrawn;
+}
+
+void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult,
+	const PlayerMarks& playerAttribs)
+{
+	if (OnDrawPlayerTooltipImpl<false>(player, teamShareResult, playerAttribs))
+	{
+		ImGui::BeginTooltip();
+		OnDrawPlayerTooltipImpl<true>(player, teamShareResult, playerAttribs);
+		ImGui::EndTooltip();
+	}
 }
 
 void MainWindow::OnDrawScoreboard()
@@ -362,34 +423,12 @@ void MainWindow::OnDrawScoreboard()
 						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
 
+						if (ImGui::IsItemHovered())
+							OnDrawPlayerTooltip(player, teamShareResult, playerAttribs);
 						if ((player.GetSteamID() != m_Settings.GetLocalSteamID()) &&
 							ImGui::IsItemHovered() &&
 							(playerAttribs || (teamShareResult != TeamShareResult::SameTeams)))
 						{
-							ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
-
-							ImGui::BeginTooltip();
-
-							bool contentDrawn = false;
-							if (teamShareResult != TeamShareResult::SameTeams)
-							{
-								auto kills = player.GetScores().m_LocalKills;
-								auto deaths = player.GetScores().m_LocalDeaths;
-								//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
-								ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
-								contentDrawn = true;
-							}
-
-							if (playerAttribs)
-							{
-								if (contentDrawn)
-									ImGui::NewLine();
-
-								ImGui::TextUnformatted("Player "s << player << " marked in playerlist(s):" << playerAttribs);
-								contentDrawn = true;
-							}
-
-							ImGui::EndTooltip();
 						}
 
 						ImGui::NextColumn();
@@ -514,7 +553,7 @@ void MainWindow::OnDrawAppLog()
 			ImGui::PushTextWrapPos();
 
 			const void* lastLogMsg = nullptr;
-			for (const LogMessage& msg : GetVisibleLogMsgs())
+			for (const LogMessage& msg : ILogManager::GetInstance().GetVisibleMsgs())
 			{
 				const std::tm timestamp = ToTM(msg.m_Timestamp);
 
@@ -589,6 +628,14 @@ void MainWindow::OnDrawSettingsPopup()
 			if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
 				m_Settings.SaveFile();
 			ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
+		}
+
+		// Auto votekick delay
+		{
+			if (ImGui::SliderFloat("Auto votekick delay", &m_Settings.m_AutoVotekickDelay, 0, 30, "%1.1f seconds"))
+				m_Settings.SaveFile();
+			ImGui::SetHoverTooltip("Delay between a player being registered as fully connected and us expecting them to be ready to vote on an issue.\n\n"
+				"This is needed because players can't vote until they have joined a team and picked a class. If we call a vote before enough people are ready, it might fail.");
 		}
 
 		// Send warnings for connecting cheaters
@@ -816,7 +863,6 @@ void MainWindow::OnDrawAboutPopup()
 	}
 }
 
-#include <libzippp/libzippp.h>
 void MainWindow::GenerateDebugReport()
 {
 	Log("Generating debug_report.zip...");
@@ -829,9 +875,18 @@ void MainWindow::GenerateDebugReport()
 		{
 			LogError("Failed to add console.log to debug report");
 		}
-		if (!archive.addFile("tf2bd.log", GetLogFilename().string()))
+
+		for (const auto& entry : std::filesystem::recursive_directory_iterator("logs"))
 		{
-			LogError("Failed to add tf2bd log to debug report");
+			if (!entry.is_regular_file())
+				continue;
+
+			const auto& path = entry.path();
+
+			if (archive.addFile(path.string(), path.string()))
+				Log("Added file to debug report: "s << path);
+			else
+				Log("Failed to add file to debug report: "s << path);
 		}
 
 		if (auto err = archive.close(); err != LIBZIPPP_OK)

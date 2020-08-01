@@ -62,6 +62,9 @@ namespace tf2_bot_detector
 		virtual time_point_t GetLastStatusUpdateTime() const = 0;
 		duration_t GetTimeSinceLastStatusUpdate() const;
 
+		// The time that this player has been in the "active" state.
+		virtual duration_t GetActiveTime() const = 0;
+
 		operator SteamID() const { return GetSteamID(); }
 
 		template<typename T> inline T* GetData()

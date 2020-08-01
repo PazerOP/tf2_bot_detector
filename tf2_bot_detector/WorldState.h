@@ -114,6 +114,7 @@ namespace tf2_bot_detector
 			uint16_t GetPing() const override { return m_Status.m_Ping; }
 			time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
 			const SteamAPI::PlayerSummary* GetPlayerSummary() const override { return m_PlayerSummary ? &*m_PlayerSummary : nullptr; }
+			duration_t GetActiveTime() const override;
 
 			WorldState* m_World{};
 			PlayerScores m_Scores{};
@@ -135,6 +136,8 @@ namespace tf2_bot_detector
 		private:
 			PlayerStatus m_Status{};
 			std::string m_PlayerNameSafe;
+
+			time_point_t m_LastStatusActiveBegin{};
 
 			time_point_t m_LastStatusUpdateTime{};
 			time_point_t m_LastPingUpdateTime{};
@@ -159,6 +162,7 @@ namespace tf2_bot_detector
 			void OnTimestampUpdate(WorldState& world) override;
 			void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
 			void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override;
+			void OnLocalPlayerInitialized(WorldState& world, bool initialized) override;
 
 			std::unordered_set<IWorldEventListener*> m_EventListeners;
 		} m_EventBroadcaster;

@@ -7,6 +7,7 @@
 #include "WorldState.h"
 #include "Platform/Platform.h"
 
+#include <mh/text/format.hpp>
 #include <mh/future.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -33,26 +34,30 @@ ConsoleLogParser::ConsoleLogParser(WorldState& world, const Settings& settings, 
 
 void ConsoleLogParser::Update()
 {
-	if (!m_File)
+	const auto now = clock_t::now();
+	if (!m_File && (now - m_LastFileLoadAttempt) > 1s)
 	{
+		m_LastFileLoadAttempt = now;
+
 		// Try to truncate
 		{
 			std::error_code ec;
 			const auto filesize = std::filesystem::file_size(m_FileName, ec);
-			if (!ec)
-			{
-				std::filesystem::resize_file(m_FileName, 0, ec);
-				if (ec)
-					Log("Unable to truncate console log file, current size is "s << filesize);
-				else
-					Log("Truncated console log file");
-			}
+			if (ec)
+				LogWarning("Failed to get size of "s << m_FileName << ": " << ec.message());
+			else if (std::filesystem::resize_file(m_FileName, 0, ec); ec)
+				Log("Unable to truncate "s << m_FileName << ", current size is " << filesize);
+			else
+				Log("Truncated console log file");
 		}
 
 		{
 			FILE* temp = _fsopen(m_FileName.string().c_str(), "r", _SH_DENYNO);
 			m_File.reset(temp);
 		}
+
+		if (!m_File)
+			DebugLog("Failed to open "s << m_FileName);
 	}
 
 	bool snapshotUpdated = false;
@@ -97,6 +102,7 @@ void ConsoleLogParser::Parse(bool& linesProcessed, bool& snapshotUpdated, bool& 
 		if (readCount > 0)
 		{
 			m_FileLineBuf.append(buf, readCount);
+			ILogManager::GetInstance().LogConsoleOutput(std::string_view(buf, readCount));
 
 			auto parseEnd = m_FileLineBuf.cbegin();
 			ParseChunk(parseEnd, linesProcessed, snapshotUpdated, consoleLinesUpdated);
@@ -118,12 +124,12 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 		const auto category = ChatCategory(i);
 
 		auto& type = m_Settings->m_Unsaved.m_ChatMsgWrappers.value().m_Types[i];
-		if (lineStr.starts_with(type.m_Full.m_Start))
+		if (lineStr.starts_with(type.m_Full.m_Start.m_Narrow))
 		{
 			auto searchBuf = std::string_view(m_FileLineBuf).substr(
-				&*lineStr.begin() - m_FileLineBuf.data() + type.m_Full.m_Start.size());
+				&*lineStr.begin() - m_FileLineBuf.data() + type.m_Full.m_Start.m_Narrow.size());
 
-			if (auto found = searchBuf.find(type.m_Full.m_End); found != lineStr.npos)
+			if (auto found = searchBuf.find(type.m_Full.m_End.m_Narrow); found != lineStr.npos)
 			{
 				if (found > 512)
 				{
@@ -133,15 +139,21 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 
 				searchBuf = searchBuf.substr(0, found);
 
-				auto nameBegin = searchBuf.find(type.m_Name.m_Start);
-				auto nameEnd = searchBuf.find(type.m_Name.m_End);
-				auto msgBegin = searchBuf.find(type.m_Message.m_Start);
-				auto msgEnd = searchBuf.find(type.m_Message.m_End);
+				auto nameBegin = searchBuf.find(type.m_Name.m_Start.m_Narrow);
+				auto nameEnd = searchBuf.find(type.m_Name.m_End.m_Narrow);
+				auto msgBegin = searchBuf.find(type.m_Message.m_Start.m_Narrow);
+				auto msgEnd = searchBuf.find(type.m_Message.m_End.m_Narrow);
 
 				if (nameBegin != searchBuf.npos && nameEnd != searchBuf.npos && msgBegin != searchBuf.npos && msgEnd != searchBuf.npos)
 				{
-					const auto name = searchBuf.substr(nameBegin + type.m_Name.m_Start.size(), nameEnd - nameBegin - type.m_Name.m_Start.size());
-					const auto msg = searchBuf.substr(msgBegin + type.m_Message.m_Start.size(), msgEnd - msgBegin - type.m_Message.m_Start.size());
+					const auto name = searchBuf.substr(
+						nameBegin + type.m_Name.m_Start.m_Narrow.size(),
+						nameEnd - nameBegin - type.m_Name.m_Start.m_Narrow.size());
+
+					const auto msg = searchBuf.substr(
+						msgBegin + type.m_Message.m_Start.m_Narrow.size(),
+						msgEnd - msgBegin - type.m_Message.m_Start.m_Narrow.size());
+
 					TeamShareResult teamShareResult = TeamShareResult::Neither;
 					bool isSelf = false;
 					if (auto player = m_WorldState->FindSteamIDForName(name))
@@ -165,7 +177,7 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 						LogError("Failed to find message end sequence in chat message of type "s << category);
 				}
 
-				parseEnd += type.m_Full.m_Start.size() + found + type.m_Full.m_End.size();
+				parseEnd += type.m_Full.m_Start.m_Narrow.size() + found + type.m_Full.m_End.m_Narrow.size();
 				return true;
 			}
 			else
