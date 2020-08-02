@@ -14,6 +14,8 @@ namespace tf2_bot_detector
 {
 	enum class TeamShareResult;
 	enum class TFClassType;
+	enum class TFQueueType;
+	enum class TFQueueStateChange;
 	enum class UserMessageType;
 
 	class GenericConsoleLine final : public ConsoleLineBase<GenericConsoleLine, false>
@@ -464,5 +466,25 @@ namespace tf2_bot_detector
 		ConsoleLineType GetType() const override { return ConsoleLineType::GameQuit; }
 		bool ShouldPrint() const override { return false; }
 		void Print(const PrintArgs& args) const override;
+	};
+
+	class QueueStateChangeLine final : public ConsoleLineBase<QueueStateChangeLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		QueueStateChangeLine(time_point_t timestamp, TFQueueType queueType, TFQueueStateChange stateChange);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::QueueStateChange; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		TFQueueType GetQueueType() const { return m_QueueType; }
+		TFQueueStateChange GetStateChange() const { return m_StateChange; }
+
+	private:
+		TFQueueType m_QueueType{};
+		TFQueueStateChange m_StateChange{};
 	};
 }

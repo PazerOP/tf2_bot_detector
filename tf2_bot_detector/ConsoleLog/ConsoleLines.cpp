@@ -1,5 +1,6 @@
 #include "ConsoleLines.h"
 #include "Config/Settings.h"
+#include "GameData/MatchmakingQueue.h"
 #include "GameData/UserMessageType.h"
 #include "Log.h"
 #include "RegexHelpers.h"
@@ -858,4 +859,52 @@ std::shared_ptr<IConsoleLine> GameQuitLine::TryParse(const std::string_view& tex
 void GameQuitLine::Print(const PrintArgs& args) const
 {
 	ImGui::TextUnformatted("CTFGCClientSystem::ShutdownGC"sv);
+}
+
+QueueStateChangeLine::QueueStateChangeLine(time_point_t timestamp, TFQueueType queueType,
+	TFQueueStateChange stateChange) :
+	BaseClass(timestamp), m_QueueType(queueType), m_StateChange(stateChange)
+{
+}
+
+namespace
+{
+	struct QueueStateChangeType
+	{
+		std::string_view m_String;
+		TFQueueType m_QueueType;
+		TFQueueStateChange m_StateChange;
+	};
+
+	static constexpr QueueStateChangeType QUEUE_STATE_CHANGE_TYPES[] =
+	{
+		{ "[PartyClient] Requesting queue for 12v12 Casual Match", TFQueueType::Casual, TFQueueStateChange::RequestedEnter },
+		{ "[PartyClient] Entering queue for match group 12v12 Casual Match", TFQueueType::Casual, TFQueueStateChange::Entered },
+		{ "[PartyClient] Requesting exit queue for 12v12 Casual Match", TFQueueType::Casual, TFQueueStateChange::RequestedExit },
+		{ "[PartyClient] Leaving queue for match group 12v12 Casual Match", TFQueueType::Casual, TFQueueStateChange::Exited },
+	};
+}
+
+std::shared_ptr<IConsoleLine> QueueStateChangeLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	for (const auto& match : QUEUE_STATE_CHANGE_TYPES)
+	{
+		if (text == match.m_String)
+			return std::make_shared<QueueStateChangeLine>(timestamp, match.m_QueueType, match.m_StateChange);
+	}
+
+	return nullptr;
+}
+
+void QueueStateChangeLine::Print(const PrintArgs& args) const
+{
+	for (const auto& match : QUEUE_STATE_CHANGE_TYPES)
+	{
+		if (match.m_QueueType == m_QueueType &&
+			match.m_StateChange == m_StateChange)
+		{
+			ImGui::TextUnformatted(match.m_String);
+			return;
+		}
+	}
 }

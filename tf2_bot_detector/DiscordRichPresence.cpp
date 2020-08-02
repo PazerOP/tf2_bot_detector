@@ -1,6 +1,7 @@
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 #include "DiscordRichPresence.h"
 #include "ConsoleLog/ConsoleLines.h"
+#include "GameData/MatchmakingQueue.h"
 #include "GameData/TFClassType.h"
 #include "Log.h"
 #include "WorldState.h"
@@ -182,6 +183,190 @@ EQUALS_OP_FROM_3WAY(discord::Activity);
 
 namespace
 {
+	struct DiscordGameState final
+	{
+		discord::Activity ConstructActivity() const;
+
+		void UpdateMMQueue(TFQueueType queueTypes, TFQueueStateChange state);
+		void SetInLobby(bool inLobby);
+		void SetInParty(bool inParty);
+		void SetGameOpen(bool gameOpen);
+		void SetMapName(std::string mapName);
+		void UpdateParty(uint8_t partyMembers);
+		void OnLocalPlayerSpawned(TFClassType classType);
+
+	private:
+		TFClassType m_LastSpawnedClass{};
+		TFQueueType m_ActiveQueues{};
+		std::string m_MapName;
+		bool m_GameOpen = false;
+		bool m_InLobby = false;
+		uint8_t m_PartyMemberCount = 0;
+	};
+
+	discord::Activity DiscordGameState::ConstructActivity() const
+	{
+		discord::Activity retVal{};
+
+		if (m_GameOpen)
+		{
+			if (!m_MapName.empty())
+			{
+				retVal.GetAssets().SetLargeImage(mh::format("map_{}", m_MapName).c_str());
+				retVal.SetDetails(m_MapName.c_str());
+			}
+
+			if (m_InLobby)
+			{
+				retVal.SetState("Casual");
+			}
+			else if (m_ActiveQueues != TFQueueType::None)
+			{
+				std::string searchingStr = "Searching - ";
+				switch (m_ActiveQueues)
+				{
+				case TFQueueType::Casual:
+					retVal.SetState("Searching - Casual");
+					break;
+				case TFQueueType::Casual | TFQueueType::Competitive:
+					retVal.SetState("Searching - Casual & Competitive");
+					break;
+				case TFQueueType::Casual | TFQueueType::Competitive | TFQueueType::MVM:
+					retVal.SetState("Searching - Casual, Competitive, and MVM");
+					break;
+				case TFQueueType::Competitive:
+					retVal.SetState("Searching - Competitive");
+					break;
+				case TFQueueType::Competitive | TFQueueType::MVM:
+					retVal.SetState("Searching - Competitive & MVM");
+					break;
+				case TFQueueType::MVM:
+					retVal.SetState("Searching - MVM");
+					break;
+
+				default:
+					retVal.SetState("Searching");
+					break;
+				}
+			}
+			else
+			{
+				retVal.SetState("Main Menu");
+			}
+
+			if (m_PartyMemberCount > 0)
+			{
+				retVal.GetParty().GetSize().SetCurrentSize(m_PartyMemberCount);
+				retVal.GetParty().GetSize().SetMaxSize(6);
+			}
+
+			auto& assets = retVal.GetAssets();
+			switch (m_LastSpawnedClass)
+			{
+			case TFClassType::Demoman:
+				assets.SetSmallImage("leaderboard_class_demo");
+				assets.SetSmallText("Demo");
+				break;
+			case TFClassType::Engie:
+				assets.SetSmallImage("leaderboard_class_engineer");
+				assets.SetSmallText("Engineer");
+				break;
+			case TFClassType::Heavy:
+				assets.SetSmallImage("leaderboard_class_heavy");
+				assets.SetSmallText("Heavy");
+				break;
+			case TFClassType::Medic:
+				assets.SetSmallImage("leaderboard_class_medic");
+				assets.SetSmallText("Medic");
+				break;
+			case TFClassType::Pyro:
+				assets.SetSmallImage("leaderboard_class_pyro");
+				assets.SetSmallText("Pyro");
+				break;
+			case TFClassType::Scout:
+				assets.SetSmallImage("leaderboard_class_scout");
+				assets.SetSmallText("Scout");
+				break;
+			case TFClassType::Sniper:
+				assets.SetSmallImage("leaderboard_class_sniper");
+				assets.SetSmallText("Sniper");
+				break;
+			case TFClassType::Soldier:
+				assets.SetSmallImage("leaderboard_class_soldier");
+				assets.SetSmallText("Soldier");
+				break;
+			case TFClassType::Spy:
+				assets.SetSmallImage("leaderboard_class_spy");
+				assets.SetSmallText("Spy");
+				break;
+			}
+		}
+
+		return retVal;
+	}
+
+	void DiscordGameState::UpdateMMQueue(TFQueueType queueTypes, TFQueueStateChange state)
+	{
+		if (state == TFQueueStateChange::Entered)
+		{
+			m_ActiveQueues |= queueTypes;
+			SetGameOpen(true);
+		}
+		else if (state == TFQueueStateChange::Exited)
+		{
+			m_ActiveQueues &= ~queueTypes;
+		}
+	}
+
+	void DiscordGameState::SetInLobby(bool inLobby)
+	{
+		if (inLobby)
+			SetGameOpen(true);
+
+		m_InLobby = inLobby;
+	}
+
+	void DiscordGameState::SetInParty(bool inParty)
+	{
+		if (inParty)
+		{
+			SetGameOpen(true);
+			if (m_PartyMemberCount < 1)
+				m_PartyMemberCount = 1;
+		}
+		else
+		{
+			m_PartyMemberCount = 0;
+		}
+	}
+
+	void DiscordGameState::SetGameOpen(bool gameOpen)
+	{
+		m_GameOpen = gameOpen;
+	}
+
+	void DiscordGameState::SetMapName(std::string mapName)
+	{
+		m_MapName = std::move(mapName);
+		if (!m_MapName.empty())
+			SetGameOpen(true);
+	}
+
+	void DiscordGameState::UpdateParty(uint8_t partyMembers)
+	{
+		if (partyMembers > 0)
+		{
+			SetInParty(true);
+			m_PartyMemberCount = partyMembers;
+		}
+	}
+
+	void DiscordGameState::OnLocalPlayerSpawned(TFClassType classType)
+	{
+		m_LastSpawnedClass = classType;
+		SetGameOpen(true);
+	}
+
 	struct DiscordState final : IDRPManager, BaseWorldEventListener, IConsoleLineListener
 	{
 		static constexpr duration_t UPDATE_INTERVAL = 10s; // 20s / 5;
@@ -190,13 +375,6 @@ namespace
 
 		discord::Core* m_Core = nullptr;
 
-		bool m_GameOpen = false;
-
-		bool m_WantsUpdate = false;
-
-		std::string m_MapName;
-		discord::Activity m_NextActivity{};
-
 		void QueueUpdate() { m_WantsUpdate = true; }
 		void Update() override;
 
@@ -204,6 +382,9 @@ namespace
 		void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override;
 
 	private:
+		DiscordGameState m_GameState;
+
+		bool m_WantsUpdate = false;
 		time_point_t m_LastUpdate{};
 		discord::Activity m_CurrentActivity{};
 	};
@@ -227,47 +408,39 @@ namespace
 		case ConsoleLineType::PlayerStatusMapPosition:
 		{
 			auto& statusLine = static_cast<const ServerStatusMapLine&>(line);
-			const auto& mapName = statusLine.GetMapName();
-
-			char buf[512];
-			sprintf_s(buf, "map_%s", mapName.c_str());
-			m_NextActivity.GetAssets().SetLargeImage(buf);
-
-			m_NextActivity.SetDetails(mapName.c_str());
-			m_GameOpen = true;
+			m_GameState.SetMapName(statusLine.GetMapName());
 			QueueUpdate();
 			break;
 		}
 		case ConsoleLineType::PartyHeader:
 		{
 			auto& partyLine = static_cast<const PartyHeaderLine&>(line);
-			auto& partySize = m_NextActivity.GetParty().GetSize();
-			partySize.SetCurrentSize(partyLine.GetParty().m_MemberCount);
-			partySize.SetMaxSize(6);
-			m_GameOpen = true;
+			m_GameState.UpdateParty(partyLine.GetParty().m_MemberCount);
 			QueueUpdate();
 			break;
 		}
 		case ConsoleLineType::LobbyHeader:
 		{
-			m_NextActivity.SetState("Casual");
-			m_GameOpen = true;
+			m_GameState.SetInLobby(true);
 			QueueUpdate();
 			break;
 		}
 		case ConsoleLineType::LobbyStatusFailed:
 		{
-			m_MapName = "";
-			m_NextActivity.GetAssets().SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
-			m_NextActivity.SetState("Main Menu");
-			m_GameOpen = true;
+			m_GameState.SetInLobby(false);
 			QueueUpdate();
 			break;
 		}
 		case ConsoleLineType::GameQuit:
 		{
-			m_GameOpen = false;
+			m_GameState.SetGameOpen(false);
 			QueueUpdate();
+			break;
+		}
+		case ConsoleLineType::QueueStateChange:
+		{
+			auto& queueLine = static_cast<const QueueStateChangeLine&>(line);
+			m_GameState.UpdateMMQueue(queueLine.GetQueueType(), queueLine.GetStateChange());
 			break;
 		}
 		}
@@ -275,48 +448,7 @@ namespace
 
 	void DiscordState::OnLocalPlayerSpawned(WorldState& world, TFClassType classType)
 	{
-		auto& assets = m_NextActivity.GetAssets();
-		switch (classType)
-		{
-		case TFClassType::Demoman:
-			assets.SetSmallImage("leaderboard_class_demo");
-			assets.SetSmallText("Demo");
-			break;
-		case TFClassType::Engie:
-			assets.SetSmallImage("leaderboard_class_engineer");
-			assets.SetSmallText("Engineer");
-			break;
-		case TFClassType::Heavy:
-			assets.SetSmallImage("leaderboard_class_heavy");
-			assets.SetSmallText("Heavy");
-			break;
-		case TFClassType::Medic:
-			assets.SetSmallImage("leaderboard_class_medic");
-			assets.SetSmallText("Medic");
-			break;
-		case TFClassType::Pyro:
-			assets.SetSmallImage("leaderboard_class_pyro");
-			assets.SetSmallText("Pyro");
-			break;
-		case TFClassType::Scout:
-			assets.SetSmallImage("leaderboard_class_scout");
-			assets.SetSmallText("Scout");
-			break;
-		case TFClassType::Sniper:
-			assets.SetSmallImage("leaderboard_class_sniper");
-			assets.SetSmallText("Sniper");
-			break;
-		case TFClassType::Soldier:
-			assets.SetSmallImage("leaderboard_class_soldier");
-			assets.SetSmallText("Soldier");
-			break;
-		case TFClassType::Spy:
-			assets.SetSmallImage("leaderboard_class_spy");
-			assets.SetSmallText("Spy");
-			break;
-		}
-
-		QueueUpdate();
+		m_GameState.OnLocalPlayerSpawned(classType);
 	}
 }
 
@@ -344,26 +476,32 @@ static void DiscordLogFunc(discord::LogLevel level, const char* msg)
 
 void DiscordState::Update()
 {
-	if (m_WantsUpdate)
+	std::invoke([&]()
 	{
+		if (!m_WantsUpdate)
+			return;
+
 		const auto curTime = clock_t::now();
-		if ((curTime - m_LastUpdate) >= UPDATE_INTERVAL &&
-			m_NextActivity != m_CurrentActivity)
+		if ((curTime - m_LastUpdate) < UPDATE_INTERVAL)
+			return;
+
+		const auto nextActivity = m_GameState.ConstructActivity();
+		if (nextActivity != m_CurrentActivity)
 		{
 			// Perform the update
-			m_Core->ActivityManager().UpdateActivity(m_NextActivity, [](discord::Result result)
+			m_Core->ActivityManager().UpdateActivity(nextActivity, [](discord::Result result)
 				{
 					if (result != discord::Result::Ok)
 						LogWarning("Failed to update discord activity state: "s << result);
 				});
 
-			m_CurrentActivity = m_NextActivity;
+			m_CurrentActivity = nextActivity;
 			m_LastUpdate = curTime;
 		}
 
 		// Update successful
 		m_WantsUpdate = false;
-	}
+	});
 
 	// Run discord callbacks
 	if (auto result = m_Core->RunCallbacks(); result != discord::Result::Ok)
