@@ -5,11 +5,15 @@
 
 #include <string_view>
 
+namespace tf2_bot_detector
+{
+	class WorldState;
+}
+
 namespace tf2_bot_detector::Discord
 {
 	void Update();
-	void SetClass(TFClassType classType);
-	void SetMap(const std::string_view& mapName);
+	void AddEventListeners(WorldState& world);
 }
 
 #endif

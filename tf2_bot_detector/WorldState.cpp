@@ -3,13 +3,10 @@
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "ConsoleLog/ConsoleLogParser.h"
+#include "GameData/TFClassType.h"
 #include "GameData/UserMessageType.h"
 #include "Log.h"
 #include "RegexHelpers.h"
-
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-#include "DiscordRichPresence.h"
-#endif
 
 #include <mh/future.hpp>
 
@@ -109,10 +106,16 @@ void WorldState::EventBroadcaster::OnChatMsg(WorldState& world,
 		listener->OnChatMsg(world, player, msg);
 }
 
-void tf2_bot_detector::WorldState::EventBroadcaster::OnLocalPlayerInitialized(WorldState& world, bool initialized)
+void WorldState::EventBroadcaster::OnLocalPlayerInitialized(WorldState& world, bool initialized)
 {
 	for (auto listener : m_EventListeners)
 		listener->OnLocalPlayerInitialized(world, initialized);
+}
+
+void WorldState::EventBroadcaster::OnLocalPlayerSpawned(WorldState& world, TFClassType classType)
+{
+	for (auto listener : m_EventListeners)
+		listener->OnLocalPlayerSpawned(world, classType);
 }
 
 std::optional<SteamID> WorldState::FindSteamIDForName(const std::string_view& playerName) const
@@ -282,13 +285,6 @@ void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
 	{
 		DebugLog("Spawned as "s << cfgName.substr(0, cfgName.size() - 3));
 
-		if (!m_IsLocalPlayerInitialized)
-		{
-			m_IsLocalPlayerInitialized = true;
-			m_EventBroadcaster.OnLocalPlayerInitialized(*this, m_IsLocalPlayerInitialized);
-		}
-
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 		TFClassType cl = TFClassType::Undefined;
 		if (cfgName.starts_with("scout"))
 			cl = TFClassType::Scout;
@@ -309,10 +305,13 @@ void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
 		else if (cfgName.starts_with("engineer"))
 			cl = TFClassType::Engie;
 
-		assert(cl != TFClassType::Undefined);
-		if (cl != TFClassType::Undefined)
-			Discord::SetClass(cl);
-#endif
+		m_EventBroadcaster.OnLocalPlayerSpawned(*this, cl);
+
+		if (!m_IsLocalPlayerInitialized)
+		{
+			m_IsLocalPlayerInitialized = true;
+			m_EventBroadcaster.OnLocalPlayerInitialized(*this, m_IsLocalPlayerInitialized);
+		}
 	}
 }
 
@@ -483,16 +482,6 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 
 		break;
 	}
-	case ConsoleLineType::PlayerStatusMapPosition:
-	{
-		auto& statusLine = static_cast<const ServerStatusMapLine&>(parsed);
-
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-		Discord::SetMap(statusLine.GetMapName());
-#endif
-
-		break;
-	};
 	case ConsoleLineType::KillNotification:
 	{
 		auto& killLine = static_cast<const KillNotificationLine&>(parsed);

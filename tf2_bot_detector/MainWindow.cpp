@@ -11,6 +11,10 @@
 #include "PathUtils.h"
 #include "Version.h"
 
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+#include "DiscordRichPresence.h"
+#endif
+
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
@@ -38,6 +42,10 @@ MainWindow::MainWindow() :
 
 	m_WorldState.AddConsoleLineListener(this);
 	m_WorldState.AddWorldEventListener(this);
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+	Discord::AddEventListeners(m_WorldState);
+#endif
 
 	DebugLog("Debug Info:"s
 		<< "\n\tSteam dir:         " << m_Settings.GetSteamDir()

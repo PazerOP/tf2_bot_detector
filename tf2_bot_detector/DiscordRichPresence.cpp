@@ -1,7 +1,10 @@
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 #include "DiscordRichPresence.h"
+#include "ConsoleLog/ConsoleLines.h"
 #include "Log.h"
+#include "WorldState.h"
 
+#include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <discord-game-sdk/core.h>
 
@@ -75,7 +78,7 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 
 namespace
 {
-	struct DiscordState
+	struct DiscordState final : BaseWorldEventListener, IConsoleLineListener
 	{
 		static constexpr duration_t UPDATE_INTERVAL = 10s; // 20s / 5;
 
@@ -91,6 +94,9 @@ namespace
 		std::string m_MapName;
 
 		bool TryUpdate();
+
+		void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) override;
+		void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override;
 
 	private:
 		void UpdateImpl();
@@ -124,6 +130,65 @@ namespace
 		return true;
 	}
 
+	void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)
+	{
+		switch (line.GetType())
+		{
+		case ConsoleLineType::PlayerStatusMapPosition:
+		{
+			auto& statusLine = static_cast<const ServerStatusMapLine&>(line);
+			m_MapName = statusLine.GetMapName();
+			TryUpdate();
+			break;
+		}
+		}
+	}
+
+	void DiscordState::OnLocalPlayerSpawned(WorldState& world, TFClassType classType)
+	{
+		switch (classType)
+		{
+		case TFClassType::Demoman:
+			m_SmallImageKey = "leaderboard_class_demo";
+			m_SmallImageTooltip = "Demo";
+			break;
+		case TFClassType::Engie:
+			m_SmallImageKey = "leaderboard_class_engineer";
+			m_SmallImageTooltip = "Engineer";
+			break;
+		case TFClassType::Heavy:
+			m_SmallImageKey = "leaderboard_class_heavy";
+			m_SmallImageTooltip = "Heavy";
+			break;
+		case TFClassType::Medic:
+			m_SmallImageKey = "leaderboard_class_medic";
+			m_SmallImageTooltip = "Medic";
+			break;
+		case TFClassType::Pyro:
+			m_SmallImageKey = "leaderboard_class_pyro";
+			m_SmallImageTooltip = "Pyro";
+			break;
+		case TFClassType::Scout:
+			m_SmallImageKey = "leaderboard_class_scout";
+			m_SmallImageTooltip = "Scout";
+			break;
+		case TFClassType::Sniper:
+			m_SmallImageKey = "leaderboard_class_sniper";
+			m_SmallImageTooltip = "Sniper";
+			break;
+		case TFClassType::Soldier:
+			m_SmallImageKey = "leaderboard_class_soldier";
+			m_SmallImageTooltip = "Soldier";
+			break;
+		case TFClassType::Spy:
+			m_SmallImageKey = "leaderboard_class_spy";
+			m_SmallImageTooltip = "Spy";
+			break;
+		}
+
+		TryUpdate();
+	}
+
 	void DiscordState::UpdateImpl()
 	{
 		{
@@ -145,7 +210,13 @@ namespace
 		auto& assets = act.GetAssets();
 		assets.SetSmallImage(m_SmallImageKey.c_str());
 		assets.SetSmallText(m_SmallImageTooltip.c_str());
+
+#if 0
 		assets.SetLargeImage("tf2_1x1");
+#else
+		assets.SetLargeImage(mh::format("map_{}", m_MapName).c_str());
+#endif
+
 		assets.SetLargeText("https://github.com/PazerOP/tf2_bot_detector");
 
 		m_Core->ActivityManager().UpdateActivity(act, [](discord::Result result)
@@ -189,58 +260,11 @@ void Discord::Update()
 		LogError("Failed to run discord callbacks: "s << result);
 }
 
-void Discord::SetClass(TFClassType classType)
+void Discord::AddEventListeners(WorldState& world)
 {
 	auto& state = GetDiscordState();
-
-	switch (classType)
-	{
-	case TFClassType::Demoman:
-		state.m_SmallImageKey = "leaderboard_class_demo";
-		state.m_SmallImageTooltip = "Demo";
-		break;
-	case TFClassType::Engie:
-		state.m_SmallImageKey = "leaderboard_class_engineer";
-		state.m_SmallImageTooltip = "Engineer";
-		break;
-	case TFClassType::Heavy:
-		state.m_SmallImageKey = "leaderboard_class_heavy";
-		state.m_SmallImageTooltip = "Heavy";
-		break;
-	case TFClassType::Medic:
-		state.m_SmallImageKey = "leaderboard_class_medic";
-		state.m_SmallImageTooltip = "Medic";
-		break;
-	case TFClassType::Pyro:
-		state.m_SmallImageKey = "leaderboard_class_pyro";
-		state.m_SmallImageTooltip = "Pyro";
-		break;
-	case TFClassType::Scout:
-		state.m_SmallImageKey = "leaderboard_class_scout";
-		state.m_SmallImageTooltip = "Scout";
-		break;
-	case TFClassType::Sniper:
-		state.m_SmallImageKey = "leaderboard_class_sniper";
-		state.m_SmallImageTooltip = "Sniper";
-		break;
-	case TFClassType::Soldier:
-		state.m_SmallImageKey = "leaderboard_class_soldier";
-		state.m_SmallImageTooltip = "Soldier";
-		break;
-	case TFClassType::Spy:
-		state.m_SmallImageKey = "leaderboard_class_spy";
-		state.m_SmallImageTooltip = "Spy";
-		break;
-	}
-
-	state.TryUpdate();
-}
-
-void Discord::SetMap(const std::string_view& mapName)
-{
-	auto& state = GetDiscordState();
-	state.m_MapName = mapName;
-	state.TryUpdate();
+	world.AddConsoleLineListener(&state);
+	world.AddWorldEventListener(&state);
 }
 
 #endif

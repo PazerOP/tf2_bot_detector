@@ -812,3 +812,37 @@ void HostNewGameLine::Print(const PrintArgs& args) const
 {
 	ImGui::TextUnformatted("---- Host_NewGame ----"sv);
 }
+
+PartyHeaderLine::PartyHeaderLine(time_point_t timestamp, TFParty party) :
+	BaseClass(timestamp), m_Party(std::move(party))
+{
+}
+
+std::shared_ptr<IConsoleLine> PartyHeaderLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(TFParty:\s+ID:([0-9a-f]+)\s+(\d+) member\(s\)\s+LeaderID: (\[.*\]))regex", std::regex::optimize);
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		TFParty party{};
+
+		{
+			uint64_t partyID;
+			from_chars_throw(result[1], partyID, 16);
+			party.m_PartyID = TFPartyID(partyID);
+		}
+
+		from_chars_throw(result[2], party.m_MemberCount);
+
+		party.m_LeaderID = SteamID(result[3].str());
+
+		return std::make_shared<PartyHeaderLine>(timestamp, std::move(party));
+	}
+
+	return nullptr;
+}
+
+void PartyHeaderLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("TFParty: ID:%xll  %u member(s)  LeaderID: %s", m_Party.m_PartyID,
+		m_Party.m_MemberCount, m_Party.m_LeaderID.str().c_str());
+}

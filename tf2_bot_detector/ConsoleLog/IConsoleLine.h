@@ -20,6 +20,7 @@ namespace tf2_bot_detector
 		LobbyChanged,
 		LobbyHeader,
 		LobbyMember,
+		PartyHeader,
 		PlayerStatus,
 		PlayerStatusShort,
 		PlayerStatusCount,

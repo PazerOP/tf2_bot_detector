@@ -1,0 +1,50 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/discord_rich_presence.schema.json",
+	"title": "TF2 Bot Detector Discord Rich Presence Schema",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"description": "The JSON schema to validate this file against.",
+			"type": "string"
+		},
+		"file_info": {
+			"$ref": "./shared.schema.json#/definitions/file_info"
+		},
+		"maps": {
+			"description": "Map name <--> rich presence settings",
+			"type": "object",
+			"additionalProperties": true,
+			"patternProperties": {
+				".*": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Entry for a specific map",
+					"properties": {
+						"map_name_aliases": {
+							"type": "array",
+							"description": "Additional names for this map",
+							"items": {
+								"type": "string"
+							}
+						},
+						"friendly_name_override": {
+							"type": "string",
+							"description": "Friendly name of the map (pl_thundermountain -> Thunder Mountain)"
+						},
+						"large_image_key_override": {
+							"type": "string",
+							"description": "Override for the name of the large image in Discord."
+						}
+					}
+				}
+			},
+			"item": {}
+		}
+	},
+	"required": [
+		"$schema",
+		"maps"
+	]
+}
