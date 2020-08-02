@@ -36,6 +36,7 @@ namespace tf2_bot_detector
 		TeamsSwitched,
 		Connecting,
 		HostNewGame,
+		GameQuit,
 
 		NetLatency,
 		NetLoss,

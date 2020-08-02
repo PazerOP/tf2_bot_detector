@@ -1,19 +1,20 @@
 #pragma once
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 
-#include "GameData/TFClassType.h"
-
-#include <string_view>
+#include <memory>
 
 namespace tf2_bot_detector
 {
 	class WorldState;
-}
 
-namespace tf2_bot_detector::Discord
-{
-	void Update();
-	void AddEventListeners(WorldState& world);
+	class IDRPManager
+	{
+	public:
+		virtual ~IDRPManager() = default;
+		virtual void Update() = 0;
+
+		static std::unique_ptr<IDRPManager> Create(WorldState& world);
+	};
 }
 
 #endif

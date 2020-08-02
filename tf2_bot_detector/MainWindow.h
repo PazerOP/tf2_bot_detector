@@ -9,6 +9,7 @@
 #include "Config/PlayerListJSON.h"
 #include "Config/Settings.h"
 #include "Config/SponsorsList.h"
+#include "DiscordRichPresence.h"
 #include "Networking/GithubAPI.h"
 #include "ModeratorLogic.h"
 #include "SetupFlow/SetupFlow.h"
@@ -150,6 +151,10 @@ namespace tf2_bot_detector
 		ModeratorLogic m_ModeratorLogic{ m_WorldState, m_Settings, m_ActionManager };
 		SetupFlow m_SetupFlow;
 		SponsorsList m_SponsorsList{ m_Settings };
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+		std::unique_ptr<IDRPManager> m_DRPManager;
+#endif
 
 		time_point_t GetLastStatusUpdateTime() const;
 

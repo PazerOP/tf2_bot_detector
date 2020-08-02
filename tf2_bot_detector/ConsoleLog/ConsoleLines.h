@@ -452,4 +452,17 @@ namespace tf2_bot_detector
 		bool ShouldPrint() const override { return false; }
 		void Print(const PrintArgs& args) const override;
 	};
+
+	class GameQuitLine final : public ConsoleLineBase<GameQuitLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		GameQuitLine(time_point_t timestamp) : BaseClass(timestamp) {}
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::GameQuit; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+	};
 }

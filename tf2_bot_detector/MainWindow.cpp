@@ -43,10 +43,6 @@ MainWindow::MainWindow() :
 	m_WorldState.AddConsoleLineListener(this);
 	m_WorldState.AddWorldEventListener(this);
 
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-	Discord::AddEventListeners(m_WorldState);
-#endif
-
 	DebugLog("Debug Info:"s
 		<< "\n\tSteam dir:         " << m_Settings.GetSteamDir()
 		<< "\n\tTF dir:            " << m_Settings.GetTFDir()
@@ -1205,10 +1201,6 @@ void MainWindow::OnUpdate()
 	if (m_Paused)
 		return;
 
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-	Discord::Update();
-#endif
-
 #ifdef _WIN32
 	m_HijackActionManager.Update();
 #endif
@@ -1223,12 +1215,18 @@ void MainWindow::OnUpdate()
 		m_ConsoleLogParser.reset();
 		return;
 	}
-	else if (!m_ConsoleLogParser)
+	else
 	{
-		m_ConsoleLogParser.emplace(*this);
-	}
-	else if (m_ConsoleLogParser)
-	{
+		if (!m_ConsoleLogParser)
+			m_ConsoleLogParser.emplace(*this);
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+		if (!m_DRPManager)
+			m_DRPManager = IDRPManager::Create(m_WorldState);
+
+		m_DRPManager->Update();
+#endif
+
 		m_ConsoleLogParser->m_Parser.Update();
 		m_ModeratorLogic.Update();
 	}

@@ -846,3 +846,16 @@ void PartyHeaderLine::Print(const PrintArgs& args) const
 	ImGui::Text("TFParty: ID:%xll  %u member(s)  LeaderID: %s", m_Party.m_PartyID,
 		m_Party.m_MemberCount, m_Party.m_LeaderID.str().c_str());
 }
+
+std::shared_ptr<IConsoleLine> GameQuitLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	if (text == "CTFGCClientSystem::ShutdownGC"sv)
+		return std::make_shared<GameQuitLine>(timestamp);
+
+	return nullptr;
+}
+
+void GameQuitLine::Print(const PrintArgs& args) const
+{
+	ImGui::TextUnformatted("CTFGCClientSystem::ShutdownGC"sv);
+}
