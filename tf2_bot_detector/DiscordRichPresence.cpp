@@ -15,6 +15,7 @@
 
 #include <array>
 #include <cassert>
+#include <compare>
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -174,12 +175,6 @@ static std::strong_ordering operator<=>(const discord::Activity& lhs, const disc
 		return result;
 
 	return std::strong_ordering::equal;
-}
-
-template<typename TLHS, typename TRHS>
-constexpr auto operator==(const TLHS& lhs, const TRHS& rhs) -> decltype(lhs <=> rhs, bool{})
-{
-	return std::is_eq(lhs <=> rhs);
 }
 
 namespace
@@ -478,6 +473,12 @@ void DiscordGameState::OnLocalPlayerSpawned(TFClassType classType)
 	SetGameOpen(true);
 }
 
+void DiscordGameState::OnLocalPlayerDisconnected()
+{
+	SetInLocalServer(false);
+	SetInLobby(false);
+}
+
 namespace
 {
 	struct DiscordState final : IDRPManager, BaseWorldEventListener, IConsoleLineListener
@@ -646,7 +647,7 @@ void DiscordState::Update()
 
 		const auto nextActivity = m_GameState.ConstructActivity();
 		if (nextActivity.has_value() != m_CurrentActivity.has_value() ||
-			(nextActivity.has_value() && m_CurrentActivity.has_value() && *nextActivity != *m_CurrentActivity))
+			(nextActivity.has_value() && m_CurrentActivity.has_value() && std::is_neq(*nextActivity <=> *m_CurrentActivity)))
 		{
 			if (nextActivity)
 			{
