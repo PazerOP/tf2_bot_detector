@@ -46,7 +46,4 @@ namespace tf2_bot_detector
 
 		std::shared_future<DRPFile> m_DRPInfo;
 	};
-
-	void to_json(nlohmann::json& j, const DRPInfo::Map& d);
-	void from_json(const nlohmann::json& j, DRPInfo::Map& d);
 }

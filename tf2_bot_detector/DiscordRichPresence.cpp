@@ -1,5 +1,6 @@
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 #include "DiscordRichPresence.h"
+#include "Config/DRPInfo.h"
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "GameData/MatchmakingQueue.h"
@@ -464,6 +465,7 @@ namespace
 		const Settings* m_Settings = nullptr;
 		DiscordGameState m_GameState;
 
+		DRPInfo m_DRPInfo;
 		bool m_WantsUpdate = false;
 		time_point_t m_LastUpdate{};
 		std::optional<discord::Activity> m_CurrentActivity{};
@@ -471,7 +473,8 @@ namespace
 
 	DiscordState::DiscordState(const Settings& settings, WorldState& world) :
 		m_Settings(&settings),
-		m_GameState(settings)
+		m_GameState(settings),
+		m_DRPInfo(settings)
 	{
 		world.AddConsoleLineListener(this);
 		world.AddWorldEventListener(this);
@@ -481,30 +484,6 @@ namespace
 
 		if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
 			LogError("Failed to register discord integration as steam appid 440: "s << result);
-
-		m_Core->ActivityManager().OnActivityInvite.Connect(
-			[](discord::ActivityActionType aat, const discord::User& user, const discord::Activity& act)
-		{
-			LogWarning(MH_SOURCE_LOCATION_CURRENT(), "OnActivityInvite");
-		});
-
-		m_Core->ActivityManager().OnActivityJoin.Connect(
-			[](const char* str)
-			{
-				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "OnActivityJoin: "s << std::quoted(str));
-			});
-
-		m_Core->ActivityManager().OnActivitySpectate.Connect(
-			[](const char* str)
-			{
-				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "OnActivitySpectate: "s << std::quoted(str));
-			});
-
-		m_Core->ActivityManager().OnActivityJoinRequest.Connect(
-			[](const discord::User& user)
-			{
-				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "OnActivityJoinRequest");
-			});
 	}
 
 	void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)

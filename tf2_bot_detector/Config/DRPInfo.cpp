@@ -23,8 +23,22 @@ void DRPInfo::DRPFile::Deserialize(const nlohmann::json& json)
 {
 	BaseClass::Deserialize(json);
 
-	if (auto found = json.find("maps"); found != json.end())
-		found->get_to(m_Maps);
+	auto& maps = json.at("maps");
+	for (auto it = maps.begin(); it != maps.end(); ++it)
+	{
+		Map map;
+		map.m_MapNames.push_back(it.key());
+
+		if (auto found = it->find("map_name_aliases"); found != it->end())
+		{
+			for (const auto& alias : *found)
+				map.m_MapNames.push_back(alias);
+		}
+
+		try_get_to_defaulted(it.value(), map.m_FriendlyNameOverride, "friendly_name_override");
+		try_get_to_defaulted(it.value(), map.m_LargeImageKeyOverride, "large_image_key_override");
+		m_Maps.push_back(std::move(map));
+	}
 }
 
 void DRPInfo::DRPFile::Serialize(nlohmann::json& json) const
@@ -34,12 +48,17 @@ void DRPInfo::DRPFile::Serialize(nlohmann::json& json) const
 	if (!m_Schema || m_Schema->m_Version != DRP_SCHEMA_VERSION)
 		json["$schema"] = ConfigSchemaInfo("discord_rich_presence", DRP_SCHEMA_VERSION);
 
-	__debugbreak();
-	for (const auto& entry : json["maps"])
+	for (const auto& map : m_Maps)
 	{
-		__debugbreak();
+		auto& entry = json["maps"][map.m_MapNames.at(0)] = nlohmann::json::object();
+		for (size_t i = 1; i < map.m_MapNames.size(); i++)
+			entry["map_name_aliases"].push_back(map.m_MapNames[i]);
+
+		if (!map.m_FriendlyNameOverride.empty())
+			entry["friendly_name_override"] = map.m_FriendlyNameOverride;
+		if (!map.m_LargeImageKeyOverride.empty())
+			entry["large_image_key_override"] = map.m_LargeImageKeyOverride;
 	}
-	//json["maps"] = m_Maps;
 }
 
 void DRPInfo::DRPFile::ValidateSchema(const ConfigSchemaInfo& schema) const
@@ -69,6 +88,7 @@ std::string DRPInfo::Map::GetFriendlyName() const
 	if (!m_FriendlyNameOverride.empty())
 		return m_FriendlyNameOverride;
 
+#if 0
 	std::string friendlyName;
 	size_t i = size_t(-1);
 	for (const auto& segment : mh::split_string(m_MapNames.at(0), "_"))
@@ -83,29 +103,12 @@ std::string DRPInfo::Map::GetFriendlyName() const
 	}
 
 	throw "Not implemented";
+#else
+	return m_MapNames.at(0);
+#endif
 }
 
-void tf2_bot_detector::to_json(nlohmann::json& j, const DRPInfo::Map& d)
+bool DRPInfo::Map::Matches(const std::string_view& mapName) const
 {
-	if (!d.m_FriendlyNameOverride.empty())
-		j["friendly_name_override"] = d.m_FriendlyNameOverride;
-	if (!d.m_LargeImageKeyOverride.empty())
-		j["large_image_key_override"] = d.m_LargeImageKeyOverride;
-	if (d.m_MapNames.size() > 1)
-	{
-		auto& a = j["map_name_aliases"];
-		a = nlohmann::json::array();
-
-		for (size_t i = 1; i < d.m_MapNames.size(); i++)
-			a.push_back(d.m_MapNames[i]);
-	}
-}
-
-void tf2_bot_detector::from_json(const nlohmann::json& j, DRPInfo::Map& d)
-{
-	try_get_to_defaulted(j, d.m_FriendlyNameOverride, "friendly_name_override");
-	try_get_to_defaulted(j, d.m_LargeImageKeyOverride, "large_image_key_override");
-
-	if (auto found = j.find("map_name_aliases"); found != j.end())
-		d.m_MapNames.insert(d.m_MapNames.end(), found->begin(), found->end());
+	return false;
 }

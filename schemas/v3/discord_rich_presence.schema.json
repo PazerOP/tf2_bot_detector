@@ -26,7 +26,8 @@
 							"type": "array",
 							"description": "Additional names for this map",
 							"items": {
-								"type": "string"
+								"type": "string",
+								"format": "regex"
 							}
 						},
 						"friendly_name_override": {

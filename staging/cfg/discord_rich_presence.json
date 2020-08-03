@@ -1,5 +1,5 @@
 {
-	"$schema": "../../schemas/v3/discord_rich_presence.schema.json",
+	"$schema": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/discord_rich_presence.schema.json",
 	"file_info": {
 		"authors": [
 			"pazer"
@@ -12,7 +12,7 @@
 		"cp_5gorge": {},
 		"cp_badlands": {},
 		"cp_cloak": {
-			"friendly_name_override": "👀"
+			"friendly_name_override": "\ud83d\udc40"
 		},
 		"cp_coldfront": {},
 		"cp_degrootkeep": {
@@ -25,20 +25,45 @@
 		"cp_freight": {},
 		"cp_gorge": {},
 		"cp_gorge_event": {},
-		"cp_granary": {},
+		"cp_granary": {
+			"map_name_aliases": [
+				"cp_granary_pro\\d+",
+				"cp_granary_pro_rc\\d+",
+				"cp_granary_pro_[ab]\\d+",
+				"cp_pro_granary"
+			]
+		},
 		"cp_gravelpit": {},
-		"cp_gullywash": {},
+		"cp_gullywash": {
+			"map_name_aliases": [
+				"cp_gullywash_pro",
+				"cp_gullywash_imp\\d+"
+			]
+		},
 		"cp_junction": {},
 		"cp_manor_event": {},
 		"cp_mercenarypark": {
 			"friendly_name_override": "Mercenary Park"
 		},
-		"cp_metalworks": {},
+		"cp_metalworks": {
+			"map_name_aliases": [
+				"cp_metalworks_rc\\d+"
+			]
+		},
 		"cp_mossrock": {},
 		"cp_mountainlab": {},
 		"cp_powerhouse": {},
-		"cp_process": {},
-		"cp_snakewater": {},
+		"cp_process": {
+			"map_name_aliases": [
+				"cp_process_final",
+				"cp_process_[ab]\\d+fix"
+			]
+		},
+		"cp_snakewater": {
+			"map_name_aliases": [
+				"cp_snakewater_[ug]\\d+"
+			]
+		},
 		"cp_snowplow": {},
 		"cp_standin": {},
 		"cp_steel": {},
@@ -64,17 +89,23 @@
 		"koth_badlands": {},
 		"koth_bagel_event": {},
 		"koth_brazil": {},
-		"koth_harvest_event": {},
 		"koth_harvest": {},
+		"koth_harvest_event": {},
 		"koth_highpass": {},
 		"koth_king": {},
-		"koth_lakeside_event": {},
 		"koth_lakeside": {},
+		"koth_lakeside_event": {},
 		"koth_lazarus": {},
 		"koth_maple_ridge_event": {},
 		"koth_moonshine_event": {},
 		"koth_nucleus": {},
 		"koth_probed": {},
+		"koth_product": {
+			"map_name_aliases": [
+				"koth_pro_viaduct_rc\\d+",
+				"koth_viaduct_pro\\d+"
+			]
+		},
 		"koth_sawmill": {},
 		"koth_slasher": {},
 		"koth_slaughter_event": {},
@@ -95,7 +126,11 @@
 		"pd_monster_bash": {},
 		"pd_pit_of_death_event": {},
 		"pd_watergate": {},
-		"pl_badwater": {},
+		"pl_badwater": {
+			"map_name_aliases": [
+				"pl_badwater_pro_v\\d+"
+			]
+		},
 		"pl_barnblitz": {},
 		"pl_borneo": {},
 		"pl_cactuscanyon": {},
@@ -106,7 +141,13 @@
 		"pl_precipice_event": {},
 		"pl_rumble_event": {},
 		"pl_snowycoast": {},
-		"pl_swiftwater": {},
+		"pl_swiftwater": {
+			"map_name_aliases": [
+				"pl_swiftwater_ugc",
+				"pl_swiftwater_final_rc",
+				"pl_swiftwater_frc\\d+"
+			]
+		},
 		"pl_thundermountain": {
 			"friendly_name_override": "Thunder Mountain"
 		},
