@@ -1,11 +1,13 @@
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 #include "DiscordRichPresence.h"
+#include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "GameData/MatchmakingQueue.h"
 #include "GameData/TFClassType.h"
 #include "Log.h"
 #include "WorldState.h"
 
+#include <mh/text/charconv_helper.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <discord-game-sdk/core.h>
@@ -186,6 +188,8 @@ namespace
 {
 	struct DiscordGameState final
 	{
+		DiscordGameState(const Settings& settings) : m_Settings(&settings) {}
+
 		discord::Activity ConstructActivity() const;
 
 		void OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state);
@@ -198,6 +202,8 @@ namespace
 		void OnLocalPlayerSpawned(TFClassType classType);
 
 	private:
+		const Settings* m_Settings = nullptr;
+
 		struct QueueState
 		{
 			bool m_Active = false;
@@ -264,8 +270,6 @@ namespace
 
 		if (m_GameOpen)
 		{
-			retVal.SetApplicationId(440);
-
 			if (!m_MapName.empty())
 			{
 				retVal.GetAssets().SetLargeImage(mh::format("map_{}", m_MapName).c_str());
@@ -442,7 +446,7 @@ namespace
 	{
 		static constexpr duration_t UPDATE_INTERVAL = 10s; // 20s / 5;
 
-		DiscordState(WorldState& world);
+		DiscordState(const Settings& settings, WorldState& world);
 
 		discord::Core* m_Core = nullptr;
 
@@ -453,6 +457,7 @@ namespace
 		void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override;
 
 	private:
+		const Settings* m_Settings = nullptr;
 		DiscordGameState m_GameState;
 
 		bool m_WantsUpdate = false;
@@ -460,7 +465,9 @@ namespace
 		discord::Activity m_CurrentActivity{};
 	};
 
-	DiscordState::DiscordState(WorldState& world)
+	DiscordState::DiscordState(const Settings& settings, WorldState& world) :
+		m_Settings(&settings),
+		m_GameState(settings)
 	{
 		world.AddConsoleLineListener(this);
 		world.AddWorldEventListener(this);
@@ -470,6 +477,30 @@ namespace
 
 		if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
 			LogError("Failed to register discord integration as steam appid 440: "s << result);
+
+		m_Core->ActivityManager().OnActivityInvite.Connect(
+			[](discord::ActivityActionType aat, const discord::User& user, const discord::Activity& act)
+		{
+			LogWarning(MH_SOURCE_LOCATION_CURRENT(), "OnActivityInvite");
+		});
+
+		m_Core->ActivityManager().OnActivityJoin.Connect(
+			[](const char* str)
+			{
+				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "OnActivityJoin: "s << std::quoted(str));
+			});
+
+		m_Core->ActivityManager().OnActivitySpectate.Connect(
+			[](const char* str)
+			{
+				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "OnActivitySpectate: "s << std::quoted(str));
+			});
+
+		m_Core->ActivityManager().OnActivityJoinRequest.Connect(
+			[](const discord::User& user)
+			{
+				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "OnActivityJoinRequest");
+			});
 	}
 
 	void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)
@@ -593,7 +624,7 @@ void DiscordState::Update()
 
 #endif
 
-std::unique_ptr<IDRPManager> IDRPManager::Create(WorldState& world)
+std::unique_ptr<IDRPManager> IDRPManager::Create(const Settings& settings, WorldState& world)
 {
-	return std::make_unique<DiscordState>(world);
+	return std::make_unique<DiscordState>(settings, world);
 }

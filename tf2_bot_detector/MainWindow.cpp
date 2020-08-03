@@ -1222,7 +1222,7 @@ void MainWindow::OnUpdate()
 
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 		if (!m_DRPManager)
-			m_DRPManager = IDRPManager::Create(m_WorldState);
+			m_DRPManager = IDRPManager::Create(m_Settings, m_WorldState);
 
 		m_DRPManager->Update();
 #endif
