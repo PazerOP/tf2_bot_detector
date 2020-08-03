@@ -1030,3 +1030,23 @@ void ServerDroppedPlayerLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("Dropped %s from server (%s)", m_PlayerName.c_str(), m_Reason.c_str());
 }
+
+ServerStatusPlayerIPLine::ServerStatusPlayerIPLine(time_point_t timestamp, std::string localIP, std::string publicIP) :
+	BaseClass(timestamp), m_LocalIP(std::move(localIP)), m_PublicIP(std::move(publicIP))
+{
+}
+
+std::shared_ptr<IConsoleLine> ServerStatusPlayerIPLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(udp\/ip  : (.*)  \(public ip: (.*)\))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+		return std::make_shared<ServerStatusPlayerIPLine>(timestamp, result[1].str(), result[2].str());
+
+	return nullptr;
+}
+
+void ServerStatusPlayerIPLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("udp/ip  : %s  (public ip: %s)", m_LocalIP.c_str(), m_PublicIP.c_str());
+}

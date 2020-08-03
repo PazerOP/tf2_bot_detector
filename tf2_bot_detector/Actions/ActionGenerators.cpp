@@ -93,6 +93,8 @@ bool LobbyDebugActionGenerator::ExecuteImpl(RCONActionManager& manager)
 		return false;
 	if (!manager.QueueAction<GenericCommandAction>("tf_party_debug"))
 		return false;
+	if (!manager.QueueAction<GenericCommandAction>("net_status"))
+		return false;
 
 	return true;
 }

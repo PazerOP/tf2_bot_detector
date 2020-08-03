@@ -22,6 +22,7 @@ namespace tf2_bot_detector
 		LobbyMember,
 		PartyHeader,
 		PlayerStatus,
+		PlayerStatusIP,
 		PlayerStatusShort,
 		PlayerStatusCount,
 		PlayerStatusMapPosition,
@@ -42,6 +43,7 @@ namespace tf2_bot_detector
 		ServerJoin,
 		ServerDroppedPlayer,
 
+		NetStatusConfig,
 		NetLatency,
 		NetLoss,
 		NetPacketsTotal,

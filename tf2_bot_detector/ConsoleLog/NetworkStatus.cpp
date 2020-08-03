@@ -1,4 +1,5 @@
 #include "NetworkStatus.h"
+#include "Log.h"
 #include "RegexHelpers.h"
 
 #include <imgui.h>
@@ -82,4 +83,57 @@ void SplitPacketLine::Print(const PrintArgs& args) const
 		m_Packet.m_MTU,
 		m_Packet.m_Address.c_str(),
 		m_Packet.m_TotalSize);
+}
+
+NetStatusConfigLine::NetStatusConfigLine(time_point_t timestamp,
+	PlayerMode playerMode, ServerMode serverMode, unsigned connectionCount) :
+	BaseClass(timestamp), m_PlayerMode(playerMode), m_ServerMode(serverMode), m_ConnectionCount(connectionCount)
+{
+}
+
+std::shared_ptr<IConsoleLine> NetStatusConfigLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(- Config: (.*), (.*), (\d+) connections)regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		const std::string_view playerModeStr(&*result[1].first, result[1].length());
+		PlayerMode playerMode;
+		if (playerModeStr == "Multiplayer"sv)
+			playerMode = PlayerMode::Multiplayer;
+		else if (playerModeStr == "Singleplayer"sv)
+			playerMode = PlayerMode::Singleplayer;
+		else
+		{
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown player mode "s << std::quoted(playerModeStr));
+			return nullptr;
+		}
+
+		const std::string_view serverModeStr(&*result[2].first, result[2].length());
+		ServerMode serverMode;
+		if (serverModeStr == "dedicated"sv)
+			serverMode = ServerMode::Dedicated;
+		else if (serverModeStr == "listen"sv)
+			serverMode = ServerMode::Listen;
+		else
+		{
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown server mode "s << std::quoted(serverModeStr));
+			return nullptr;
+		}
+
+		unsigned connectionCount;
+		from_chars_throw(result[3], connectionCount);
+
+		return std::make_shared<NetStatusConfigLine>(timestamp, playerMode, serverMode, connectionCount);
+	}
+
+	return nullptr;
+}
+
+void NetStatusConfigLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("- Config: %s, %s, %u connections",
+		m_PlayerMode == PlayerMode::Multiplayer ? "Multiplayer" : "Singleplayer",
+		m_ServerMode == ServerMode::Dedicated ? "dedicated" : "listen",
+		m_ConnectionCount);
 }

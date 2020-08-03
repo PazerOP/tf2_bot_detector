@@ -176,6 +176,26 @@ namespace tf2_bot_detector
 		PlayerStatus m_PlayerStatus;
 	};
 
+	class ServerStatusPlayerIPLine final : public ConsoleLineBase<ServerStatusPlayerIPLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ServerStatusPlayerIPLine(time_point_t timestamp, std::string localIP, std::string publicIP);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusIP; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		const std::string& GetLocalIP() const { return m_LocalIP; }
+		const std::string& GetPublicIP() const { return m_PublicIP; }
+
+	private:
+		std::string m_LocalIP;
+		std::string m_PublicIP;
+	};
+
 	class ServerStatusShortPlayerLine final : public ConsoleLineBase<ServerStatusShortPlayerLine>
 	{
 		using BaseClass = ConsoleLineBase;

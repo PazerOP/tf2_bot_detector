@@ -146,6 +146,8 @@ bool RCONActionManager::ShouldDiscardCommand(const std::string_view& cmd) const
 		return false;
 	if (cmd == "tf_party_debug"sv)
 		return false;
+	if (cmd == "net_status"sv)
+		return false;
 
 	DebugLog("Discarding potential server command "s << std::quoted(cmd));
 	return true;

@@ -3,6 +3,7 @@
 #include "Config/DRPInfo.h"
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
+#include "ConsoleLog/NetworkStatus.h"
 #include "GameData/MatchmakingQueue.h"
 #include "GameData/TFClassType.h"
 #include "Log.h"
@@ -179,6 +180,13 @@ static std::strong_ordering operator<=>(const discord::Activity& lhs, const disc
 
 namespace
 {
+	enum class ConnectionState
+	{
+		Disconnected,  // We're not connected to a server in the first place.
+		Local,         // This is a local (loopback) server.
+		Nonlocal,      // This is a non-local server.
+	};
+
 	struct DiscordGameState final
 	{
 		DiscordGameState(const Settings& settings, const DRPInfo& drpInfo) : m_Settings(&settings), m_DRPInfo(&drpInfo) {}
@@ -187,6 +195,7 @@ namespace
 
 		void OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state);
 		void OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime);
+		void OnServerIPUpdate(const std::string_view& localIP);
 		void SetInLobby(bool inLobby);
 		void SetInLocalServer(bool inLocalServer);
 		void SetInParty(bool inParty);
@@ -194,7 +203,7 @@ namespace
 		void SetMapName(std::string mapName);
 		void UpdateParty(uint8_t partyMembers);
 		void OnLocalPlayerSpawned(TFClassType classType);
-		void OnLocalPlayerDisconnected();
+		void OnConnectionCountUpdate(unsigned connectionCount);
 
 	private:
 		const Settings* m_Settings = nullptr;
@@ -216,9 +225,10 @@ namespace
 		TFClassType m_LastSpawnedClass = TFClassType::Undefined;
 		std::string m_MapName;
 		bool m_GameOpen = false;
+		ConnectionState m_ConnectionState{};
 		bool m_InLobby = false;
-		bool m_InLocalServer = false;
 		uint8_t m_PartyMemberCount = 0;
+		time_point_t m_LastStatusTimestamp;
 	};
 }
 
@@ -282,13 +292,17 @@ std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
 			retVal.GetAssets().SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
 		}
 
-		if (m_InLobby)
-		{
-			retVal.SetState("Casual");
-		}
-		else if (m_InLocalServer)
+		if (m_ConnectionState == ConnectionState::Local)
 		{
 			retVal.SetState("Local Server");
+		}
+		else if (m_ConnectionState == ConnectionState::Nonlocal)
+		{
+			if (m_InLobby)
+				retVal.SetState("Casual");
+			else
+				retVal.SetState("Community");
+
 		}
 		else if (IsAnyQueueActive())
 		{
@@ -321,8 +335,15 @@ std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
 		}
 		else
 		{
-			retVal.SetState("Main Menu");
+			if (m_ConnectionState == ConnectionState::Disconnected)
+				retVal.SetState("Main Menu");
+			else
+				retVal.SetState("");
+
 			retVal.SetDetails("");
+			auto& assets = retVal.GetAssets();
+			assets.SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
+			assets.SetLargeText("");
 		}
 
 		if (m_PartyMemberCount > 0)
@@ -331,45 +352,48 @@ std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
 			retVal.GetParty().GetSize().SetMaxSize(6);
 		}
 
-		auto& assets = retVal.GetAssets();
-		switch (m_LastSpawnedClass)
+		if (m_ConnectionState != ConnectionState::Disconnected)
 		{
-		case TFClassType::Demoman:
-			assets.SetSmallImage("leaderboard_class_demo");
-			assets.SetSmallText("Demo");
-			break;
-		case TFClassType::Engie:
-			assets.SetSmallImage("leaderboard_class_engineer");
-			assets.SetSmallText("Engineer");
-			break;
-		case TFClassType::Heavy:
-			assets.SetSmallImage("leaderboard_class_heavy");
-			assets.SetSmallText("Heavy");
-			break;
-		case TFClassType::Medic:
-			assets.SetSmallImage("leaderboard_class_medic");
-			assets.SetSmallText("Medic");
-			break;
-		case TFClassType::Pyro:
-			assets.SetSmallImage("leaderboard_class_pyro");
-			assets.SetSmallText("Pyro");
-			break;
-		case TFClassType::Scout:
-			assets.SetSmallImage("leaderboard_class_scout");
-			assets.SetSmallText("Scout");
-			break;
-		case TFClassType::Sniper:
-			assets.SetSmallImage("leaderboard_class_sniper");
-			assets.SetSmallText("Sniper");
-			break;
-		case TFClassType::Soldier:
-			assets.SetSmallImage("leaderboard_class_soldier");
-			assets.SetSmallText("Soldier");
-			break;
-		case TFClassType::Spy:
-			assets.SetSmallImage("leaderboard_class_spy");
-			assets.SetSmallText("Spy");
-			break;
+			auto& assets = retVal.GetAssets();
+			switch (m_LastSpawnedClass)
+			{
+			case TFClassType::Demoman:
+				assets.SetSmallImage("leaderboard_class_demo");
+				assets.SetSmallText("Demo");
+				break;
+			case TFClassType::Engie:
+				assets.SetSmallImage("leaderboard_class_engineer");
+				assets.SetSmallText("Engineer");
+				break;
+			case TFClassType::Heavy:
+				assets.SetSmallImage("leaderboard_class_heavy");
+				assets.SetSmallText("Heavy");
+				break;
+			case TFClassType::Medic:
+				assets.SetSmallImage("leaderboard_class_medic");
+				assets.SetSmallText("Medic");
+				break;
+			case TFClassType::Pyro:
+				assets.SetSmallImage("leaderboard_class_pyro");
+				assets.SetSmallText("Pyro");
+				break;
+			case TFClassType::Scout:
+				assets.SetSmallImage("leaderboard_class_scout");
+				assets.SetSmallText("Scout");
+				break;
+			case TFClassType::Sniper:
+				assets.SetSmallImage("leaderboard_class_sniper");
+				assets.SetSmallText("Sniper");
+				break;
+			case TFClassType::Soldier:
+				assets.SetSmallImage("leaderboard_class_soldier");
+				assets.SetSmallText("Soldier");
+				break;
+			case TFClassType::Spy:
+				assets.SetSmallImage("leaderboard_class_spy");
+				assets.SetSmallText("Spy");
+				break;
+			}
 		}
 
 		return retVal;
@@ -404,12 +428,27 @@ void DiscordGameState::OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t 
 	SetGameOpen(true);
 }
 
+void DiscordGameState::OnServerIPUpdate(const std::string_view& localIP)
+{
+	SetGameOpen(true);
+
+	if (localIP.starts_with("0.0.0.0:"))
+	{
+		SetInLocalServer(true);
+	}
+	else
+	{
+		SetInLocalServer(false);
+		m_ConnectionState = ConnectionState::Nonlocal;
+	}
+}
+
 void DiscordGameState::SetInLobby(bool inLobby)
 {
 	if (inLobby)
 	{
-		SetInLocalServer(false);
 		SetGameOpen(true);
+		m_ConnectionState = ConnectionState::Nonlocal;
 	}
 
 	m_InLobby = inLobby;
@@ -419,11 +458,10 @@ void DiscordGameState::SetInLocalServer(bool inLocalServer)
 {
 	if (inLocalServer)
 	{
-		SetInLobby(false);
 		SetGameOpen(true);
+		m_ConnectionState = ConnectionState::Local;
+		m_InLobby = false;
 	}
-
-	m_InLocalServer = inLocalServer;
 }
 
 void DiscordGameState::SetInParty(bool inParty)
@@ -473,10 +511,11 @@ void DiscordGameState::OnLocalPlayerSpawned(TFClassType classType)
 	SetGameOpen(true);
 }
 
-void DiscordGameState::OnLocalPlayerDisconnected()
+void DiscordGameState::OnConnectionCountUpdate(unsigned connectionCount)
 {
-	SetInLocalServer(false);
-	SetInLobby(false);
+	SetGameOpen(true);
+	if (connectionCount < 1)
+		m_ConnectionState = ConnectionState::Disconnected;
 }
 
 namespace
@@ -494,7 +533,6 @@ namespace
 
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) override;
 		void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override;
-		void OnPlayerDroppedFromServer(WorldState& world, IPlayer& player, const std::string_view& reason) override;
 
 	private:
 		const Settings* m_Settings = nullptr;
@@ -596,6 +634,20 @@ void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)
 		m_GameState.SetInLocalServer(true);
 		break;
 	}
+	case ConsoleLineType::PlayerStatusIP:
+	{
+		QueueUpdate();
+		auto& ipLine = static_cast<const ServerStatusPlayerIPLine&>(line);
+		m_GameState.OnServerIPUpdate(ipLine.GetLocalIP());
+		break;
+	}
+	case ConsoleLineType::NetStatusConfig:
+	{
+		QueueUpdate();
+		auto& netLine = static_cast<const NetStatusConfigLine&>(line);
+		m_GameState.OnConnectionCountUpdate(netLine.GetConnectionCount());
+		break;
+	}
 	}
 }
 
@@ -603,13 +655,6 @@ void DiscordState::OnLocalPlayerSpawned(WorldState& world, TFClassType classType
 {
 	QueueUpdate();
 	m_GameState.OnLocalPlayerSpawned(classType);
-}
-
-void DiscordState::OnPlayerDroppedFromServer(WorldState& world, IPlayer& player, const std::string_view& reason)
-{
-	QueueUpdate();
-	if (player == m_Settings->GetLocalSteamID())
-		m_GameState.OnLocalPlayerDisconnected();
 }
 
 static void DiscordLogFunc(discord::LogLevel level, const char* msg)
