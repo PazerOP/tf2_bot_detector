@@ -79,43 +79,12 @@ void WorldState::UpdateTimestamp(const ConsoleLogParser& parser)
 
 void WorldState::AddWorldEventListener(IWorldEventListener* listener)
 {
-	m_EventBroadcaster.m_EventListeners.insert(listener);
+	m_EventListeners.insert(listener);
 }
 
 void WorldState::RemoveWorldEventListener(IWorldEventListener* listener)
 {
-	m_EventBroadcaster.m_EventListeners.erase(listener);
-}
-
-void WorldState::EventBroadcaster::OnTimestampUpdate(WorldState& world)
-{
-	for (auto listener : m_EventListeners)
-		listener->OnTimestampUpdate(world);
-}
-
-void WorldState::EventBroadcaster::OnPlayerStatusUpdate(WorldState& world, const IPlayer& player)
-{
-	for (auto listener : m_EventListeners)
-		listener->OnPlayerStatusUpdate(world, player);
-}
-
-void WorldState::EventBroadcaster::OnChatMsg(WorldState& world,
-	IPlayer& player, const std::string_view& msg)
-{
-	for (auto listener : m_EventListeners)
-		listener->OnChatMsg(world, player, msg);
-}
-
-void WorldState::EventBroadcaster::OnLocalPlayerInitialized(WorldState& world, bool initialized)
-{
-	for (auto listener : m_EventListeners)
-		listener->OnLocalPlayerInitialized(world, initialized);
-}
-
-void WorldState::EventBroadcaster::OnLocalPlayerSpawned(WorldState& world, TFClassType classType)
-{
-	for (auto listener : m_EventListeners)
-		listener->OnLocalPlayerSpawned(world, classType);
+	m_EventListeners.erase(listener);
 }
 
 std::optional<SteamID> WorldState::FindSteamIDForName(const std::string_view& playerName) const
@@ -305,12 +274,12 @@ void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
 		else if (cfgName.starts_with("engineer"))
 			cl = TFClassType::Engie;
 
-		m_EventBroadcaster.OnLocalPlayerSpawned(*this, cl);
+		InvokeEventListener(&IWorldEventListener::OnLocalPlayerSpawned, *this, cl);
 
 		if (!m_IsLocalPlayerInitialized)
 		{
 			m_IsLocalPlayerInitialized = true;
-			m_EventBroadcaster.OnLocalPlayerInitialized(*this, m_IsLocalPlayerInitialized);
+			InvokeEventListener(&IWorldEventListener::OnLocalPlayerInitialized, *this, m_IsLocalPlayerInitialized);
 		}
 	}
 }
@@ -372,7 +341,7 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		if (m_IsLocalPlayerInitialized)
 		{
 			m_IsLocalPlayerInitialized = false;
-			m_EventBroadcaster.OnLocalPlayerInitialized(*this, m_IsLocalPlayerInitialized);
+			InvokeEventListener(&IWorldEventListener::OnLocalPlayerInitialized, *this, m_IsLocalPlayerInitialized);
 		}
 
 		m_IsVoteInProgress = false;
@@ -385,12 +354,13 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		{
 			if (auto player = FindPlayer(*sid))
 			{
-				m_EventBroadcaster.OnChatMsg(*this, *player, chatLine.GetMessage());
+				InvokeEventListener(&IWorldEventListener::OnChatMsg, *this, *player, chatLine.GetMessage());
 			}
 			else
 			{
 				LogWarning("Dropped chat message with unknown IPlayer from "s
-					<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
+					<< std::quoted(chatLine.GetPlayerName()) << " (" << *sid << "): "
+					<< std::quoted(chatLine.GetMessage()));
 			}
 		}
 		else
@@ -399,6 +369,29 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 				<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
 		}
 
+		break;
+	}
+	case ConsoleLineType::ServerDroppedPlayer:
+	{
+		auto& dropLine = static_cast<const ServerDroppedPlayerLine&>(parsed);
+		if (auto sid = FindSteamIDForName(dropLine.GetPlayerName()))
+		{
+			if (auto player = FindPlayer(*sid))
+			{
+				InvokeEventListener(&IWorldEventListener::OnPlayerDroppedFromServer,
+					*this, *player, dropLine.GetReason());
+			}
+			else
+			{
+				LogWarning("Dropped \"player dropped\" message with unknown IPlayer from "s
+					<< std::quoted(dropLine.GetPlayerName()) << " (" << *sid << ')');
+			}
+		}
+		else
+		{
+			LogWarning("Dropped \"player dropped\" message with unknown SteamID from "s
+				<< std::quoted(dropLine.GetPlayerName()));
+		}
 		break;
 	}
 	case ConsoleLineType::ConfigExec:
@@ -469,7 +462,7 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		assert(playerData.GetStatus().m_SteamID == newStatus.m_SteamID);
 		playerData.SetStatus(newStatus, statusLine.GetTimestamp());
 		m_LastStatusUpdateTime = std::max(m_LastStatusUpdateTime, playerData.GetLastStatusUpdateTime());
-		m_EventBroadcaster.OnPlayerStatusUpdate(*this, playerData);
+		InvokeEventListener(&IWorldEventListener::OnPlayerStatusUpdate, *this, playerData);
 
 		break;
 	}

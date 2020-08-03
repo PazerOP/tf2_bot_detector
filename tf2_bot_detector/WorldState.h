@@ -158,15 +158,12 @@ namespace tf2_bot_detector
 
 		time_point_t m_LastStatusUpdateTime{};
 
-		struct EventBroadcaster final : IWorldEventListener
+		std::unordered_set<IWorldEventListener*> m_EventListeners;
+		template<typename TRet, typename... TArgs, typename... TArgs2>
+		inline void InvokeEventListener(TRet(IWorldEventListener::* func)(TArgs... args), TArgs2&&... args)
 		{
-			void OnTimestampUpdate(WorldState& world) override;
-			void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
-			void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override;
-			void OnLocalPlayerInitialized(WorldState& world, bool initialized) override;
-			void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override;
-
-			std::unordered_set<IWorldEventListener*> m_EventListeners;
-		} m_EventBroadcaster;
+			for (IWorldEventListener* listener : m_EventListeners)
+				(listener->*func)(std::forward<TArgs2>(args)...);
+		}
 	};
 }

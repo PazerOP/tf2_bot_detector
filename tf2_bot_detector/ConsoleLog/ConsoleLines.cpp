@@ -972,3 +972,61 @@ void InQueueLine::Print(const PrintArgs& args) const
 	ImGui::Text("    MatchGroup: %u  Started matchmaking: %s (%u seconds ago, now is %s)",
 		uint32_t(m_QueueType), timeBufThen, seconds, timeBufNow);
 }
+
+ServerJoinLine::ServerJoinLine(time_point_t timestamp, std::string hostName, std::string mapName,
+	uint8_t playerCount, uint8_t playerMaxCount, uint32_t buildNumber, uint32_t serverNumber) :
+	BaseClass(timestamp), m_HostName(std::move(hostName)), m_MapName(std::move(mapName)), m_PlayerCount(playerCount),
+	m_PlayerMaxCount(playerMaxCount), m_BuildNumber(buildNumber), m_ServerNumber(serverNumber)
+{
+}
+
+std::shared_ptr<IConsoleLine> ServerJoinLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(
+		R"regex(\n(.*)\nMap: (.*)\nPlayers: (\d+) \/ (\d+)\nBuild: (\d+)\nServer Number: (\d+)\s+)regex",
+		std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		uint32_t buildNumber, serverNumber;
+		from_chars_throw(result[5], buildNumber);
+		from_chars_throw(result[6], serverNumber);
+
+		uint8_t playerCount, playerMaxCount;
+		from_chars_throw(result[3], playerCount);
+		from_chars_throw(result[4], playerMaxCount);
+
+		return std::make_shared<ServerJoinLine>(timestamp, result[1].str(), result[2].str(),
+			playerCount, playerMaxCount, buildNumber, serverNumber);
+	}
+
+	return nullptr;
+}
+
+void ServerJoinLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("\n%s\nMap: %s\nPlayers: %u / %u\nBuild: %u\nServer Number: %u\n",
+		m_HostName.c_str(), m_MapName.c_str(), m_PlayerCount, m_PlayerMaxCount, m_BuildNumber, m_ServerNumber);
+}
+
+ServerDroppedPlayerLine::ServerDroppedPlayerLine(time_point_t timestamp, std::string playerName, std::string reason) :
+	BaseClass(timestamp), m_PlayerName(std::move(playerName)), m_Reason(std::move(reason))
+{
+}
+
+std::shared_ptr<IConsoleLine> ServerDroppedPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(Dropped (.*) from server \((.*)\))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		return std::make_shared<ServerDroppedPlayerLine>(timestamp, result[1].str(), result[2].str());
+	}
+
+	return nullptr;
+}
+
+void ServerDroppedPlayerLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("Dropped %s from server (%s)", m_PlayerName.c_str(), m_Reason.c_str());
+}

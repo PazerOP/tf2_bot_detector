@@ -20,6 +20,7 @@ namespace tf2_bot_detector
 		virtual void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) = 0;
 		virtual void OnLocalPlayerInitialized(WorldState& world, bool initialized) = 0;
 		virtual void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) = 0;
+		virtual void OnPlayerDroppedFromServer(WorldState& world, IPlayer& player, const std::string_view& reason) = 0;
 	};
 
 	class BaseWorldEventListener : public IWorldEventListener
@@ -30,5 +31,6 @@ namespace tf2_bot_detector
 		void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override {}
 		void OnLocalPlayerInitialized(WorldState& world, bool initialized) override {}
 		void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override {}
+		void OnPlayerDroppedFromServer(WorldState& world, IPlayer& player, const std::string_view& reason) override {}
 	};
 }

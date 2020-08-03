@@ -94,9 +94,6 @@ static std::strong_ordering strcmp3(const char* lhs, const char* rhs)
 		return std::strong_ordering::greater;
 }
 
-#define EQUALS_OP_FROM_3WAY(type) \
-	static bool operator==(const type& lhs, const type& rhs) { return std::is_eq(lhs <=> rhs); }
-
 static std::strong_ordering operator<=>(const discord::ActivityTimestamps& lhs, const discord::ActivityTimestamps& rhs)
 {
 	if (auto result = lhs.GetStart() <=> rhs.GetStart(); result != 0)
@@ -106,7 +103,6 @@ static std::strong_ordering operator<=>(const discord::ActivityTimestamps& lhs, 
 
 	return std::strong_ordering::equal;
 }
-EQUALS_OP_FROM_3WAY(discord::ActivityTimestamps);
 
 static std::strong_ordering operator<=>(const discord::ActivityAssets& lhs, const discord::ActivityAssets& rhs)
 {
@@ -121,7 +117,6 @@ static std::strong_ordering operator<=>(const discord::ActivityAssets& lhs, cons
 
 	return std::strong_ordering::equal;
 }
-EQUALS_OP_FROM_3WAY(discord::ActivityAssets);
 
 static std::strong_ordering operator<=>(const discord::PartySize& lhs, const discord::PartySize& rhs)
 {
@@ -132,7 +127,6 @@ static std::strong_ordering operator<=>(const discord::PartySize& lhs, const dis
 
 	return std::strong_ordering::equal;
 }
-EQUALS_OP_FROM_3WAY(discord::PartySize);
 
 static std::strong_ordering operator<=>(const discord::ActivityParty& lhs, const discord::ActivityParty& rhs)
 {
@@ -143,7 +137,6 @@ static std::strong_ordering operator<=>(const discord::ActivityParty& lhs, const
 
 	return std::strong_ordering::equal;
 }
-EQUALS_OP_FROM_3WAY(discord::ActivityParty);
 
 static std::strong_ordering operator<=>(const discord::ActivitySecrets& lhs, const discord::ActivitySecrets& rhs)
 {
@@ -156,7 +149,6 @@ static std::strong_ordering operator<=>(const discord::ActivitySecrets& lhs, con
 
 	return std::strong_ordering::equal;
 }
-EQUALS_OP_FROM_3WAY(discord::ActivitySecrets);
 
 static std::strong_ordering operator<=>(const discord::Activity& lhs, const discord::Activity& rhs)
 {
@@ -183,7 +175,12 @@ static std::strong_ordering operator<=>(const discord::Activity& lhs, const disc
 
 	return std::strong_ordering::equal;
 }
-EQUALS_OP_FROM_3WAY(discord::Activity);
+
+template<typename TLHS, typename TRHS>
+constexpr auto operator==(const TLHS& lhs, const TRHS& rhs) -> decltype(lhs <=> rhs, bool{})
+{
+	return std::is_eq(lhs <=> rhs);
+}
 
 namespace
 {
@@ -196,11 +193,13 @@ namespace
 		void OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state);
 		void OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime);
 		void SetInLobby(bool inLobby);
+		void SetInLocalServer(bool inLocalServer);
 		void SetInParty(bool inParty);
 		void SetGameOpen(bool gameOpen);
 		void SetMapName(std::string mapName);
 		void UpdateParty(uint8_t partyMembers);
 		void OnLocalPlayerSpawned(TFClassType classType);
+		void OnLocalPlayerDisconnected();
 
 	private:
 		const Settings* m_Settings = nullptr;
@@ -223,241 +222,264 @@ namespace
 		std::string m_MapName;
 		bool m_GameOpen = false;
 		bool m_InLobby = false;
+		bool m_InLocalServer = false;
 		uint8_t m_PartyMemberCount = 0;
 	};
+}
 
-	bool DiscordGameState::IsAnyQueueActive(TFMatchGroupFlags matchGroups) const
+bool DiscordGameState::IsAnyQueueActive(TFMatchGroupFlags matchGroups) const
+{
+	for (size_t i = 0; i < size_t(TFMatchGroup::COUNT); i++)
 	{
-		for (size_t i = 0; i < size_t(TFMatchGroup::COUNT); i++)
-		{
-			if (!!(matchGroups & TFMatchGroup(i)) && IsQueueActive(TFMatchGroup(i)))
-				return true;
-		}
-
-		return false;
+		if (!!(matchGroups & TFMatchGroup(i)) && IsQueueActive(TFMatchGroup(i)))
+			return true;
 	}
 
-	bool DiscordGameState::IsAnyQueueActive() const
-	{
-		for (const auto& type : m_QueueStates)
-		{
-			if (type.m_Active)
-				return true;
-		}
+	return false;
+}
 
-		return false;
+bool DiscordGameState::IsAnyQueueActive() const
+{
+	for (const auto& type : m_QueueStates)
+	{
+		if (type.m_Active)
+			return true;
 	}
 
-	std::optional<time_point_t> DiscordGameState::GetEarliestActiveQueueStartTime() const
+	return false;
+}
+
+std::optional<time_point_t> DiscordGameState::GetEarliestActiveQueueStartTime() const
+{
+	std::optional<time_point_t> retVal{};
+
+	for (const auto& type : m_QueueStates)
 	{
-		std::optional<time_point_t> retVal{};
+		if (!type.m_Active)
+			continue;
 
-		for (const auto& type : m_QueueStates)
+		if (!retVal)
+			retVal = type.m_StartTime;
+		else
+			retVal = std::min(*retVal, type.m_StartTime);
+	}
+
+	return retVal;
+}
+
+std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
+{
+	if (m_GameOpen)
+	{
+		discord::Activity retVal{};
+
+		if (!m_MapName.empty())
 		{
-			if (!type.m_Active)
-				continue;
-
-			if (!retVal)
-				retVal = type.m_StartTime;
+			if (auto map = m_DRPInfo->FindMap(m_MapName))
+				retVal.GetAssets().SetLargeImage(mh::format("map_{}", map->m_MapNames.at(0)).c_str());
 			else
-				retVal = std::min(*retVal, type.m_StartTime);
+				retVal.GetAssets().SetLargeImage("map_unknown");
+
+			retVal.SetDetails(m_MapName.c_str());
+		}
+		else
+		{
+			retVal.GetAssets().SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
+		}
+
+		if (m_InLobby)
+		{
+			retVal.SetState("Casual");
+		}
+		else if (m_InLocalServer)
+		{
+			retVal.SetState("Local Server");
+		}
+		else if (IsAnyQueueActive())
+		{
+			const bool isCasual = IsAnyQueueActive(TFMatchGroupFlags::Casual);
+			const bool isMVM = IsAnyQueueActive(TFMatchGroupFlags::MVM);
+			const bool isComp = IsAnyQueueActive(TFMatchGroupFlags::Competitive);
+
+			if (isCasual && isComp && isMVM)
+				retVal.SetState("Searching - Casual, Competitive, and MVM");
+			else if (isCasual && isComp)
+				retVal.SetState("Searching - Casual & Competitive");
+			else if (isCasual && isMVM)
+				retVal.SetState("Searching - Casual & MVM");
+			else if (isCasual)
+				retVal.SetState("Searching - Casual");
+			else if (isComp && isMVM)
+				retVal.SetState("Searching - Competitive & MVM");
+			else if (isComp)
+				retVal.SetState("Searching - Competitive");
+			else if (isMVM)
+				retVal.SetState("Searching - MVM");
+			else
+			{
+				assert(!"Unknown combination of flags");
+				retVal.SetState("Searching");
+			}
+
+			if (auto startTime = GetEarliestActiveQueueStartTime())
+				retVal.GetTimestamps().SetStart(to_seconds<discord::Timestamp>(startTime->time_since_epoch()));
+		}
+		else
+		{
+			retVal.SetState("Main Menu");
+			retVal.SetDetails("");
+		}
+
+		if (m_PartyMemberCount > 0)
+		{
+			retVal.GetParty().GetSize().SetCurrentSize(m_PartyMemberCount);
+			retVal.GetParty().GetSize().SetMaxSize(6);
+		}
+
+		auto& assets = retVal.GetAssets();
+		switch (m_LastSpawnedClass)
+		{
+		case TFClassType::Demoman:
+			assets.SetSmallImage("leaderboard_class_demo");
+			assets.SetSmallText("Demo");
+			break;
+		case TFClassType::Engie:
+			assets.SetSmallImage("leaderboard_class_engineer");
+			assets.SetSmallText("Engineer");
+			break;
+		case TFClassType::Heavy:
+			assets.SetSmallImage("leaderboard_class_heavy");
+			assets.SetSmallText("Heavy");
+			break;
+		case TFClassType::Medic:
+			assets.SetSmallImage("leaderboard_class_medic");
+			assets.SetSmallText("Medic");
+			break;
+		case TFClassType::Pyro:
+			assets.SetSmallImage("leaderboard_class_pyro");
+			assets.SetSmallText("Pyro");
+			break;
+		case TFClassType::Scout:
+			assets.SetSmallImage("leaderboard_class_scout");
+			assets.SetSmallText("Scout");
+			break;
+		case TFClassType::Sniper:
+			assets.SetSmallImage("leaderboard_class_sniper");
+			assets.SetSmallText("Sniper");
+			break;
+		case TFClassType::Soldier:
+			assets.SetSmallImage("leaderboard_class_soldier");
+			assets.SetSmallText("Soldier");
+			break;
+		case TFClassType::Spy:
+			assets.SetSmallImage("leaderboard_class_spy");
+			assets.SetSmallText("Spy");
+			break;
 		}
 
 		return retVal;
 	}
-
-	std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
+	else
 	{
-		if (m_GameOpen)
-		{
-			discord::Activity retVal{};
-
-			if (!m_MapName.empty())
-			{
-				if (auto map = m_DRPInfo->FindMap(m_MapName))
-					retVal.GetAssets().SetLargeImage(mh::format("map_{}", map->m_MapNames.at(0)).c_str());
-				else
-					retVal.GetAssets().SetLargeImage("map_unknown");
-
-				retVal.SetDetails(m_MapName.c_str());
-			}
-			else
-			{
-				retVal.GetAssets().SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
-			}
-
-			if (m_InLobby)
-			{
-				retVal.SetState("Casual");
-			}
-			else if (IsAnyQueueActive())
-			{
-				const bool isCasual = IsAnyQueueActive(TFMatchGroupFlags::Casual);
-				const bool isMVM = IsAnyQueueActive(TFMatchGroupFlags::MVM);
-				const bool isComp = IsAnyQueueActive(TFMatchGroupFlags::Competitive);
-
-				if (isCasual && isComp && isMVM)
-					retVal.SetState("Searching - Casual, Competitive, and MVM");
-				else if (isCasual && isComp)
-					retVal.SetState("Searching - Casual & Competitive");
-				else if (isCasual && isMVM)
-					retVal.SetState("Searching - Casual & MVM");
-				else if (isCasual)
-					retVal.SetState("Searching - Casual");
-				else if (isComp && isMVM)
-					retVal.SetState("Searching - Competitive & MVM");
-				else if (isComp)
-					retVal.SetState("Searching - Competitive");
-				else if (isMVM)
-					retVal.SetState("Searching - MVM");
-				else
-				{
-					assert(!"Unknown combination of flags");
-					retVal.SetState("Searching");
-				}
-
-				if (auto startTime = GetEarliestActiveQueueStartTime())
-					retVal.GetTimestamps().SetStart(to_seconds<discord::Timestamp>(startTime->time_since_epoch()));
-			}
-			else
-			{
-				retVal.SetState("Main Menu");
-			}
-
-			if (m_PartyMemberCount > 0)
-			{
-				retVal.GetParty().GetSize().SetCurrentSize(m_PartyMemberCount);
-				retVal.GetParty().GetSize().SetMaxSize(6);
-			}
-
-			auto& assets = retVal.GetAssets();
-			switch (m_LastSpawnedClass)
-			{
-			case TFClassType::Demoman:
-				assets.SetSmallImage("leaderboard_class_demo");
-				assets.SetSmallText("Demo");
-				break;
-			case TFClassType::Engie:
-				assets.SetSmallImage("leaderboard_class_engineer");
-				assets.SetSmallText("Engineer");
-				break;
-			case TFClassType::Heavy:
-				assets.SetSmallImage("leaderboard_class_heavy");
-				assets.SetSmallText("Heavy");
-				break;
-			case TFClassType::Medic:
-				assets.SetSmallImage("leaderboard_class_medic");
-				assets.SetSmallText("Medic");
-				break;
-			case TFClassType::Pyro:
-				assets.SetSmallImage("leaderboard_class_pyro");
-				assets.SetSmallText("Pyro");
-				break;
-			case TFClassType::Scout:
-				assets.SetSmallImage("leaderboard_class_scout");
-				assets.SetSmallText("Scout");
-				break;
-			case TFClassType::Sniper:
-				assets.SetSmallImage("leaderboard_class_sniper");
-				assets.SetSmallText("Sniper");
-				break;
-			case TFClassType::Soldier:
-				assets.SetSmallImage("leaderboard_class_soldier");
-				assets.SetSmallText("Soldier");
-				break;
-			case TFClassType::Spy:
-				assets.SetSmallImage("leaderboard_class_spy");
-				assets.SetSmallText("Spy");
-				break;
-			}
-
-			return retVal;
-		}
-		else
-		{
-			return std::nullopt;
-		}
+		return std::nullopt;
 	}
+}
 
-	void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state)
+void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state)
+{
+	auto& queue = m_QueueStates.at(size_t(queueType));
+
+	if (state == TFQueueStateChange::Entered)
 	{
-		auto& queue = m_QueueStates.at(size_t(queueType));
-
-		if (state == TFQueueStateChange::Entered)
-		{
-			queue.m_Active = true;
-			queue.m_StartTime = clock_t::now();
-			SetGameOpen(true);
-		}
-		else if (state == TFQueueStateChange::Exited || state == TFQueueStateChange::RequestedExit)
-		{
-			queue.m_Active = false;
-		}
-	}
-
-	void DiscordGameState::OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime)
-	{
-		auto& queue = m_QueueStates.at(size_t(queueType));
 		queue.m_Active = true;
-		queue.m_StartTime = queueStartTime;
+		queue.m_StartTime = clock_t::now();
+		SetGameOpen(true);
+	}
+	else if (state == TFQueueStateChange::Exited || state == TFQueueStateChange::RequestedExit)
+	{
+		queue.m_Active = false;
+	}
+}
+
+void DiscordGameState::OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime)
+{
+	auto& queue = m_QueueStates.at(size_t(queueType));
+	queue.m_Active = true;
+	queue.m_StartTime = queueStartTime;
+	SetGameOpen(true);
+}
+
+void DiscordGameState::SetInLobby(bool inLobby)
+{
+	if (inLobby)
+	{
+		SetInLocalServer(false);
 		SetGameOpen(true);
 	}
 
-	void DiscordGameState::SetInLobby(bool inLobby)
-	{
-		if (inLobby)
-			SetGameOpen(true);
+	m_InLobby = inLobby;
+}
 
-		m_InLobby = inLobby;
-	}
-
-	void DiscordGameState::SetInParty(bool inParty)
+void DiscordGameState::SetInLocalServer(bool inLocalServer)
+{
+	if (inLocalServer)
 	{
-		if (inParty)
-		{
-			SetGameOpen(true);
-			if (m_PartyMemberCount < 1)
-				m_PartyMemberCount = 1;
-		}
-		else
-		{
-			m_PartyMemberCount = 0;
-		}
-	}
-
-	void DiscordGameState::SetGameOpen(bool gameOpen)
-	{
-		m_GameOpen = gameOpen;
-	}
-
-	void DiscordGameState::SetMapName(std::string mapName)
-	{
-		m_MapName = std::move(mapName);
-		if (!m_MapName.empty())
-		{
-			SetGameOpen(true);
-		}
-		else
-		{
-			m_LastSpawnedClass = TFClassType::Undefined;
-		}
-	}
-
-	void DiscordGameState::UpdateParty(uint8_t partyMembers)
-	{
-		if (partyMembers > 0)
-		{
-			SetInParty(true);
-			m_PartyMemberCount = partyMembers;
-		}
-	}
-
-	void DiscordGameState::OnLocalPlayerSpawned(TFClassType classType)
-	{
-		m_LastSpawnedClass = classType;
+		SetInLobby(false);
 		SetGameOpen(true);
 	}
 
+	m_InLocalServer = inLocalServer;
+}
+
+void DiscordGameState::SetInParty(bool inParty)
+{
+	if (inParty)
+	{
+		SetGameOpen(true);
+		if (m_PartyMemberCount < 1)
+			m_PartyMemberCount = 1;
+	}
+	else
+	{
+		m_PartyMemberCount = 0;
+	}
+}
+
+void DiscordGameState::SetGameOpen(bool gameOpen)
+{
+	m_GameOpen = gameOpen;
+}
+
+void DiscordGameState::SetMapName(std::string mapName)
+{
+	m_MapName = std::move(mapName);
+	if (!m_MapName.empty())
+	{
+		SetGameOpen(true);
+	}
+	else
+	{
+		m_LastSpawnedClass = TFClassType::Undefined;
+	}
+}
+
+void DiscordGameState::UpdateParty(uint8_t partyMembers)
+{
+	if (partyMembers > 0)
+	{
+		SetInParty(true);
+		m_PartyMemberCount = partyMembers;
+	}
+}
+
+void DiscordGameState::OnLocalPlayerSpawned(TFClassType classType)
+{
+	m_LastSpawnedClass = classType;
+	SetGameOpen(true);
+}
+
+namespace
+{
 	struct DiscordState final : IDRPManager, BaseWorldEventListener, IConsoleLineListener
 	{
 		static constexpr duration_t UPDATE_INTERVAL = 10s; // 20s / 5;
@@ -471,6 +493,7 @@ namespace
 
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) override;
 		void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override;
+		void OnPlayerDroppedFromServer(WorldState& world, IPlayer& player, const std::string_view& reason) override;
 
 	private:
 		const Settings* m_Settings = nullptr;
@@ -481,83 +504,111 @@ namespace
 		time_point_t m_LastUpdate{};
 		std::optional<discord::Activity> m_CurrentActivity{};
 	};
+}
 
-	DiscordState::DiscordState(const Settings& settings, WorldState& world) :
-		m_Settings(&settings),
-		m_GameState(settings, m_DRPInfo),
-		m_DRPInfo(settings)
+DiscordState::DiscordState(const Settings& settings, WorldState& world) :
+	m_Settings(&settings),
+	m_GameState(settings, m_DRPInfo),
+	m_DRPInfo(settings)
+{
+	world.AddConsoleLineListener(this);
+	world.AddWorldEventListener(this);
+
+	if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_Default, &m_Core); result != discord::Result::Ok)
+		throw std::runtime_error("Failed to initialize discord: "s << result);
+
+	if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
+		LogError("Failed to register discord integration as steam appid 440: "s << result);
+}
+
+void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)
+{
+	switch (line.GetType())
 	{
-		world.AddConsoleLineListener(this);
-		world.AddWorldEventListener(this);
-
-		if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_Default, &m_Core); result != discord::Result::Ok)
-			throw std::runtime_error("Failed to initialize discord: "s << result);
-
-		if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
-			LogError("Failed to register discord integration as steam appid 440: "s << result);
-	}
-
-	void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)
+	case ConsoleLineType::PlayerStatusMapPosition:
 	{
-		switch (line.GetType())
-		{
-		case ConsoleLineType::PlayerStatusMapPosition:
-		{
-			auto& statusLine = static_cast<const ServerStatusMapLine&>(line);
-			m_GameState.SetMapName(statusLine.GetMapName());
-			QueueUpdate();
-			break;
-		}
-		case ConsoleLineType::PartyHeader:
-		{
-			auto& partyLine = static_cast<const PartyHeaderLine&>(line);
-			m_GameState.UpdateParty(partyLine.GetParty().m_MemberCount);
-			QueueUpdate();
-			break;
-		}
-		case ConsoleLineType::LobbyHeader:
-		{
-			m_GameState.SetInLobby(true);
-			QueueUpdate();
-			break;
-		}
-		case ConsoleLineType::LobbyStatusFailed:
-		{
-			m_GameState.SetInLobby(false);
-			QueueUpdate();
-			break;
-		}
-		case ConsoleLineType::GameQuit:
-		{
-			m_GameState.SetGameOpen(false);
-			QueueUpdate();
-			break;
-		}
-		case ConsoleLineType::QueueStateChange:
-		{
-			auto& queueLine = static_cast<const QueueStateChangeLine&>(line);
-			m_GameState.OnQueueStateChange(queueLine.GetQueueType(), queueLine.GetStateChange());
-			break;
-		}
-		case ConsoleLineType::InQueue:
-		{
-			auto& queueLine = static_cast<const InQueueLine&>(line);
-			m_GameState.OnQueueStatusUpdate(queueLine.GetQueueType(), queueLine.GetQueueStartTime());
-			break;
-		}
-		case ConsoleLineType::LobbyChanged:
-		{
-			auto& lobbyLine = static_cast<const LobbyChangedLine&>(line);
-			if (lobbyLine.GetChangeType() == LobbyChangeType::Destroyed)
-				m_GameState.SetMapName("");
-		}
-		}
+		QueueUpdate();
+		auto& statusLine = static_cast<const ServerStatusMapLine&>(line);
+		m_GameState.SetMapName(statusLine.GetMapName());
+		break;
 	}
-
-	void DiscordState::OnLocalPlayerSpawned(WorldState& world, TFClassType classType)
+	case ConsoleLineType::PartyHeader:
 	{
-		m_GameState.OnLocalPlayerSpawned(classType);
+		QueueUpdate();
+		auto& partyLine = static_cast<const PartyHeaderLine&>(line);
+		m_GameState.UpdateParty(partyLine.GetParty().m_MemberCount);
+		break;
 	}
+	case ConsoleLineType::LobbyHeader:
+	{
+		QueueUpdate();
+		m_GameState.SetInLobby(true);
+		break;
+	}
+	case ConsoleLineType::LobbyStatusFailed:
+	{
+		QueueUpdate();
+		m_GameState.SetInLobby(false);
+		break;
+	}
+	case ConsoleLineType::GameQuit:
+	{
+		QueueUpdate();
+		m_GameState.SetGameOpen(false);
+		break;
+	}
+	case ConsoleLineType::QueueStateChange:
+	{
+		QueueUpdate();
+		auto& queueLine = static_cast<const QueueStateChangeLine&>(line);
+		m_GameState.OnQueueStateChange(queueLine.GetQueueType(), queueLine.GetStateChange());
+		break;
+	}
+	case ConsoleLineType::InQueue:
+	{
+		QueueUpdate();
+		auto& queueLine = static_cast<const InQueueLine&>(line);
+		m_GameState.OnQueueStatusUpdate(queueLine.GetQueueType(), queueLine.GetQueueStartTime());
+		break;
+	}
+	case ConsoleLineType::LobbyChanged:
+	{
+		QueueUpdate();
+		auto& lobbyLine = static_cast<const LobbyChangedLine&>(line);
+		if (lobbyLine.GetChangeType() == LobbyChangeType::Destroyed)
+			m_GameState.SetMapName("");
+
+		break;
+	}
+	case ConsoleLineType::ServerJoin:
+	{
+		QueueUpdate();
+		auto& joinLine = static_cast<const ServerJoinLine&>(line);
+		m_GameState.SetMapName(joinLine.GetMapName());
+		// Not necessarily in a lobby at this point, but in-lobby state will be reapplied soon if we are in a lobby
+		m_GameState.SetInLobby(false);
+		break;
+	}
+	case ConsoleLineType::HostNewGame:
+	{
+		QueueUpdate();
+		m_GameState.SetInLocalServer(true);
+		break;
+	}
+	}
+}
+
+void DiscordState::OnLocalPlayerSpawned(WorldState& world, TFClassType classType)
+{
+	QueueUpdate();
+	m_GameState.OnLocalPlayerSpawned(classType);
+}
+
+void DiscordState::OnPlayerDroppedFromServer(WorldState& world, IPlayer& player, const std::string_view& reason)
+{
+	QueueUpdate();
+	if (player == m_Settings->GetLocalSteamID())
+		m_GameState.OnLocalPlayerDisconnected();
 }
 
 static void DiscordLogFunc(discord::LogLevel level, const char* msg)
