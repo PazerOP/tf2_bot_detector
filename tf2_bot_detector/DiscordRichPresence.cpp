@@ -190,7 +190,7 @@ namespace
 	{
 		DiscordGameState(const Settings& settings) : m_Settings(&settings) {}
 
-		discord::Activity ConstructActivity() const;
+		std::optional<discord::Activity> ConstructActivity() const;
 
 		void OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state);
 		void OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime);
@@ -264,12 +264,12 @@ namespace
 		return retVal;
 	}
 
-	discord::Activity DiscordGameState::ConstructActivity() const
+	std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
 	{
-		discord::Activity retVal{};
-
 		if (m_GameOpen)
 		{
+			discord::Activity retVal{};
+
 			if (!m_MapName.empty())
 			{
 				retVal.GetAssets().SetLargeImage(mh::format("map_{}", m_MapName).c_str());
@@ -364,9 +364,13 @@ namespace
 				assets.SetSmallText("Spy");
 				break;
 			}
-		}
 
-		return retVal;
+			return retVal;
+		}
+		else
+		{
+			return std::nullopt;
+		}
 	}
 
 	void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state)
@@ -462,7 +466,7 @@ namespace
 
 		bool m_WantsUpdate = false;
 		time_point_t m_LastUpdate{};
-		discord::Activity m_CurrentActivity{};
+		std::optional<discord::Activity> m_CurrentActivity{};
 	};
 
 	DiscordState::DiscordState(const Settings& settings, WorldState& world) :
@@ -600,14 +604,32 @@ void DiscordState::Update()
 			return;
 
 		const auto nextActivity = m_GameState.ConstructActivity();
-		if (nextActivity != m_CurrentActivity)
+		if (nextActivity.has_value() != m_CurrentActivity.has_value() ||
+			(nextActivity.has_value() && m_CurrentActivity.has_value() && *nextActivity != *m_CurrentActivity))
 		{
-			// Perform the update
-			m_Core->ActivityManager().UpdateActivity(nextActivity, [](discord::Result result)
-				{
-					if (result != discord::Result::Ok)
-						LogWarning("Failed to update discord activity state: "s << result);
-				});
+			if (nextActivity)
+			{
+				// Perform the update
+				m_Core->ActivityManager().UpdateActivity(*nextActivity, [](discord::Result result)
+					{
+						if (result != discord::Result::Ok)
+						{
+							LogWarning(MH_SOURCE_LOCATION_CURRENT(),
+								"Failed to update discord activity state: "s << result);
+						}
+					});
+			}
+			else
+			{
+				m_Core->ActivityManager().ClearActivity([](discord::Result result)
+					{
+						if (result != discord::Result::Ok)
+						{
+							LogWarning(MH_SOURCE_LOCATION_CURRENT(),
+								"Failed to clear discord activity callback: "s << result);
+						}
+					});
+			}
 
 			m_CurrentActivity = nextActivity;
 			m_LastUpdate = curTime;
