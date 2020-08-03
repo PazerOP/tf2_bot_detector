@@ -38,6 +38,7 @@ namespace tf2_bot_detector
 		HostNewGame,
 		GameQuit,
 		QueueStateChange,
+		InQueue,
 
 		NetLatency,
 		NetLoss,

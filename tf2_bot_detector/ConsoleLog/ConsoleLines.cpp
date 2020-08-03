@@ -7,11 +7,13 @@
 #include "WorldState.h"
 
 #include <mh/text/charconv_helper.hpp>
+#include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <imgui_desktop/ScopeGuards.h>
 #include "ImGui_TF2BotDetector.h"
 
 #include <regex>
+#include <sstream>
 #include <stdexcept>
 
 using namespace tf2_bot_detector;
@@ -861,7 +863,7 @@ void GameQuitLine::Print(const PrintArgs& args) const
 	ImGui::TextUnformatted("CTFGCClientSystem::ShutdownGC"sv);
 }
 
-QueueStateChangeLine::QueueStateChangeLine(time_point_t timestamp, TFQueueType queueType,
+QueueStateChangeLine::QueueStateChangeLine(time_point_t timestamp, TFMatchGroup queueType,
 	TFQueueStateChange stateChange) :
 	BaseClass(timestamp), m_QueueType(queueType), m_StateChange(stateChange)
 {
@@ -872,16 +874,21 @@ namespace
 	struct QueueStateChangeType
 	{
 		std::string_view m_String;
-		TFQueueType m_QueueType;
+		TFMatchGroup m_QueueType;
 		TFQueueStateChange m_StateChange;
 	};
 
 	static constexpr QueueStateChangeType QUEUE_STATE_CHANGE_TYPES[] =
 	{
-		{ "[PartyClient] Requesting queue for 12v12 Casual Match", TFQueueType::Casual, TFQueueStateChange::RequestedEnter },
-		{ "[PartyClient] Entering queue for match group 12v12 Casual Match", TFQueueType::Casual, TFQueueStateChange::Entered },
-		{ "[PartyClient] Requesting exit queue for 12v12 Casual Match", TFQueueType::Casual, TFQueueStateChange::RequestedExit },
-		{ "[PartyClient] Leaving queue for match group 12v12 Casual Match", TFQueueType::Casual, TFQueueStateChange::Exited },
+		{ "[PartyClient] Requesting queue for 12v12 Casual Match", TFMatchGroup::Casual12s, TFQueueStateChange::RequestedEnter },
+		{ "[PartyClient] Entering queue for match group 12v12 Casual Match", TFMatchGroup::Casual12s, TFQueueStateChange::Entered },
+		{ "[PartyClient] Requesting exit queue for 12v12 Casual Match", TFMatchGroup::Casual12s, TFQueueStateChange::RequestedExit },
+		{ "[PartyClient] Leaving queue for match group 12v12 Casual Match", TFMatchGroup::Casual12s, TFQueueStateChange::Exited },
+
+		{ "[PartyClient] Requesting queue for 6v6 Ladder Match", TFMatchGroup::Competitive6s, TFQueueStateChange::RequestedEnter },
+		{ "[PartyClient] Entering queue for match group 6v6 Ladder Match", TFMatchGroup::Competitive6s, TFQueueStateChange::Entered },
+		{ "[PartyClient] Requesting exit queue for 6v6 Ladder Match", TFMatchGroup::Competitive6s, TFQueueStateChange::RequestedExit },
+		{ "[PartyClient] Leaving queue for match group 6v6 Ladder Match", TFMatchGroup::Competitive6s, TFQueueStateChange::Exited },
 	};
 }
 
@@ -907,4 +914,61 @@ void QueueStateChangeLine::Print(const PrintArgs& args) const
 			return;
 		}
 	}
+}
+
+InQueueLine::InQueueLine(time_point_t timestamp, TFMatchGroup queueType, time_point_t queueStartTime) :
+	BaseClass(timestamp), m_QueueType(queueType), m_QueueStartTime(queueStartTime)
+{
+}
+
+std::shared_ptr<IConsoleLine> InQueueLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(
+		R"regex(    MatchGroup: (\d+)\s+Started matchmaking:\s+(.*)\s+\(\d+ seconds ago, now is (.*)\))regex",
+		std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		TFMatchGroup matchGroup = TFMatchGroup::Invalid;
+		{
+			uint8_t matchGroupRaw{};
+			from_chars_throw(result[1], matchGroupRaw);
+			matchGroup = TFMatchGroup(matchGroupRaw);
+		}
+
+		time_point_t startTime{};
+		{
+			std::tm startTimeFull{};
+			std::istringstream ss;
+			ss.str(result[2].str());
+			//ss >> std::get_time(&startTimeFull, "%c");
+			ss >> std::get_time(&startTimeFull, "%a %b %d %H:%M:%S %Y");
+
+			startTimeFull.tm_isdst = -1; // auto-detect DST
+			startTime = clock_t::from_time_t(std::mktime(&startTimeFull));
+			if (startTime.time_since_epoch().count() < 0)
+			{
+				LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse "s << std::quoted(result[2].str()) << " as a timestamp");
+				return nullptr;
+			}
+		}
+
+		return std::make_shared<InQueueLine>(timestamp, matchGroup, startTime);
+	}
+
+	return nullptr;
+}
+
+void InQueueLine::Print(const PrintArgs& args) const
+{
+	char timeBufNow[128];
+	strftime(timeBufNow, sizeof(timeBufNow), "%c", &GetLocalTM());
+
+	char timeBufThen[128];
+	strftime(timeBufThen, sizeof(timeBufThen), "%c", &ToTM(m_QueueStartTime));
+
+	const uint64_t seconds = to_seconds<uint64_t>(clock_t::now() - m_QueueStartTime);
+
+	ImGui::Text("    MatchGroup: %u  Started matchmaking: %s (%u seconds ago, now is %s)",
+		uint32_t(m_QueueType), timeBufThen, seconds, timeBufNow);
 }

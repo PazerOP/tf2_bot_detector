@@ -10,6 +10,7 @@
 #include <mh/text/string_insertion.hpp>
 #include <discord-game-sdk/core.h>
 
+#include <array>
 #include <cassert>
 
 using namespace std::chrono_literals;
@@ -187,7 +188,8 @@ namespace
 	{
 		discord::Activity ConstructActivity() const;
 
-		void UpdateMMQueue(TFQueueType queueTypes, TFQueueStateChange state);
+		void OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state);
+		void OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime);
 		void SetInLobby(bool inLobby);
 		void SetInParty(bool inParty);
 		void SetGameOpen(bool gameOpen);
@@ -196,13 +198,65 @@ namespace
 		void OnLocalPlayerSpawned(TFClassType classType);
 
 	private:
+		struct QueueState
+		{
+			bool m_Active = false;
+			time_point_t m_StartTime{};
+		};
+		std::array<QueueState, size_t(TFMatchGroup::COUNT)> m_QueueStates;
+
+		bool IsQueueActive(TFMatchGroup matchGroup) const { return m_QueueStates.at((int)matchGroup).m_Active; }
+		bool IsAnyQueueActive(TFMatchGroupFlags matchGroups) const;
+		bool IsAnyQueueActive() const;
+
+		std::optional<time_point_t> GetEarliestActiveQueueStartTime() const;
+
 		TFClassType m_LastSpawnedClass{};
-		TFQueueType m_ActiveQueues{};
 		std::string m_MapName;
 		bool m_GameOpen = false;
 		bool m_InLobby = false;
 		uint8_t m_PartyMemberCount = 0;
 	};
+
+	bool DiscordGameState::IsAnyQueueActive(TFMatchGroupFlags matchGroups) const
+	{
+		for (size_t i = 0; i < size_t(TFMatchGroup::COUNT); i++)
+		{
+			if (!!(matchGroups & TFMatchGroup(i)) && IsQueueActive(TFMatchGroup(i)))
+				return true;
+		}
+
+		return false;
+	}
+
+	bool DiscordGameState::IsAnyQueueActive() const
+	{
+		for (const auto& type : m_QueueStates)
+		{
+			if (type.m_Active)
+				return true;
+		}
+
+		return false;
+	}
+
+	std::optional<time_point_t> DiscordGameState::GetEarliestActiveQueueStartTime() const
+	{
+		std::optional<time_point_t> retVal{};
+
+		for (const auto& type : m_QueueStates)
+		{
+			if (!type.m_Active)
+				continue;
+
+			if (!retVal)
+				retVal = type.m_StartTime;
+			else
+				retVal = std::min(*retVal, type.m_StartTime);
+		}
+
+		return retVal;
+	}
 
 	discord::Activity DiscordGameState::ConstructActivity() const
 	{
@@ -210,44 +264,50 @@ namespace
 
 		if (m_GameOpen)
 		{
+			retVal.SetApplicationId(440);
+
 			if (!m_MapName.empty())
 			{
 				retVal.GetAssets().SetLargeImage(mh::format("map_{}", m_MapName).c_str());
 				retVal.SetDetails(m_MapName.c_str());
+			}
+			else
+			{
+				retVal.GetAssets().SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
 			}
 
 			if (m_InLobby)
 			{
 				retVal.SetState("Casual");
 			}
-			else if (m_ActiveQueues != TFQueueType::None)
+			else if (IsAnyQueueActive())
 			{
-				std::string searchingStr = "Searching - ";
-				switch (m_ActiveQueues)
-				{
-				case TFQueueType::Casual:
-					retVal.SetState("Searching - Casual");
-					break;
-				case TFQueueType::Casual | TFQueueType::Competitive:
-					retVal.SetState("Searching - Casual & Competitive");
-					break;
-				case TFQueueType::Casual | TFQueueType::Competitive | TFQueueType::MVM:
-					retVal.SetState("Searching - Casual, Competitive, and MVM");
-					break;
-				case TFQueueType::Competitive:
-					retVal.SetState("Searching - Competitive");
-					break;
-				case TFQueueType::Competitive | TFQueueType::MVM:
-					retVal.SetState("Searching - Competitive & MVM");
-					break;
-				case TFQueueType::MVM:
-					retVal.SetState("Searching - MVM");
-					break;
+				const bool isCasual = IsAnyQueueActive(TFMatchGroupFlags::Casual);
+				const bool isMVM = IsAnyQueueActive(TFMatchGroupFlags::MVM);
+				const bool isComp = IsAnyQueueActive(TFMatchGroupFlags::Competitive);
 
-				default:
+				if (isCasual && isComp && isMVM)
+					retVal.SetState("Searching - Casual, Competitive, and MVM");
+				else if (isCasual && isComp)
+					retVal.SetState("Searching - Casual & Competitive");
+				else if (isCasual && isMVM)
+					retVal.SetState("Searching - Casual & MVM");
+				else if (isCasual)
+					retVal.SetState("Searching - Casual");
+				else if (isComp && isMVM)
+					retVal.SetState("Searching - Competitive & MVM");
+				else if (isComp)
+					retVal.SetState("Searching - Competitive");
+				else if (isMVM)
+					retVal.SetState("Searching - MVM");
+				else
+				{
+					assert(!"Unknown combination of flags");
 					retVal.SetState("Searching");
-					break;
 				}
+
+				if (auto startTime = GetEarliestActiveQueueStartTime())
+					retVal.GetTimestamps().SetStart(to_seconds<discord::Timestamp>(startTime->time_since_epoch()));
 			}
 			else
 			{
@@ -305,17 +365,28 @@ namespace
 		return retVal;
 	}
 
-	void DiscordGameState::UpdateMMQueue(TFQueueType queueTypes, TFQueueStateChange state)
+	void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state)
 	{
+		auto& queue = m_QueueStates.at(size_t(queueType));
+
 		if (state == TFQueueStateChange::Entered)
 		{
-			m_ActiveQueues |= queueTypes;
+			queue.m_Active = true;
+			queue.m_StartTime = clock_t::now();
 			SetGameOpen(true);
 		}
-		else if (state == TFQueueStateChange::Exited)
+		else if (state == TFQueueStateChange::Exited || state == TFQueueStateChange::RequestedExit)
 		{
-			m_ActiveQueues &= ~queueTypes;
+			queue.m_Active = false;
 		}
+	}
+
+	void DiscordGameState::OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime)
+	{
+		auto& queue = m_QueueStates.at(size_t(queueType));
+		queue.m_Active = true;
+		queue.m_StartTime = queueStartTime;
+		SetGameOpen(true);
 	}
 
 	void DiscordGameState::SetInLobby(bool inLobby)
@@ -440,8 +511,20 @@ namespace
 		case ConsoleLineType::QueueStateChange:
 		{
 			auto& queueLine = static_cast<const QueueStateChangeLine&>(line);
-			m_GameState.UpdateMMQueue(queueLine.GetQueueType(), queueLine.GetStateChange());
+			m_GameState.OnQueueStateChange(queueLine.GetQueueType(), queueLine.GetStateChange());
 			break;
+		}
+		case ConsoleLineType::InQueue:
+		{
+			auto& queueLine = static_cast<const InQueueLine&>(line);
+			m_GameState.OnQueueStatusUpdate(queueLine.GetQueueType(), queueLine.GetQueueStartTime());
+			break;
+		}
+		case ConsoleLineType::LobbyChanged:
+		{
+			auto& lobbyLine = static_cast<const LobbyChangedLine&>(line);
+			if (lobbyLine.GetChangeType() == LobbyChangeType::Destroyed)
+				m_GameState.SetMapName("");
 		}
 		}
 	}

@@ -14,7 +14,7 @@ namespace tf2_bot_detector
 {
 	enum class TeamShareResult;
 	enum class TFClassType;
-	enum class TFQueueType;
+	enum class TFMatchGroup;
 	enum class TFQueueStateChange;
 	enum class UserMessageType;
 
@@ -473,18 +473,38 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase;
 
 	public:
-		QueueStateChangeLine(time_point_t timestamp, TFQueueType queueType, TFQueueStateChange stateChange);
+		QueueStateChangeLine(time_point_t timestamp, TFMatchGroup queueType, TFQueueStateChange stateChange);
 		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::QueueStateChange; }
 		bool ShouldPrint() const override { return false; }
 		void Print(const PrintArgs& args) const override;
 
-		TFQueueType GetQueueType() const { return m_QueueType; }
+		TFMatchGroup GetQueueType() const { return m_QueueType; }
 		TFQueueStateChange GetStateChange() const { return m_StateChange; }
 
 	private:
-		TFQueueType m_QueueType{};
+		TFMatchGroup m_QueueType{};
 		TFQueueStateChange m_StateChange{};
+	};
+
+	class InQueueLine final : public ConsoleLineBase<InQueueLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		InQueueLine(time_point_t timestamp, TFMatchGroup queueType, time_point_t queueStartTime);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::InQueue; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		TFMatchGroup GetQueueType() const { return m_QueueType; }
+		time_point_t GetQueueStartTime() const { return m_QueueStartTime; }
+
+	private:
+		TFMatchGroup m_QueueType{};
+		time_point_t m_QueueStartTime{};
 	};
 }
