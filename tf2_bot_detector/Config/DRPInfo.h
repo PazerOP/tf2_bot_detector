@@ -28,6 +28,8 @@ namespace tf2_bot_detector
 			std::string m_LargeImageKeyOverride;
 		};
 
+		const Map* FindMap(const std::string_view& name) const;
+
 	private:
 		const Settings* m_Settings = nullptr;
 

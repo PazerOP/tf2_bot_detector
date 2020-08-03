@@ -189,7 +189,7 @@ namespace
 {
 	struct DiscordGameState final
 	{
-		DiscordGameState(const Settings& settings) : m_Settings(&settings) {}
+		DiscordGameState(const Settings& settings, const DRPInfo& drpInfo) : m_Settings(&settings), m_DRPInfo(&drpInfo) {}
 
 		std::optional<discord::Activity> ConstructActivity() const;
 
@@ -204,6 +204,7 @@ namespace
 
 	private:
 		const Settings* m_Settings = nullptr;
+		const DRPInfo* m_DRPInfo = nullptr;
 
 		struct QueueState
 		{
@@ -218,7 +219,7 @@ namespace
 
 		std::optional<time_point_t> GetEarliestActiveQueueStartTime() const;
 
-		TFClassType m_LastSpawnedClass{};
+		TFClassType m_LastSpawnedClass = TFClassType::Undefined;
 		std::string m_MapName;
 		bool m_GameOpen = false;
 		bool m_InLobby = false;
@@ -273,7 +274,11 @@ namespace
 
 			if (!m_MapName.empty())
 			{
-				retVal.GetAssets().SetLargeImage(mh::format("map_{}", m_MapName).c_str());
+				if (auto map = m_DRPInfo->FindMap(m_MapName))
+					retVal.GetAssets().SetLargeImage(mh::format("map_{}", map->m_MapNames.at(0)).c_str());
+				else
+					retVal.GetAssets().SetLargeImage("map_unknown");
+
 				retVal.SetDetails(m_MapName.c_str());
 			}
 			else
@@ -429,7 +434,13 @@ namespace
 	{
 		m_MapName = std::move(mapName);
 		if (!m_MapName.empty())
+		{
 			SetGameOpen(true);
+		}
+		else
+		{
+			m_LastSpawnedClass = TFClassType::Undefined;
+		}
 	}
 
 	void DiscordGameState::UpdateParty(uint8_t partyMembers)
@@ -463,9 +474,9 @@ namespace
 
 	private:
 		const Settings* m_Settings = nullptr;
+		DRPInfo m_DRPInfo;
 		DiscordGameState m_GameState;
 
-		DRPInfo m_DRPInfo;
 		bool m_WantsUpdate = false;
 		time_point_t m_LastUpdate{};
 		std::optional<discord::Activity> m_CurrentActivity{};
@@ -473,7 +484,7 @@ namespace
 
 	DiscordState::DiscordState(const Settings& settings, WorldState& world) :
 		m_Settings(&settings),
-		m_GameState(settings),
+		m_GameState(settings, m_DRPInfo),
 		m_DRPInfo(settings)
 	{
 		world.AddConsoleLineListener(this);

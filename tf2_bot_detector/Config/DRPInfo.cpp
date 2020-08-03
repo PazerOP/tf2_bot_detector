@@ -1,5 +1,6 @@
 #include "DRPInfo.h"
 #include "JSONHelpers.h"
+#include "RegexHelpers.h"
 
 #include <mh/text/format.hpp>
 #include <mh/text/stringops.hpp>
@@ -17,6 +18,21 @@ DRPInfo::DRPInfo(const Settings& settings) :
 void DRPInfo::LoadFile()
 {
 	m_DRPInfo = LoadConfigFileAsync<DRPFile>("cfg/discord_rich_presence.json", true, *m_Settings);
+}
+
+auto DRPInfo::FindMap(const std::string_view& name) const -> const Map*
+{
+	if (mh::is_future_ready(m_DRPInfo))
+	{
+		auto& drpInfo = m_DRPInfo.get();
+		for (const auto& map : drpInfo.m_Maps)
+		{
+			if (map.Matches(name))
+				return &map;
+		}
+	}
+
+	return nullptr;
 }
 
 void DRPInfo::DRPFile::Deserialize(const nlohmann::json& json)
@@ -110,5 +126,26 @@ std::string DRPInfo::Map::GetFriendlyName() const
 
 bool DRPInfo::Map::Matches(const std::string_view& mapName) const
 {
+	char buf[512];
+	sprintf_s(buf, "%s%s", m_MapNames.at(0).c_str(), R"regex(?(?:_(?!.*_)(?:(?:rc)|(?:final)|(?:[abv]))\d*[a-zA-Z]?)?)regex");
+	const std::regex s_MainRegex(buf, std::regex::icase);
+
+	if (std::regex_match(mapName.begin(), mapName.end(), s_MainRegex))
+		return true;
+
+	for (size_t i = 1; i < m_MapNames.size(); i++)
+	{
+		try
+		{
+			const std::regex regex(m_MapNames[i], std::regex::icase);
+			if (std::regex_match(mapName.begin(), mapName.end(), regex))
+				return true;
+		}
+		catch (const std::exception& e)
+		{
+			LogError(MH_SOURCE_LOCATION_CURRENT(), mh::format("{}: {}", typeid(e).name(), e.what()));
+		}
+	}
+
 	return false;
 }
