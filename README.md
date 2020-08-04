@@ -55,6 +55,7 @@
   - [I don't like how the tool spams chat. Can I change that?](#i-dont-like-how-the-tool-spams-chat-can-i-change-that)
   - [I downloaded the tool but I don't see an executable. What did I do wrong?](#i-downloaded-the-tool-but-i-dont-see-an-executable-what-did-i-do-wrong)
   - [Help! The tool wont open!](#help-the-tool-wont-open)
+  - [What do you think of using aimbot/cathook/esp/cheats against the bots?](#what-do-you-think-of-using-aimbotcathookespcheats-against-the-bots)
   - [I have a question that is not listed here!](#i-have-a-question-that-is-not-listed-here)
 - [License](#license)
 - [Contact](#contact)
