@@ -55,6 +55,7 @@
   - [I don't like how the tool spams chat. Can I change that?](#i-dont-like-how-the-tool-spams-chat-can-i-change-that)
   - [I downloaded the tool but I don't see an executable. What did I do wrong?](#i-downloaded-the-tool-but-i-dont-see-an-executable-what-did-i-do-wrong)
   - [Help! The tool wont open!](#help-the-tool-wont-open)
+  - [What do you think of using aimbot/cathook/esp/cheats against the bots?](#what-do-you-think-of-using-aimbotcathookespcheats-against-the-bots)
   - [I have a question that is not listed here!](#i-have-a-question-that-is-not-listed-here)
 - [License](#license)
 - [Contact](#contact)
@@ -121,6 +122,10 @@ You likely downloaded the source code instead of the actual tool. Make sure you 
 ### Help! The tool wont open!
 
 Make sure you have [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] installed. If you just installed it make to to restart your computer after to finish the installation. For further assistance either open an [issue][issues-url] on github or join our [discord][discord-link] for faster, community based support.
+
+### What do you think of using aimbot/cathook/esp/cheats against the bots?
+
+This project does not advocate for the use of cheating in any fashion. Putting aside the obvious moral issues with using cheats, that would introduce the possibility of a VAC ban. This project is committed to maintaining the safety of its users.
 
 ### I have a question that is not listed here!
 
