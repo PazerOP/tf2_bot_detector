@@ -89,6 +89,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/ConsoleLog/IConsoleLineListener.h"
 	"tf2_bot_detector/ConsoleLog/NetworkStatus.cpp"
 	"tf2_bot_detector/ConsoleLog/NetworkStatus.h"
+	"tf2_bot_detector/GameData/MatchmakingQueue.h"
 	"tf2_bot_detector/GameData/TFClassType.h"
 	"tf2_bot_detector/GameData/TFParty.h"
 	"tf2_bot_detector/GameData/UserMessageType.h"
@@ -145,7 +146,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
- "tf2_bot_detector/GameData/MatchmakingQueue.h")
+)
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
