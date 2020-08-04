@@ -3,6 +3,8 @@ project(tf2_bot_detector VERSION 1.1.0.0)
 
 include(GenerateExportHeader)
 
+message("TF2BD CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+
 option(TF2BD_IS_CI_COMPILE "Set to true if this is a compile on a CI service. Used to help determine if user has made modifications to the source code." off)
 if (TF2BD_IS_CI_COMPILE)
 	add_compile_definitions(TF2BD_IS_CI_COMPILE=1)
@@ -68,6 +70,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/Actions/ICommandSource.h"
 	"tf2_bot_detector/Config/ConfigHelpers.cpp"
 	"tf2_bot_detector/Config/ConfigHelpers.h"
+	"tf2_bot_detector/Config/DRPInfo.cpp"
+	"tf2_bot_detector/Config/DRPInfo.h"
 	"tf2_bot_detector/Config/JSONHelpers.h"
 	"tf2_bot_detector/Config/PlayerListJSON.cpp"
 	"tf2_bot_detector/Config/PlayerListJSON.h"
@@ -85,6 +89,9 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/ConsoleLog/IConsoleLineListener.h"
 	"tf2_bot_detector/ConsoleLog/NetworkStatus.cpp"
 	"tf2_bot_detector/ConsoleLog/NetworkStatus.h"
+	"tf2_bot_detector/GameData/TFClassType.h"
+	"tf2_bot_detector/GameData/TFParty.h"
+	"tf2_bot_detector/GameData/UserMessageType.h"
 	"tf2_bot_detector/Networking/GithubAPI.h"
 	"tf2_bot_detector/Networking/GithubAPI.cpp"
 	"tf2_bot_detector/Networking/HTTPClient.h"
@@ -115,6 +122,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/CompensatedTS.h"
 	"tf2_bot_detector/Config/ChatWrappers.cpp"
 	"tf2_bot_detector/Config/ChatWrappers.h"
+	"tf2_bot_detector/DLLMain.cpp"
+	"tf2_bot_detector/DLLMain.h"
 	"tf2_bot_detector/ImGui_TF2BotDetector.cpp"
 	"tf2_bot_detector/ImGui_TF2BotDetector.h"
 	"tf2_bot_detector/IPlayer.cpp"
@@ -136,10 +145,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
-	"tf2_bot_detector/GameData/UserMessageType.h"
-	"tf2_bot_detector/DLLMain.cpp"
-	"tf2_bot_detector/DLLMain.h"
-)
+ "tf2_bot_detector/GameData/MatchmakingQueue.h")
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
@@ -164,6 +170,26 @@ endif()
 target_include_directories(tf2_bot_detector
 	PRIVATE tf2_bot_detector
 )
+
+option(TF2BD_ENABLE_DISCORD_INTEGRATION "Enable discord integration" on)
+if (TF2BD_ENABLE_DISCORD_INTEGRATION)
+	target_compile_definitions(tf2_bot_detector PRIVATE TF2BD_ENABLE_DISCORD_INTEGRATION)
+	find_library(DISCORD_GAME_SDK discord_game_sdk)
+	message("DISCORD_GAME_SDK = ${DISCORD_GAME_SDK}")
+	target_link_libraries(tf2_bot_detector PRIVATE ${DISCORD_GAME_SDK})
+
+	find_path(GAME_SDK_INCLUDE discord-game-sdk/discord.h)
+	target_include_directories(tf2_bot_detector PRIVATE ${DISCORD_GAME_SDK_INCLUDE})
+
+	find_library(DISCORD_CPP_GAME_SDK discord_game_sdk_cpp)
+	message("DISCORD_CPP_GAME_SDK = ${DISCORD_CPP_GAME_SDK}")
+	target_link_libraries(tf2_bot_detector PRIVATE ${DISCORD_CPP_GAME_SDK})
+
+	target_sources(tf2_bot_detector PRIVATE
+		"tf2_bot_detector/DiscordRichPresence.cpp"
+		"tf2_bot_detector/DiscordRichPresence.h"
+	)
+endif()
 
 find_package(OpenSSL REQUIRED)
 target_link_libraries(tf2_bot_detector)

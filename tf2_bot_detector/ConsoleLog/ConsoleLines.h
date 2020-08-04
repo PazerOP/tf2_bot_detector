@@ -1,10 +1,12 @@
 #pragma once
 
 #include "Clock.h"
+#include "GameData/TFParty.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
 #include "IConsoleLine.h"
 
+#include <array>
 #include <memory>
 #include <string_view>
 
@@ -12,6 +14,8 @@ namespace tf2_bot_detector
 {
 	enum class TeamShareResult;
 	enum class TFClassType;
+	enum class TFMatchGroup;
+	enum class TFQueueStateChange;
 	enum class UserMessageType;
 
 	class GenericConsoleLine final : public ConsoleLineBase<GenericConsoleLine, false>
@@ -72,6 +76,24 @@ namespace tf2_bot_detector
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyStatusFailed; }
 		bool ShouldPrint() const override { return false; }
 		void Print(const PrintArgs& args) const override;
+	};
+
+	class PartyHeaderLine final : public ConsoleLineBase<PartyHeaderLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		PartyHeaderLine(time_point_t timestamp, TFParty party);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		const TFParty& GetParty() const { return m_Party; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::PartyHeader; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+	private:
+		TFParty m_Party{};
 	};
 
 	class LobbyHeaderLine final : public ConsoleLineBase<LobbyHeaderLine>
@@ -154,6 +176,26 @@ namespace tf2_bot_detector
 		PlayerStatus m_PlayerStatus;
 	};
 
+	class ServerStatusPlayerIPLine final : public ConsoleLineBase<ServerStatusPlayerIPLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ServerStatusPlayerIPLine(time_point_t timestamp, std::string localIP, std::string publicIP);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusIP; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		const std::string& GetLocalIP() const { return m_LocalIP; }
+		const std::string& GetPublicIP() const { return m_PublicIP; }
+
+	private:
+		std::string m_LocalIP;
+		std::string m_PublicIP;
+	};
+
 	class ServerStatusShortPlayerLine final : public ConsoleLineBase<ServerStatusShortPlayerLine>
 	{
 		using BaseClass = ConsoleLineBase;
@@ -193,6 +235,26 @@ namespace tf2_bot_detector
 		uint8_t m_PlayerCount;
 		uint8_t m_BotCount;
 		uint8_t m_MaxPlayers;
+	};
+
+	class ServerStatusMapLine final : public ConsoleLineBase<ServerStatusMapLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ServerStatusMapLine(time_point_t timestamp, std::string mapName, const std::array<float, 3>& position);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		const std::string& GetMapName() const { return m_MapName; }
+		const std::array<float, 3>& GetPosition() const { return m_Position; }
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusMapPosition; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+	private:
+		std::string m_MapName;
+		std::array<float, 3> m_Position{};
 	};
 
 	class EdictUsageLine final : public ConsoleLineBase<EdictUsageLine>
@@ -411,5 +473,107 @@ namespace tf2_bot_detector
 		ConsoleLineType GetType() const override { return ConsoleLineType::HostNewGame; }
 		bool ShouldPrint() const override { return false; }
 		void Print(const PrintArgs& args) const override;
+	};
+
+	class GameQuitLine final : public ConsoleLineBase<GameQuitLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		GameQuitLine(time_point_t timestamp) : BaseClass(timestamp) {}
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::GameQuit; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+	};
+
+	class QueueStateChangeLine final : public ConsoleLineBase<QueueStateChangeLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		QueueStateChangeLine(time_point_t timestamp, TFMatchGroup queueType, TFQueueStateChange stateChange);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::QueueStateChange; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		TFMatchGroup GetQueueType() const { return m_QueueType; }
+		TFQueueStateChange GetStateChange() const { return m_StateChange; }
+
+	private:
+		TFMatchGroup m_QueueType{};
+		TFQueueStateChange m_StateChange{};
+	};
+
+	class InQueueLine final : public ConsoleLineBase<InQueueLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		InQueueLine(time_point_t timestamp, TFMatchGroup queueType, time_point_t queueStartTime);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::InQueue; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		TFMatchGroup GetQueueType() const { return m_QueueType; }
+		time_point_t GetQueueStartTime() const { return m_QueueStartTime; }
+
+	private:
+		TFMatchGroup m_QueueType{};
+		time_point_t m_QueueStartTime{};
+	};
+
+	class ServerJoinLine final : public ConsoleLineBase<ServerJoinLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ServerJoinLine(time_point_t timestamp, std::string hostName, std::string mapName,
+			uint8_t playerCount, uint8_t playerMaxCount, uint32_t buildNumber, uint32_t serverNumber);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::ServerJoin; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		const std::string& GetHostName() const { return m_HostName; }
+		const std::string& GetMapName() const { return m_MapName; }
+		uint32_t GetBuildNumber() const { return m_BuildNumber; }
+		uint32_t GetServerNumber() const { return m_ServerNumber; }
+		uint8_t GetPlayerCount() const { return m_PlayerCount; }
+		uint8_t GetPlayerMaxCount() const { return m_PlayerMaxCount; }
+
+	private:
+		std::string m_HostName;
+		std::string m_MapName;
+		uint32_t m_BuildNumber{};
+		uint32_t m_ServerNumber{};
+		uint8_t m_PlayerCount{};
+		uint8_t m_PlayerMaxCount{};
+	};
+
+	class ServerDroppedPlayerLine final : public ConsoleLineBase<ServerDroppedPlayerLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		ServerDroppedPlayerLine(time_point_t timestamp, std::string playerName, std::string reason);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::ServerDroppedPlayer; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		const std::string& GetPlayerName() const { return m_PlayerName; }
+		const std::string& GetReason() const { return m_Reason; }
+
+	private:
+		std::string m_PlayerName;
+		std::string m_Reason;
 	};
 }

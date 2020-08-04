@@ -89,5 +89,12 @@ bool IPeriodicActionGenerator::Execute(RCONActionManager& manager)
 
 bool LobbyDebugActionGenerator::ExecuteImpl(RCONActionManager& manager)
 {
-	return manager.QueueAction<GenericCommandAction>("tf_lobby_debug");
+	if (!manager.QueueAction<GenericCommandAction>("tf_lobby_debug"))
+		return false;
+	if (!manager.QueueAction<GenericCommandAction>("tf_party_debug"))
+		return false;
+	if (!manager.QueueAction<GenericCommandAction>("net_status"))
+		return false;
+
+	return true;
 }

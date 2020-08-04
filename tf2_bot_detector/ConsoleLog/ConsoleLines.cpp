@@ -1,16 +1,19 @@
 #include "ConsoleLines.h"
 #include "Config/Settings.h"
+#include "GameData/MatchmakingQueue.h"
 #include "GameData/UserMessageType.h"
 #include "Log.h"
 #include "RegexHelpers.h"
 #include "WorldState.h"
 
 #include <mh/text/charconv_helper.hpp>
+#include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <imgui_desktop/ScopeGuards.h>
 #include "ImGui_TF2BotDetector.h"
 
 #include <regex>
+#include <sstream>
 #include <stdexcept>
 
 using namespace tf2_bot_detector;
@@ -717,6 +720,35 @@ void ConfigExecLine::Print(const PrintArgs& args) const
 		ImGui::Text("'%s' not present; not executing.", m_ConfigFileName.c_str());
 }
 
+ServerStatusMapLine::ServerStatusMapLine(time_point_t timestamp, std::string mapName,
+	const std::array<float, 3>& position) :
+	BaseClass(timestamp), m_MapName(std::move(mapName)), m_Position(position)
+{
+}
+
+std::shared_ptr<IConsoleLine> ServerStatusMapLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(map     : (.*) at: ((?:-|\d)+) x, ((?:-|\d)+) y, ((?:-|\d)+) z)regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		std::array<float, 3> pos{};
+		from_chars_throw(result[2], pos[0]);
+		from_chars_throw(result[3], pos[1]);
+		from_chars_throw(result[4], pos[2]);
+
+		return std::make_shared<ServerStatusMapLine>(timestamp, result[1].str(), pos);
+	}
+
+	return nullptr;
+}
+
+void ServerStatusMapLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("map     : %s at: %1.0f x, %1.0f y, %1.0f z", m_MapName.c_str(),
+		m_Position[0], m_Position[1], m_Position[2]);
+}
+
 std::shared_ptr<IConsoleLine> TeamsSwitchedLine::TryParse(const std::string_view& text, time_point_t timestamp)
 {
 	if (text == "Teams have been switched."sv)
@@ -782,4 +814,239 @@ std::shared_ptr<IConsoleLine> HostNewGameLine::TryParse(const std::string_view& 
 void HostNewGameLine::Print(const PrintArgs& args) const
 {
 	ImGui::TextUnformatted("---- Host_NewGame ----"sv);
+}
+
+PartyHeaderLine::PartyHeaderLine(time_point_t timestamp, TFParty party) :
+	BaseClass(timestamp), m_Party(std::move(party))
+{
+}
+
+std::shared_ptr<IConsoleLine> PartyHeaderLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(TFParty:\s+ID:([0-9a-f]+)\s+(\d+) member\(s\)\s+LeaderID: (\[.*\]))regex", std::regex::optimize);
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		TFParty party{};
+
+		{
+			uint64_t partyID;
+			from_chars_throw(result[1], partyID, 16);
+			party.m_PartyID = TFPartyID(partyID);
+		}
+
+		from_chars_throw(result[2], party.m_MemberCount);
+
+		party.m_LeaderID = SteamID(result[3].str());
+
+		return std::make_shared<PartyHeaderLine>(timestamp, std::move(party));
+	}
+
+	return nullptr;
+}
+
+void PartyHeaderLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("TFParty: ID:%xll  %u member(s)  LeaderID: %s", m_Party.m_PartyID,
+		m_Party.m_MemberCount, m_Party.m_LeaderID.str().c_str());
+}
+
+std::shared_ptr<IConsoleLine> GameQuitLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	if (text == "CTFGCClientSystem::ShutdownGC"sv)
+		return std::make_shared<GameQuitLine>(timestamp);
+
+	return nullptr;
+}
+
+void GameQuitLine::Print(const PrintArgs& args) const
+{
+	ImGui::TextUnformatted("CTFGCClientSystem::ShutdownGC"sv);
+}
+
+QueueStateChangeLine::QueueStateChangeLine(time_point_t timestamp, TFMatchGroup queueType,
+	TFQueueStateChange stateChange) :
+	BaseClass(timestamp), m_QueueType(queueType), m_StateChange(stateChange)
+{
+}
+
+namespace
+{
+	struct QueueStateChangeType
+	{
+		std::string_view m_String;
+		TFMatchGroup m_QueueType;
+		TFQueueStateChange m_StateChange;
+	};
+
+	static constexpr QueueStateChangeType QUEUE_STATE_CHANGE_TYPES[] =
+	{
+		{ "[PartyClient] Requesting queue for 12v12 Casual Match", TFMatchGroup::Casual12s, TFQueueStateChange::RequestedEnter },
+		{ "[PartyClient] Entering queue for match group 12v12 Casual Match", TFMatchGroup::Casual12s, TFQueueStateChange::Entered },
+		{ "[PartyClient] Requesting exit queue for 12v12 Casual Match", TFMatchGroup::Casual12s, TFQueueStateChange::RequestedExit },
+		{ "[PartyClient] Leaving queue for match group 12v12 Casual Match", TFMatchGroup::Casual12s, TFQueueStateChange::Exited },
+
+		{ "[PartyClient] Requesting queue for 6v6 Ladder Match", TFMatchGroup::Competitive6s, TFQueueStateChange::RequestedEnter },
+		{ "[PartyClient] Entering queue for match group 6v6 Ladder Match", TFMatchGroup::Competitive6s, TFQueueStateChange::Entered },
+		{ "[PartyClient] Requesting exit queue for 6v6 Ladder Match", TFMatchGroup::Competitive6s, TFQueueStateChange::RequestedExit },
+		{ "[PartyClient] Leaving queue for match group 6v6 Ladder Match", TFMatchGroup::Competitive6s, TFQueueStateChange::Exited },
+	};
+}
+
+std::shared_ptr<IConsoleLine> QueueStateChangeLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	for (const auto& match : QUEUE_STATE_CHANGE_TYPES)
+	{
+		if (text == match.m_String)
+			return std::make_shared<QueueStateChangeLine>(timestamp, match.m_QueueType, match.m_StateChange);
+	}
+
+	return nullptr;
+}
+
+void QueueStateChangeLine::Print(const PrintArgs& args) const
+{
+	for (const auto& match : QUEUE_STATE_CHANGE_TYPES)
+	{
+		if (match.m_QueueType == m_QueueType &&
+			match.m_StateChange == m_StateChange)
+		{
+			ImGui::TextUnformatted(match.m_String);
+			return;
+		}
+	}
+}
+
+InQueueLine::InQueueLine(time_point_t timestamp, TFMatchGroup queueType, time_point_t queueStartTime) :
+	BaseClass(timestamp), m_QueueType(queueType), m_QueueStartTime(queueStartTime)
+{
+}
+
+std::shared_ptr<IConsoleLine> InQueueLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(
+		R"regex(    MatchGroup: (\d+)\s+Started matchmaking:\s+(.*)\s+\(\d+ seconds ago, now is (.*)\))regex",
+		std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		TFMatchGroup matchGroup = TFMatchGroup::Invalid;
+		{
+			uint8_t matchGroupRaw{};
+			from_chars_throw(result[1], matchGroupRaw);
+			matchGroup = TFMatchGroup(matchGroupRaw);
+		}
+
+		time_point_t startTime{};
+		{
+			std::tm startTimeFull{};
+			std::istringstream ss;
+			ss.str(result[2].str());
+			//ss >> std::get_time(&startTimeFull, "%c");
+			ss >> std::get_time(&startTimeFull, "%a %b %d %H:%M:%S %Y");
+
+			startTimeFull.tm_isdst = -1; // auto-detect DST
+			startTime = clock_t::from_time_t(std::mktime(&startTimeFull));
+			if (startTime.time_since_epoch().count() < 0)
+			{
+				LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse "s << std::quoted(result[2].str()) << " as a timestamp");
+				return nullptr;
+			}
+		}
+
+		return std::make_shared<InQueueLine>(timestamp, matchGroup, startTime);
+	}
+
+	return nullptr;
+}
+
+void InQueueLine::Print(const PrintArgs& args) const
+{
+	char timeBufNow[128];
+	strftime(timeBufNow, sizeof(timeBufNow), "%c", &GetLocalTM());
+
+	char timeBufThen[128];
+	strftime(timeBufThen, sizeof(timeBufThen), "%c", &ToTM(m_QueueStartTime));
+
+	const uint64_t seconds = to_seconds<uint64_t>(clock_t::now() - m_QueueStartTime);
+
+	ImGui::Text("    MatchGroup: %u  Started matchmaking: %s (%u seconds ago, now is %s)",
+		uint32_t(m_QueueType), timeBufThen, seconds, timeBufNow);
+}
+
+ServerJoinLine::ServerJoinLine(time_point_t timestamp, std::string hostName, std::string mapName,
+	uint8_t playerCount, uint8_t playerMaxCount, uint32_t buildNumber, uint32_t serverNumber) :
+	BaseClass(timestamp), m_HostName(std::move(hostName)), m_MapName(std::move(mapName)), m_PlayerCount(playerCount),
+	m_PlayerMaxCount(playerMaxCount), m_BuildNumber(buildNumber), m_ServerNumber(serverNumber)
+{
+}
+
+std::shared_ptr<IConsoleLine> ServerJoinLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(
+		R"regex(\n(.*)\nMap: (.*)\nPlayers: (\d+) \/ (\d+)\nBuild: (\d+)\nServer Number: (\d+)\s+)regex",
+		std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		uint32_t buildNumber, serverNumber;
+		from_chars_throw(result[5], buildNumber);
+		from_chars_throw(result[6], serverNumber);
+
+		uint8_t playerCount, playerMaxCount;
+		from_chars_throw(result[3], playerCount);
+		from_chars_throw(result[4], playerMaxCount);
+
+		return std::make_shared<ServerJoinLine>(timestamp, result[1].str(), result[2].str(),
+			playerCount, playerMaxCount, buildNumber, serverNumber);
+	}
+
+	return nullptr;
+}
+
+void ServerJoinLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("\n%s\nMap: %s\nPlayers: %u / %u\nBuild: %u\nServer Number: %u\n",
+		m_HostName.c_str(), m_MapName.c_str(), m_PlayerCount, m_PlayerMaxCount, m_BuildNumber, m_ServerNumber);
+}
+
+ServerDroppedPlayerLine::ServerDroppedPlayerLine(time_point_t timestamp, std::string playerName, std::string reason) :
+	BaseClass(timestamp), m_PlayerName(std::move(playerName)), m_Reason(std::move(reason))
+{
+}
+
+std::shared_ptr<IConsoleLine> ServerDroppedPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(Dropped (.*) from server \((.*)\))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		return std::make_shared<ServerDroppedPlayerLine>(timestamp, result[1].str(), result[2].str());
+	}
+
+	return nullptr;
+}
+
+void ServerDroppedPlayerLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("Dropped %s from server (%s)", m_PlayerName.c_str(), m_Reason.c_str());
+}
+
+ServerStatusPlayerIPLine::ServerStatusPlayerIPLine(time_point_t timestamp, std::string localIP, std::string publicIP) :
+	BaseClass(timestamp), m_LocalIP(std::move(localIP)), m_PublicIP(std::move(publicIP))
+{
+}
+
+std::shared_ptr<IConsoleLine> ServerStatusPlayerIPLine::TryParse(const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(R"regex(udp\/ip  : (.*)  \(public ip: (.*)\))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+		return std::make_shared<ServerStatusPlayerIPLine>(timestamp, result[1].str(), result[2].str());
+
+	return nullptr;
+}
+
+void ServerStatusPlayerIPLine::Print(const PrintArgs& args) const
+{
+	ImGui::Text("udp/ip  : %s  (public ip: %s)", m_LocalIP.c_str(), m_PublicIP.c_str());
 }

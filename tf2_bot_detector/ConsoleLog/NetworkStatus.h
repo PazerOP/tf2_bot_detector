@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ConsoleLog/IConsoleLine.h"
+#include "RegexHelpers.h"
+
+#include "ImGui_TF2BotDetector.h"
 
 #include <string>
 #include <string_view>
@@ -56,6 +59,40 @@ namespace tf2_bot_detector
 
 	private:
 		SplitPacket m_Packet;
+	};
+
+	class NetStatusConfigLine final : public ConsoleLineBase<NetStatusConfigLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		enum class PlayerMode : uint8_t
+		{
+			Multiplayer,
+			Singleplayer,
+		};
+
+		enum class ServerMode : uint8_t
+		{
+			Dedicated,
+			Listen,
+		};
+
+		NetStatusConfigLine(time_point_t timestamp, PlayerMode playerMode, ServerMode serverMode, unsigned connectionCount);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::NetStatusConfig; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		unsigned GetConnectionCount() const { return m_ConnectionCount; }
+		PlayerMode GetPlayerMode() const { return m_PlayerMode; }
+		ServerMode GetServerMode() const { return m_ServerMode; }
+
+	private:
+		unsigned m_ConnectionCount{};
+		PlayerMode m_PlayerMode{};
+		ServerMode m_ServerMode{};
 	};
 
 	template<typename TSelf>

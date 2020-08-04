@@ -508,6 +508,16 @@
 			"attributes": [
 				"racist"
 			],
+			"last_seen": {
+				"player_name": "gamer weed",
+				"time": 1596515615
+			},
+			"steamid": "[U:1:246653167]"
+		},
+		{
+			"attributes": [
+				"racist"
+			],
 			"steamid": "[U:1:255221231]"
 		},
 		{
@@ -880,6 +890,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "Tin Mann",
+				"time": 1596517780
+			},
+			"steamid": "[U:1:875733994]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"steamid": "[U:1:879347135]"
@@ -964,8 +984,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "bunker \u200fboy\u200f\u200f\u200f",
-				"time": 1591516337
+				"player_name": "Papyrus123\u200f",
+				"time": 1594510633
 			},
 			"steamid": "[U:1:1002098410]"
 		},
@@ -1102,8 +1122,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "r\u200faspy\u200f",
-				"time": 1591516267
+				"player_name": "szymon16062008\u200f",
+				"time": 1594509202
 			},
 			"steamid": "[U:1:1002545563]"
 		},
@@ -1151,6 +1171,16 @@
 				"cheater"
 			],
 			"steamid": "[U:1:1013340684]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "spikeymikey bot 10",
+				"time": 1596355042
+			},
+			"steamid": "[U:1:1013406460]"
 		},
 		{
 			"attributes": [
@@ -1475,8 +1505,8 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "C\u200fAN YOU QUACK",
-				"time": 1590308601
+				"player_name": "tkkittel\u200f",
+				"time": 1594506929
 			},
 			"steamid": "[U:1:1057382585]"
 		},
@@ -2943,6 +2973,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "[irc.myg0t.gg]OGBADGER",
+				"time": 1596439891
+			},
+			"steamid": "[U:1:1102964658]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "[t0gym]OGBADGER",
 				"time": 1592197659
 			},
@@ -3793,6 +3833,16 @@
 				"time": 1592967627
 			},
 			"steamid": "[U:1:1104938755]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "royalhack.net B0T",
+				"time": 1596512591
+			},
+			"steamid": "[U:1:1104944729]"
 		},
 		{
 			"attributes": [
@@ -4687,6 +4737,17 @@
 		},
 		{
 			"attributes": [
+				"suspicious",
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "Mr. Sirpent",
+				"time": 1596518517
+			},
+			"steamid": "[U:1:1113534473]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -4783,6 +4844,12 @@
 				"time": 1596081321
 			},
 			"steamid": "[U:1:1117628231]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"steamid": "[U:1:1119078696]"
 		}
 	]
 }

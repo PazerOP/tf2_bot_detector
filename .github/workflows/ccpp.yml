@@ -58,7 +58,7 @@ jobs:
       uses: lukka/run-vcpkg@v3.2
       with:
         vcpkgGitCommitId: 7c82b03faf93e607c722e518819a54e4359aeddc
-        vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp cppcoro fmt'
+        vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp cppcoro fmt discord-game-sdk'
         vcpkgTriplet: ${{ matrix.triplet }}
 
     - name: CMake

@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "DiscordRichPresence.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "Networking/GithubAPI.h"
 #include "ConsoleLog/NetworkStatus.h"
@@ -9,6 +10,10 @@
 #include "Log.h"
 #include "PathUtils.h"
 #include "Version.h"
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+#include "DiscordRichPresence.h"
+#endif
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -1210,12 +1215,18 @@ void MainWindow::OnUpdate()
 		m_ConsoleLogParser.reset();
 		return;
 	}
-	else if (!m_ConsoleLogParser)
+	else
 	{
-		m_ConsoleLogParser.emplace(*this);
-	}
-	else if (m_ConsoleLogParser)
-	{
+		if (!m_ConsoleLogParser)
+			m_ConsoleLogParser.emplace(*this);
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+		if (!m_DRPManager)
+			m_DRPManager = IDRPManager::Create(m_Settings, m_WorldState);
+
+		m_DRPManager->Update();
+#endif
+
 		m_ConsoleLogParser->m_Parser.Update();
 		m_ModeratorLogic.Update();
 	}

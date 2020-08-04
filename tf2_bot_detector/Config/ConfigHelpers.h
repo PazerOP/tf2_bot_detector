@@ -3,6 +3,7 @@
 #include "Settings.h"
 
 #include <mh/future.hpp>
+#include <mh/text/format.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
@@ -93,7 +94,7 @@ namespace tf2_bot_detector
 	{
 		const HTTPClient* client = allowAutoupdate ? settings.GetHTTPClient() : nullptr;
 		if (allowAutoupdate && !client)
-			Log(std::string("Disallowing auto-update of ") << filename << " because internet connectivity is disabled or unset in settings");
+			Log(mh::format("Disallowing auto-update of {} because internet connectivity is disabled or unset in settings", filename));
 
 		// Not going to be doing any async loading
 		if (T file; file.LoadFile(filename, client))

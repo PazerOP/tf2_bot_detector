@@ -23,11 +23,11 @@ namespace tf2_bot_detector
 		return mh::from_chars(to_string_view(match), out);
 	}
 
-	template<typename TIter, typename T>
-	inline void from_chars_throw(const std::sub_match<TIter>& match, T& out)
+	template<typename TIter, typename T, typename... TArgs>
+	inline void from_chars_throw(const std::sub_match<TIter>& match, T& out, TArgs&&... args)
 	{
 		const auto sv = to_string_view(match);
-		auto result = mh::from_chars(sv, out);
+		auto result = mh::from_chars(sv, out, std::forward<TArgs>(args)...);
 		if (!result)
 		{
 			using namespace std::string_literals;
