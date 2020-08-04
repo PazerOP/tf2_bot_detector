@@ -19,7 +19,6 @@ jobs:
         os: [windows-latest]
         triplet: [x86-windows, x64-windows]
         discord_integration: [true, false]
-        generate_artifacts: [true]
         include:
           - os: windows-latest
             triplet: x86-windows
@@ -29,8 +28,6 @@ jobs:
             triplet: x64-windows
             tf2bd_arch: x64
             build_arch: x64
-          - discord_integration: false
-            generate_artifacts: false
 
 
     steps:
@@ -106,26 +103,26 @@ jobs:
       run: echo "::set-env name=TF2BD_PACKAGE_NAME::tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
 
     - name: "Artifacts: *.dll"
-      if: startsWith(matrix.os, 'windows') && matrix.generate_artifacts != false
+      if: startsWith(matrix.os, 'windows') && matrix.discord_integration == true
       uses: actions/upload-artifact@v2
       with:
         name: "${{ env.TF2BD_PACKAGE_NAME }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
     - name: "Artifacts: *.exe"
-      if: startsWith(matrix.os, 'windows') && matrix.generate_artifacts != false
+      if: startsWith(matrix.os, 'windows') && matrix.discord_integration == true
       uses: actions/upload-artifact@v2
       with:
         name: "${{ env.TF2BD_PACKAGE_NAME }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
     - name: "Artifacts: *.pdb"
-      if: startsWith(matrix.os, 'windows') && matrix.generate_artifacts != false
+      if: startsWith(matrix.os, 'windows') && matrix.discord_integration == true
       uses: actions/upload-artifact@v2
       with:
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.pdb"
 
     - name: "Artifacts: staging dir"
-      if: matrix.generate_artifacts != false
+      if: matrix.discord_integration == true
       uses: actions/upload-artifact@v2
       with:
         name: "${{ env.TF2BD_PACKAGE_NAME }}"
