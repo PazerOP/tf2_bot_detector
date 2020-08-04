@@ -100,7 +100,7 @@ jobs:
     - name: Define artifact filename
       run: echo "::set-env name=TF2BD_PACKAGE_NAME::tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
     - name: Adjust artifact filename (no discord)
-      if: ${{ matrix.discord_integration }} != on
+      if: matrix.discord_integration != 'on'
       run: echo "::set-env name=TF2BD_PACKAGE_NAME::${{ env.TF2BD_PACKAGE_NAME }}_nodiscord"
 
     - name: "Artifacts: *.dll"
