@@ -44,7 +44,7 @@ jobs:
       run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
 
     - name: Determine artifact behavior
-      if: matrix.discord_integration == false
+      if: matrix.discord_integration == true
       run: echo "::set-env name=TF2BD_ENABLE_ARTIFACT_UPLOAD::1"
 
     - name: Debug
