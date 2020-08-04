@@ -24,12 +24,10 @@ jobs:
             triplet: x86-windows
             tf2bd_arch: x86
             build_arch: Win32
-            tf2bd_cmake_generator: VS16Win32
           - os: windows-latest
             triplet: x64-windows
             tf2bd_arch: x64
             build_arch: x64
-            tf2bd_cmake_generator: VS16Win64
 
     steps:
     - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
@@ -94,18 +92,24 @@ jobs:
         echo "Hash of cached exe: "
         sha1sum "${{ env.TF2BD_BUILD_DIR }}/tf2_bot_detector.exe"
 
-    - name: "Artifacts: *.exe"
-      if: ${{ startsWith(matrix.os, 'windows') }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
-        path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
+    - name: Define artifact filename
+      run: echo "::set-env name=TF2BD_PACKAGE_NAME::tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
+    - name: Adjust artifact filename (no discord)
+      if: ${{ matrix.discord_integration }} == 'off'
+      run: echo "::set-env name=TF2BD_PACKAGE_NAME::${{ env.TF2BD_PACKAGE_NAME }}_nodiscord"
+
     - name: "Artifacts: *.dll"
       if: ${{ startsWith(matrix.os, 'windows') }}
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
+        name: "${{ env.TF2BD_PACKAGE_NAME }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
+    - name: "Artifacts: *.exe"
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: "${{ env.TF2BD_PACKAGE_NAME }}"
+        path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
 
     - name: "Artifacts: *.pdb"
       if: ${{ startsWith(matrix.os, 'windows') }}
@@ -117,5 +121,5 @@ jobs:
     - name: "Artifacts: staging dir"
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
+        name: "${{ env.TF2BD_PACKAGE_NAME }}"
         path: "${{ github.workspace }}/staging"
