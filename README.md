@@ -122,6 +122,10 @@ You likely downloaded the source code instead of the actual tool. Make sure you 
 
 Make sure you have [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] installed. If you just installed it make to to restart your computer after to finish the installation. For further assistance either open an [issue][issues-url] on github or join our [discord][discord-link] for faster, community based support.
 
+### What do you think of using aimbot/cathook/esp/cheats against the bots?
+
+This project does not advocate for the use of cheating in any fashion. Putting aside the obvious moral issues with using cheats, that would introduce the possibility of a VAC ban. This project is committed to maintaining the safety of its users.
+
 ### I have a question that is not listed here!
 
 Take a look at the [wiki][wiki-link]. There is not a ton there but that will be the location of all future documentation. If you can't find your answer there, stop by the [discord][discord-link].
