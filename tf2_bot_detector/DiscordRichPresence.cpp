@@ -278,33 +278,44 @@ std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
 	{
 		discord::Activity retVal{};
 
-		if (!m_MapName.empty())
+		std::string details;
+
+		if (m_ConnectionState != ConnectionState::Disconnected && !m_MapName.empty())
 		{
 			if (auto map = m_DRPInfo->FindMap(m_MapName))
 				retVal.GetAssets().SetLargeImage(mh::format("map_{}", map->m_MapNames.at(0)).c_str());
 			else
 				retVal.GetAssets().SetLargeImage("map_unknown");
 
-			retVal.SetDetails(m_MapName.c_str());
+			details = m_MapName;
 		}
 		else
 		{
 			retVal.GetAssets().SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
 		}
 
-		if (m_ConnectionState == ConnectionState::Local)
+		const auto GetGameState = [&]
 		{
-			retVal.SetState("Local Server");
-		}
-		else if (m_ConnectionState == ConnectionState::Nonlocal)
-		{
-			if (m_InLobby)
-				retVal.SetState("Casual");
-			else
-				retVal.SetState("Community");
+			if (m_ConnectionState == ConnectionState::Local)
+			{
+				return "Local Server";
+			}
+			else if (m_ConnectionState == ConnectionState::Nonlocal)
+			{
+				if (m_InLobby)
+					return "Casual";
+				else
+					return "Community";
+			}
+			else if (m_ConnectionState == ConnectionState::Disconnected)
+			{
+				return "Main Menu";
+			}
 
-		}
-		else if (IsAnyQueueActive())
+			return "";
+		};
+
+		if (IsAnyQueueActive())
 		{
 			const bool isCasual = IsAnyQueueActive(TFMatchGroupFlags::Casual);
 			const bool isMVM = IsAnyQueueActive(TFMatchGroupFlags::MVM);
@@ -332,18 +343,18 @@ std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
 
 			if (auto startTime = GetEarliestActiveQueueStartTime())
 				retVal.GetTimestamps().SetStart(to_seconds<discord::Timestamp>(startTime->time_since_epoch()));
+
+			if (m_ConnectionState != ConnectionState::Disconnected)
+			{
+				if (details.empty())
+					details = GetGameState();
+				else
+					details = mh::format("{} - {}", GetGameState(), details);
+			}
 		}
 		else
 		{
-			if (m_ConnectionState == ConnectionState::Disconnected)
-				retVal.SetState("Main Menu");
-			else
-				retVal.SetState("");
-
-			retVal.SetDetails("");
-			auto& assets = retVal.GetAssets();
-			assets.SetLargeImage(DEFAULT_LARGE_IMAGE_KEY);
-			assets.SetLargeText("");
+			retVal.SetState(GetGameState());
 		}
 
 		if (m_PartyMemberCount > 0)
@@ -395,6 +406,8 @@ std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
 				break;
 			}
 		}
+
+		retVal.SetDetails(details.c_str());
 
 		return retVal;
 	}
