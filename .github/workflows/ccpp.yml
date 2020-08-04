@@ -47,6 +47,11 @@ jobs:
         echo "github.event_name = ${{ github.event_name }}"
         echo "github.sha = ${{ github.sha }}"
         echo "github.ref = ${{ github.ref }}"
+        echo "matrix.os = ${{ matrix.os }}"
+        echo "matrix.triplet = ${{ matrix.triplet }}"
+        echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
+        echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
+        echo "matrix.build_arch = ${{ matrix.build_arch }}"
 
     - name: Checkout
       uses: actions/checkout@v2
@@ -95,7 +100,7 @@ jobs:
     - name: Define artifact filename
       run: echo "::set-env name=TF2BD_PACKAGE_NAME::tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
     - name: Adjust artifact filename (no discord)
-      if: ${{ matrix.discord_integration }} == 'off'
+      if: ${{ matrix.discord_integration }} != on
       run: echo "::set-env name=TF2BD_PACKAGE_NAME::${{ env.TF2BD_PACKAGE_NAME }}_nodiscord"
 
     - name: "Artifacts: *.dll"
