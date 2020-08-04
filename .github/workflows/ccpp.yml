@@ -19,7 +19,7 @@ jobs:
         os: [windows-latest]
         triplet: [x86-windows, x64-windows]
         discord_integration: [true, false]
-        generate_artifacts: true
+        generate_artifacts: [true]
         include:
           - os: windows-latest
             triplet: x86-windows
