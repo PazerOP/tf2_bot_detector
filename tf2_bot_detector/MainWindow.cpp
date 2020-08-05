@@ -605,6 +605,9 @@ void MainWindow::OnDrawSettingsPopup()
 	ImGui::SetNextWindowSize({ 400, 400 }, ImGuiCond_Once);
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_HorizontalScrollbar))
 	{
+		if (ImGui::Checkbox("Enable Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
+			m_Settings.SaveFile();
+
 		// Steam dir
 		if (InputTextSteamDirOverride("Steam directory", m_Settings.m_SteamDirOverride, true))
 			m_Settings.SaveFile();
@@ -1210,6 +1213,16 @@ void MainWindow::OnUpdate()
 
 	HandleUpdateCheck();
 
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+	if (m_DRPManager)
+	{
+		if (!m_Settings.m_Discord.m_EnableRichPresence)
+			m_DRPManager.reset();
+		else
+			m_DRPManager->Update();
+	}
+#endif
+
 	if (m_SetupFlow.OnUpdate(m_Settings))
 	{
 		m_ConsoleLogParser.reset();
@@ -1221,10 +1234,8 @@ void MainWindow::OnUpdate()
 			m_ConsoleLogParser.emplace(*this);
 
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-		if (!m_DRPManager)
+		if (!m_DRPManager && m_Settings.m_Discord.m_EnableRichPresence)
 			m_DRPManager = IDRPManager::Create(m_Settings, m_WorldState);
-
-		m_DRPManager->Update();
 #endif
 
 		m_ConsoleLogParser->m_Parser.Update();

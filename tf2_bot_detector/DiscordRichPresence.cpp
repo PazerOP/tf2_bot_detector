@@ -539,7 +539,7 @@ namespace
 		static constexpr duration_t UPDATE_INTERVAL = 10s; // 20s / 5;
 
 		DiscordState(const Settings& settings, WorldState& world);
-
+		~DiscordState();
 
 		void QueueUpdate() { m_WantsUpdate = true; }
 		void Update() override;
@@ -551,6 +551,7 @@ namespace
 		std::unique_ptr<discord::Core> m_Core;
 
 		const Settings* m_Settings = nullptr;
+		WorldState* m_WorldState = nullptr;
 		DRPInfo m_DRPInfo;
 		DiscordGameState m_GameState;
 
@@ -562,6 +563,7 @@ namespace
 
 DiscordState::DiscordState(const Settings& settings, WorldState& world) :
 	m_Settings(&settings),
+	m_WorldState(&world),
 	m_GameState(settings, m_DRPInfo),
 	m_DRPInfo(settings)
 {
@@ -576,6 +578,12 @@ DiscordState::DiscordState(const Settings& settings, WorldState& world) :
 
 	if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
 		LogError("Failed to register discord integration as steam appid 440: "s << result);
+}
+
+DiscordState::~DiscordState()
+{
+	m_WorldState->RemoveConsoleLineListener(this);
+	m_WorldState->RemoveWorldEventListener(this);
 }
 
 void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)

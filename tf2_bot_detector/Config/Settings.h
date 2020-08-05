@@ -96,6 +96,12 @@ namespace tf2_bot_detector
 
 		std::vector<GotoProfileSite> m_GotoProfileSites;
 
+		struct Discord
+		{
+			bool m_EnableRichPresence = true;
+
+		} m_Discord;
+
 		struct Theme
 		{
 			struct Colors

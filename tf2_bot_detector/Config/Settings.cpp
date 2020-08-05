@@ -100,6 +100,19 @@ namespace tf2_bot_detector
 		d.m_Name = j.at("name");
 		d.m_ProfileURL = j.at("profile_url");
 	}
+
+	void to_json(nlohmann::json& j, const Settings::Discord& d)
+	{
+		j =
+		{
+			{ "rich_presence_enable", d.m_EnableRichPresence },
+		};
+	}
+	void from_json(const nlohmann::json& j, Settings::Discord& d)
+	{
+		static constexpr Settings::Discord DEFAULTS;
+		try_get_to_defaulted(j, d.m_EnableRichPresence, "rich_presence_enable", DEFAULTS.m_EnableRichPresence);
+	}
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const ProgramUpdateCheckMode& d)
@@ -194,6 +207,7 @@ void Settings::LoadFile()
 			m_TFDirOverride = foundDir->get<std::string_view>();
 	}
 
+	try_get_to_defaulted(json, m_Discord, "discord");
 	try_get_to_defaulted(json, m_Theme, "theme");
 	if (!try_get_to_defaulted(json, m_GotoProfileSites, "goto_profile_sites"))
 	{
@@ -227,6 +241,7 @@ bool Settings::SaveFile() const
 			}
 		},
 		{ "goto_profile_sites", m_GotoProfileSites },
+		{ "discord", m_Discord },
 	};
 
 	if (!m_SteamDirOverride.empty())
