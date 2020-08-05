@@ -15,7 +15,7 @@ SteamID::SteamID(const std::string_view& str)
 	ID64 = 0;
 
 	// Steam3
-	static std::regex s_SteamID3Regex(R"regex(\[([a-zA-Z]):(\d):(\d+)(:\d+)?\])regex", std::regex::optimize);
+	static std::regex s_SteamID3Regex(R"regex(\[([a-zA-Z]):(\d):(\d+)(?::(\d+))?\])regex", std::regex::optimize);
 	if (std::match_results<std::string_view::const_iterator> result;
 		std::regex_match(str.begin(), str.end(), result, s_SteamID3Regex))
 	{
@@ -37,7 +37,8 @@ SteamID::SteamID(const std::string_view& str)
 			Type = SteamAccountType::Chat; break;
 
 		case 'I':
-			Type = SteamAccountType::Invalid; break;
+			Type = SteamAccountType::Invalid;
+			return; // We're totally done trying to parse
 
 		default:
 			throw std::invalid_argument("Invalid SteamID3: Unknown SteamAccountType '"s << firstChar << '\'');

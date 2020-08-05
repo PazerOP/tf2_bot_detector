@@ -158,6 +158,40 @@ namespace tf2_bot_detector
 		LobbyChangeType m_ChangeType;
 	};
 
+	class DifferingLobbyReceivedLine final : public ConsoleLineBase<DifferingLobbyReceivedLine>
+	{
+		using BaseClass = ConsoleLineBase;
+
+	public:
+		struct Lobby
+		{
+			SteamID m_LobbyID;
+			uint64_t m_LobbyNumber{};
+			uint32_t m_MatchID;
+		};
+
+		DifferingLobbyReceivedLine(time_point_t timestamp, const Lobby& newLobby, const Lobby& currentLobby,
+			bool connectedToMatchServer, bool hasLobby, bool assignedMatchEnded);
+		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+
+		ConsoleLineType GetType() const override { return ConsoleLineType::DifferingLobbyReceived; }
+		bool ShouldPrint() const override { return false; }
+		void Print(const PrintArgs& args) const override;
+
+		const Lobby& GetNewLobby() const { return m_NewLobby; }
+		const Lobby& GetCurrentLobby() const { return m_CurrentLobby; }
+		bool IsConnectedToMatchServer() const { return m_ConnectedToMatchServer; }
+		bool HasLobby() const { return m_HasLobby; }
+		bool HasAssignedMatchEnded() const { return m_AssignedMatchEnded; }
+
+	private:
+		Lobby m_NewLobby{};
+		Lobby m_CurrentLobby{};
+		bool m_ConnectedToMatchServer : 1 = false;
+		bool m_HasLobby : 1 = false;
+		bool m_AssignedMatchEnded : 1 = false;
+	};
+
 	class ServerStatusPlayerLine final : public ConsoleLineBase<ServerStatusPlayerLine>
 	{
 		using BaseClass = ConsoleLineBase;

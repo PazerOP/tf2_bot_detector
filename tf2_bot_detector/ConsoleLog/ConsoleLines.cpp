@@ -1050,3 +1050,58 @@ void ServerStatusPlayerIPLine::Print(const PrintArgs& args) const
 {
 	ImGui::Text("udp/ip  : %s  (public ip: %s)", m_LocalIP.c_str(), m_PublicIP.c_str());
 }
+
+DifferingLobbyReceivedLine::DifferingLobbyReceivedLine(time_point_t timestamp, const Lobby& newLobby,
+	const Lobby& currentLobby, bool connectedToMatchServer, bool hasLobby, bool assignedMatchEnded) :
+	BaseClass(timestamp), m_NewLobby(newLobby), m_CurrentLobby(currentLobby),
+	m_ConnectedToMatchServer(connectedToMatchServer), m_HasLobby(hasLobby), m_AssignedMatchEnded(assignedMatchEnded)
+{
+}
+
+std::shared_ptr<IConsoleLine> DifferingLobbyReceivedLine::TryParse(
+	const std::string_view& text, time_point_t timestamp)
+{
+	static const std::regex s_Regex(
+		R"regex(Differing lobby received\. Lobby: (.*)\/Match(\d+)\/Lobby(\d+) CurrentlyAssigned: (.*)\/Match(\d+)\/Lobby(\d+) ConnectedToMatchServer: (\d+) HasLobby: (\d+) AssignedMatchEnded: (\d+))regex",
+		std::regex::optimize);
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		Lobby newLobby;
+		newLobby.m_LobbyID = SteamID(result[1].str());
+		from_chars_throw(result[2], newLobby.m_MatchID);
+		from_chars_throw(result[3], newLobby.m_LobbyNumber);
+
+		Lobby currentLobby;
+		currentLobby.m_LobbyID = SteamID(result[4].str());
+		from_chars_throw(result[5], currentLobby.m_MatchID);
+		from_chars_throw(result[6], currentLobby.m_LobbyNumber);
+
+		bool connectedToMatchServer, hasLobby, assignedMatchEnded;
+		from_chars_throw(result[7], connectedToMatchServer);
+		from_chars_throw(result[8], hasLobby);
+		from_chars_throw(result[9], assignedMatchEnded);
+
+		return std::make_shared<DifferingLobbyReceivedLine>(timestamp, newLobby, currentLobby,
+			connectedToMatchServer, hasLobby, assignedMatchEnded);
+	}
+
+	return nullptr;
+}
+
+template<typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
+	const DifferingLobbyReceivedLine::Lobby& lobby)
+{
+	return os << lobby.m_LobbyID << "/Match" << lobby.m_MatchID << "/Lobby" << lobby.m_LobbyNumber;
+}
+
+void DifferingLobbyReceivedLine::Print(const PrintArgs& args) const
+{
+	ImGui::TextUnformatted(
+		"Differing lobby received. Lobby: "s << m_NewLobby
+		<< " CurrentlyAssigned: " << m_CurrentLobby
+		<< " ConnectectedToMatchServer: " << int(m_ConnectedToMatchServer)
+		<< " HasLobby: " << int(m_HasLobby)
+		<< " AssignedMatchEnded: " << int(m_AssignedMatchEnded));
+}

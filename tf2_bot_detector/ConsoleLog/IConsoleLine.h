@@ -18,6 +18,7 @@ namespace tf2_bot_detector
 		Ping,
 		LobbyStatusFailed,
 		LobbyChanged,
+		DifferingLobbyReceived,
 		LobbyHeader,
 		LobbyMember,
 		PartyHeader,
