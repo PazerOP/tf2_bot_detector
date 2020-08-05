@@ -125,7 +125,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.platform_mode }}-${{matrix._${{ env.TF2BD_VERSION }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         if-no-files-found: error
         path: ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
