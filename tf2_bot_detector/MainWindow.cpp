@@ -1213,19 +1213,13 @@ void MainWindow::OnUpdate()
 
 	HandleUpdateCheck();
 
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-	if (m_DRPManager)
-	{
-		if (!m_Settings.m_Discord.m_EnableRichPresence)
-			m_DRPManager.reset();
-		else
-			m_DRPManager->Update();
-	}
-#endif
-
 	if (m_SetupFlow.OnUpdate(m_Settings))
 	{
 		m_ConsoleLogParser.reset();
+
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+		m_DRPManager.reset();
+#endif
 		return;
 	}
 	else
@@ -1236,6 +1230,11 @@ void MainWindow::OnUpdate()
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 		if (!m_DRPManager && m_Settings.m_Discord.m_EnableRichPresence)
 			m_DRPManager = IDRPManager::Create(m_Settings, m_WorldState);
+		else if (m_DRPManager && !m_Settings.m_Discord.m_EnableRichPresence)
+			m_DRPManager.reset();
+
+		if (m_DRPManager)
+			m_DRPManager->Update();
 #endif
 
 		m_ConsoleLogParser->m_Parser.Update();
