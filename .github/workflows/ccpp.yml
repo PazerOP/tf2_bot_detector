@@ -106,27 +106,19 @@ jobs:
     - name: Define artifact filename
       run: echo "::set-env name=TF2BD_PACKAGE_NAME::tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
 
-    - name: "Artifacts: *.dll"
+    - name: "Artifacts: primary build"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
         name: "${{ env.TF2BD_PACKAGE_NAME }}"
-        path: "${{ env.TF2BD_BUILD_DIR }}/*.dll"
-    - name: "Artifacts: *.exe"
-      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
-      uses: actions/upload-artifact@v2
-      with:
-        name: "${{ env.TF2BD_PACKAGE_NAME }}"
-        path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
-    - name: "Artifacts: *.pdb"
+        path: |
+          "${{ env.TF2BD_BUILD_DIR }}/*.dll"
+          "${{ env.TF2BD_BUILD_DIR }}/*.exe"
+          "${{ github.workspace }}/staging"
+
+    - name: "Artifacts: symbols"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.pdb"
-    - name: "Artifacts: staging dir"
-      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD
-      uses: actions/upload-artifact@v2
-      with:
-        name: "${{ env.TF2BD_PACKAGE_NAME }}"
-        path: "${{ github.workspace }}/staging"
