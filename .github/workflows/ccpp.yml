@@ -7,6 +7,10 @@ on:
       - 'staging/cfg/**.json'
       - '*.md'
 
+env:
+  VCPKG_COMMIT_ID: 7c82b03faf93e607c722e518819a54e4359aeddc
+  VCPKG_PACKAGES: SDL2 openSSL glbinding cpp-httplib libzippp fmt discord-game-sdk
+
 jobs:
   ci:
     runs-on: ${{ matrix.os }}
@@ -14,16 +18,19 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-20.04]
+        platform_mode: [x64]
         discord_integration: [true, false]
         include:
-          - triplet: x86-windows
-            os: windows-latest
-            tf2bd_arch: x86
+          - os: windows-latest
+            platform_mode: x86
             build_arch: Win32
-          - triplet: x64-windows
-            os: windows-latest
-            tf2bd_arch: x64
+            triplet: x86-windows
+          - os: windows-latest
+            platform_mode: x64
             build_arch: x64
+            triplet: x64-windows
+          - os: ubuntu-20.04
+            triplet: x64-linux
 
     steps:
     - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
@@ -56,9 +63,8 @@ jobs:
         echo "github.sha = ${{ github.sha }}"
         echo "github.ref = ${{ github.ref }}"
         echo "matrix.os = ${{ matrix.os }}"
-        echo "matrix.triplet = ${{ matrix.triplet }}"
         echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
-        echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
+        echo "matrix.platform_mode = ${{ matrix.platform_mode }}"
         echo "matrix.build_arch = ${{ matrix.build_arch }}"
         echo "env.TF2BD_ENABLE_ARTIFACT_UPLOAD = ${{ env.TF2BD_ENABLE_ARTIFACT_UPLOAD }}"
         echo "steps.tf2bd_paths.outputs.workspace = ${{ steps.tf2bd_paths.outputs.workspace }}"
@@ -69,15 +75,14 @@ jobs:
       with:
         submodules: recursive
 
-    - name: run-vcpkg
-      uses: lukka/run-vcpkg@v3.2
+    - uses: lukka/run-vcpkg@v3.2
       with:
         vcpkgGitCommitId: 7c82b03faf93e607c722e518819a54e4359aeddc
         vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp fmt discord-game-sdk'
         vcpkgTriplet: ${{ matrix.triplet }}
 
     - name: CMake
-#      if: ${{ startsWith(matrix.os, 'windows') }}
+      if: ${{ startsWith(matrix.os, 'windows') }}
       shell: bash
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
@@ -112,7 +117,7 @@ jobs:
       run: |
         echo "Hash of current exe: "
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
-        cp -v "${{ steps.tf2bd_paths.outputs.workspace }}/smartscreen/${{ matrix.tf2bd_arch }}/tf2_bot_detector.exe" "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
+        cp -v "${{ steps.tf2bd_paths.outputs.workspace }}/smartscreen/${{ matrix.platform_mode }}/tf2_bot_detector.exe" "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
         echo "Hash of cached exe: "
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
 
@@ -120,7 +125,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
+        name: "tf2_bot_detector_${{ matrix.platform_mode }}-${{matrix._${{ env.TF2BD_VERSION }}"
         if-no-files-found: error
         path: ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
