@@ -9,9 +9,6 @@ on:
 
 jobs:
   ci:
-    env:
-      TF2BD_BUILD_DIR: "${{ github.workspace }}/tf2bd_cmake_build_dir/"
-
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -28,7 +25,6 @@ jobs:
             triplet: x64-windows
             tf2bd_arch: x64
             build_arch: x64
-
 
     steps:
     - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
@@ -47,6 +43,14 @@ jobs:
       if: matrix.discord_integration == true
       run: echo "::set-env name=TF2BD_ENABLE_ARTIFACT_UPLOAD::1"
 
+    - name: Config cross-platform paths
+      id: tf2bd_paths
+      shell: bash
+      run: |
+        tf2bd_workspace=`realpath "${{ github.workspace }}"`
+        echo "::set-output name=workspace::$tf2bd_workspace"
+        echo "::set-output name=build_dir::$tf2bd_workspace/tf2bd_cmake_build_dir/"
+
     - name: Debug
       run: |
         echo "github.event_name = ${{ github.event_name }}"
@@ -58,6 +62,8 @@ jobs:
         echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
         echo "matrix.build_arch = ${{ matrix.build_arch }}"
         echo "env.TF2BD_ENABLE_ARTIFACT_UPLOAD = ${{ env.TF2BD_ENABLE_ARTIFACT_UPLOAD }}"
+        echo "steps.tf2bd_paths.outputs.workspace = ${{ steps.tf2bd_paths.outputs.workspace }}"
+        echo "steps.tf2bd_paths.outputs.build_dir = ${{ steps.tf2bd_paths.outputs.build_dir }}"
 
     - name: Checkout
       uses: actions/checkout@v2
@@ -73,17 +79,18 @@ jobs:
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
+      shell: bash
       run: |
-        mkdir "${{ env.TF2BD_BUILD_DIR }}"
-        cd "${{ env.TF2BD_BUILD_DIR }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ env.TF2BD_BUILD_DIR }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} ../
+        mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
+        cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
+        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} ../
         cmake --build . --config Release
 
     - name: Sign artifacts
       if: ${{ startsWith(matrix.os, 'windows') }}
       uses: PazerOP/code-sign-action@v3
       with:
-        folder: '${{ env.TF2BD_BUILD_DIR }}'
+        folder: '${{ steps.tf2bd_paths.outputs.build_dir }}'
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
@@ -92,36 +99,35 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: "smartscreen_${{ matrix.triplet }}"
-        path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
-
-    - name: Define artifact filename
-      run: echo "::set-env name=TF2BD_PACKAGE_NAME::tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
+        path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
-      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
+      if: startsWith(matrix.os, 'windows')
+      shell: bash
       run: |
-        cp ${{ env.TF2BD_BUILD_DIR }}/*.exe ${{ env.TF2BD_BUILD_DIR }}/*.dll ${{ github.workspace }}/staging/
+        cp -v ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
     - name: Smartscreen workaround
       if: ${{ startsWith(matrix.os, 'windows') }}
+      shell: bash
       run: |
         echo "Hash of current exe: "
-        sha1sum "${{ github.workspace }}/staging/tf2_bot_detector.exe"
-        copy "${{ github.workspace }}/smartscreen/${{ matrix.tf2bd_arch }}/tf2_bot_detector.exe" "${{ github.workspace }}/staging/tf2_bot_detector.exe"
+        sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
+        cp -v "${{ steps.tf2bd_paths.outputs.workspace }}/smartscreen/${{ matrix.tf2bd_arch }}/tf2_bot_detector.exe" "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
         echo "Hash of cached exe: "
-        sha1sum "${{ github.workspace }}/staging/tf2_bot_detector.exe"
+        sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
 
     - name: "Artifacts: Upload staging/"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "${{ env.TF2BD_PACKAGE_NAME }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         if-no-files-found: error
-        path: ${{ github.workspace }}/staging/
+        path: ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
     - name: "Artifacts: symbols"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
-        path: "${{ env.TF2BD_BUILD_DIR }}/*.pdb"
+        path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.pdb"
