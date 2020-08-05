@@ -151,6 +151,7 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 ### Sponsors
 Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-sponsors-pazerop]:
 <!--$10-->
+* [camp3r101](https://github.com/camp3r101)
 * [Crazy Gunman](https://github.com/CrazyGunman2C4U)
 <!--$5-->
 * [Admiral Bread Crumbs](https://github.com/AdmiralBreadCrumbs)
