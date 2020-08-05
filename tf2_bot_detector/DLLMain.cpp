@@ -8,6 +8,8 @@
 #ifdef WIN32
 #include "Platform/Windows/WindowsHelpers.h"
 #include <Windows.h>
+#include <Objbase.h>
+#include <shellapi.h>
 #endif
 
 using namespace std::string_literals;

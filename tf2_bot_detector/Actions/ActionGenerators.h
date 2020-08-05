@@ -2,11 +2,6 @@
 
 #include "Clock.h"
 
-#include <cppcoro/generator.hpp>
-
-#include <memory>
-#include <vector>
-
 namespace tf2_bot_detector
 {
 	class IAction;

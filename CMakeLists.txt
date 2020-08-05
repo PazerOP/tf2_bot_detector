@@ -171,6 +171,7 @@ endif()
 target_include_directories(tf2_bot_detector
 	PRIVATE tf2_bot_detector
 )
+target_compile_definitions(tf2_bot_detector PRIVATE WIN32_LEAN_AND_MEAN)
 
 option(TF2BD_ENABLE_DISCORD_INTEGRATION "Enable discord integration" on)
 if (TF2BD_ENABLE_DISCORD_INTEGRATION)

@@ -12,6 +12,7 @@
 #include <Windows.h>
 #include <ShObjIdl_core.h>
 #include <ShlObj.h>
+#include <shellapi.h>
 
 using namespace std::string_literals;
 using namespace tf2_bot_detector::Windows;
