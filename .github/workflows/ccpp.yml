@@ -16,12 +16,12 @@ jobs:
         os: [windows-latest, ubuntu-20.04]
         discord_integration: [true, false]
         include:
-          - os: windows-latest
-            triplet: x86-windows
+          - triplet: x86-windows
+            os: windows-latest
             tf2bd_arch: x86
             build_arch: Win32
-          - os: windows-latest
-            triplet: x64-windows
+          - triplet: x64-windows
+            os: windows-latest
             tf2bd_arch: x64
             build_arch: x64
 
