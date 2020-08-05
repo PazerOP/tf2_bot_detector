@@ -98,7 +98,7 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       shell: bash
       run: |
-        cp ${{ env.TF2BD_BUILD_DIR }}/*.exe ${{ env.TF2BD_BUILD_DIR }}/*.dll ${{ github.workspace }}/staging/
+        cp "${{ env.TF2BD_BUILD_DIR }}/*.exe" "${{ env.TF2BD_BUILD_DIR }}/*.dll" "${{ github.workspace }}/staging/"
 
     - name: Smartscreen workaround
       if: ${{ startsWith(matrix.os, 'windows') }}
