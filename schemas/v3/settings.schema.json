@@ -9,6 +9,17 @@
 			"description": "The JSON schema to validate this file against.",
 			"type": "string"
 		},
+		"discord": {
+			"type": "object",
+			"description": "Settings related to TF2BD's Discord integrations.",
+			"additionalProperties": false,
+			"properties": {
+				"rich_presence_enable": {
+					"type": "boolean",
+					"description": "Enables rich presence support."
+				}
+			}
+		},
 		"general": {
 			"type": "object",
 			"description": "General settings.",
