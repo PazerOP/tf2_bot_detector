@@ -24,13 +24,27 @@ using namespace tf2_bot_detector;
 
 static constexpr const char DEFAULT_LARGE_IMAGE_KEY[] = "tf2_1x1";
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, discord::Result result)
+static constexpr LogMessageColor DISCORD_LOG_COLOR{ 117 / 255.0f, 136 / 255.0f, 215 / 255.0f };
+
+static void DiscordDebugLog(const std::string_view& msg)
 {
-	using Result = discord::Result;
+	DebugLog("DRP: "s << msg, DISCORD_LOG_COLOR);
+}
+static void DiscordDebugLog(const mh::source_location& location, const std::string_view& msg = {})
+{
+	if (msg.empty())
+		DebugLog(location, {}, DISCORD_LOG_COLOR);
+	else
+		DebugLog(location, "DRP: "s << msg, DISCORD_LOG_COLOR);
+}
 
 #undef OS_CASE
 #define OS_CASE(v) case v : return os << #v
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, discord::Result result)
+{
+	using Result = discord::Result;
+
 	switch (result)
 	{
 		OS_CASE(Result::Ok);
@@ -81,9 +95,23 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 	default:
 		return os << "Result(" << +std::underlying_type_t<Result>(result) << ')';
 	}
-
-#undef OS_CASE
 }
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, discord::ActivityType type)
+{
+	using ActivityType = discord::ActivityType;
+	switch (type)
+	{
+		OS_CASE(ActivityType::Playing);
+		OS_CASE(ActivityType::Streaming);
+		OS_CASE(ActivityType::Listening);
+		OS_CASE(ActivityType::Watching);
+
+	default:
+		return os << "ActivityType(" << +std::underlying_type_t<ActivityType>(type) << ')';
+	}
+}
+#undef OS_CASE
 
 static std::strong_ordering strcmp3(const char* lhs, const char* rhs)
 {
@@ -178,6 +206,76 @@ static std::strong_ordering operator<=>(const discord::Activity& lhs, const disc
 	return std::strong_ordering::equal;
 }
 
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(
+	std::basic_ostream<CharT, Traits>& os, const discord::ActivityTimestamps& ts)
+{
+	return os
+		<< "\n\t\tStart: " << ts.GetStart()
+		<< "\n\t\tEnd:   " << ts.GetEnd()
+		;
+}
+
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(
+	std::basic_ostream<CharT, Traits>& os, const discord::ActivityAssets& a)
+{
+	return os
+		<< "\n\t\tLargeImage: " << std::quoted(a.GetLargeImage())
+		<< "\n\t\tLargeText:  " << std::quoted(a.GetLargeText())
+		<< "\n\t\tSmallImage: " << std::quoted(a.GetSmallImage())
+		<< "\n\t\tSmallText:  " << std::quoted(a.GetSmallText())
+		;
+}
+
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(
+	std::basic_ostream<CharT, Traits>& os, const discord::PartySize& ps)
+{
+	return os
+		<< "\n\t\t\tCurrent: " << ps.GetCurrentSize()
+		<< "\n\t\t\tMax:     " << ps.GetMaxSize()
+		;
+}
+
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(
+	std::basic_ostream<CharT, Traits>& os, const discord::ActivityParty& p)
+{
+	return os
+		<< "\n\t\tID:   " << std::quoted(p.GetId())
+		<< "\n\t\tSize: " << p.GetSize()
+		;
+}
+
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(
+	std::basic_ostream<CharT, Traits>& os, const discord::ActivitySecrets& s)
+{
+	return os
+		<< "\n\t\tMatch:    " << std::quoted(s.GetMatch())
+		<< "\n\t\tJoin:     " << std::quoted(s.GetJoin())
+		<< "\n\t\tSpectate: " << std::quoted(s.GetSpectate())
+		;
+}
+
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const discord::Activity& a)
+{
+	return os << std::boolalpha
+		<< "\n\tType:          " << a.GetType()
+		<< "\n\tApplicationID: " << a.GetApplicationId()
+		<< "\n\tName:          " << std::quoted(a.GetName())
+		<< "\n\tState:         " << std::quoted(a.GetState())
+		<< "\n\tDetails:       " << std::quoted(a.GetDetails())
+		<< "\n\tTimestamps:    " << a.GetTimestamps()
+		<< "\n\tAssets:        " << a.GetAssets()
+		<< "\n\tParty:         " << a.GetParty()
+		<< "\n\tSecrets:       " << a.GetSecrets()
+		<< "\n\tInstance:      " << a.GetInstance()
+		;
+}
+
 namespace
 {
 	enum class ConnectionState
@@ -191,7 +289,7 @@ namespace
 	{
 		DiscordGameState(const Settings& settings, const DRPInfo& drpInfo) : m_Settings(&settings), m_DRPInfo(&drpInfo) {}
 
-		std::optional<discord::Activity> ConstructActivity() const;
+		discord::Activity ConstructActivity() const;
 
 		void OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state);
 		void OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime);
@@ -270,7 +368,7 @@ std::optional<time_point_t> DiscordGameState::GetEarliestActiveQueueStartTime() 
 	return retVal;
 }
 
-std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
+discord::Activity DiscordGameState::ConstructActivity() const
 {
 	discord::Activity retVal{};
 
@@ -410,6 +508,7 @@ std::optional<discord::Activity> DiscordGameState::ConstructActivity() const
 
 void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateChange state)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	auto& queue = m_QueueStates.at(size_t(queueType));
 
 	if (state == TFQueueStateChange::Entered)
@@ -425,6 +524,7 @@ void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateCh
 
 void DiscordGameState::OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t queueStartTime)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	auto& queue = m_QueueStates.at(size_t(queueType));
 	queue.m_Active = true;
 	queue.m_StartTime = queueStartTime;
@@ -432,6 +532,7 @@ void DiscordGameState::OnQueueStatusUpdate(TFMatchGroup queueType, time_point_t 
 
 void DiscordGameState::OnServerIPUpdate(const std::string_view& localIP)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	if (localIP.starts_with("0.0.0.0:"))
 	{
 		SetInLocalServer(true);
@@ -445,6 +546,7 @@ void DiscordGameState::OnServerIPUpdate(const std::string_view& localIP)
 
 void DiscordGameState::SetInLobby(bool inLobby)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	if (inLobby)
 		m_ConnectionState = ConnectionState::Nonlocal;
 
@@ -453,6 +555,7 @@ void DiscordGameState::SetInLobby(bool inLobby)
 
 void DiscordGameState::SetInLocalServer(bool inLocalServer)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	if (inLocalServer)
 	{
 		m_ConnectionState = ConnectionState::Local;
@@ -462,6 +565,7 @@ void DiscordGameState::SetInLocalServer(bool inLocalServer)
 
 void DiscordGameState::SetInParty(bool inParty)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	if (inParty)
 	{
 		if (m_PartyMemberCount < 1)
@@ -475,6 +579,7 @@ void DiscordGameState::SetInParty(bool inParty)
 
 void DiscordGameState::SetMapName(std::string mapName)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	m_MapName = std::move(mapName);
 	if (m_MapName.empty())
 		m_LastSpawnedClass = TFClassType::Undefined;
@@ -482,6 +587,7 @@ void DiscordGameState::SetMapName(std::string mapName)
 
 void DiscordGameState::UpdateParty(uint8_t partyMembers)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	if (partyMembers > 0)
 	{
 		SetInParty(true);
@@ -491,11 +597,13 @@ void DiscordGameState::UpdateParty(uint8_t partyMembers)
 
 void DiscordGameState::OnLocalPlayerSpawned(TFClassType classType)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	m_LastSpawnedClass = classType;
 }
 
 void DiscordGameState::OnConnectionCountUpdate(unsigned connectionCount)
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	if (connectionCount < 1)
 		m_ConnectionState = ConnectionState::Disconnected;
 }
@@ -526,7 +634,7 @@ namespace
 
 		bool m_WantsUpdate = false;
 		time_point_t m_LastUpdate{};
-		std::optional<discord::Activity> m_CurrentActivity{};
+		discord::Activity m_CurrentActivity{};
 	};
 }
 
@@ -679,33 +787,22 @@ void DiscordState::Update()
 		if ((curTime - m_LastUpdate) < UPDATE_INTERVAL)
 			return;
 
-		const auto nextActivity = m_GameState.ConstructActivity();
-		if (nextActivity.has_value() != m_CurrentActivity.has_value() ||
-			(nextActivity.has_value() && m_CurrentActivity.has_value() && std::is_neq(*nextActivity <=> *m_CurrentActivity)))
+		if (const auto nextActivity = m_GameState.ConstructActivity();
+			std::is_neq(nextActivity <=> m_CurrentActivity))
 		{
-			if (nextActivity)
-			{
-				// Perform the update
-				m_Core->ActivityManager().UpdateActivity(*nextActivity, [](discord::Result result)
+			// Perform the update
+			m_Core->ActivityManager().UpdateActivity(nextActivity, [nextActivity](discord::Result result)
+				{
+					if (result == discord::Result::Ok)
 					{
-						if (result != discord::Result::Ok)
-						{
-							LogWarning(MH_SOURCE_LOCATION_CURRENT(),
-								"Failed to update discord activity state: "s << result);
-						}
-					});
-			}
-			else
-			{
-				m_Core->ActivityManager().ClearActivity([](discord::Result result)
+						DiscordDebugLog("Updated discord activity state: "s << nextActivity);
+					}
+					else
 					{
-						if (result != discord::Result::Ok)
-						{
-							LogWarning(MH_SOURCE_LOCATION_CURRENT(),
-								"Failed to clear discord activity callback: "s << result);
-						}
-					});
-			}
+						LogWarning(MH_SOURCE_LOCATION_CURRENT(),
+							"Failed to update discord activity state: "s << result);
+					}
+				});
 
 			m_CurrentActivity = nextActivity;
 			m_LastUpdate = curTime;

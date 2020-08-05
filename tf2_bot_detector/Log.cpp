@@ -158,7 +158,12 @@ void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 
 void tf2_bot_detector::Log(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
 {
-	Log(""s << location << ": " << msg, color);
+	std::string fullMsg;
+	fullMsg << location;
+	if (!msg.empty())
+		fullMsg << ": " << msg;
+
+	Log(std::move(fullMsg), color);
 }
 
 void tf2_bot_detector::LogWarning(std::string msg)
