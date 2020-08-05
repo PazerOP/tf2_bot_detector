@@ -34,6 +34,9 @@ set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode"
 set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
 add_subdirectory(submodules/nlohmann_json)
 
+set(ENABLE_EXAMPLES off CACHE BOOL "Build examples" FORCE)
+add_subdirectory("submodules/cppcoro")
+
 if (WIN32)
 	add_library(tf2_bot_detector SHARED)
 	set_target_properties(tf2_bot_detector PROPERTIES PDB_NAME "tf2_bot_detector_dll")
@@ -201,8 +204,6 @@ target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 
 find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
-
-add_subdirectory("submodules/cppcoro")
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	imgui_desktop
