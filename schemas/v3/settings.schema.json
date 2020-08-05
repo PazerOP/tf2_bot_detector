@@ -14,12 +14,32 @@
 			"description": "General settings.",
 			"additionalProperties": false,
 			"properties": {
-				"auto_temp_mute": {
-					"description": "Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.",
+				"auto_chat_warnings": {
+					"description": "If a cheater is found on the other team, send chat messages asking them to kick the cheater.",
+					"type": "boolean"
+				},
+				"auto_chat_warnings_connecting": {
+					"description": "If auto_chat_warnings is enabled, also send chat warnings when a known cheater is *connecting* to the server.",
 					"type": "boolean"
 				},
 				"auto_launch_tf2": {
 					"description": "Controls whether TF2 will automatically be launched when TF2BD is opened.",
+					"type": "boolean"
+				},
+				"auto_mark": {
+					"description": "Automatically marks users that are detected using rules.*.json.",
+					"type": "boolean"
+				},
+				"auto_temp_mute": {
+					"description": "Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.",
+					"type": "boolean"
+				},
+				"auto_votekick": {
+					"description": "Automatically votekicks players on your team who are marked as cheaters in playerlist.*.json.",
+					"type": "boolean"
+				},
+				"auto_votekick_delay": {
+					"description": "The delay in seconds before we consider newly-connected friendly players as \"ready to participate in a votekick\".",
 					"type": "boolean"
 				},
 				"local_steamid_override": {
