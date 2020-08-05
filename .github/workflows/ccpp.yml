@@ -111,10 +111,11 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: "${{ env.TF2BD_PACKAGE_NAME }}"
+        if-no-files-found: error
         path: |
-          "${{ env.TF2BD_BUILD_DIR }}/*.dll"
-          "${{ env.TF2BD_BUILD_DIR }}/*.exe"
-          "${{ github.workspace }}/staging"
+          ${{ env.TF2BD_BUILD_DIR }}/*.dll
+          ${{ env.TF2BD_BUILD_DIR }}/*.exe
+          ${{ github.workspace }}/staging/
 
     - name: "Artifacts: symbols"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
