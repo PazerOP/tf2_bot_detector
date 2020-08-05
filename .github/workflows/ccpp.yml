@@ -13,8 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
-        triplet: [x86-windows, x64-windows]
+        os: [windows-latest, ubuntu-20.04]
         discord_integration: [true, false]
         include:
           - os: windows-latest
@@ -78,7 +77,7 @@ jobs:
         vcpkgTriplet: ${{ matrix.triplet }}
 
     - name: CMake
-      if: ${{ startsWith(matrix.os, 'windows') }}
+#      if: ${{ startsWith(matrix.os, 'windows') }}
       shell: bash
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
