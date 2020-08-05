@@ -533,13 +533,13 @@ void DiscordGameState::OnConnectionCountUpdate(unsigned connectionCount)
 
 namespace
 {
-	struct DiscordState final : IDRPManager, BaseWorldEventListener, IConsoleLineListener
+	class DiscordState final : public IDRPManager, BaseWorldEventListener, IConsoleLineListener
 	{
+	public:
 		static constexpr duration_t UPDATE_INTERVAL = 10s; // 20s / 5;
 
 		DiscordState(const Settings& settings, WorldState& world);
 
-		discord::Core* m_Core = nullptr;
 
 		void QueueUpdate() { m_WantsUpdate = true; }
 		void Update() override;
@@ -548,6 +548,8 @@ namespace
 		void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override;
 
 	private:
+		std::unique_ptr<discord::Core> m_Core;
+
 		const Settings* m_Settings = nullptr;
 		DRPInfo m_DRPInfo;
 		DiscordGameState m_GameState;
@@ -566,8 +568,11 @@ DiscordState::DiscordState(const Settings& settings, WorldState& world) :
 	world.AddConsoleLineListener(this);
 	world.AddWorldEventListener(this);
 
-	if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_Default, &m_Core); result != discord::Result::Ok)
+	discord::Core* core = nullptr;
+	if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_Default, &core); result != discord::Result::Ok)
 		throw std::runtime_error("Failed to initialize discord: "s << result);
+
+	m_Core.reset(core);
 
 	if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
 		LogError("Failed to register discord integration as steam appid 440: "s << result);
