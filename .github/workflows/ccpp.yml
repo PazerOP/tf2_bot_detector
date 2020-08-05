@@ -48,7 +48,7 @@ jobs:
       if: ${{ !startsWith(github.ref, 'refs/tags/') }}
       run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
 
-    - name: Determine artifact behavior
+    - name: Enable artifact upload
       if: matrix.discord_integration == true
       run: echo "::set-env name=TF2BD_ENABLE_ARTIFACT_UPLOAD::1"
 
@@ -84,14 +84,20 @@ jobs:
         vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp fmt discord-game-sdk'
         vcpkgTriplet: ${{ matrix.triplet }}
 
-    - name: CMake
+    - name: Config CMake (Windows)
+      id: cmake_config
       if: ${{ startsWith(matrix.os, 'windows') }}
+      run: |
+        echo "::set-output name=config_args::-A${{ matrix.build_arch }}"
+        echo "::set-output name=build_args::--config Release"
+
+    - name: CMake
       shell: bash
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} ../
-        cmake --build . --config Release
+        cmake ${{ steps.cmake_config.outputs.config_args }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} ../
+        cmake --build . ${{ steps.cmake_config.outputs.build_args }}
 
     - name: Sign artifacts
       if: ${{ startsWith(matrix.os, 'windows') }}
