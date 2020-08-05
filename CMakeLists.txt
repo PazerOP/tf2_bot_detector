@@ -200,8 +200,9 @@ find_path(HTTPLIB_PATH NAMES httplib.h)
 target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 
 find_package(libzippp CONFIG REQUIRED)
-find_package(cppcoro CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+
+add_subdirectory("submodules/cppcoro")
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	imgui_desktop
