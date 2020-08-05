@@ -18,8 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-20.04]
-        platform_mode: [x64]
+        platform_mode: [x86, x64]
         discord_integration: [true, false]
+        exclude:
+          - os: ubuntu-20.04
+            platform_mode: x86
         include:
           - os: windows-latest
             platform_mode: x86
