@@ -94,11 +94,9 @@ jobs:
         name: "smartscreen_${{ matrix.triplet }}"
         path: "${{ env.TF2BD_BUILD_DIR }}/*.exe"
 
-    - name: Define artifact filename
-      run: echo "::set-env name=TF2BD_PACKAGE_NAME::tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
-
     - name: "Artifacts: Prepare staging/"
-      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
+      if: startsWith(matrix.os, 'windows')
+      shell: bash
       run: |
         cp ${{ env.TF2BD_BUILD_DIR }}/*.exe ${{ env.TF2BD_BUILD_DIR }}/*.dll ${{ github.workspace }}/staging/
 
@@ -115,7 +113,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "${{ env.TF2BD_PACKAGE_NAME }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
         if-no-files-found: error
         path: ${{ github.workspace }}/staging/
 
