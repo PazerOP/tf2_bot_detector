@@ -156,14 +156,20 @@ void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
 	GetLogState().Log(std::move(msg), color);
 }
 
-void tf2_bot_detector::Log(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
+static std::string FormatSourceLocation(const mh::source_location& location, const std::string_view& msg)
 {
 	std::string fullMsg;
 	fullMsg << location;
+
 	if (!msg.empty())
 		fullMsg << ": " << msg;
 
-	Log(std::move(fullMsg), color);
+	return fullMsg;
+}
+
+void tf2_bot_detector::Log(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
+{
+	Log(FormatSourceLocation(location, msg), color);
 }
 
 void tf2_bot_detector::LogWarning(std::string msg)
@@ -198,7 +204,7 @@ void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 
 void tf2_bot_detector::DebugLog(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
 {
-	DebugLog(""s << location << ": " << msg, color);
+	DebugLog(FormatSourceLocation(location, msg), color);
 }
 
 void tf2_bot_detector::DebugLogWarning(std::string msg)
@@ -208,7 +214,7 @@ void tf2_bot_detector::DebugLogWarning(std::string msg)
 
 void tf2_bot_detector::DebugLogWarning(const mh::source_location& location, const std::string_view& msg)
 {
-	DebugLogWarning(""s << location << ": " << msg);
+	DebugLogWarning(FormatSourceLocation(location, msg));
 }
 
 cppcoro::generator<const LogMessage&> LogManager::GetVisibleMsgs() const

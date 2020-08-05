@@ -659,6 +659,7 @@ DiscordState::DiscordState(const Settings& settings, WorldState& world) :
 
 DiscordState::~DiscordState()
 {
+	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	m_WorldState->RemoveConsoleLineListener(this);
 	m_WorldState->RemoveWorldEventListener(this);
 }
