@@ -16,3 +16,6 @@
 [submodule "submodules/nlohmann_json"]
 	path = submodules/nlohmann_json
 	url = https://github.com/nlohmann/json.git
+[submodule "submodules/cppcoro"]
+	path = submodules/cppcoro
+	url = https://github.com/PazerOP/cppcoro.git
