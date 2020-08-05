@@ -91,6 +91,7 @@ jobs:
         echo "::set-env name=TF2BD_CMAKE_BUILD_ARGS::--config Release"
 
     - name: Config CMake (linux)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
       run: |
         sudo apt install g++-10
         echo "::set-env name=CC::gcc-10"
