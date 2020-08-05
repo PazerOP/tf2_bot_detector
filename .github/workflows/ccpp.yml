@@ -85,19 +85,24 @@ jobs:
         vcpkgTriplet: ${{ matrix.triplet }}
 
     - name: Config CMake (Windows)
-      id: cmake_config
       if: ${{ startsWith(matrix.os, 'windows') }}
       run: |
-        echo "::set-output name=config_args::-A${{ matrix.build_arch }}"
-        echo "::set-output name=build_args::--config Release"
+        echo "::set-env name=TF2BD_CMAKE_CONFIG_ARGS::-A${{ matrix.build_arch }}"
+        echo "::set-env name=TF2BD_CMAKE_BUILD_ARGS::--config Release"
+
+    - name: Config CMake (linux)
+      run: |
+        sudo apt install g++-10
+        echo "::set-env name=CC::gcc-10"
+        echo "::set-env name=CXX::g++-10"
 
     - name: CMake
       shell: bash
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
-        cmake ${{ steps.cmake_config.outputs.config_args }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} ../
-        cmake --build . ${{ steps.cmake_config.outputs.build_args }}
+        cmake ${{ env.TF2BD_CMAKE_CONFIG_ARGS }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} ../
+        cmake --build . ${{ env.TF2BD_CMAKE_BUILD_ARGS }}
 
     - name: Sign artifacts
       if: ${{ startsWith(matrix.os, 'windows') }}
