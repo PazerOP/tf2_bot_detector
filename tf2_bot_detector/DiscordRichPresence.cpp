@@ -644,17 +644,20 @@ DiscordState::DiscordState(const Settings& settings, WorldState& world) :
 	m_GameState(settings, m_DRPInfo),
 	m_DRPInfo(settings)
 {
-	world.AddConsoleLineListener(this);
-	world.AddWorldEventListener(this);
-
 	discord::Core* core = nullptr;
-	if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_Default, &core); result != discord::Result::Ok)
+	if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_NoRequireDiscord, &core);
+		result != discord::Result::Ok)
+	{
 		throw std::runtime_error("Failed to initialize discord: "s << result);
+	}
 
 	m_Core.reset(core);
 
 	if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
 		LogError("Failed to register discord integration as steam appid 440: "s << result);
+
+	world.AddConsoleLineListener(this);
+	world.AddWorldEventListener(this);
 }
 
 DiscordState::~DiscordState()
@@ -822,5 +825,13 @@ void DiscordState::Update()
 
 std::unique_ptr<IDRPManager> IDRPManager::Create(const Settings& settings, WorldState& world)
 {
-	return std::make_unique<DiscordState>(settings, world);
+	try
+	{
+		return std::make_unique<DiscordState>(settings, world);
+	}
+	catch (const std::exception& e)
+	{
+		LogError("Failed to initialize Discord interface: "s << typeid(e).name() << ": " << e.what());
+		return nullptr;
+	}
 }

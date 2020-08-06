@@ -1199,6 +1199,28 @@ void MainWindow::HandleUpdateCheck()
 	}
 }
 
+void MainWindow::OnUpdateDiscord()
+{
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+	const auto curTime = clock_t::now();
+	constexpr duration_t MIN_INIT_INTERVAL = 10s;
+	if (!m_DRPManager &&
+		m_Settings.m_Discord.m_EnableRichPresence &&
+		curTime > (m_LastDiscordInitializeTime + MIN_INIT_INTERVAL))
+	{
+		m_DRPManager = IDRPManager::Create(m_Settings, m_WorldState);
+		m_LastDiscordInitializeTime = curTime;
+	}
+	else if (m_DRPManager && !m_Settings.m_Discord.m_EnableRichPresence)
+	{
+		m_DRPManager.reset();
+	}
+
+	if (m_DRPManager)
+		m_DRPManager->Update();
+#endif
+}
+
 void MainWindow::OnUpdate()
 {
 	if (m_Paused)
@@ -1227,16 +1249,7 @@ void MainWindow::OnUpdate()
 		if (!m_ConsoleLogParser)
 			m_ConsoleLogParser.emplace(*this);
 
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-		if (!m_DRPManager && m_Settings.m_Discord.m_EnableRichPresence)
-			m_DRPManager = IDRPManager::Create(m_Settings, m_WorldState);
-		else if (m_DRPManager && !m_Settings.m_Discord.m_EnableRichPresence)
-			m_DRPManager.reset();
-
-		if (m_DRPManager)
-			m_DRPManager->Update();
-#endif
-
+		OnUpdateDiscord();
 		m_ConsoleLogParser->m_Parser.Update();
 		m_ModeratorLogic.Update();
 	}
