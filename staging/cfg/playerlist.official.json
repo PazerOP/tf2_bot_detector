@@ -898,6 +898,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Casio",
+				"time": 1596692572
+			},
+			"steamid": "[U:1:874592284]"
+		},
+		{
+			"attributes": [
 				"suspicious"
 			],
 			"last_seen": {
@@ -1173,6 +1183,16 @@
 				"time": 1593383631
 			},
 			"steamid": "[U:1:1008050763]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "G\u200ferm",
+				"time": 1596693832
+			},
+			"steamid": "[U:1:1010541691]"
 		},
 		{
 			"attributes": [
@@ -4389,6 +4409,16 @@
 			],
 			"last_seen": {
 				"player_name": "James Charles",
+				"time": 1596688639
+			},
+			"steamid": "[U:1:1106658152]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "James Charles",
 				"time": 1592413801
 			},
 			"steamid": "[U:1:1107020129]"
@@ -4825,6 +4855,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "SpyCrabUser_",
+				"time": 1596692562
+			},
+			"steamid": "[U:1:1116155636]"
+		},
+		{
+			"attributes": [
 				"suspicious"
 			],
 			"last_seen": {
@@ -4858,6 +4898,46 @@
 				"cheater"
 			],
 			"steamid": "[U:1:1119078696]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)STEAMROLLED",
+				"time": 1596694152
+			},
+			"steamid": "[U:1:1119502011]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(3)STEAMROLLED",
+				"time": 1596694153
+			},
+			"steamid": "[U:1:1119645882]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "STEAMROLLED",
+				"time": 1596694152
+			},
+			"steamid": "[U:1:1119766044]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(2)STEAMROLLED",
+				"time": 1596694146
+			},
+			"steamid": "[U:1:1119822201]"
 		}
 	]
 }
