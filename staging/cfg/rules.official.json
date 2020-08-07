@@ -159,6 +159,23 @@
 		{
 			"actions": {
 				"mark": [
+					"suspicious"
+				]
+			},
+			"description": "(catbot) cat.jpg",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": true,
+					"mode": "equal",
+					"patterns": [
+						"cat.jpg"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
 					"cheater"
 				]
 			},
