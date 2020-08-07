@@ -4925,6 +4925,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "cat.jpg",
+				"time": 1596779000
+			},
+			"steamid": "[U:1:1118516260]"
+		},
+		{
+			"attributes": [
 				"suspicious"
 			],
 			"last_seen": {
@@ -4978,6 +4988,16 @@
 				"time": 1596694146
 			},
 			"steamid": "[U:1:1119822201]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "YOU'VE BEEN STEAMROLLED - 4",
+				"time": 1596779890
+			},
+			"steamid": "[U:1:1119865323]"
 		}
 	]
 }
