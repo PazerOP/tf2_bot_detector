@@ -107,7 +107,6 @@ void ConsoleLogParser::Parse(bool& linesProcessed, bool& snapshotUpdated, bool& 
 			auto parseEnd = m_FileLineBuf.cbegin();
 			ParseChunk(parseEnd, linesProcessed, snapshotUpdated, consoleLinesUpdated);
 
-			m_ParsedLineCount += std::count(m_FileLineBuf.cbegin(), parseEnd, '\n');
 			m_FileLineBuf.erase(m_FileLineBuf.begin(), parseEnd);
 		}
 

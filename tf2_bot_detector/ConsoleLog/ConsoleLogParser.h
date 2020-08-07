@@ -20,7 +20,6 @@ namespace tf2_bot_detector
 
 		void Update();
 
-		size_t GetParsedLineCount() const { return m_ParsedLineCount; }
 		float GetParseProgress() const { return m_ParseProgress; }
 
 		const CompensatedTS& GetCurrentTimestamp() const { return m_CurrentTimestamp; }
@@ -53,7 +52,6 @@ namespace tf2_bot_detector
 		std::unique_ptr<FILE, CustomDeleters> m_File;
 		time_point_t m_LastFileLoadAttempt{};
 		std::string m_FileLineBuf;
-		size_t m_ParsedLineCount = 0;
 		float m_ParseProgress = 0;
 	};
 }

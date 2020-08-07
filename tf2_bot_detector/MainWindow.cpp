@@ -1010,7 +1010,7 @@ void MainWindow::OnDraw()
 	if (m_ConsoleLogParser)
 	{
 		auto& world = GetWorld();
-		const auto parsedLineCount = m_ConsoleLogParser->m_Parser.GetParsedLineCount();
+		const auto parsedLineCount = m_ParsedLineCount;
 		const auto parseProgress = m_ConsoleLogParser->m_Parser.GetParseProgress();
 
 		if (parseProgress < 0.95f)
@@ -1285,6 +1285,8 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 
 void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 {
+	m_ParsedLineCount++;
+
 	if (parsed.ShouldPrint() && m_ConsoleLogParser)
 	{
 		auto& parser = *m_ConsoleLogParser;
@@ -1317,6 +1319,11 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		break;
 	}
 	}
+}
+
+void MainWindow::OnConsoleLineUnparsed(WorldState& world, const std::string_view& text)
+{
+	m_ParsedLineCount++;
 }
 
 MainWindow::ConsoleLogParserExtra::ConsoleLogParserExtra(MainWindow& parent) :

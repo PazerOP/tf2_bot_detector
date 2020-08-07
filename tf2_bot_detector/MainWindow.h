@@ -90,7 +90,9 @@ namespace tf2_bot_detector
 
 		// IConsoleLineListener
 		void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) override;
+		void OnConsoleLineUnparsed(WorldState& world, const std::string_view& text) override;
 		void OnConsoleLogChunkParsed(WorldState& world, bool consoleLinesParsed) override;
+		size_t m_ParsedLineCount = 0;
 
 		// IWorldEventListener
 		//void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
