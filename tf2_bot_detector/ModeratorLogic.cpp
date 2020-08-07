@@ -8,6 +8,7 @@
 #include "WorldState.h"
 
 #include <mh/text/case_insensitive_string.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <codecvt>
@@ -248,8 +249,8 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& en
 
 	if (chatMsgCheaterNames.size() > 0)
 	{
-		constexpr char FMT_ONE_CHEATER[] = "Attention! There is a cheater on the other team named %s. Please kick them!";
-		constexpr char FMT_MULTIPLE_CHEATERS[] = "Attention! There are %u cheaters on the other team named %s. Please kick them!";
+		constexpr char FMT_ONE_CHEATER[] = "Attention! There is a cheater on the other team named \"{}\". Please kick them!";
+		constexpr char FMT_MULTIPLE_CHEATERS[] = "Attention! There are {} cheaters on the other team named {}. Please kick them!";
 		//constexpr char FMT_MANY_CHEATERS[] =     "Attention! There are %u cheaters on the other team including %s. Please kick them!";
 		constexpr size_t MAX_CHATMSG_LENGTH = 127;
 		constexpr size_t MAX_NAMES_LENGTH_ONE = MAX_CHATMSG_LENGTH - std::size(FMT_ONE_CHEATER) - 1 - 2;
@@ -257,11 +258,10 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& en
 		//constexpr size_t MAX_NAMES_LENGTH_MANY = MAX_CHATMSG_LENGTH - std::size(FMT_MANY_CHEATERS) - 1 - 1 - 2;
 
 		static_assert(MAX_NAMES_LENGTH_ONE >= 32);
-		std::string chatMsg;
+		mh::fmtstr<MAX_CHATMSG_LENGTH + 1> chatMsg;
 		if (chatMsgCheaterNames.size() == 1)
 		{
-			chatMsg.resize(256);
-			chatMsg.resize(sprintf_s(chatMsg.data(), 256, FMT_ONE_CHEATER, chatMsgCheaterNames.front().c_str()));
+			chatMsg.fmt(FMT_ONE_CHEATER, chatMsgCheaterNames.front());
 		}
 		else
 		{
@@ -276,8 +276,7 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& en
 					break;
 			}
 
-			chatMsg.resize(256);
-			chatMsg.resize(sprintf_s(chatMsg.data(), 256, FMT_MULTIPLE_CHEATERS, chatMsgCheaterNames.size(), cheaters.c_str()));
+			chatMsg.fmt(FMT_MULTIPLE_CHEATERS, chatMsgCheaterNames.size(), cheaters);
 		}
 
 		assert(chatMsg.size() <= 127);
@@ -352,14 +351,14 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<Cheater>& c
 	if (!needsWarning || !m_Settings->m_AutoChatWarnings || !m_Settings->m_AutoChatWarningsConnecting)
 		return;
 
-	char chatMsg[128];
+	mh::fmtstr<128> chatMsg;
 	if (connectingEnemyCheaters.size() == 1)
 	{
-		strcpy_s(chatMsg, "Heads up! There is a known cheater joining the other team! Name unknown until they fully join.");
+		chatMsg.puts("Heads up! There is a known cheater joining the other team! Name unknown until they fully join.");
 	}
 	else
 	{
-		sprintf_s(chatMsg, "Heads up! There are %zu known cheaters joining the other team! Names unknown until they fully join.",
+		chatMsg.fmt("Heads up! There are {} known cheaters joining the other team! Names unknown until they fully join.",
 			connectingEnemyCheaters.size());
 	}
 

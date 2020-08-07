@@ -7,6 +7,7 @@
 #include "WorldState.h"
 
 #include <mh/text/charconv_helper.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <imgui_desktop/ScopeGuards.h>
@@ -142,9 +143,8 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLin
 
 			if (newlineEnd > nonNewlineEnd)
 			{
-				char buf[64];
-				sprintf_s(buf, "(\\n x %zu)", (newlineEnd - nonNewlineEnd));
-				textFunc(ImVec4(1, 0.5f, 0.5f, 1.0f), buf);
+				textFunc(ImVec4(1, 0.5f, 0.5f, 1.0f),
+					mh::fmtstr<64>("(\\n x {})", (newlineEnd - nonNewlineEnd)).c_str());
 				sameLineFunc();
 			}
 

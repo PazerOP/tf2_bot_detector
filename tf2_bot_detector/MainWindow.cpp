@@ -22,6 +22,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/case_insensitive_string.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/stringops.hpp>
 
 #include <cassert>
@@ -918,19 +919,17 @@ void MainWindow::OnDrawServerStats()
 		ImGui::SameLine(0, 4);
 
 		auto& lastSample = m_EdictUsageSamples.back();
-		char buf[32];
 		const float percent = float(lastSample.m_UsedEdicts) / lastSample.m_MaxEdicts;
-		sprintf_s(buf, "%i (%1.0f%%)", lastSample.m_UsedEdicts, percent * 100);
-		ImGui::ProgressBar(percent, { -1, 0 }, buf);
+		ImGui::ProgressBar(percent, { -1, 0 },
+			mh::pfstr<64>("%i (%1.0f%%)", lastSample.m_UsedEdicts, percent * 100).c_str());
 
 		ImGui::SetHoverTooltip("%i of %i (%1.1f%%)", lastSample.m_UsedEdicts, lastSample.m_MaxEdicts, percent * 100);
 	}
 
 	if (!m_ServerPingSamples.empty())
 	{
-		char buf[64];
-		sprintf_s(buf, "Average ping: %u", m_ServerPingSamples.back().m_Ping);
-		ImGui::PlotLines(buf, [&](int idx)
+		ImGui::PlotLines(mh::fmtstr<64>("Average ping: {}", m_ServerPingSamples.back().m_Ping).c_str(),
+			[&](int idx)
 			{
 				return m_ServerPingSamples[idx].m_Ping;
 			}, (int)m_ServerPingSamples.size(), 0, nullptr, 0);
@@ -1015,9 +1014,7 @@ void MainWindow::OnDraw()
 
 		if (parseProgress < 0.95f)
 		{
-			char overlayStr[64];
-			sprintf_s(overlayStr, "%1.2f %%", parseProgress * 100);
-			ImGui::ProgressBar(parseProgress, { 0, 0 }, overlayStr);
+			ImGui::ProgressBar(parseProgress, { 0, 0 }, mh::pfstr<64>("%1.2f %%", parseProgress * 100).c_str());
 			ImGui::SameLine(0, 4);
 		}
 
@@ -1112,9 +1109,8 @@ void MainWindow::OnDrawMenuBar()
 
 		ImGui::Separator();
 
-		char buf[128];
-		sprintf_s(buf, "Version: %s", VERSION_STRING);
-		ImGui::MenuItem(buf, nullptr, false, false);
+		static const mh::fmtstr<128> VERSION_STRING_LABEL("Version: {}", VERSION_STRING);
+		ImGui::MenuItem(VERSION_STRING_LABEL.c_str(), nullptr, false, false);
 
 		if (m_Settings.m_AllowInternetUsage.value_or(false))
 		{

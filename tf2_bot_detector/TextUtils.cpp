@@ -4,6 +4,7 @@
 #include "TextUtils.h"
 #include "Log.h"
 
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <codecvt>
@@ -131,12 +132,10 @@ std::string tf2_bot_detector::CollapseNewlines(const std::string_view& input)
 
 			const auto smallGroupMsgLength = newlineCount * (std::size("\\n") - 1);
 
-			char buf[64];
-			const auto largeGroupMsgLength = sprintf_s(buf, "(\\n x %zu)", newlineCount);
-
-			if (smallGroupMsgLength >= largeGroupMsgLength)
+			const mh::fmtstr<64> newlineGroupStr("(\\n x %zu)", newlineCount);
+			if (smallGroupMsgLength >= newlineGroupStr.size())
 			{
-				retVal.append(buf);
+				retVal.append(newlineGroupStr);
 			}
 			else
 			{

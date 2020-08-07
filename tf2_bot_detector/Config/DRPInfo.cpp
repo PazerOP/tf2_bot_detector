@@ -3,6 +3,7 @@
 #include "RegexHelpers.h"
 
 #include <mh/text/format.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/stringops.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
@@ -126,9 +127,8 @@ std::string DRPInfo::Map::GetFriendlyName() const
 
 bool DRPInfo::Map::Matches(const std::string_view& mapName) const
 {
-	char buf[512];
-	sprintf_s(buf, "%s%s", m_MapNames.at(0).c_str(), R"regex(?(?:_(?!.*_)(?:(?:rc)|(?:final)|(?:[abv]))\d*[a-zA-Z]?)?)regex");
-	const std::regex s_MainRegex(buf, std::regex::icase);
+	mh::fmtstr<512> buf("{}{}", m_MapNames.at(0).c_str(), R"regex(?(?:_(?!.*_)(?:(?:rc)|(?:final)|(?:[abv]))\d*[a-zA-Z]?)?)regex");
+	const std::regex s_MainRegex(buf.c_str(), std::regex::icase);
 
 	if (std::regex_match(mapName.begin(), mapName.end(), s_MainRegex))
 		return true;

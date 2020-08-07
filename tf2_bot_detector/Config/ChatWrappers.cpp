@@ -7,6 +7,7 @@
 
 #include <vdf_parser.hpp>
 #include <cppcoro/generator.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
@@ -18,6 +19,9 @@
 #include <random>
 #include <regex>
 #include <set>
+
+#undef min
+#undef max
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
@@ -411,12 +415,8 @@ static void PrintChatWrappers(const ChatWrappers& wrappers)
 		mh::strwrapperstream os(str);
 		os << std::quoted(wrapper.m_Narrow) << " (";
 
-		char buf[16];
 		for (auto c : wrapper.m_Wide)
-		{
-			sprintf_s(buf, "%04X", +c);
-			os << "\\x" << buf;
-		}
+			os << mh::pfstr<64>("\\x%04X", +c);
 
 		os << ')';
 	};
