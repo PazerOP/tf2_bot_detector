@@ -425,6 +425,7 @@ namespace tf2_bot_detector
 		bool ShouldPrint() const override;
 		void Print(const PrintArgs& args) const override;
 
+		const std::string& GetAddress() const { return m_Address; }
 		UserMessageType GetUserMessageType() const { return m_MsgType; }
 		uint16_t GetUserMessageBytes() const { return m_MsgBytes; }
 

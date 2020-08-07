@@ -22,6 +22,53 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
+namespace mh
+{
+	template<typename T>
+	class property
+	{
+	public:
+		constexpr property() = default;
+		constexpr explicit property(const T& value) : m_Value(value) {}
+		constexpr explicit property(T&& value) : m_Value(std::move(value)) {}
+
+		constexpr const T& get() const { return m_Value; }
+		constexpr operator const T& () const { return get(); }
+
+		constexpr property& operator=(const property& rhs) { return set(rhs); }
+		constexpr property& operator=(const T& rhs) { return set(rhs); }
+		constexpr property& operator=(T&& rhs) { return set(std::move(rhs)); }
+
+		constexpr property& set(const T& newValue)
+		{
+			if (newValue != m_Value && OnChange(newValue))
+				m_Value = newValue;
+
+			return *this;
+		}
+		constexpr property& set(T&& newValue)
+		{
+			if (newValue != m_Value && OnChange(newValue))
+				m_Value = std::move(newValue);
+
+			return *this;
+		}
+
+		constexpr auto operator<=>(const property&) const = default;
+
+	protected:
+		virtual bool OnChange(const T& newValue) const { return true; }
+
+	private:
+		T m_Value;
+	};
+
+	template<typename T> constexpr auto operator<=>(const property<T>& lhs, const T& rhs) { return lhs.get() <=> rhs; }
+	template<typename T> constexpr auto operator<=>(const T& lhs, const property<T>& rhs) { return lhs <=> rhs.get(); }
+	template<typename T> constexpr auto operator==(const property<T>& lhs, const T& rhs) { return lhs.get() == rhs; }
+	template<typename T> constexpr bool operator==(const T& lhs, const property<T>& rhs) { return lhs == rhs.get(); }
+}
+
 static constexpr const char DEFAULT_LARGE_IMAGE_KEY[] = "tf2_1x1";
 
 static constexpr LogMessageColor DISCORD_LOG_COLOR{ 117 / 255.0f, 136 / 255.0f, 215 / 255.0f };
@@ -36,6 +83,16 @@ static void DiscordDebugLog(const mh::source_location& location, const std::stri
 		DebugLog(location, {}, DISCORD_LOG_COLOR);
 	else
 		DebugLog(location, "DRP: "s << msg, DISCORD_LOG_COLOR);
+}
+
+namespace
+{
+	enum class ConnectionState
+	{
+		Disconnected,  // We're not connected to a server in the first place.
+		Local,         // This is a local (loopback) server.
+		Nonlocal,      // This is a non-local server.
+	};
 }
 
 #undef OS_CASE
@@ -109,6 +166,20 @@ static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, T
 
 	default:
 		return os << "ActivityType(" << +std::underlying_type_t<ActivityType>(type) << ')';
+	}
+}
+
+template<typename CharT, typename Traits>
+static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, ConnectionState cs)
+{
+	switch (cs)
+	{
+		OS_CASE(ConnectionState::Disconnected);
+		OS_CASE(ConnectionState::Local);
+		OS_CASE(ConnectionState::Nonlocal);
+
+	default:
+		return os << "ConnectionState(" << +std::underlying_type_t<ConnectionState>(cs) << ')';
 	}
 }
 #undef OS_CASE
@@ -278,13 +349,6 @@ static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, T
 
 namespace
 {
-	enum class ConnectionState
-	{
-		Disconnected,  // We're not connected to a server in the first place.
-		Local,         // This is a local (loopback) server.
-		Nonlocal,      // This is a non-local server.
-	};
-
 	struct DiscordGameState final
 	{
 		DiscordGameState(const Settings& settings, const DRPInfo& drpInfo) : m_Settings(&settings), m_DRPInfo(&drpInfo) {}
@@ -321,10 +385,22 @@ namespace
 
 		TFClassType m_LastSpawnedClass = TFClassType::Undefined;
 		std::string m_MapName;
-		ConnectionState m_ConnectionState{};
 		bool m_InLobby = false;
 		uint8_t m_PartyMemberCount = 0;
 		time_point_t m_LastStatusTimestamp;
+
+		struct : public mh::property<ConnectionState>
+		{
+			using BaseClass = mh::property<ConnectionState>;
+			using BaseClass::operator=;
+
+			bool OnChange(const ConnectionState& newValue) const override
+			{
+				DiscordDebugLog("ConnectionState "s << get() << " -> " << newValue);
+				return true;
+			}
+
+		} m_ConnectionState;
 	};
 }
 
@@ -613,7 +689,8 @@ namespace
 	class DiscordState final : public IDRPManager, BaseWorldEventListener, IConsoleLineListener
 	{
 	public:
-		static constexpr duration_t UPDATE_INTERVAL = 10s; // 20s / 5;
+		static constexpr duration_t UPDATE_INTERVAL = 10s;
+		static_assert(UPDATE_INTERVAL >= (20s / 5), "Update interval too low");
 
 		DiscordState(const Settings& settings, WorldState& world);
 		~DiscordState();
@@ -749,6 +826,20 @@ void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)
 		m_GameState.OnConnectionCountUpdate(netLine.GetConnectionCount());
 		break;
 	}
+	case ConsoleLineType::Connecting:
+	{
+		QueueUpdate();
+		auto& connLine = static_cast<const ConnectingLine&>(line);
+		m_GameState.OnServerIPUpdate(connLine.GetAddress());
+		break;
+	}
+	case ConsoleLineType::SVC_UserMessage:
+	{
+		QueueUpdate();
+		auto& umsgLine = static_cast<SVCUserMessageLine&>(line);
+		m_GameState.OnServerIPUpdate(umsgLine.GetAddress());
+		break;
+	}
 	}
 }
 
@@ -774,6 +865,7 @@ static void DiscordLogFunc(discord::LogLevel level, const char* msg)
 
 	default:
 		LogError("Unknown discord LogLevel "s << +std::underlying_type_t<discord::LogLevel>(level));
+		[[fallthrough]];
 	case discord::LogLevel::Error:
 		LogError(msg);
 		break;
@@ -810,6 +902,10 @@ void DiscordState::Update()
 
 			m_CurrentActivity = nextActivity;
 			m_LastUpdate = curTime;
+		}
+		else
+		{
+			DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT(), "Discord activity state unchanged");
 		}
 
 		// Update successful

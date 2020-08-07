@@ -305,6 +305,16 @@
 		},
 		{
 			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "bdsomer",
+				"time": 1596691654
+			},
+			"steamid": "[U:1:118733239]"
+		},
+		{
+			"attributes": [
 				"exploiter"
 			],
 			"last_seen": {
@@ -2248,6 +2258,16 @@
 				"racist"
 			],
 			"steamid": "[U:1:1091138631]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "PilotRedS\u200fun",
+				"time": 1596692622
+			},
+			"steamid": "[U:1:1091211948]"
 		},
 		{
 			"attributes": [
@@ -4892,6 +4912,26 @@
 				"time": 1596081321
 			},
 			"steamid": "[U:1:1117628231]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "cat.jpg",
+				"time": 1596686631
+			},
+			"steamid": "[U:1:1118444386]"
+		},
+		{
+			"attributes": [
+				"suspicious"
+			],
+			"last_seen": {
+				"player_name": "cat.jpg",
+				"time": 1596686001
+			},
+			"steamid": "[U:1:1118562665]"
 		},
 		{
 			"attributes": [
