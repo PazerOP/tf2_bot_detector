@@ -298,7 +298,7 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 
 	PlayerListData& defaultMutableDataRef = m_CFGGroup.GetDefaultMutableList().GetOrAddPlayer(id);
 
-	PlayerListData defaultMutableData = defaultMutableData;
+	PlayerListData defaultMutableData = defaultMutableDataRef;
 	if (m_CFGGroup.IsOfficial())
 	{
 		// Copy attributes into the official list (if we are modifying the official list)
