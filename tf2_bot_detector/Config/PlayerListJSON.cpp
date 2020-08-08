@@ -336,10 +336,12 @@ ModifyPlayerAction PlayerListJSON::OnPlayerDataChanged(PlayerListData& data)
 		PlayerListData& localData = m_CFGGroup.GetLocalList().GetOrAddPlayer(data.GetSteamID());
 		if (&data != &localData)
 		{
-			if (data.m_Attributes.HasAttribute(PlayerAttribute::Suspicious))
+			const auto oldSuspicious = localData.m_Attributes.HasAttribute(PlayerAttribute::Suspicious);
+			const auto newSuspicious = data.m_Attributes.HasAttribute(PlayerAttribute::Suspicious);
+			if (newSuspicious != oldSuspicious)
 			{
 				data.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, false);
-				localData.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, true);
+				localData.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, newSuspicious);
 				localData.m_LastSeen = PlayerListData::LastSeen::Latest(localData.m_LastSeen, data.m_LastSeen);
 				retVal = ModifyPlayerAction::Modified;
 			}
