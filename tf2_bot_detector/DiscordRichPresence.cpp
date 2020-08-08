@@ -914,7 +914,19 @@ void DiscordState::Update()
 
 	// Run discord callbacks
 	if (auto result = m_Core->RunCallbacks(); result != discord::Result::Ok)
-		LogError("Failed to run discord callbacks: "s << result);
+	{
+		auto errMsg = mh::format("Failed to run discord callbacks: {}", result);
+		switch (result)
+		{
+		case discord::Result::NotRunning:
+			DebugLogWarning(std::move(errMsg));
+			break;
+
+		default:
+			LogError(std::move(errMsg));
+			break;
+		}
+	}
 }
 
 #endif
