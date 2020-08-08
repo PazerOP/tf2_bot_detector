@@ -358,7 +358,19 @@ PlayerListData::~PlayerListData()
 {
 }
 
-bool PlayerListData::operator==(const PlayerListData&) const = default;
+bool PlayerListData::operator==(const PlayerListData& other) const
+#if _MSC_VER >= 1927
+= default;
+#else
+{
+	return
+		m_SteamID == other.m_SteamID &&
+		m_Attributes == other.m_Attributes &&
+		m_LastSeen == other.m_LastSeen &&
+		m_Proof == other.m_Proof
+		;
+}
+#endif
 
 PlayerAttributesList::PlayerAttributesList(const std::initializer_list<PlayerAttribute>& attributes)
 {
