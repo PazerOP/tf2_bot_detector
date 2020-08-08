@@ -55,7 +55,7 @@ namespace tf2_bot_detector
 		}
 
 		constexpr std::strong_ordering operator<=>(const SteamID& other) const { return ID64 <=> other.ID64; }
-		constexpr bool operator==(const SteamID& other) const { return std::is_eq(*this <=> other); }
+		constexpr bool operator==(const SteamID& other) const { return ID64 == other.ID64; }
 
 		constexpr bool IsPazer() const
 		{

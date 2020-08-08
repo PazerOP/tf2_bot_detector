@@ -173,16 +173,32 @@ void PlayerListJSON::PlayerListFile::Serialize(nlohmann::json& json) const
 	}
 }
 
+PlayerListData& PlayerListJSON::PlayerListFile::GetOrAddPlayer(const SteamID& id)
+{
+	if (auto found = m_Players.find(id); found != m_Players.end())
+		return found->second;
+	else
+		return m_Players.emplace(id, PlayerListData(id)).first->second;
+}
+
 bool PlayerListJSON::LoadFiles()
 {
 	m_CFGGroup.LoadFiles();
 
+	if (m_CFGGroup.IsOfficial())
+	{
+		for (auto& player : m_CFGGroup.GetDefaultMutableList().m_Players)
+			OnPlayerDataChanged(player.second);
+
+		m_CFGGroup.SaveFiles();
+	}
+
 	return true;
 }
 
-void PlayerListJSON::SaveFile() const
+void PlayerListJSON::SaveFiles() const
 {
-	m_CFGGroup.SaveFile();
+	m_CFGGroup.SaveFiles();
 }
 
 auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
@@ -254,14 +270,7 @@ PlayerMarks PlayerListJSON::HasPlayerAttributes(const SteamID& id, const PlayerA
 }
 
 ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
-	ModifyPlayerAction(*func)(PlayerListData& data, void* userData), void* userData)
-{
-	return ModifyPlayer(id, reinterpret_cast<ModifyPlayerAction(*)(PlayerListData&, const void*)>(func),
-		static_cast<const void*>(userData));
-}
-
-ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
-	ModifyPlayerAction(*func)(PlayerListData& data, const void* userData), const void* userData)
+	const std::function<ModifyPlayerAction(PlayerListData& data)>& func)
 {
 	if (id == m_Settings->GetLocalSteamID())
 	{
@@ -269,17 +278,13 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 		return ModifyPlayerResult::NoChanges;
 	}
 
-	PlayerListData* data = nullptr;
-	auto& mutableList = m_CFGGroup.GetMutableList();
-	if (auto found = mutableList.m_Players.find(id); found != mutableList.m_Players.end())
-		data = &found->second;
-	else
-		data = &mutableList.m_Players.emplace(id, PlayerListData(id)).first->second;
+	PlayerListData& defaultMutableData = m_CFGGroup.GetDefaultMutableList().GetOrAddPlayer(id);
 
-	const auto action = func(*data, userData);
+	const auto action = func(defaultMutableData);
 	if (action == ModifyPlayerAction::Modified)
 	{
-		SaveFile();
+		OnPlayerDataChanged(defaultMutableData);
+		SaveFiles();
 		return ModifyPlayerResult::FileSaved;
 	}
 	else if (action == ModifyPlayerAction::NoChanges)
@@ -289,6 +294,22 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	else
 	{
 		throw std::runtime_error("Unexpected ModifyPlayerAction "s << +std::underlying_type_t<ModifyPlayerAction>(action));
+	}
+}
+
+void PlayerListJSON::OnPlayerDataChanged(PlayerListData& data)
+{
+	if (m_CFGGroup.IsOfficial())
+	{
+		PlayerListData& localData = m_CFGGroup.GetLocalList().GetOrAddPlayer(data.GetSteamID());
+		if (&data == &localData)
+			return; // We're already modifying the local list
+
+		if (data.m_Attributes.HasAttribute(PlayerAttribute::Suspicious))
+		{
+			data.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, false);
+			localData.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, true);
+		}
 	}
 }
 
@@ -314,15 +335,6 @@ PlayerAttributesList::PlayerAttributesList(PlayerAttribute attribute)
 
 bool PlayerAttributesList::SetAttribute(PlayerAttribute attribute, bool set)
 {
-#undef HELPER
-#define HELPER(value) \
-	do \
-	{ \
-		auto old = (value); \
-		(value) = set; \
-		return old != (value); \
-	} while(false)
-
 	const auto ApplyChange = [&]
 	{
 		auto old = HasAttribute(attribute);

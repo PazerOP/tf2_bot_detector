@@ -141,7 +141,7 @@ namespace tf2_bot_detector
 		PlayerListJSON(const Settings& settings);
 
 		bool LoadFiles();
-		void SaveFile() const;
+		void SaveFiles() const;
 
 		cppcoro::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 			FindPlayerData(const SteamID& id) const;
@@ -150,23 +150,15 @@ namespace tf2_bot_detector
 		PlayerMarks GetPlayerAttributes(const SteamID& id) const;
 		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const;
 
-		template<typename TFunc>
-		ModifyPlayerResult ModifyPlayer(const SteamID& id, TFunc&& func)
-		{
-			return ModifyPlayer(id,
-				[](PlayerListData& data, void* userData) -> ModifyPlayerAction { return (*reinterpret_cast<TFunc*>(userData))(data); },
-				reinterpret_cast<void*>(&func));
-		}
-
-		ModifyPlayerResult ModifyPlayer(const SteamID& id, ModifyPlayerAction(*func)(PlayerListData& data, void* userData),
-			void* userData = nullptr);
-		ModifyPlayerResult ModifyPlayer(const SteamID& id, ModifyPlayerAction(*func)(PlayerListData& data, const void* userData),
-			const void* userData = nullptr);
+		ModifyPlayerResult ModifyPlayer(const SteamID& id,
+			const std::function<ModifyPlayerAction(PlayerListData& data)>& func);
 
 		size_t GetPlayerCount() const { return m_CFGGroup.size(); }
 
 	private:
 		const Settings* m_Settings = nullptr;
+
+		void OnPlayerDataChanged(PlayerListData& data);
 
 		using PlayerMap_t = std::map<SteamID, PlayerListData>;
 
@@ -177,6 +169,8 @@ namespace tf2_bot_detector
 			void Serialize(nlohmann::json& json) const override;
 
 			size_t size() const { return m_Players.size(); }
+
+			PlayerListData& GetOrAddPlayer(const SteamID& id);
 
 			PlayerMap_t m_Players;
 		};

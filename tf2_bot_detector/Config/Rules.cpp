@@ -173,7 +173,7 @@ bool ModerationRules::LoadFiles()
 
 bool ModerationRules::SaveFile() const
 {
-	m_CFGGroup.SaveFile();
+	m_CFGGroup.SaveFiles();
 	return true;
 }
 
