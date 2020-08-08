@@ -4998,6 +4998,16 @@
 				"time": 1596779890
 			},
 			"steamid": "[U:1:1119865323]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "dfs",
+				"time": 1596862751
+			},
+			"steamid": "[U:1:1120302513]"
 		}
 	]
 }
