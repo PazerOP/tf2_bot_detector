@@ -179,6 +179,23 @@
 					"cheater"
 				]
 			},
+			"description": "(catbot) shasta bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": true,
+					"mode": "starts_with",
+					"patterns": [
+						"shasta bot"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "(catbot) Lag-bot",
 			"triggers": {
 				"username_text_match": {
