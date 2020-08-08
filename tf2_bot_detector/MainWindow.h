@@ -156,7 +156,6 @@ namespace tf2_bot_detector
 
 		void OnUpdateDiscord();
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-		time_point_t m_LastDiscordInitializeTime{};
 		std::unique_ptr<IDRPManager> m_DRPManager;
 #endif
 

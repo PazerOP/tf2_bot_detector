@@ -1199,13 +1199,9 @@ void MainWindow::OnUpdateDiscord()
 {
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 	const auto curTime = clock_t::now();
-	constexpr duration_t MIN_INIT_INTERVAL = 10s;
-	if (!m_DRPManager &&
-		m_Settings.m_Discord.m_EnableRichPresence &&
-		curTime > (m_LastDiscordInitializeTime + MIN_INIT_INTERVAL))
+	if (!m_DRPManager && m_Settings.m_Discord.m_EnableRichPresence)
 	{
 		m_DRPManager = IDRPManager::Create(m_Settings, m_WorldState);
-		m_LastDiscordInitializeTime = curTime;
 	}
 	else if (m_DRPManager && !m_Settings.m_Discord.m_EnableRichPresence)
 	{

@@ -703,6 +703,7 @@ namespace
 
 	private:
 		std::unique_ptr<discord::Core> m_Core;
+		time_point_t m_LastDiscordInitializeTime{};
 
 		const Settings* m_Settings = nullptr;
 		WorldState* m_WorldState = nullptr;
@@ -721,18 +722,6 @@ DiscordState::DiscordState(const Settings& settings, WorldState& world) :
 	m_GameState(settings, m_DRPInfo),
 	m_DRPInfo(settings)
 {
-	discord::Core* core = nullptr;
-	if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_NoRequireDiscord, &core);
-		result != discord::Result::Ok)
-	{
-		throw std::runtime_error("Failed to initialize discord: "s << result);
-	}
-
-	m_Core.reset(core);
-
-	if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
-		LogError("Failed to register discord integration as steam appid 440: "s << result);
-
 	world.AddConsoleLineListener(this);
 	world.AddWorldEventListener(this);
 }
@@ -874,57 +863,85 @@ static void DiscordLogFunc(discord::LogLevel level, const char* msg)
 
 void DiscordState::Update()
 {
-	std::invoke([&]()
+	// Initialize discord
+	const auto curTime = clock_t::now();
+	if (!m_Core && (curTime - m_LastDiscordInitializeTime) > 10s)
 	{
-		if (!m_WantsUpdate)
-			return;
+		m_LastDiscordInitializeTime = curTime;
 
-		const auto curTime = clock_t::now();
-		if ((curTime - m_LastUpdate) < UPDATE_INTERVAL)
-			return;
-
-		if (const auto nextActivity = m_GameState.ConstructActivity();
-			std::is_neq(nextActivity <=> m_CurrentActivity))
+		discord::Core* core = nullptr;
+		if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_NoRequireDiscord, &core);
+			result != discord::Result::Ok)
 		{
-			// Perform the update
-			m_Core->ActivityManager().UpdateActivity(nextActivity, [nextActivity](discord::Result result)
-				{
-					if (result == discord::Result::Ok)
-					{
-						DiscordDebugLog("Updated discord activity state: "s << nextActivity);
-					}
-					else
-					{
-						LogWarning(MH_SOURCE_LOCATION_CURRENT(),
-							"Failed to update discord activity state: "s << result);
-					}
-				});
-
-			m_CurrentActivity = nextActivity;
-			m_LastUpdate = curTime;
+			LogError("Failed to initialize Discord Game SDK: "s << result);
 		}
 		else
 		{
-			DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT(), "Discord activity state unchanged");
+			m_Core.reset(core);
+
+			if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
+				LogError("Failed to register discord integration as steam appid 440: "s << result);
 		}
+	}
 
-		// Update successful
-		m_WantsUpdate = false;
-	});
-
-	// Run discord callbacks
-	if (auto result = m_Core->RunCallbacks(); result != discord::Result::Ok)
+	if (m_Core)
 	{
-		auto errMsg = mh::format("Failed to run discord callbacks: {}", result);
-		switch (result)
-		{
-		case discord::Result::NotRunning:
-			DebugLogWarning(std::move(errMsg));
-			break;
+		std::invoke([&]()
+			{
+				if (!m_WantsUpdate)
+					return;
 
-		default:
-			LogError(std::move(errMsg));
-			break;
+				if ((curTime - m_LastUpdate) < UPDATE_INTERVAL)
+					return;
+
+				if (const auto nextActivity = m_GameState.ConstructActivity();
+					std::is_neq(nextActivity <=> m_CurrentActivity))
+				{
+					// Perform the update
+					m_Core->ActivityManager().UpdateActivity(nextActivity, [nextActivity](discord::Result result)
+						{
+							if (result == discord::Result::Ok)
+							{
+								DiscordDebugLog("Updated discord activity state: "s << nextActivity);
+							}
+							else
+							{
+								LogWarning(MH_SOURCE_LOCATION_CURRENT(),
+									"Failed to update discord activity state: "s << result);
+							}
+						});
+
+					m_CurrentActivity = nextActivity;
+					m_LastUpdate = curTime;
+				}
+				else
+				{
+					DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT(), "Discord activity state unchanged");
+				}
+
+				// Update successful
+				m_WantsUpdate = false;
+			});
+
+		// Run discord callbacks
+		if (auto result = m_Core->RunCallbacks(); result != discord::Result::Ok)
+		{
+			auto errMsg = mh::format("Failed to run discord callbacks: {}", result);
+			switch (result)
+			{
+			case discord::Result::NotRunning:
+				DebugLogWarning(std::move(errMsg));
+				// Discord Game SDK will never recover from this state. Need to shutdown and try
+				// to reinitialize in a bit. Also set the last initialize time to now, so we don't
+				// try to reinitialize next frame (which will probably fail).
+				m_Core.reset();
+				m_LastDiscordInitializeTime = curTime;
+				break;
+
+			default:
+				LogError(std::move(errMsg));
+				break;
+			}
 		}
 	}
 }
@@ -933,13 +950,5 @@ void DiscordState::Update()
 
 std::unique_ptr<IDRPManager> IDRPManager::Create(const Settings& settings, WorldState& world)
 {
-	try
-	{
-		return std::make_unique<DiscordState>(settings, world);
-	}
-	catch (const std::exception& e)
-	{
-		LogError("Failed to initialize Discord interface: "s << typeid(e).name() << ": " << e.what());
-		return nullptr;
-	}
+	return std::make_unique<DiscordState>(settings, world);
 }
