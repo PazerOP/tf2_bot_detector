@@ -66,12 +66,17 @@ namespace tf2_bot_detector
 		bits_t m_Bits;
 	};
 
+	inline PlayerAttributesList operator|(PlayerAttribute lhs, PlayerAttribute rhs)
+	{
+		return PlayerAttributesList({ lhs, rhs });
+	}
+
 	struct PlayerListData
 	{
 		PlayerListData(const SteamID& id);
 		~PlayerListData();
 
-		SteamID GetSteamID() const { return m_SteamID; }
+		constexpr SteamID GetSteamID() const { return m_SteamID; }
 
 		PlayerAttributesList m_Attributes;
 
@@ -80,11 +85,20 @@ namespace tf2_bot_detector
 			std::chrono::system_clock::time_point m_Time;
 			std::string m_PlayerName;
 
-			auto operator<=>(const LastSeen& other) const { return m_Time.time_since_epoch().count() <=> other.m_Time.time_since_epoch().count(); }
+			static std::optional<LastSeen> Latest(
+				const std::optional<LastSeen>& lhs, const std::optional<LastSeen>& rhs);
+
+			constexpr bool operator==(const LastSeen& other) const { return m_Time == other.m_Time; }
+			constexpr auto operator<=>(const LastSeen& other) const
+			{
+				return m_Time.time_since_epoch().count() <=> other.m_Time.time_since_epoch().count();
+			}
 		};
 		std::optional<LastSeen> m_LastSeen;
 
 		std::vector<nlohmann::json> m_Proof;
+
+		bool operator==(const PlayerListData&) const;
 
 	private:
 		SteamID m_SteamID;
@@ -158,7 +172,7 @@ namespace tf2_bot_detector
 	private:
 		const Settings* m_Settings = nullptr;
 
-		void OnPlayerDataChanged(PlayerListData& data);
+		ModifyPlayerAction OnPlayerDataChanged(PlayerListData& data);
 
 		using PlayerMap_t = std::map<SteamID, PlayerListData>;
 

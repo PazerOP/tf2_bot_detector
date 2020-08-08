@@ -123,6 +123,19 @@ namespace tf2_bot_detector
 		try_get_to_defaulted(j, d.m_Proof, "proof");
 	}
 }
+auto PlayerListData::LastSeen::Latest(const std::optional<LastSeen>& lhs, const std::optional<LastSeen>& rhs)
+	-> std::optional<LastSeen>
+{
+	if (!lhs && !rhs)
+		return std::nullopt;
+
+	if (!lhs)
+		return rhs;
+	if (!rhs)
+		return lhs;
+
+	return lhs->m_Time < rhs->m_Time ? lhs : rhs;
+}
 
 PlayerListJSON::PlayerListJSON(const Settings& settings) :
 	m_Settings(&settings),
@@ -187,10 +200,15 @@ bool PlayerListJSON::LoadFiles()
 
 	if (m_CFGGroup.IsOfficial())
 	{
+		auto action = ModifyPlayerAction::NoChanges;
 		for (auto& player : m_CFGGroup.GetDefaultMutableList().m_Players)
-			OnPlayerDataChanged(player.second);
+		{
+			if (OnPlayerDataChanged(player.second) != ModifyPlayerAction::NoChanges)
+				action = ModifyPlayerAction::Modified;
+		}
 
-		m_CFGGroup.SaveFiles();
+		if (action != ModifyPlayerAction::NoChanges)
+			m_CFGGroup.SaveFiles();
 	}
 
 	return true;
@@ -278,12 +296,24 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 		return ModifyPlayerResult::NoChanges;
 	}
 
-	PlayerListData& defaultMutableData = m_CFGGroup.GetDefaultMutableList().GetOrAddPlayer(id);
+	PlayerListData& defaultMutableDataRef = m_CFGGroup.GetDefaultMutableList().GetOrAddPlayer(id);
+
+	PlayerListData defaultMutableData = defaultMutableData;
+	if (m_CFGGroup.IsOfficial())
+	{
+		// Copy attributes into the official list (if we are modifying the official list)
+		// Any attributes that shouldn't be in there (currently just PlayerAttribute::Suspicious)
+		// will get moved back over to the local list in OnPlayerDataChanged
+		const PlayerListData& localPlayer = m_CFGGroup.GetLocalList().GetOrAddPlayer(id);
+		assert(&localPlayer != &defaultMutableDataRef);
+		defaultMutableData.m_Attributes |= localPlayer.m_Attributes;
+	}
 
 	const auto action = func(defaultMutableData);
 	if (action == ModifyPlayerAction::Modified)
 	{
 		OnPlayerDataChanged(defaultMutableData);
+		defaultMutableDataRef = defaultMutableData;
 		SaveFiles();
 		return ModifyPlayerResult::FileSaved;
 	}
@@ -297,20 +327,26 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 	}
 }
 
-void PlayerListJSON::OnPlayerDataChanged(PlayerListData& data)
+ModifyPlayerAction PlayerListJSON::OnPlayerDataChanged(PlayerListData& data)
 {
+	ModifyPlayerAction retVal = ModifyPlayerAction::NoChanges;
+
 	if (m_CFGGroup.IsOfficial())
 	{
 		PlayerListData& localData = m_CFGGroup.GetLocalList().GetOrAddPlayer(data.GetSteamID());
-		if (&data == &localData)
-			return; // We're already modifying the local list
-
-		if (data.m_Attributes.HasAttribute(PlayerAttribute::Suspicious))
+		if (&data != &localData)
 		{
-			data.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, false);
-			localData.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, true);
+			if (data.m_Attributes.HasAttribute(PlayerAttribute::Suspicious))
+			{
+				data.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, false);
+				localData.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, true);
+				localData.m_LastSeen = PlayerListData::LastSeen::Latest(localData.m_LastSeen, data.m_LastSeen);
+				retVal = ModifyPlayerAction::Modified;
+			}
 		}
 	}
+
+	return retVal;
 }
 
 PlayerListData::PlayerListData(const SteamID& id) :
@@ -321,6 +357,8 @@ PlayerListData::PlayerListData(const SteamID& id) :
 PlayerListData::~PlayerListData()
 {
 }
+
+bool PlayerListData::operator==(const PlayerListData&) const = default;
 
 PlayerAttributesList::PlayerAttributesList(const std::initializer_list<PlayerAttribute>& attributes)
 {
