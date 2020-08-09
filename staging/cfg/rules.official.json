@@ -281,7 +281,7 @@
 					"cheater"
 				]
 			},
-			"description": "Cheater (newlines in chat message)",
+			"description": "Cheater (newlines in chat message/name)",
 			"triggers": {
 				"chatmsg_text_match": {
 					"case_sensitive": false,
@@ -289,6 +289,14 @@
 					"patterns": [
 						"\n",
 						"\r\n"
+					]
+				},
+				"mode": "match_any",
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"\n"
 					]
 				}
 			}
