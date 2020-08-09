@@ -606,75 +606,97 @@ void MainWindow::OnDrawSettingsPopup()
 	ImGui::SetNextWindowSize({ 400, 400 }, ImGuiCond_Once);
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_HorizontalScrollbar))
 	{
-		if (ImGui::Checkbox("Enable Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
-			m_Settings.SaveFile();
-
-		// Steam dir
-		if (InputTextSteamDirOverride("Steam directory", m_Settings.m_SteamDirOverride, true))
-			m_Settings.SaveFile();
-
-		// TF game dir override
-		if (InputTextTFDirOverride("tf directory", m_Settings.m_TFDirOverride, FindTFDir(m_Settings.GetSteamDir()), true))
-			m_Settings.SaveFile();
-
-		// Local steamid
-		if (InputTextSteamIDOverride("My Steam ID", m_Settings.m_LocalSteamIDOverride, true))
-			m_Settings.SaveFile();
-
-		// Sleep when unfocused
+		if (ImGui::TreeNode("Autodetected Settings Overrides"))
 		{
-			if (ImGui::Checkbox("Sleep when unfocused", &m_Settings.m_SleepWhenUnfocused))
+			// Steam dir
+			if (InputTextSteamDirOverride("Steam directory", m_Settings.m_SteamDirOverride, true))
 				m_Settings.SaveFile();
-			ImGui::SetHoverTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
+
+			// TF game dir override
+			if (InputTextTFDirOverride("tf directory", m_Settings.m_TFDirOverride, FindTFDir(m_Settings.GetSteamDir()), true))
+				m_Settings.SaveFile();
+
+			// Local steamid
+			if (InputTextSteamIDOverride("My Steam ID", m_Settings.m_LocalSteamIDOverride, true))
+				m_Settings.SaveFile();
+
+			ImGui::TreePop();
 		}
+
+		if (ImGui::TreeNode("Moderation"))
+		{
+			// Auto temp mute
+			{
+				if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
+					m_Settings.SaveFile();
+				ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
+			}
+
+			// Auto votekick delay
+			{
+				if (ImGui::SliderFloat("Auto votekick delay", &m_Settings.m_AutoVotekickDelay, 0, 30, "%1.1f seconds"))
+					m_Settings.SaveFile();
+				ImGui::SetHoverTooltip("Delay between a player being registered as fully connected and us expecting them to be ready to vote on an issue.\n\n"
+					"This is needed because players can't vote until they have joined a team and picked a class. If we call a vote before enough people are ready, it might fail.");
+			}
+
+			// Send warnings for connecting cheaters
+			{
+				if (ImGui::Checkbox("Chat message warnings for connecting cheaters", &m_Settings.m_AutoChatWarningsConnecting))
+					m_Settings.SaveFile();
+
+				ImGui::SetHoverTooltip("Automatically sends a chat message if a cheater has joined the lobby,"
+					" but is not yet in the game. Only has an effect if \"Enable Chat Warnings\""
+					" is enabled (upper left of main window).\n"
+					"\n"
+					"Looks like: \"Heads up! There are N known cheaters joining the other team! Names unknown until they fully join.\"");
+			}
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Performance"))
+		{
+			// Sleep when unfocused
+			{
+				if (ImGui::Checkbox("Sleep when unfocused", &m_Settings.m_SleepWhenUnfocused))
+					m_Settings.SaveFile();
+				ImGui::SetHoverTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
+			}
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Privacy"))
+		{
+			if (ImGui::Checkbox("Enable Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
+				m_Settings.SaveFile();
+
+			if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
+				ImGui::Checkbox("Allow internet connectivity", &allowInternet))
+			{
+				m_Settings.m_AllowInternetUsage = allowInternet;
+				m_Settings.SaveFile();
+			}
+
+			ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
+				{
+					auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
+
+					if (Combo("Automatic update checking", mode))
+					{
+						m_Settings.m_ProgramUpdateCheckMode = mode;
+						m_Settings.SaveFile();
+					}
+				}, "Requires \"Allow internet connectivity\"");
+
+			ImGui::TreePop();
+		}
+
+		ImGui::NewLine();
 
 		if (AutoLaunchTF2Checkbox(m_Settings.m_AutoLaunchTF2))
 			m_Settings.SaveFile();
-
-		// Auto temp mute
-		{
-			if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
-				m_Settings.SaveFile();
-			ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
-		}
-
-		// Auto votekick delay
-		{
-			if (ImGui::SliderFloat("Auto votekick delay", &m_Settings.m_AutoVotekickDelay, 0, 30, "%1.1f seconds"))
-				m_Settings.SaveFile();
-			ImGui::SetHoverTooltip("Delay between a player being registered as fully connected and us expecting them to be ready to vote on an issue.\n\n"
-				"This is needed because players can't vote until they have joined a team and picked a class. If we call a vote before enough people are ready, it might fail.");
-		}
-
-		// Send warnings for connecting cheaters
-		{
-			if (ImGui::Checkbox("Chat message warnings for connecting cheaters", &m_Settings.m_AutoChatWarningsConnecting))
-				m_Settings.SaveFile();
-
-			ImGui::SetHoverTooltip("Automatically sends a chat message if a cheater has joined the lobby,"
-				" but is not yet in the game. Only has an effect if \"Enable Chat Warnings\""
-				" is enabled (upper left of main window).\n"
-				"\n"
-				"Looks like: \"Heads up! There are N known cheaters joining the other team! Names unknown until they fully join.\"");
-		}
-
-		if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
-			ImGui::Checkbox("Allow internet connectivity", &allowInternet))
-		{
-			m_Settings.m_AllowInternetUsage = allowInternet;
-			m_Settings.SaveFile();
-		}
-
-		ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
-			{
-				auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
-
-				if (Combo("Automatic update checking", mode))
-				{
-					m_Settings.m_ProgramUpdateCheckMode = mode;
-					m_Settings.SaveFile();
-				}
-			}, "Requires \"Allow internet connectivity\"");
 
 		ImGui::EndPopup();
 	}
