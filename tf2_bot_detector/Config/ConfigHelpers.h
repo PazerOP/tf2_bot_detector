@@ -3,6 +3,7 @@
 #include "Settings.h"
 
 #include <mh/future.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -174,40 +175,54 @@ namespace tf2_bot_detector
 				});
 		}
 
-		void SaveFile() const
+		void SaveFiles() const
 		{
-			using namespace std::string_literals;
+			const T* defaultMutableList = GetDefaultMutableList();
+			const T* localList = GetLocalList();
+			if (localList)
+				localList->SaveFile(mh::format("cfg/{}.json", GetBaseFileName()));
 
-			auto mutableList = GetMutableList();
-			if (!mutableList)
-				return; // Nothing to save
+			if (defaultMutableList && defaultMutableList != localList)
+			{
+				const auto filename = mh::format("cfg/{}.official.json", GetBaseFileName());
 
-			mutableList->SaveFile(IsOfficial() ?
-				("cfg/"s << GetBaseFileName() << ".official.json") :
-				("cfg/"s << GetBaseFileName() << ".json"));
+				if (!IsOfficial())
+					throw std::runtime_error("Attempted to save non-official data to "s << std::quoted(filename));
+
+				defaultMutableList->SaveFile(filename);
+			}
 		}
 
 		bool IsOfficial() const { return m_Settings->GetLocalSteamID().IsPazer(); }
 
-		T& GetMutableList()
+		T& GetDefaultMutableList()
 		{
 			if (IsOfficial())
 				return const_cast<T&>(m_OfficialList.get()); // forgive me for i have sinned
 
-			if (!m_UserList)
-				m_UserList.emplace();
-
-			return m_UserList.value();
+			return GetLocalList();
 		}
-		const T* GetMutableList() const
+		const T* GetDefaultMutableList() const
 		{
 			if (IsOfficial())
 				return &m_OfficialList.get();
 
+			return GetLocalList();
+		}
+
+		T& GetLocalList()
+		{
+			if (!m_UserList)
+				m_UserList.emplace();
+
+			return *m_UserList;
+		}
+		const T* GetLocalList() const
+		{
 			if (!m_UserList)
 				return nullptr;
 
-			return &m_UserList.value();
+			return &*m_UserList;
 		}
 
 		size_t size() const
