@@ -138,7 +138,6 @@ namespace ImGui
 				ImGuiDesktop::ScopeGuards::GlobalAlpha globalAlpha(0.65f);
 				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 
-
 				if constexpr (std::is_invocable_v<TFunc, bool>)
 					func(false);
 				else
@@ -167,6 +166,7 @@ namespace tf2_bot_detector
 		const std::filesystem::path& autodetectedPath, bool requireValid = false);
 	bool InputTextSteamDirOverride(const std::string_view& label_id, std::filesystem::path& path, bool requireValid = false);
 	bool InputTextLocalIPOverride(const std::string_view& label_id, std::string& ip, bool requireValid = false);
+	bool InputTextSteamAPIKey(const char* label_id, std::string& key, bool requireValid = false);
 	bool Combo(const char* label_id, ProgramUpdateCheckMode& mode);
 	bool AutoLaunchTF2Checkbox(bool& value);
 }

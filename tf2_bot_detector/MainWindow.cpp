@@ -667,9 +667,9 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNode("Privacy"))
+		if (ImGui::TreeNode("Service Integrations"))
 		{
-			if (ImGui::Checkbox("Enable Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
+			if (ImGui::Checkbox("Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
 				m_Settings.SaveFile();
 
 			if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
@@ -681,9 +681,17 @@ void MainWindow::OnDrawSettingsPopup()
 
 			ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
 				{
-					auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
+					ImGui::NewLine();
+					if (std::string key = m_Settings.m_SteamAPIKey;
+						InputTextSteamAPIKey("Steam API Key", key, true))
+					{
+						m_Settings.m_SteamAPIKey = key;
+						m_Settings.SaveFile();
+					}
+					ImGui::NewLine();
 
-					if (Combo("Automatic update checking", mode))
+					if (auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
+						Combo("Automatic update checking", mode))
 					{
 						m_Settings.m_ProgramUpdateCheckMode = mode;
 						m_Settings.SaveFile();

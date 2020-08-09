@@ -484,6 +484,60 @@ bool tf2_bot_detector::InputTextLocalIPOverride(const std::string_view& label_id
 	return OverrideControl(label_id, ip, s_AutodetectedValue.GetAndUpdate(), IsValid, InputFunc);
 }
 
+bool tf2_bot_detector::InputTextSteamAPIKey(const char* label_id, std::string& key, bool requireValid)
+{
+	constexpr char BASE_INVALID_KEY_MSG[] = "Your Steam API key should be a 32 character hexadecimal string";
+
+	std::string newKey = key;
+	if (ImGui::InputText(label_id, &newKey))
+	{
+		bool isValid = true;
+		if (isValid && newKey.size() > 0 && newKey.size() != 32)
+		{
+			isValid = false;
+			ImGui::TextColored({ 1, 0, 0, 1 },
+				"%s (current length: %zu)",
+				BASE_INVALID_KEY_MSG, newKey.size());
+			ImGui::NewLine();
+		}
+
+		if (isValid)
+		{
+			const auto invalidCharIndex = newKey.find_first_not_of("0123456789abcdefABCDEF");
+			if (invalidCharIndex != newKey.npos)
+			{
+				isValid = false;
+				ImGui::TextColored({ 1, 0, 0, 1 },
+					"%s (invalid character '%c')",
+					BASE_INVALID_KEY_MSG, newKey.at(invalidCharIndex));
+				ImGui::NewLine();
+			}
+		}
+
+		if (requireValid && !isValid)
+			newKey = key;
+	}
+
+	if (ImGui::Button("More Info..."))
+		Platform::Shell::OpenURL("https://github.com/PazerOP/tf2_bot_detector/wiki/Integrations:-Steam-API");
+
+	if (key.empty())
+	{
+		ImGui::SameLine();
+
+		if (ImGui::Button("Generate Steam API Key"))
+			Platform::Shell::OpenURL("https://steamcommunity.com/dev/apikey");
+	}
+
+	if (newKey != key)
+	{
+		key = newKey;
+		return true;
+	}
+
+	return false;
+}
+
 bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 {
 	const char* friendlyText = "<UNKNOWN>";
