@@ -63,16 +63,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "ozus",
-				"time": 1595832343
-			},
-			"steamid": "[U:1:13219058]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -175,16 +165,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "Rocket Launcher",
-				"time": 1595832340
-			},
-			"steamid": "[U:1:84044797]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -205,25 +185,9 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "GIGACHAD MEDIC",
-				"time": 1593755294
-			},
-			"steamid": "[U:1:88874778]"
-		},
-		{
-			"attributes": [
 				"racist"
 			],
 			"steamid": "[U:1:91555101]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"steamid": "[U:1:97878702]"
 		},
 		{
 			"attributes": [
@@ -252,26 +216,6 @@
 				"racist"
 			],
 			"steamid": "[U:1:111160048]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "--)YawgMoss(--",
-				"time": 1593804597
-			},
-			"steamid": "[U:1:112705921]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "SickQuickScopes2007",
-				"time": 1590374625
-			},
-			"steamid": "[U:1:113571527]"
 		},
 		{
 			"attributes": [
@@ -305,16 +249,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "bdsomer",
-				"time": 1596691654
-			},
-			"steamid": "[U:1:118733239]"
-		},
-		{
-			"attributes": [
 				"exploiter"
 			],
 			"last_seen": {
@@ -322,16 +256,6 @@
 				"time": 1594860958
 			},
 			"steamid": "[U:1:120629753]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "FiveSixTeen",
-				"time": 1595042293
-			},
-			"steamid": "[U:1:131083617]"
 		},
 		{
 			"attributes": [
@@ -426,12 +350,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"steamid": "[U:1:177860819]"
-		},
-		{
-			"attributes": [
 				"racist"
 			],
 			"last_seen": {
@@ -439,16 +357,6 @@
 				"time": 1593930219
 			},
 			"steamid": "[U:1:183047003]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "Dirty_Dany",
-				"time": 1593045679
-			},
-			"steamid": "[U:1:185956321]"
 		},
 		{
 			"attributes": [
@@ -561,12 +469,6 @@
 				"time": 1594326232
 			},
 			"steamid": "[U:1:312085969]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"steamid": "[U:1:325792672]"
 		},
 		{
 			"attributes": [
@@ -708,16 +610,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "Doll-sama",
-				"time": 1592720935
-			},
-			"steamid": "[U:1:395396348]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -748,15 +640,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"time": 1591218867
-			},
-			"steamid": "[U:1:437714180]"
-		},
-		{
-			"attributes": [
 				"cheater",
 				"exploiter"
 			],
@@ -768,17 +651,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "steak",
-				"time": 1593490958
-			},
-			"steamid": "[U:1:448257384]"
-		},
-		{
-			"attributes": [
-				"suspicious",
 				"racist"
 			],
 			"last_seen": {
@@ -829,16 +701,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "Jyggalag",
-				"time": 1593929627
-			},
-			"steamid": "[U:1:480886427]"
-		},
-		{
-			"attributes": [
 				"racist"
 			],
 			"last_seen": {
@@ -846,16 +708,6 @@
 				"time": 1594434732
 			},
 			"steamid": "[U:1:488225671]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "ok",
-				"time": 1593045568
-			},
-			"steamid": "[U:1:489625601]"
 		},
 		{
 			"attributes": [
@@ -915,16 +767,6 @@
 				"time": 1596692572
 			},
 			"steamid": "[U:1:874592284]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "Tin Mann",
-				"time": 1596517780
-			},
-			"steamid": "[U:1:875733994]"
 		},
 		{
 			"attributes": [
@@ -1026,12 +868,6 @@
 				"time": 1591238595
 			},
 			"steamid": "[U:1:1002106170]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"steamid": "[U:1:1002110230]"
 		},
 		{
 			"attributes": [
@@ -1248,16 +1084,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "ubuntu",
-				"time": 1595042178
-			},
-			"steamid": "[U:1:1021864325]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -1291,12 +1117,6 @@
 				"time": 1594790507
 			},
 			"steamid": "[U:1:1026273898]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"steamid": "[U:1:1030957078]"
 		},
 		{
 			"attributes": [
@@ -1547,12 +1367,6 @@
 				"time": 1594506929
 			},
 			"steamid": "[U:1:1057382585]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"steamid": "[U:1:1057453229]"
 		},
 		{
 			"attributes": [
@@ -2258,16 +2072,6 @@
 				"racist"
 			],
 			"steamid": "[U:1:1091138631]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "PilotRedS\u200fun",
-				"time": 1596692622
-			},
-			"steamid": "[U:1:1091211948]"
 		},
 		{
 			"attributes": [
@@ -3722,16 +3526,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "HVH GOD",
-				"time": 1595044599
-			},
-			"steamid": "[U:1:1104421239]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -4445,16 +4239,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "demoknight (f2p,i cant speak)",
-				"time": 1594596173
-			},
-			"steamid": "[U:1:1107159660]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -4775,16 +4559,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "papastallin69",
-				"time": 1593896703
-			},
-			"steamid": "[U:1:1111758512]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -4795,7 +4569,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious",
 				"racist"
 			],
 			"last_seen": {
@@ -4846,25 +4619,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "cat.jpg",
-				"time": 1595969132
-			},
-			"steamid": "[U:1:1115758533]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"time": 1595986970
-			},
-			"steamid": "[U:1:1115781631]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -4885,16 +4639,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "Yomps was a Pedo",
-				"time": 1595826854
-			},
-			"steamid": "[U:1:1116832468]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -4905,26 +4649,6 @@
 		},
 		{
 			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "lucidranger388",
-				"time": 1596081321
-			},
-			"steamid": "[U:1:1117628231]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "cat.jpg",
-				"time": 1596686631
-			},
-			"steamid": "[U:1:1118444386]"
-		},
-		{
-			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -4932,16 +4656,6 @@
 				"time": 1596779000
 			},
 			"steamid": "[U:1:1118516260]"
-		},
-		{
-			"attributes": [
-				"suspicious"
-			],
-			"last_seen": {
-				"player_name": "cat.jpg",
-				"time": 1596686001
-			},
-			"steamid": "[U:1:1118562665]"
 		},
 		{
 			"attributes": [
