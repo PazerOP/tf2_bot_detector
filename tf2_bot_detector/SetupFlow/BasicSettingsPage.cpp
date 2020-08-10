@@ -1,6 +1,6 @@
 #include "BasicSettingsPage.h"
+#include "Util/PathUtils.h"
 #include "ImGui_TF2BotDetector.h"
-#include "PathUtils.h"
 
 using namespace std::string_view_literals;
 using namespace tf2_bot_detector;

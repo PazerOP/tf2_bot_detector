@@ -1,7 +1,7 @@
 #include "SteamAPI.h"
+#include "Util/JSONUtils.h"
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
-#include "Config/JSONHelpers.h"
 #include "Log.h"
 
 #include <mh/text/format.hpp>

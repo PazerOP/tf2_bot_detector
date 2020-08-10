@@ -1,6 +1,6 @@
 #include "../Platform.h"
+#include "Util/TextUtils.h"
 #include "Log.h"
-#include "TextUtils.h"
 
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>

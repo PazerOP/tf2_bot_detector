@@ -8,7 +8,7 @@
 #include "ImGui_TF2BotDetector.h"
 #include "Actions/ActionGenerators.h"
 #include "Log.h"
-#include "PathUtils.h"
+#include "Util/PathUtils.h"
 #include "Version.h"
 
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION

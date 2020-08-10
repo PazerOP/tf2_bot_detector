@@ -1,5 +1,5 @@
 #include "GithubAPI.h"
-#include "Config/JSONHelpers.h"
+#include "Util/JSONUtils.h"
 #include "Log.h"
 #include "Version.h"
 #include "HTTPClient.h"

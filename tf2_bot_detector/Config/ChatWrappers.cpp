@@ -1,9 +1,9 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING 1
 
 #include "ChatWrappers.h"
+#include "Util/JSONUtils.h"
+#include "Util/TextUtils.h"
 #include "Log.h"
-#include "TextUtils.h"
-#include "Config/JSONHelpers.h"
 
 #include <vdf_parser.hpp>
 #include <cppcoro/generator.hpp>

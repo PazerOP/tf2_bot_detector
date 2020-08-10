@@ -1,5 +1,6 @@
 #include "DLLMain.h"
 
+#include "Util/TextUtils.h"
 #include "MainWindow.h"
 #include "Log.h"
 

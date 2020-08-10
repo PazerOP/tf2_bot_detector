@@ -2,7 +2,6 @@
 
 #include "Clock.h"
 #include "SteamID.h"
-#include "TextUtils.h"
 #include "TFConstants.h"
 
 #include <any>
