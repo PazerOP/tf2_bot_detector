@@ -72,10 +72,13 @@ jobs:
 
     - name: run-vcpkg
       uses: lukka/run-vcpkg@v3.2
+      env:
+        VCPKG_RESPONSE_FILE: '${{ github.workspace }}/vcpkg_packages.txt'
       with:
         vcpkgGitCommitId: 7c82b03faf93e607c722e518819a54e4359aeddc
-        vcpkgArguments: 'SDL2 openSSL glbinding cpp-httplib libzippp fmt discord-game-sdk'
+        vcpkgArguments: '@${{ env.VCPKG_RESPONSE_FILE }}'
         vcpkgTriplet: ${{ matrix.triplet }}
+        appendedCacheKey: ${{ hashFiles(env.VCPKG_RESPONSE_FILE) }}
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
