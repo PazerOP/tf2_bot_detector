@@ -4,6 +4,7 @@
 #include "SteamID.h"
 
 #include <future>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -33,15 +34,22 @@ namespace tf2_bot_detector::SteamAPI
 
 	struct PlayerSummary
 	{
-		tf2_bot_detector::SteamID m_SteamID;
+		SteamID m_SteamID;
 		std::string m_RealName;
 		std::string m_Nickname;
+		std::string m_AvatarHash;
+		std::string m_ProfileURL;
 		PersonaState m_Status;
 		CommunityVisibilityState m_Visibility;
-		bool m_ProfileConfigured;
-		tf2_bot_detector::time_point_t m_CreationTime;
+		std::optional<bool> m_ProfileConfigured;
+		std::optional<time_point_t> m_CreationTime;
+		std::optional<time_point_t> m_LastLogOff;
 
-		tf2_bot_detector::duration_t GetAccountAge() const;
+		std::optional<duration_t> GetAccountAge() const;
+
+		std::string GetSmallAvatar() const;
+		std::string GetMediumAvatar() const;
+		std::string GetLargeAvatar() const;
 	};
 
 	//void to_json(nlohmann::json& j, const SteamID& d);
