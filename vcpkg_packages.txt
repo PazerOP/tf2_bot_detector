@@ -1,1 +1,8 @@
-SDL2 openSSL glbinding cpp-httplib libzippp fmt discord-game-sdk stb
+SDL2
+openSSL
+glbinding
+cpp-httplib
+libzippp
+fmt
+discord-game-sdk
+stb
