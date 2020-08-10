@@ -10,7 +10,8 @@
 			"cmakeCommandArgs": "",
 			"buildCommandArgs": "",
 			"ctestCommandArgs": "",
-			"variables": []
+			"variables": [],
+			"cmakeToolchain": "submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		},
 		{
 			"name": "x64-Release",
@@ -22,7 +23,8 @@
 			"buildCommandArgs": "",
 			"ctestCommandArgs": "",
 			"inheritEnvironments": [ "msvc_x64_x64" ],
-			"variables": []
+			"variables": [],
+			"cmakeToolchain": "submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		},
 		{
 			"name": "x86-Release",
@@ -34,7 +36,8 @@
 			"buildCommandArgs": "",
 			"ctestCommandArgs": "",
 			"inheritEnvironments": [ "msvc_x86_x64" ],
-			"variables": []
+			"variables": [],
+			"cmakeToolchain": "submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		},
 		{
 			"name": "x86-Debug",
@@ -46,7 +49,8 @@
 			"buildCommandArgs": "",
 			"ctestCommandArgs": "",
 			"inheritEnvironments": [ "msvc_x86_x64" ],
-			"variables": []
+			"variables": [],
+			"cmakeToolchain": "submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		}
 	]
 }
