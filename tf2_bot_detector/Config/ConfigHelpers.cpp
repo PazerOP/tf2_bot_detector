@@ -1,8 +1,8 @@
 #include "ConfigHelpers.h"
 #include "Networking/HTTPHelpers.h"
 #include "Util/JSONUtils.h"
+#include "Util/RegexUtils.h"
 #include "Log.h"
-#include "RegexHelpers.h"
 #include "Version.h"
 
 #include <mh/text/case_insensitive_string.hpp>

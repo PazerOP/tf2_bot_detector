@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ConsoleLog/IConsoleLine.h"
-#include "RegexHelpers.h"
+#include "Util/RegexUtils.h"
 
 #include "ImGui_TF2BotDetector.h"
 

@@ -3,7 +3,6 @@
 #include "ConsoleLog/ConsoleLines.h"
 #include "Networking/GithubAPI.h"
 #include "ConsoleLog/NetworkStatus.h"
-#include "RegexHelpers.h"
 #include "Platform/Platform.h"
 #include "ImGui_TF2BotDetector.h"
 #include "Actions/ActionGenerators.h"
@@ -29,7 +28,6 @@
 #include <chrono>
 #include <filesystem>
 #include <string>
-#include <regex>
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;

@@ -4,7 +4,7 @@
 #include "Clock.h"
 #include "Networking/NetworkHelpers.h"
 #include "Config/Settings.h"
-#include "RegexHelpers.h"
+#include "Util/RegexUtils.h"
 #include "SteamID.h"
 #include "Platform/Platform.h"
 #include "Version.h"

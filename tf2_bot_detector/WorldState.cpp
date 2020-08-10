@@ -5,9 +5,9 @@
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "GameData/TFClassType.h"
 #include "GameData/UserMessageType.h"
+#include "Util/RegexUtils.h"
 #include "Util/TextUtils.h"
 #include "Log.h"
-#include "RegexHelpers.h"
 
 #include <mh/future.hpp>
 

@@ -1,6 +1,6 @@
 #include "NetworkStatus.h"
+#include "Util/RegexUtils.h"
 #include "Log.h"
-#include "RegexHelpers.h"
 
 #include <imgui.h>
 

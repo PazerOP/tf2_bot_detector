@@ -3,7 +3,7 @@
 #include "GameData/MatchmakingQueue.h"
 #include "GameData/UserMessageType.h"
 #include "Log.h"
-#include "RegexHelpers.h"
+#include "Util/RegexUtils.h"
 #include "WorldState.h"
 
 #include <mh/text/charconv_helper.hpp>
