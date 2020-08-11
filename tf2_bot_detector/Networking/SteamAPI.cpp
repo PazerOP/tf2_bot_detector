@@ -110,6 +110,21 @@ std::shared_future<Bitmap> PlayerSummary::GetAvatarBitmap(const HTTPClient* clie
 	return s_AvatarCacheManager.GetAvatarBitmap(client, GetAvatarURL(quality), m_AvatarHash);
 }
 
+std::string_view PlayerSummary::GetVanityURL() const
+{
+	constexpr std::string_view vanityBase = "https://steamcommunity.com/id/";
+	if (m_ProfileURL.starts_with(vanityBase))
+	{
+		auto retVal = std::string_view(m_ProfileURL).substr(vanityBase.size());
+		if (retVal.ends_with('/'))
+			retVal = retVal.substr(0, retVal.size() - 1);
+
+		return retVal;
+	}
+
+	return "";
+}
+
 void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerSummary& d)
 {
 	d = {};
@@ -120,12 +135,15 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerSummar
 	d.m_Status = j.at("personastate");
 	d.m_Visibility = j.at("communityvisibilitystate");
 	d.m_AvatarHash = j.at("avatarhash");
+	d.m_ProfileURL = j.at("profileurl");
 
 	if (auto found = j.find("lastlogoff"); found != j.end())
 		d.m_LastLogOff = std::chrono::system_clock::time_point(std::chrono::seconds(found->get<uint64_t>()));
 
 	if (auto found = j.find("profilestate"); found != j.end())
 		d.m_ProfileConfigured = found->get<int>() != 0;
+	if (auto found = j.find("commentpermission"); found != j.end())
+		d.m_CommentPermissions = found->get<int>() != 0;
 
 	if (auto found = j.find("timecreated"); found != j.end())
 		d.m_CreationTime = std::chrono::system_clock::time_point(std::chrono::seconds(found->get<uint64_t>()));

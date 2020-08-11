@@ -49,7 +49,8 @@ namespace tf2_bot_detector::SteamAPI
 		std::string m_ProfileURL;
 		PersonaState m_Status;
 		CommunityVisibilityState m_Visibility;
-		std::optional<bool> m_ProfileConfigured;
+		bool m_ProfileConfigured = false;
+		bool m_CommentPermissions = false;
 		std::optional<time_point_t> m_CreationTime;
 		std::optional<time_point_t> m_LastLogOff;
 
@@ -58,6 +59,8 @@ namespace tf2_bot_detector::SteamAPI
 		std::string GetAvatarURL(AvatarQuality quality = AvatarQuality::Large) const;
 		std::shared_future<Bitmap> GetAvatarBitmap(const HTTPClient* client,
 			AvatarQuality quality = AvatarQuality::Large) const;
+
+		std::string_view GetVanityURL() const;
 	};
 
 	//void to_json(nlohmann::json& j, const SteamID& d);

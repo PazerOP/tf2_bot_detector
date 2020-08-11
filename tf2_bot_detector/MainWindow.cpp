@@ -230,15 +230,130 @@ static bool OnDrawPlayerTooltipImpl(IPlayer& player, TeamShareResult teamShareRe
 void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult,
 	const PlayerMarks& playerAttribs)
 {
-	//if (OnDrawPlayerTooltipImpl<false>(player, teamShareResult, playerAttribs))
+	ImGui::BeginTooltip();
 	{
-		ImGui::BeginTooltip();
-		if (auto tex = TryGetAvatarTexture(player))
-			ImGui::Image((ImTextureID)(intptr_t)tex->GetHandle(), { 184, 184 });
+		ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
 
-		OnDrawPlayerTooltipImpl<true>(player, teamShareResult, playerAttribs);
-		ImGui::EndTooltip();
+		//ImGui::BeginChild("PlayerTooltipImage", { 184, 184 });
+		{
+			if (auto tex = TryGetAvatarTexture(player))
+				ImGui::Image((ImTextureID)(intptr_t)tex->GetHandle(), { 184, 184 });
+		}
+
+		// Fix up the cursor position
+		{
+			const auto pos = ImGui::GetCursorPos();
+			ImGui::SetItemAllowOverlap();
+			//ImGui::EndChild();
+			ImGui::SameLine();
+			ImGui::NewLine();
+			ImGui::SetCursorPos(ImGui::GetCursorStartPos());
+			ImGui::Indent(pos.y - ImGui::GetStyle().FramePadding.x);
+		}
+
+		{
+			ImGui::TextUnformatted(mh::fmtstr<512>("In-game Name: \"{}\"", player.GetNameUnsafe()));
+			if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary())
+			{
+				using namespace SteamAPI;
+				ImGui::Text("Steam Name  : \"%s\"", summary->m_Nickname.c_str());
+
+				if (!summary->m_RealName.empty())
+					ImGui::Text("Real Name  : \"%s\"", summary->m_RealName.c_str());
+
+				if (auto vanity = summary->GetVanityURL(); !vanity.empty())
+					ImGui::TextUnformatted(mh::fmtstr<256>("Vanity URL  : \"{}\"", vanity));
+
+				ImGui::TextUnformatted("Account Age:");
+				ImGui::SameLine();
+				if (auto age = summary->GetAccountAge())
+					ImGui::TextUnformatted(mh::fmtstr<128>("{}", HumanDuration(*age)));
+				else
+					ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unknown");
+
+				switch (summary->m_Status)
+				{
+				case PersonaState::Offline:
+					ImGui::TextColoredUnformatted({ 0.4f, 0.4f, 0.4f, 1 }, "Offline");
+					break;
+				case PersonaState::Online:
+					ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Online");
+					break;
+				case PersonaState::Busy:
+					ImGui::TextColoredUnformatted({ 1, 135 / 255.0f, 135 / 255.0f, 1 }, "Busy");
+					break;
+				case PersonaState::Away:
+					ImGui::TextColoredUnformatted({ 92 / 255.0f, 154 / 255.0f, 245 / 255.0f, 0.5f }, "Away");
+					break;
+				case PersonaState::Snooze:
+					ImGui::TextColoredUnformatted({ 92 / 255.0f, 154 / 255.0f, 245 / 255.0f, 0.35f }, "Snooze");
+					break;
+				case PersonaState::LookingToTrade:
+					ImGui::TextColoredUnformatted({ 0, 1, 1, 1 }, "Looking to Trade");
+					break;
+				case PersonaState::LookingToPlay:
+					ImGui::TextColoredUnformatted({ 0, 1, 0.5f, 1 }, "Looking to Play");
+					break;
+				default:
+					ImGui::TextColored({ 1, 0, 0, 1 }, "Status: Unknown (%i)", summary->m_Status);
+					break;
+				}
+
+				ImGui::TextUnformatted("Profile State:");
+				ImGui::SameLine();
+				if (summary->m_ProfileConfigured)
+					ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Configured");
+				else
+					ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Not Configured");
+
+				ImGui::TextUnformatted("Profile Visibility:");
+				ImGui::SameLine();
+				switch (summary->m_Visibility)
+				{
+				case CommunityVisibilityState::Visible:
+					ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Public");
+					break;
+				case CommunityVisibilityState::Hidden:
+					ImGui::TextColoredUnformatted({ 1, 0.5, 0, 1 }, "Private");
+					break;
+				default:
+					ImGui::TextColored({ 1, 0, 0, 1 }, "Unknown (%i)", summary->m_Visibility);
+					break;
+				}
+
+				ImGui::TextUnformatted("Comment Permissions:");
+				ImGui::SameLine();
+				if (summary->m_CommentPermissions)
+					ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "You can comment");
+				else
+					ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "You cannot comment");
+			}
+
+			ImGui::NewLine();
+
+#ifdef _DEBUG
+			ImGui::Text("Active time: %1.0fs", to_seconds(player.GetActiveTime()));
+#endif
+
+			if (teamShareResult != TeamShareResult::SameTeams)
+			{
+				auto kills = player.GetScores().m_LocalKills;
+				auto deaths = player.GetScores().m_LocalDeaths;
+				//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
+				ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
+			}
+
+			if (playerAttribs)
+			{
+				ImGui::NewLine();
+				ImGui::TextUnformatted("Player "s << player << " marked in playerlist(s):" << playerAttribs);
+			}
+		}
+		//ImGui::EndChild();
+		//const auto size = ImGui::GetItemRectSize();
+		//ImGui::SetWindowSize("PlayerTooltipDetails", size, ImGuiCond_Always);
 	}
+	ImGui::EndTooltip();
 }
 
 void MainWindow::OnDrawScoreboard()
