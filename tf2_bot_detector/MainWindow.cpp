@@ -7,6 +7,7 @@
 #include "ImGui_TF2BotDetector.h"
 #include "Actions/ActionGenerators.h"
 #include "Log.h"
+#include "TextureManager.h"
 #include "Util/PathUtils.h"
 #include "Version.h"
 
@@ -37,6 +38,8 @@ using namespace std::string_view_literals;
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, ("TF2 Bot Detector v"s << VERSION).c_str())
 {
+	m_TextureManager = CreateTextureManager();
+
 	ILogManager::GetInstance().CleanupLogFiles();
 
 	m_WorldState.AddConsoleLineListener(this);
@@ -227,9 +230,12 @@ static bool OnDrawPlayerTooltipImpl(IPlayer& player, TeamShareResult teamShareRe
 void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult,
 	const PlayerMarks& playerAttribs)
 {
-	if (OnDrawPlayerTooltipImpl<false>(player, teamShareResult, playerAttribs))
+	//if (OnDrawPlayerTooltipImpl<false>(player, teamShareResult, playerAttribs))
 	{
 		ImGui::BeginTooltip();
+		if (auto tex = TryGetAvatarTexture(player))
+			ImGui::Image((ImTextureID)(intptr_t)tex->GetHandle(), { 184, 184 });
+
 		OnDrawPlayerTooltipImpl<true>(player, teamShareResult, playerAttribs);
 		ImGui::EndTooltip();
 	}
@@ -1475,4 +1481,29 @@ float MainWindow::PlayerExtraData::GetAveragePing() const
 time_point_t MainWindow::GetCurrentTimestampCompensated() const
 {
 	return m_WorldState.GetCurrentTime();
+}
+
+std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
+{
+	struct PlayerAvatarData
+	{
+		std::shared_future<Bitmap> m_Bitmap;
+		std::shared_ptr<ITexture> m_Texture;
+	};
+
+	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>();
+
+	if (mh::is_future_ready(avatarData.m_Bitmap))
+	{
+		avatarData.m_Texture = m_TextureManager->CreateTexture(avatarData.m_Bitmap.get());
+		avatarData.m_Bitmap = {};
+	}
+
+	if (avatarData.m_Texture)
+		return avatarData.m_Texture;
+
+	if (auto summary = player.GetPlayerSummary())
+		avatarData.m_Bitmap = summary->GetAvatarBitmap(m_Settings.GetHTTPClient());
+
+	return nullptr;
 }

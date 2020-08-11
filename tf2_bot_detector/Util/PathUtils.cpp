@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <string>
 
+using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
@@ -174,4 +175,33 @@ std::filesystem::path tf2_bot_detector::FindTFDir(const std::filesystem::path& s
 
 	LogError("Failed to find tf directory from "s << steamDir);
 	return {};
+}
+
+void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duration_t maxAge)
+{
+	std::vector<std::filesystem::path> files;
+	for (const auto& entry : std::filesystem::directory_iterator(path))
+	{
+		if (!entry.is_regular_file())
+			continue;
+
+		files.push_back(entry.path());
+	}
+
+	using file_time_point_t = std::filesystem::file_time_type;
+	using file_clock_t = file_time_point_t::clock;
+	const auto now = file_clock_t::now();
+	for (const auto& path : files)
+	{
+		const auto lastWriteTime = std::filesystem::last_write_time(path);
+		const auto age = now - lastWriteTime;
+		if (age > maxAge)
+		{
+			std::error_code ec;
+			DebugLog("Removing old file "s << path);
+			std::filesystem::remove(path, ec);
+			if (ec)
+				LogWarning("Failed to delete "s << path << ": " << ec.message());
+		}
+	}
 }

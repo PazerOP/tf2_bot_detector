@@ -285,7 +285,7 @@ const HTTPClient* tf2_bot_detector::Settings::GetHTTPClient() const
 		return nullptr;
 
 	if (!m_HTTPClient)
-		m_HTTPClient.emplace();
+		m_HTTPClient = std::make_shared<HTTPClient>();
 
 	return &*m_HTTPClient;
 }

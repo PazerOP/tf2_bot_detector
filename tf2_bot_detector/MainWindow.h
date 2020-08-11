@@ -30,6 +30,8 @@ namespace tf2_bot_detector
 {
 	class IConsoleLine;
 	class IConsoleLineListener;
+	class ITexture;
+	class ITextureManager;
 
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener, BaseWorldEventListener
 	{
@@ -107,6 +109,9 @@ namespace tf2_bot_detector
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
 		time_point_t GetCurrentTimestampCompensated() const;
+
+		std::shared_ptr<ITexture> TryGetAvatarTexture(IPlayer& player);
+		std::unique_ptr<ITextureManager> m_TextureManager;
 
 		struct PingSample
 		{

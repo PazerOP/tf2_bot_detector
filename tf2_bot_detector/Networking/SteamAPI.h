@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Bitmap.h"
 #include "Clock.h"
 #include "SteamID.h"
 
@@ -32,6 +33,13 @@ namespace tf2_bot_detector::SteamAPI
 		LookingToPlay = 6,
 	};
 
+	enum class AvatarQuality
+	{
+		Small,
+		Medium,
+		Large,
+	};
+
 	struct PlayerSummary
 	{
 		SteamID m_SteamID;
@@ -47,9 +55,9 @@ namespace tf2_bot_detector::SteamAPI
 
 		std::optional<duration_t> GetAccountAge() const;
 
-		std::string GetSmallAvatar() const;
-		std::string GetMediumAvatar() const;
-		std::string GetLargeAvatar() const;
+		std::string GetAvatarURL(AvatarQuality quality = AvatarQuality::Large) const;
+		std::shared_future<Bitmap> GetAvatarBitmap(const HTTPClient* client,
+			AvatarQuality quality = AvatarQuality::Large) const;
 	};
 
 	//void to_json(nlohmann::json& j, const SteamID& d);

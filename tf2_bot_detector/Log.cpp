@@ -1,4 +1,5 @@
 #include "Log.h"
+#include "Util/PathUtils.h"
 
 #include <imgui.h>
 #include <mh/text/format.hpp>
@@ -244,44 +245,15 @@ void LogManager::LogConsoleOutput(const std::string_view& consoleOutput)
 
 void LogManager::CleanupLogFiles() try
 {
-	const auto Run = [](const std::filesystem::path& path)
-	{
-		std::vector<std::filesystem::path> files;
-		for (const auto& entry : std::filesystem::directory_iterator(path))
-		{
-			if (!entry.is_regular_file())
-				continue;
-
-			files.push_back(entry.path());
-		}
-
-		using file_time_point_t = std::filesystem::file_time_type;
-		using file_clock_t = file_time_point_t::clock;
-		constexpr auto MAX_LOG_LIFETIME = 24h * 7;
-		const auto now = file_clock_t::now();
-		for (const auto& path : files)
-		{
-			const auto lastWriteTime = std::filesystem::last_write_time(path);
-			const auto age = now - lastWriteTime;
-			if (age > MAX_LOG_LIFETIME)
-			{
-				std::error_code ec;
-				DebugLog(mh::format("Removing old log file {}", path));
-				std::filesystem::remove(path, ec);
-				if (ec)
-					LogWarning(mh::format("Failed to delete {}: {}", path, ec.message()));
-			}
-		}
-	};
-
+	constexpr auto MAX_LOG_LIFETIME = 24h * 7;
 	{
 		std::lock_guard lock(m_LogMutex);
-		Run("logs");
+		DeleteOldFiles("logs", MAX_LOG_LIFETIME);
 	}
 
 	{
-		std::lock_guard lock2(m_ConsoleLogMutex);
-		Run("logs/console");
+		std::lock_guard lock(m_ConsoleLogMutex);
+		DeleteOldFiles("logs/console", MAX_LOG_LIFETIME);
 	}
 }
 catch (const std::filesystem::filesystem_error& e)

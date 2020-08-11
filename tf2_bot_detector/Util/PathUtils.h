@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Clock.h"
+
 #include <cppcoro/generator.hpp>
 
 #include <filesystem>
@@ -33,4 +35,6 @@ namespace tf2_bot_detector
 
 	cppcoro::generator<std::filesystem::path> GetSteamLibraryFolders(const std::filesystem::path& steamDir);
 	std::filesystem::path FindTFDir(const std::filesystem::path& steamDir);
+
+	void DeleteOldFiles(const std::filesystem::path& path, duration_t maxAge);
 }

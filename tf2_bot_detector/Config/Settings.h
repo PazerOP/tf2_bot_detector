@@ -124,7 +124,7 @@ namespace tf2_bot_detector
 		} m_Theme;
 
 	private:
-		mutable std::optional<HTTPClient> m_HTTPClient;
+		mutable std::shared_ptr<HTTPClient> m_HTTPClient;
 	};
 }
 

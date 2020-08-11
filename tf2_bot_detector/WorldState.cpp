@@ -9,6 +9,7 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
+#include <mh/concurrency/main_thread.hpp>
 #include <mh/future.hpp>
 
 using namespace std::chrono_literals;
@@ -29,7 +30,7 @@ WorldState::~WorldState()
 
 void WorldState::Update()
 {
-	ApplyPlayerSummaries();
+	UpdatePlayerSummaries();
 }
 
 void WorldStateConLog::AddConsoleLineListener(IConsoleLineListener* listener)
@@ -240,6 +241,37 @@ cppcoro::generator<IPlayer&> WorldState::GetPlayers()
 		co_yield const_cast<IPlayer&>(player);
 }
 
+template<typename TMap>
+static auto GetRecentPlayersImpl(TMap&& map, size_t recentPlayerCount)
+{
+	using value_type = std::conditional_t<std::is_const_v<std::remove_reference_t<TMap>>, const IPlayer*, IPlayer*>;
+	std::vector<value_type> retVal;
+
+	for (auto& [sid, player] : map)
+		retVal.push_back(&player);
+
+	std::sort(retVal.begin(), retVal.end(),
+		[](const IPlayer* a, const IPlayer* b)
+		{
+			return b->GetLastStatusUpdateTime() < a->GetLastStatusUpdateTime();
+		});
+
+	if (retVal.size() > recentPlayerCount)
+		retVal.resize(recentPlayerCount);
+
+	return retVal;
+}
+
+std::vector<const IPlayer*> WorldState::GetRecentPlayers(size_t recentPlayerCount) const
+{
+	return GetRecentPlayersImpl(m_CurrentPlayerData, recentPlayerCount);
+}
+
+std::vector<IPlayer*> WorldState::GetRecentPlayers(size_t recentPlayerCount)
+{
+	return GetRecentPlayersImpl(m_CurrentPlayerData, recentPlayerCount);
+}
+
 void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
 {
 	const std::string_view& cfgName = execLine.GetConfigFileName();
@@ -330,8 +362,6 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 			// We can't trust the existing client indices
 			for (auto& player : m_CurrentPlayerData)
 				player.second.m_ClientIndex = 0;
-
-			QueuePlayerSummaryUpdate();
 		}
 		break;
 	}
@@ -569,45 +599,49 @@ auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
 	return *data;
 }
 
-void WorldState::QueuePlayerSummaryUpdate()
+void WorldState::UpdatePlayerSummaries()
 {
-	auto client = m_Settings->GetHTTPClient();
-	if (!client)
-		return;
-
-	if (m_Settings->m_SteamAPIKey.empty())
-		return;
-
-	std::vector<SteamID> steamIDs;
-
-	for (const IPlayer& member : GetLobbyMembers())
-		steamIDs.push_back(member.GetSteamID());
-
-	auto summary = SteamAPI::GetPlayerSummariesAsync(m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
-	if (summary.valid())
-		m_PlayerSummaryRequests.push_back(std::move(summary));
-}
-
-void WorldState::ApplyPlayerSummaries()
-{
-	for (auto it = m_PlayerSummaryRequests.begin(); it != m_PlayerSummaryRequests.end(); )
-	{
-		if (!mh::is_future_ready(*it))
+	std::invoke([&]
 		{
-			++it;
-			break;
-		}
+			if (m_QueuedPlayerSummaries.empty())
+				return;
 
-		auto summaryReqFuture = std::move(*it);
-		it = m_PlayerSummaryRequests.erase(it);
+			const auto curTime = clock_t::now();
+			if (curTime < (m_LastPlayerSummaryUpdate + 5s))
+				return;
 
+			m_LastPlayerSummaryUpdate = curTime;
+
+			auto client = m_Settings->GetHTTPClient();
+			if (!client)
+				return;
+
+			if (m_Settings->m_SteamAPIKey.empty())
+				return;
+
+			std::vector<SteamID> steamIDs;
+			for (SteamID id : m_QueuedPlayerSummaries)
+			{
+				if (steamIDs.size() >= 100)
+					break;
+
+				steamIDs.push_back(id);
+			}
+
+			m_PlayerSummaryUpdate = SteamAPI::GetPlayerSummariesAsync(
+				m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
+		});
+
+	if (mh::is_future_ready(m_PlayerSummaryUpdate))
+	{
 		try
 		{
-			auto summaryReq = summaryReqFuture.get();
+			auto summaryReq = m_PlayerSummaryUpdate.get();
 			for (SteamAPI::PlayerSummary& entry : summaryReq)
 			{
 				const auto steamID = entry.m_SteamID;
 				FindOrCreatePlayer(steamID).m_PlayerSummary = std::move(entry);
+				m_QueuedPlayerSummaries.erase(steamID);
 			}
 
 			DebugLog("Applied "s << summaryReq.size() << " player summaries from Steam web API");
@@ -662,6 +696,20 @@ duration_t WorldState::PlayerExtraData::GetConnectedTime() const
 	//assert(result >= -1s);
 	result = std::max<duration_t>(result, 0s);
 	return result;
+}
+
+const SteamAPI::PlayerSummary* WorldState::PlayerExtraData::GetPlayerSummary() const
+{
+	if (m_PlayerSummary)
+		return &*m_PlayerSummary;
+
+	// We'rd not loaded, so make sure we're queued to be loaded
+	{
+		std::lock_guard lock(m_World->m_QueuedPlayerSummariesMutex);
+		m_World->m_QueuedPlayerSummaries.insert(GetSteamID());
+	}
+
+	return nullptr;
 }
 
 duration_t WorldState::PlayerExtraData::GetActiveTime() const

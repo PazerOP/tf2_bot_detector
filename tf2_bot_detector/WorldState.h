@@ -81,6 +81,8 @@ namespace tf2_bot_detector
 		cppcoro::generator<IPlayer&> GetLobbyMembers();
 		cppcoro::generator<const IPlayer&> GetPlayers() const;
 		cppcoro::generator<IPlayer&> GetPlayers();
+		std::vector<const IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32) const;
+		std::vector<IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32);
 
 		time_point_t GetLastStatusUpdateTime() const { return m_LastStatusUpdateTime; }
 
@@ -114,7 +116,7 @@ namespace tf2_bot_detector
 			const PlayerScores& GetScores() const override { return m_Scores; }
 			uint16_t GetPing() const override { return m_Status.m_Ping; }
 			time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
-			const SteamAPI::PlayerSummary* GetPlayerSummary() const override { return m_PlayerSummary ? &*m_PlayerSummary : nullptr; }
+			const SteamAPI::PlayerSummary* GetPlayerSummary() const override;
 			duration_t GetActiveTime() const override;
 
 			WorldState* m_World{};
@@ -146,9 +148,11 @@ namespace tf2_bot_detector
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);
 
-		std::list<std::future<std::vector<SteamAPI::PlayerSummary>>> m_PlayerSummaryRequests;
-		void QueuePlayerSummaryUpdate();
-		void ApplyPlayerSummaries();
+		time_point_t m_LastPlayerSummaryUpdate{};
+		std::future<std::vector<SteamAPI::PlayerSummary>> m_PlayerSummaryUpdate;
+		std::unordered_set<SteamID> m_QueuedPlayerSummaries;
+		std::mutex m_QueuedPlayerSummariesMutex;
+		void UpdatePlayerSummaries();
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;
