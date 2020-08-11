@@ -1006,10 +1006,14 @@ void MainWindow::OnDrawAboutPopup()
 			{
 				ImGui::Bullet();
 				ImGui::TextUnformatted(sponsor.m_Name);
+
+				if (!sponsor.m_Message.empty())
+				{
 				ImGui::SameLine();
 				ImGui::TextUnformatted("-");
 				ImGui::SameLine();
 				ImGui::TextUnformatted(sponsor.m_Message);
+			}
 			}
 
 			ImGui::NewLine();
