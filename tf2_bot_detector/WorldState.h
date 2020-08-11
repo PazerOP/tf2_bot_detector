@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BatchedAction.h"
 #include "CompensatedTS.h"
 #include "ConsoleLog/IConsoleLineListener.h"
 #include "IPlayer.h"
@@ -117,6 +118,7 @@ namespace tf2_bot_detector
 			uint16_t GetPing() const override { return m_Status.m_Ping; }
 			time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
 			const SteamAPI::PlayerSummary* GetPlayerSummary() const override;
+			const SteamAPI::PlayerBans* GetPlayerBans() const override;
 			duration_t GetActiveTime() const override;
 
 			WorldState* m_World{};
@@ -125,6 +127,7 @@ namespace tf2_bot_detector
 
 			uint8_t m_ClientIndex{};
 			std::optional<SteamAPI::PlayerSummary> m_PlayerSummary;
+			std::optional<SteamAPI::PlayerBans> m_PlayerSteamBans;
 
 			void SetStatus(PlayerStatus status, time_point_t timestamp);
 			const PlayerStatus& GetStatus() const { return m_Status; }
@@ -148,11 +151,25 @@ namespace tf2_bot_detector
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);
 
-		time_point_t m_LastPlayerSummaryUpdate{};
-		std::future<std::vector<SteamAPI::PlayerSummary>> m_PlayerSummaryUpdate;
-		std::unordered_set<SteamID> m_QueuedPlayerSummaries;
-		std::mutex m_QueuedPlayerSummariesMutex;
-		void UpdatePlayerSummaries();
+		struct PlayerSummaryUpdateAction final :
+			BatchedAction<WorldState*, SteamID, std::vector<SteamAPI::PlayerSummary>>
+		{
+			using BatchedAction::BatchedAction;
+		protected:
+			response_future_type SendRequest(WorldState*& state, queue_collection_type& collection) override;
+			void OnDataReady(WorldState*& state, const response_type& response,
+				queue_collection_type& collection) override;
+		} m_PlayerSummaryUpdates;
+
+		struct PlayerBansUpdateAction final :
+			BatchedAction<WorldState*, SteamID, std::vector<SteamAPI::PlayerBans>>
+		{
+			using BatchedAction::BatchedAction;
+		protected:
+			response_future_type SendRequest(state_type& state, queue_collection_type& collection) override;
+			void OnDataReady(state_type& state, const response_type& response,
+				queue_collection_type& collection) override;
+		} m_PlayerBansUpdates;
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;

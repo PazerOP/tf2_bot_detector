@@ -24,6 +24,8 @@ namespace tf2_bot_detector
 		virtual void EndFrame() = 0;
 
 		virtual std::shared_ptr<ITexture> CreateTexture(const Bitmap& bitmap) = 0;
+
+		virtual size_t GetActiveTextureCount() const = 0;
 	};
 
 	std::unique_ptr<ITextureManager> CreateTextureManager();

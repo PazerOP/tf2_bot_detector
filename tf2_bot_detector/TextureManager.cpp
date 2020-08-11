@@ -52,6 +52,7 @@ namespace
 
 		void EndFrame() override;
 		std::shared_ptr<ITexture> CreateTexture(const Bitmap& bitmap) override;
+		size_t GetActiveTextureCount() const override { return m_Textures.size(); }
 
 		bool HasExtension(GLextension ext) const { return GetExtensions().contains(ext); }
 		const std::set<GLextension>& GetExtensions() const { return m_Extensions; }

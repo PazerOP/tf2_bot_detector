@@ -154,6 +154,8 @@ namespace ImGui
 			}
 		}
 	}
+
+	void PacifierText();
 }
 
 namespace tf2_bot_detector

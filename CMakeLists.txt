@@ -124,6 +124,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/Util/PathUtils.h"
 	"tf2_bot_detector/Util/TextUtils.cpp"
 	"tf2_bot_detector/Util/TextUtils.h"
+	"tf2_bot_detector/BatchedAction.h"
 	"tf2_bot_detector/Bitmap.h"
 	"tf2_bot_detector/Bitmap.cpp"
 	"tf2_bot_detector/Clock.cpp"

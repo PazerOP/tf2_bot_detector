@@ -4,6 +4,8 @@
 #include "Clock.h"
 #include "SteamID.h"
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <future>
 #include <optional>
 #include <string>
@@ -47,8 +49,8 @@ namespace tf2_bot_detector::SteamAPI
 		std::string m_Nickname;
 		std::string m_AvatarHash;
 		std::string m_ProfileURL;
-		PersonaState m_Status;
-		CommunityVisibilityState m_Visibility;
+		PersonaState m_Status{};
+		CommunityVisibilityState m_Visibility{};
 		bool m_ProfileConfigured = false;
 		bool m_CommentPermissions = false;
 		std::optional<time_point_t> m_CreationTime;
@@ -62,10 +64,31 @@ namespace tf2_bot_detector::SteamAPI
 
 		std::string_view GetVanityURL() const;
 	};
-
-	//void to_json(nlohmann::json& j, const SteamID& d);
 	void from_json(const nlohmann::json& j, PlayerSummary& d);
 
 	std::future<std::vector<PlayerSummary>> GetPlayerSummariesAsync(
-		std::string apikey, std::vector<SteamID> steamIDs, const HTTPClient& client);
+		const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client);
+
+	enum class PlayerEconomyBan
+	{
+		None,
+		Probation,
+		Banned,
+
+		Unknown,
+	};
+
+	struct PlayerBans
+	{
+		SteamID m_SteamID;
+		bool m_CommunityBanned = false;
+		PlayerEconomyBan m_EconomyBan{};
+		unsigned m_VACBanCount = 0;
+		unsigned m_GameBanCount = 0;
+		duration_t m_TimeSinceLastBan{};
+	};
+	void from_json(const nlohmann::json& j, PlayerBans& d);
+
+	std::shared_future<std::vector<PlayerBans>> GetPlayerBansAsync(
+		const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client);
 }

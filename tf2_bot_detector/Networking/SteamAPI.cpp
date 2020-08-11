@@ -5,6 +5,7 @@
 #include "HTTPHelpers.h"
 #include "Log.h"
 
+#include <mh/concurrency/thread_pool.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -22,6 +23,24 @@ using namespace tf2_bot_detector::SteamAPI;
 
 namespace
 {
+	struct SteamAPITask final
+	{
+		std::string m_RequestURL;
+		std::string m_Response;
+	};
+	static mh::thread_pool<SteamAPITask> s_SteamAPIThreadPool(2);
+	static std::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, std::string url)
+	{
+		auto clientPtr = client.shared_from_this();
+		return s_SteamAPIThreadPool.add_task([clientPtr, url]() -> SteamAPITask
+			{
+				SteamAPITask retVal;
+				retVal.m_RequestURL = url;
+				retVal.m_Response = clientPtr->GetString(url);
+				return retVal;
+			});
+	}
+
 	class AvatarCacheManager final
 	{
 	public:
@@ -46,16 +65,16 @@ namespace
 
 			if (client)
 			{
-				auto clientPtr = client->shared_from_this();
+				auto dataFuture = SteamAPIGET(*client, url);
 				// We're not stored in the cache, download now
-				return std::async([this, cachedPath, clientPtr, url]() -> Bitmap
+				return std::async([this, cachedPath, dataFuture]() -> Bitmap
 					{
-						const auto data = clientPtr->GetString(url);
+						const SteamAPITask& data = dataFuture.get();
 
 						std::lock_guard lock(m_CacheMutex);
 						{
 							std::ofstream file(cachedPath, std::ios::trunc | std::ios::binary);
-							file << data;
+							file << data.m_Response;
 						}
 						return Bitmap(cachedPath);
 					});
@@ -150,7 +169,7 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerSummar
 }
 
 std::future<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSummariesAsync(
-	std::string apikey, std::vector<SteamID> steamIDs, const HTTPClient& client)
+	const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
 		return {};
@@ -162,23 +181,89 @@ std::future<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSum
 	}
 
 	if (steamIDs.size() > 100)
-		LogError(std::string(__FUNCTION__) << "Attempted to fetch " << steamIDs.size() << " steamIDs at once");
+	{
+		LogError(std::string(__FUNCTION__) << "Attempted to fetch " << steamIDs.size()
+			<< " steamIDs at once (max 100)");
+	}
 
-	return std::async([apikey, steamIDs{ std::move(steamIDs) }, &client]
+	std::string url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key="s
+		<< apikey << "&steamids=";
+
+	for (size_t i = 0; i < std::min<size_t>(steamIDs.size(), 100); i++)
+	{
+		if (i != 0)
+			url << ',';
+
+		url << steamIDs[i].ID64;
+	}
+
+	auto data = SteamAPIGET(client, url);
+
+	return std::async([data]
 		{
-			std::string url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key="s
-				<< apikey << "&steamids=";
-
-			for (size_t i = 0; i < steamIDs.size(); i++)
-			{
-				if (i != 0)
-					url << ',';
-
-				url << steamIDs[i].ID64;
-			}
-
-			auto json = nlohmann::json::parse(client.GetString(url));
-
+			auto json = nlohmann::json::parse(data.get().m_Response);
 			return json.at("response").at("players").get<std::vector<PlayerSummary>>();
+		});
+}
+
+void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerBans& d)
+{
+	d = {};
+	d.m_SteamID = j.at("SteamId");
+	d.m_CommunityBanned = j.at("CommunityBanned");
+	d.m_VACBanCount = j.at("NumberOfVACBans");
+	d.m_GameBanCount = j.at("NumberOfGameBans");
+	d.m_TimeSinceLastBan = 24h * j.at("DaysSinceLastBan").get<uint32_t>();
+
+	const std::string_view economyBan = j.at("EconomyBan");
+	if (economyBan == "none"sv)
+		d.m_EconomyBan = PlayerEconomyBan::None;
+	else if (economyBan == "banned"sv)
+		d.m_EconomyBan = PlayerEconomyBan::Banned;
+	else if (economyBan == "probation"sv)
+		d.m_EconomyBan = PlayerEconomyBan::Probation;
+	else
+	{
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown EconomyBan value "s << std::quoted(economyBan));
+		d.m_EconomyBan = PlayerEconomyBan::Unknown;
+	}
+}
+
+std::shared_future<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync(
+	const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
+{
+
+	if (steamIDs.empty())
+		return {};
+
+	if (apikey.empty())
+	{
+		LogError(std::string(__FUNCTION__) << ": apikey was empty");
+		return {};
+	}
+
+	if (steamIDs.size() > 100)
+	{
+		LogError(std::string(__FUNCTION__) << "Attempted to fetch " << steamIDs.size()
+			<< " steamIDs at once (max 100)");
+	}
+
+	std::string url = "https://api.steampowered.com/ISteamUser/GetPlayerBans/v0001/?key="s
+		<< apikey << "&steamids=";
+
+	for (size_t i = 0; i < std::min<size_t>(steamIDs.size(), 100); i++)
+	{
+		if (i != 0)
+			url << ',';
+
+		url << steamIDs[i].ID64;
+	}
+
+	auto data = SteamAPIGET(client, url);
+
+	return std::async([data]
+		{
+			auto json = nlohmann::json::parse(data.get().m_Response);
+			return json.at("players").get<std::vector<PlayerBans>>();
 		});
 }

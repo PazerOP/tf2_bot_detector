@@ -20,6 +20,7 @@ namespace tf2_bot_detector
 	namespace SteamAPI
 	{
 		struct PlayerSummary;
+		struct PlayerBans;
 	}
 
 	struct PlayerScores
@@ -48,6 +49,7 @@ namespace tf2_bot_detector
 
 		virtual SteamID GetSteamID() const = 0;
 		virtual const SteamAPI::PlayerSummary* GetPlayerSummary() const = 0;
+		virtual const SteamAPI::PlayerBans* GetPlayerBans() const = 0;
 		virtual std::optional<UserID_t> GetUserID() const = 0;
 
 		virtual PlayerStatusState GetConnectionState() const = 0;

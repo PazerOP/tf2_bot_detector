@@ -181,52 +181,6 @@ void MainWindow::OnDrawColorPickers(const char* id, const std::initializer_list<
 		});
 }
 
-template<bool draw>
-static bool OnDrawPlayerTooltipImpl(IPlayer& player, TeamShareResult teamShareResult,
-	const PlayerMarks& playerAttribs)
-{
-	ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 }, draw);
-
-	bool contentDrawn = false;
-
-#ifdef _DEBUG
-	{
-		if constexpr (draw)
-			ImGui::Text("Active time: %1.0fs", to_seconds(player.GetActiveTime()));
-
-		contentDrawn = true;
-	}
-#endif
-
-	if (teamShareResult != TeamShareResult::SameTeams)
-	{
-		if constexpr (draw)
-		{
-			auto kills = player.GetScores().m_LocalKills;
-			auto deaths = player.GetScores().m_LocalDeaths;
-			//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
-			ImGui::Text("Their Thirst: %1.0f%%", deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100);
-		}
-
-		contentDrawn = true;
-	}
-
-	if (playerAttribs)
-	{
-		if constexpr (draw)
-		{
-			if (contentDrawn)
-				ImGui::NewLine();
-
-			ImGui::TextUnformatted("Player "s << player << " marked in playerlist(s):" << playerAttribs);
-		}
-
-		contentDrawn = true;
-	}
-
-	return contentDrawn;
-}
-
 void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult,
 	const PlayerMarks& playerAttribs)
 {
@@ -259,7 +213,7 @@ void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareR
 				ImGui::Text("Steam Name  : \"%s\"", summary->m_Nickname.c_str());
 
 				if (!summary->m_RealName.empty())
-					ImGui::Text("Real Name  : \"%s\"", summary->m_RealName.c_str());
+					ImGui::Text("Real Name   : \"%s\"", summary->m_RealName.c_str());
 
 				if (auto vanity = summary->GetVanityURL(); !vanity.empty())
 					ImGui::TextUnformatted(mh::fmtstr<256>("Vanity URL  : \"{}\"", vanity));
@@ -269,7 +223,7 @@ void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareR
 				if (auto age = summary->GetAccountAge())
 					ImGui::TextUnformatted(mh::fmtstr<128>("{}", HumanDuration(*age)));
 				else
-					ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unknown");
+					ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Private");
 
 				switch (summary->m_Status)
 				{
@@ -321,12 +275,61 @@ void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareR
 					break;
 				}
 
+#if 0 // decreed as useless information by overlord czechball
 				ImGui::TextUnformatted("Comment Permissions:");
 				ImGui::SameLine();
 				if (summary->m_CommentPermissions)
 					ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "You can comment");
 				else
 					ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "You cannot comment");
+#endif
+			}
+
+			if (const SteamAPI::PlayerBans* bans = player.GetPlayerBans())
+			{
+				using namespace SteamAPI;
+				if (bans->m_CommunityBanned)
+					ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Community Banned");
+
+				{
+					const ImVec4 banColor = (bans->m_TimeSinceLastBan >= (24h * 365 * 7)) ?
+						ImVec4(1, 1, 0, 1) : ImVec4(1, 0, 0, 1);
+					if (bans->m_VACBanCount > 0)
+						ImGui::TextColored(banColor, "VAC Bans : %i", bans->m_VACBanCount);
+					if (bans->m_GameBanCount > 0)
+						ImGui::TextColored(banColor, "Game Bans: %i", bans->m_GameBanCount);
+					if (bans->m_VACBanCount || bans->m_GameBanCount)
+					{
+						ImGui::TextColoredUnformatted(banColor, mh::fmtstr<128>("Time Since Last VAC/Game Ban: {}",
+							HumanDuration(bans->m_TimeSinceLastBan)));
+					}
+				}
+
+				switch (bans->m_EconomyBan)
+				{
+				case PlayerEconomyBan::None:
+					break;
+
+				case PlayerEconomyBan::Probation:
+					ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Trade Banned (Probation)");
+					break;
+				case PlayerEconomyBan::Banned:
+					ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Trade Banned");
+					break;
+
+				default:
+				case PlayerEconomyBan::Unknown:
+					ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unknown Trade Ban State");
+					break;
+				}
+
+				if (bans->m_VACBanCount < 1 &&
+					bans->m_GameBanCount < 1 &&
+					!bans->m_CommunityBanned &&
+					bans->m_EconomyBan == PlayerEconomyBan::None)
+				{
+					ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "No Steam Bans");
+				}
 			}
 
 			ImGui::NewLine();
@@ -1149,6 +1152,8 @@ void MainWindow::OnDraw()
 			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "NO");
 
 		ImGui::Text("FPS: %1.1f", GetFPS());
+
+		ImGui::Text("Texture Count: %zu", m_TextureManager->GetActiveTextureCount());
 	}
 #endif
 

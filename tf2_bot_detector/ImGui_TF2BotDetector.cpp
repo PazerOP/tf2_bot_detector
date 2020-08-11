@@ -627,3 +627,9 @@ void ImGui::SetHoverTooltip(const char* tooltipFmt, ...)
 
 	va_end(args);
 }
+
+void ImGui::PacifierText()
+{
+	// TODO
+	ImGui::TextUnformatted("..."sv);
+}

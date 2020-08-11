@@ -18,7 +18,9 @@ using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 
 WorldState::WorldState(const Settings& settings) :
-	m_Settings(&settings)
+	m_Settings(&settings),
+	m_PlayerSummaryUpdates(this),
+	m_PlayerBansUpdates(this)
 {
 	AddConsoleLineListener(this);
 }
@@ -30,7 +32,8 @@ WorldState::~WorldState()
 
 void WorldState::Update()
 {
-	UpdatePlayerSummaries();
+	m_PlayerSummaryUpdates.Update();
+	m_PlayerBansUpdates.Update();
 }
 
 void WorldStateConLog::AddConsoleLineListener(IConsoleLineListener* listener)
@@ -599,60 +602,6 @@ auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
 	return *data;
 }
 
-void WorldState::UpdatePlayerSummaries()
-{
-	std::invoke([&]
-		{
-			if (m_QueuedPlayerSummaries.empty())
-				return;
-
-			const auto curTime = clock_t::now();
-			if (curTime < (m_LastPlayerSummaryUpdate + 5s))
-				return;
-
-			m_LastPlayerSummaryUpdate = curTime;
-
-			auto client = m_Settings->GetHTTPClient();
-			if (!client)
-				return;
-
-			if (m_Settings->m_SteamAPIKey.empty())
-				return;
-
-			std::vector<SteamID> steamIDs;
-			for (SteamID id : m_QueuedPlayerSummaries)
-			{
-				if (steamIDs.size() >= 100)
-					break;
-
-				steamIDs.push_back(id);
-			}
-
-			m_PlayerSummaryUpdate = SteamAPI::GetPlayerSummariesAsync(
-				m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
-		});
-
-	if (mh::is_future_ready(m_PlayerSummaryUpdate))
-	{
-		try
-		{
-			auto summaryReq = m_PlayerSummaryUpdate.get();
-			for (SteamAPI::PlayerSummary& entry : summaryReq)
-			{
-				const auto steamID = entry.m_SteamID;
-				FindOrCreatePlayer(steamID).m_PlayerSummary = std::move(entry);
-				m_QueuedPlayerSummaries.erase(steamID);
-			}
-
-			DebugLog("Applied "s << summaryReq.size() << " player summaries from Steam web API");
-		}
-		catch (const std::exception& e)
-		{
-			LogError("Failed to apply player summaries from Steam web API: "s << e.what());
-		}
-	}
-}
-
 auto WorldState::GetTeamShareResult(const SteamID& id0, const SteamID& id1) const -> TeamShareResult
 {
 	return GetTeamShareResult(FindLobbyMemberTeam(id0), FindLobbyMemberTeam(id1));
@@ -704,11 +653,16 @@ const SteamAPI::PlayerSummary* WorldState::PlayerExtraData::GetPlayerSummary() c
 		return &*m_PlayerSummary;
 
 	// We'rd not loaded, so make sure we're queued to be loaded
-	{
-		std::lock_guard lock(m_World->m_QueuedPlayerSummariesMutex);
-		m_World->m_QueuedPlayerSummaries.insert(GetSteamID());
-	}
+	m_World->m_PlayerSummaryUpdates.Queue(GetSteamID());
+	return nullptr;
+}
 
+const SteamAPI::PlayerBans* WorldState::PlayerExtraData::GetPlayerBans() const
+{
+	if (m_PlayerSteamBans)
+		return &*m_PlayerSteamBans;
+
+	m_World->m_PlayerBansUpdates.Queue(GetSteamID());
 	return nullptr;
 }
 
@@ -746,4 +700,69 @@ const std::any* WorldState::PlayerExtraData::FindDataStorage(const std::type_ind
 std::any& WorldState::PlayerExtraData::GetOrCreateDataStorage(const std::type_index& type)
 {
 	return m_UserData[type];
+}
+
+template<typename T>
+static std::vector<SteamID> Take100(const T& collection)
+{
+	std::vector<SteamID> retVal;
+	for (SteamID id : collection)
+	{
+		if (retVal.size() >= 100)
+			break;
+
+		retVal.push_back(id);
+	}
+	return retVal;
+}
+
+auto WorldState::PlayerSummaryUpdateAction::SendRequest(
+	WorldState*& state, queue_collection_type& collection) -> response_future_type
+{
+	auto client = state->m_Settings->GetHTTPClient();
+	if (!client)
+		return {};
+
+	if (state->m_Settings->m_SteamAPIKey.empty())
+		return {};
+
+	std::vector<SteamID> steamIDs = Take100(collection);
+
+	return SteamAPI::GetPlayerSummariesAsync(
+		state->m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
+}
+
+void WorldState::PlayerSummaryUpdateAction::OnDataReady(WorldState*& state,
+	const response_type& response, queue_collection_type& collection)
+{
+	for (const SteamAPI::PlayerSummary& entry : response)
+	{
+		state->FindOrCreatePlayer(entry.m_SteamID).m_PlayerSummary = entry;
+		collection.erase(entry.m_SteamID);
+	}
+}
+
+auto WorldState::PlayerBansUpdateAction::SendRequest(state_type& state,
+	queue_collection_type& collection) -> response_future_type
+{
+	auto client = state->m_Settings->GetHTTPClient();
+	if (!client)
+		return {};
+
+	if (state->m_Settings->m_SteamAPIKey.empty())
+		return {};
+
+	std::vector<SteamID> steamIDs = Take100(collection);
+	return SteamAPI::GetPlayerBansAsync(
+		state->m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
+}
+
+void WorldState::PlayerBansUpdateAction::OnDataReady(state_type& state,
+	const response_type& response, queue_collection_type& collection)
+{
+	for (const SteamAPI::PlayerBans& bans : response)
+	{
+		state->FindOrCreatePlayer(bans.m_SteamID).m_PlayerSteamBans = bans;
+		collection.erase(bans.m_SteamID);
+	}
 }
