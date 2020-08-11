@@ -1610,15 +1610,24 @@ std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
 
 	if (mh::is_future_ready(avatarData.m_Bitmap))
 	{
-		avatarData.m_Texture = m_TextureManager->CreateTexture(avatarData.m_Bitmap.get());
-		avatarData.m_Bitmap = {};
+		try
+		{
+			avatarData.m_Texture = m_TextureManager->CreateTexture(avatarData.m_Bitmap.get());
+			avatarData.m_Bitmap = {};
+		}
+		catch (const std::exception& e)
+		{
+			LogWarning("Failed to create avatar texture from bitmap: "s << typeid(e).name() << ": " << e.what());
+		}
 	}
+	else
+	{
+		if (avatarData.m_Texture)
+			return avatarData.m_Texture;
 
-	if (avatarData.m_Texture)
-		return avatarData.m_Texture;
-
-	if (auto summary = player.GetPlayerSummary())
-		avatarData.m_Bitmap = summary->GetAvatarBitmap(m_Settings.GetHTTPClient());
+		if (auto summary = player.GetPlayerSummary())
+			avatarData.m_Bitmap = summary->GetAvatarBitmap(m_Settings.GetHTTPClient());
+	}
 
 	return nullptr;
 }
