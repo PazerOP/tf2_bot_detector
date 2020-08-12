@@ -36,5 +36,5 @@ namespace tf2_bot_detector
 template<typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::URL& url)
 {
-	return os << url.m_Scheme << url.m_Host << url.m_Port << url.m_Path;
+	return os << url.m_Scheme << url.m_Host << ':' << url.m_Port << url.m_Path;
 }
