@@ -142,11 +142,18 @@ bool RCONActionManager::ShouldDiscardCommand(const std::string_view& cmd) const
 	if (!m_IsDiscardingServerCommands)
 		return false;
 
-	if (cmd == "tf_lobby_debug"sv)
-		return false;
-	if (cmd == "tf_party_debug"sv)
-		return false;
-	if (cmd == "net_status"sv)
+	static const std::unordered_set<std::string_view> s_KnownClientCommands =
+	{
+		"tf_lobby_debug",
+		"tf_party_debug",
+		"net_status",
+		"con_logfile",
+		"con_timestamp",
+		"tf_mm_debug_level",
+		"net_showmsg",
+	};
+
+	if (s_KnownClientCommands.contains(cmd))
 		return false;
 
 	DebugLog("Discarding potential server command "s << std::quoted(cmd));
