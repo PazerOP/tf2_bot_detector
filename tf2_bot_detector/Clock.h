@@ -67,65 +67,23 @@ template<typename CharT, typename Traits, typename TRep, typename TPeriod>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
 	const tf2_bot_detector::HumanDuration<TRep, TPeriod>& humanDuration)
 {
-#if 0
-	using namespace std::chrono_literals;
-
-	constexpr auto SECOND = 1s;
-	constexpr auto MINUTE = 1min;
-	constexpr auto HOUR = 1h;
-	constexpr auto DAY = HOUR * 24;
-	constexpr auto WEEK = DAY * 7;
-	constexpr auto YEAR = DAY * 365;
-	constexpr auto MONTH = YEAR / 12;
-
-	const auto& duration = humanDuration.m_Duration;
-
-	int printCount = 0;
-
-	const auto Print = [&](auto& value, const auto divisor, const auto& text)
-	{
-		if (printCount >= 3)
-			return;
-
-		const auto divided = value / divisor;
-		const auto count = (value / divisor).count();
-		if (count <= 0)
-			return;
-
-		if (printCount > 0)
-			os << ", ";
-
-		os << count << ' ' << text;
-
-		if (count > 1)
-			os << 's';
-
-		printCount++;
-		value -=
-	};
-
-	Print(duration, YEAR, "year");
-	Print(duration, MONTH, "month");
-	Print(duration, WEEK, "week");
-	Print(duration, DAY, "day");
-	Print(duration, HOUR, "hour");
-	Print(duration, MINUTE, "minute");
-	Print(duration, SECOND, "second");
-
-	return os;
-#else
 	int printCount = 0;
 
 	const auto Print = [&](auto& value, auto period, const auto& text)
 	{
-		if (printCount >= 3)
+		if (printCount >= 2)
 			return;
 
 		using TPeriod = std::decay_t<decltype(period)>;
 		const auto truncated = std::chrono::duration_cast<TPeriod>(value);
 		const auto count = truncated.count();
 		if (count <= 0)
+		{
+			if (printCount > 0)
+				printCount++;
+
 			return;
+		}
 
 		if (printCount > 0)
 			os << ", ";
@@ -149,5 +107,4 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 	Print(duration, std::chrono::seconds{}, "second");
 
 	return os;
-#endif
 }
