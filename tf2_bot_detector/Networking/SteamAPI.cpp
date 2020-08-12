@@ -176,13 +176,13 @@ std::future<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSum
 
 	if (apikey.empty())
 	{
-		LogError(std::string(__FUNCTION__) << ": apikey was empty");
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
 		return {};
 	}
 
 	if (steamIDs.size() > 100)
 	{
-		LogError(std::string(__FUNCTION__) << "Attempted to fetch " << steamIDs.size()
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Attempted to fetch "s << steamIDs.size()
 			<< " steamIDs at once (max 100)");
 	}
 
@@ -232,13 +232,12 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerBans& 
 std::shared_future<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync(
 	const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
-
 	if (steamIDs.empty())
 		return {};
 
 	if (apikey.empty())
 	{
-		LogError(std::string(__FUNCTION__) << ": apikey was empty");
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
 		return {};
 	}
 
@@ -265,5 +264,47 @@ std::shared_future<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlaye
 		{
 			auto json = nlohmann::json::parse(data.get().m_Response);
 			return json.at("players").get<std::vector<PlayerBans>>();
+		});
+}
+
+std::future<std::optional<duration_t>> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
+	const std::string_view& apikey, const SteamID& steamID, const HTTPClient& client)
+{
+	if (!steamID.IsValid())
+	{
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Invalid SteamID "s << steamID.ID64);
+		return {};
+	}
+
+	if (apikey.empty())
+	{
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
+		return {};
+	}
+
+	auto url = mh::format("https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&input_json=%7B%22appids_filter%22%3A%5B440%5D,%22include_played_free_games%22%3Atrue,%22steamid%22%3A{}%7D", apikey, steamID.ID64);
+
+	auto data = SteamAPIGET(client, url);
+	return std::async([data]() -> std::optional<duration_t>
+		{
+			auto json = nlohmann::json::parse(data.get().m_Response);
+
+			auto& games = json.at("response").at("games");
+			if (games.size() != 1)
+			{
+				if (games.size() != 0)
+					LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected games array size "s << games.size());
+
+				return {};
+			}
+
+			auto& firstElem = games.at(0);
+			if (uint32_t appid = firstElem.at("appid"); appid != 440)
+			{
+				LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected appid "s << appid << " at response.games[0].appid");
+				return {};
+			}
+
+			return std::chrono::minutes(firstElem.at("playtime_forever"));
 		});
 }

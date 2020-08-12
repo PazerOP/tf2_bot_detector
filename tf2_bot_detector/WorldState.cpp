@@ -666,6 +666,23 @@ const SteamAPI::PlayerBans* WorldState::PlayerExtraData::GetPlayerBans() const
 	return nullptr;
 }
 
+std::optional<duration_t> WorldState::PlayerExtraData::GetTotalTF2Playtime() const
+{
+	if (!m_TF2Playtime.valid() && !m_World->m_Settings->m_SteamAPIKey.empty())
+	{
+		if (auto client = m_World->m_Settings->GetHTTPClient())
+		{
+			m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(
+				m_World->m_Settings->m_SteamAPIKey, GetSteamID(), *client);
+		}
+	}
+
+	if (mh::is_future_ready(m_TF2Playtime))
+		return m_TF2Playtime.get();
+
+	return {};
+}
+
 duration_t WorldState::PlayerExtraData::GetActiveTime() const
 {
 	if (m_Status.m_State != PlayerStatusState::Active)
@@ -735,6 +752,7 @@ auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 void WorldState::PlayerSummaryUpdateAction::OnDataReady(WorldState*& state,
 	const response_type& response, queue_collection_type& collection)
 {
+	DebugLog("[SteamAPI] Received "s << response.size() << " player summaries");
 	for (const SteamAPI::PlayerSummary& entry : response)
 	{
 		state->FindOrCreatePlayer(entry.m_SteamID).m_PlayerSummary = entry;
@@ -760,6 +778,7 @@ auto WorldState::PlayerBansUpdateAction::SendRequest(state_type& state,
 void WorldState::PlayerBansUpdateAction::OnDataReady(state_type& state,
 	const response_type& response, queue_collection_type& collection)
 {
+	DebugLog("[SteamAPI] Received "s << response.size() << " player bans");
 	for (const SteamAPI::PlayerBans& bans : response)
 	{
 		state->FindOrCreatePlayer(bans.m_SteamID).m_PlayerSteamBans = bans;

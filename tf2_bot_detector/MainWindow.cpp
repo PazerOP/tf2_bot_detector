@@ -333,6 +333,13 @@ void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareR
 				}
 			}
 
+			if (const auto playtime = player.GetTotalTF2Playtime())
+			{
+				const auto hours = std::chrono::duration_cast<std::chrono::hours>(*playtime);
+				ImGui::TextColored({ 174 / 255.0f, 84 / 255.0f, 38 / 255.0f, 1 },
+					"Total TF2 Playtime: %u hours", hours.count());
+			}
+
 			ImGui::NewLine();
 
 #ifdef _DEBUG

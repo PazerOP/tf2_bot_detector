@@ -91,4 +91,7 @@ namespace tf2_bot_detector::SteamAPI
 
 	std::shared_future<std::vector<PlayerBans>> GetPlayerBansAsync(
 		const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client);
+
+	std::future<std::optional<duration_t>> GetTF2PlaytimeAsync(const std::string_view& apikey,
+		const SteamID& steamID, const HTTPClient& client);
 }
