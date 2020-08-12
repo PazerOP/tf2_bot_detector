@@ -207,25 +207,27 @@ void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareR
 		}
 
 		{
-			ImGui::TextUnformatted(mh::fmtstr<512>("In-game Name: \"{}\"", player.GetNameUnsafe()));
+			ImGui::TextUnformatted(mh::fmtstr<512>("In-game Name : \"{}\"", player.GetNameUnsafe()));
 			if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary())
 			{
 				using namespace SteamAPI;
-				ImGui::Text("Steam Name  : \"%s\"", summary->m_Nickname.c_str());
+				ImGui::Text("  Steam Name : \"%s\"", summary->m_Nickname.c_str());
 
 				if (!summary->m_RealName.empty())
-					ImGui::Text("Real Name   : \"%s\"", summary->m_RealName.c_str());
+					ImGui::Text("   Real Name : \"%s\"", summary->m_RealName.c_str());
 
 				if (auto vanity = summary->GetVanityURL(); !vanity.empty())
-					ImGui::TextUnformatted(mh::fmtstr<256>("Vanity URL  : \"{}\"", vanity));
+					ImGui::TextUnformatted(mh::fmtstr<256>("  Vanity URL : \"{}\"", vanity));
 
-				ImGui::TextUnformatted("Account Age:");
+				ImGui::TextUnformatted(" Account Age :");
 				ImGui::SameLine();
 				if (auto age = summary->GetAccountAge())
 					ImGui::TextUnformatted(mh::fmtstr<128>("{}", HumanDuration(*age)));
 				else
 					ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Private");
 
+				ImGui::TextUnformatted("      Status :");
+				ImGui::SameLine();
 				switch (summary->m_Status)
 				{
 				case PersonaState::Offline:
