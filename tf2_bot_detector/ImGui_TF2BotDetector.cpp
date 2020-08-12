@@ -633,8 +633,3 @@ void ImGui::PacifierText()
 	// TODO
 	ImGui::TextUnformatted("..."sv);
 }
-
-void ImGui::SameLineNoPad()
-{
-	ImGui::SameLine(0, -ImGui::GetStyle().ItemSpacing.x);
-}

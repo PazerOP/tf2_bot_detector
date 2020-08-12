@@ -49,8 +49,9 @@ namespace tf2_bot_detector::SteamAPI
 {
 	enum class CommunityVisibilityState
 	{
-		Hidden = 1,
-		Visible = 3,
+		Private = 1,
+		FriendsOnly = 2,
+		Public = 3,
 	};
 
 	enum class PersonaState

@@ -212,6 +212,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 	///////////////////
 	// Draw the text //
 	///////////////////
+	const ImVec4 COLOR_PRIVATE = { 1, 1, 0, 1 };
 	ImGui::TextFmt("  In-game Name : \"{}\"", player.GetNameUnsafe());
 	if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary())
 	{
@@ -222,17 +223,17 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			ImGui::TextFmt("     Real Name : \"{}\"", summary->m_RealName);
 
 		if (auto vanity = summary->GetVanityURL(); !vanity.empty())
-			ImGui::TextUnformatted(mh::fmtstr<256>("    Vanity URL : \"{}\"", vanity));
+			ImGui::TextFmt("    Vanity URL : \"{}\"", vanity);
 
-		ImGui::TextFmt("   Account Age :");
-		ImGui::SameLine();
+		ImGui::TextFmt("   Account Age : ");
+		ImGui::SameLineNoPad();
 		if (auto age = summary->GetAccountAge())
 			ImGui::TextFmt("{}", HumanDuration(*age));
 		else
-			ImGui::TextFmt({ 1, 1, 0, 1 }, "Private");
+			ImGui::TextFmt(COLOR_PRIVATE, "Private");
 
-		ImGui::TextFmt("        Status :");
-		ImGui::SameLine();
+		ImGui::TextFmt("        Status : ");
+		ImGui::SameLineNoPad();
 		switch (summary->m_Status)
 		{
 		case PersonaState::Offline:
@@ -261,22 +262,25 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			break;
 		}
 
-		ImGui::TextFmt(" Profile State :");
-		ImGui::SameLine();
+		ImGui::TextFmt(" Profile State : ");
+		ImGui::SameLineNoPad();
 		switch (summary->m_Visibility)
 		{
-		case CommunityVisibilityState::Visible:
+		case CommunityVisibilityState::Public:
 			ImGui::TextFmt({ 0, 1, 0, 1 }, "Public");
 			break;
-		case CommunityVisibilityState::Hidden:
-			ImGui::TextFmt({ 1, 0.5, 0, 1 }, "Private");
+		case CommunityVisibilityState::FriendsOnly:
+			ImGui::TextFmt(COLOR_PRIVATE, "Friends Only");
+			break;
+		case CommunityVisibilityState::Private:
+			ImGui::TextFmt(COLOR_PRIVATE, "Private");
 			break;
 		default:
 			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unknown ({})", int(summary->m_Visibility));
 			break;
 		}
 
-		if (!summary->m_ProfileConfigured)
+		//if (!summary->m_ProfileConfigured)
 		{
 			ImGui::SameLineNoPad();
 			ImGui::TextUnformatted(", ");
@@ -285,12 +289,12 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		}
 
 #if 0 // decreed as useless information by overlord czechball
-		ImGui::TextUnformatted("Comment Permissions:");
-		ImGui::SameLine();
+		ImGui::TextUnformatted("Comment Permissions: ");
+		ImGui::SameLineNoPad();
 		if (summary->m_CommentPermissions)
 			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "You can comment");
 		else
-			ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "You cannot comment");
+			ImGui::TextColoredUnformatted(COLOR_PRIVATE, "You cannot comment");
 #endif
 	}
 	else
@@ -303,9 +307,9 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		using namespace SteamAPI;
 		if (bans->m_CommunityBanned)
 		{
-			ImGui::TextUnformatted("SteamCommunity :");
-			ImGui::SameLine();
-			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Banned");
+			ImGui::TextFmt("SteamCommunity : ");
+			ImGui::SameLineNoPad();
+			ImGui::TextFmt({ 1, 0, 0, 1 }, "Banned");
 		}
 
 		{
@@ -356,12 +360,16 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 
 	if (const auto playtime = player.GetTF2Playtime())
 	{
-		ImGui::TextFmt("  TF2 Playtime :");
-		ImGui::SameLine();
+		ImGui::TextFmt("  TF2 Playtime : ");
+		ImGui::SameLineNoPad();
 		if (playtime->IsError())
 		{
-			if (playtime->GetError().value() == int(SteamAPI::ErrorCode::InfoPrivate))
-				ImGui::TextFmt({ 1, 1, 0, 1 }, "Private");
+			// The reason for the GameNotOwned check is that the API hides free games if you haven't played them.
+			// So even if you can see other owned games, if you make your playtime private... suddenly you don't
+			// own TF2 anymore, and it disappears from the owned games list.
+			if (playtime->GetError().value() == int(SteamAPI::ErrorCode::InfoPrivate) ||
+				playtime->GetError().value() == int(SteamAPI::ErrorCode::GameNotOwned))
+				ImGui::TextFmt(COLOR_PRIVATE, "Private");
 			else
 				ImGui::TextFmt({ 1, 0, 0, 1 }, playtime->GetError().message());
 		}

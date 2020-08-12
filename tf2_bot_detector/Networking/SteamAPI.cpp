@@ -38,7 +38,6 @@ namespace
 				static const std::regex s_Regex(R"regex([?&]key=([0-9a-fA-F]*))regex", std::regex::optimize);
 				{
 					auto urlCopy = url;
-					//mh::fmtstr<4096> dbgStr("[SteamAPI] HTTP GET {}", )
 					if (std::smatch result; std::regex_search(urlCopy.m_Path, result, s_Regex))
 					{
 						const size_t startPos = result[1].first - urlCopy.m_Path.begin();

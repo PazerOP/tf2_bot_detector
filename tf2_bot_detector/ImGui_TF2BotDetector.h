@@ -172,7 +172,7 @@ namespace ImGui
 		}
 	}
 
-	void SameLineNoPad();
+	inline void SameLineNoPad() { ImGui::SameLine(0, 0); }
 
 	void PacifierText();
 }
