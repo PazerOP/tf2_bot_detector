@@ -486,7 +486,7 @@ bool tf2_bot_detector::InputTextLocalIPOverride(const std::string_view& label_id
 
 bool tf2_bot_detector::InputTextSteamAPIKey(const char* label_id, std::string& key, bool requireValid)
 {
-	constexpr char BASE_INVALID_KEY_MSG[] = "Your Steam API key should be a 32 character hexadecimal string";
+	constexpr char BASE_INVALID_KEY_MSG[] = "Your Steam API key should be a 32 character hexadecimal string (NOT your Steam account password).";
 
 	std::string newKey = key;
 	if (ImGui::InputText(label_id, &newKey))
