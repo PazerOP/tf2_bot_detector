@@ -14,6 +14,7 @@
 #include <stb_image.h>
 
 #include <fstream>
+#include <regex>
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -25,15 +26,30 @@ namespace
 {
 	struct SteamAPITask final
 	{
-		std::string m_RequestURL;
+		URL m_RequestURL;
 		std::string m_Response;
 	};
 	static mh::thread_pool<SteamAPITask> s_SteamAPIThreadPool(2);
-	static std::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, std::string url)
+	static std::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, const URL& url)
 	{
 		auto clientPtr = client.shared_from_this();
 		return s_SteamAPIThreadPool.add_task([clientPtr, url]() -> SteamAPITask
 			{
+				static const std::regex s_Regex(R"regex([?&]key=([0-9a-fA-F]*))regex", std::regex::optimize);
+				{
+					auto urlCopy = url;
+					//mh::fmtstr<4096> dbgStr("[SteamAPI] HTTP GET {}", )
+					if (std::smatch result; std::regex_search(urlCopy.m_Path, result, s_Regex))
+					{
+						const size_t startPos = result[1].first - urlCopy.m_Path.begin();
+						const auto length = result[1].length();
+						urlCopy.m_Path.erase(startPos, length);
+						urlCopy.m_Path.insert(startPos, mh::fmtstr<64>("<KEY:{}>", length));
+					}
+
+					DebugLog("[SteamAPI] HTTP GET "s << urlCopy);
+				}
+
 				SteamAPITask retVal;
 				retVal.m_RequestURL = url;
 				retVal.m_Response = clientPtr->GetString(url);
