@@ -3,18 +3,10 @@
 #include "Clock.h"
 #include "IWorldEventListener.h"
 
-#include <cppcoro/cancellation_source.hpp>
-#include <cppcoro/cancellation_token.hpp>
-#include <srcon/client.h>
-
 #include <future>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <queue>
-#include <thread>
-#include <typeindex>
-#include <unordered_map>
 #include <vector>
 
 namespace tf2_bot_detector
