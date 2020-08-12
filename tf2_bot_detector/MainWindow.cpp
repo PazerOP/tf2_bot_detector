@@ -280,7 +280,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			break;
 		}
 
-		//if (!summary->m_ProfileConfigured)
+		if (!summary->m_ProfileConfigured)
 		{
 			ImGui::SameLineNoPad();
 			ImGui::TextUnformatted(", ");
@@ -387,7 +387,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 	ImGui::NewLine();
 
 #ifdef _DEBUG
-	ImGui::TextFmt("Active time: {}", HumanDuration(player.GetActiveTime()));
+	ImGui::TextFmt("   Active time : {}", HumanDuration(player.GetActiveTime()));
 #endif
 
 	if (teamShareResult != TeamShareResult::SameTeams)
@@ -395,7 +395,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		auto kills = player.GetScores().m_LocalKills;
 		auto deaths = player.GetScores().m_LocalDeaths;
 		//ImGui::Text("Your Thirst: %1.0f%%", kills == 0 ? float(deaths) * 100 : float(deaths) / kills * 100);
-		ImGui::TextFmt("Their Thirst: {}%", int(deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100));
+		ImGui::TextFmt("  Their Thirst : {}%", int(deaths == 0 ? float(kills) * 100 : float(kills) / deaths * 100));
 	}
 
 	if (playerAttribs)
@@ -994,8 +994,8 @@ void MainWindow::OnDrawUpdateAvailablePopup()
 
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		ImGui::TextUnformatted("There is a new"s << (m_UpdateInfo.get().IsPreviewAvailable() ? " preview" : "")
-			<< " version of TF2 Bot Detector available for download.");
+		ImGui::TextFmt("There is a new{} version of TF2 Bot Detector available for download.",
+			(m_UpdateInfo.get().IsPreviewAvailable() ? " preview" : ""));
 
 		if (ImGui::Button("View on Github"))
 			Shell::OpenURL(m_UpdateInfo.get().GetURL());

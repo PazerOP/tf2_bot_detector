@@ -242,18 +242,17 @@ static bool OverrideControl(const std::string_view& overrideLabel, T& overrideVa
 	if (overrideEnabled == OverrideEnabled::Unset)
 		overrideEnabled = isValidFunc(overrideValue) ? OverrideEnabled::Enabled : OverrideEnabled::Disabled;
 
-	std::string checkboxLabel = "Override "s << GetVisibleLabel(overrideLabel);
-
+	const auto visibleLabel = GetVisibleLabel(overrideLabel);
 	const bool isAutodetectedValueValid = isValidFunc(autodetectedValue);
 	ImGui::EnabledSwitch(isAutodetectedValueValid, [&](bool enabled)
 		{
 			if (bool checked = (overrideEnabled == OverrideEnabled::Enabled || !enabled);
-				ImGui::Checkbox(checkboxLabel.c_str(), &checked))
+				ImGui::Checkbox(mh::fmtstr<512>("Override {}", visibleLabel).c_str(), &checked))
 			{
 				overrideEnabled = checked ? OverrideEnabled::Enabled : OverrideEnabled::Disabled;
 			}
 
-		}, ("Failed to autodetect value for "s << GetVisibleLabel(overrideLabel)).c_str());
+		}, mh::fmtstr<512>("Failed to autodetect value for {}", visibleLabel).c_str());
 
 	ScopeGuards::Indent indent;
 	bool retVal = false;
@@ -263,8 +262,8 @@ static bool OverrideControl(const std::string_view& overrideLabel, T& overrideVa
 	}
 	else
 	{
-		ImGui::TextUnformatted("Autodetected value: "s << autodetectedValue);
-		ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Looks good!");
+		ImGui::TextFmt("Autodetected value: {}", autodetectedValue);
+		ImGui::TextFmt({ 0, 1, 0, 1 }, "Looks good!");
 		ImGui::NewLine();
 
 		if (overrideValue != T{})

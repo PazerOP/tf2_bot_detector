@@ -269,9 +269,8 @@ void LobbyMemberLine::Print(const PrintArgs& args) const
 	assert(m_LobbyMember.m_Type == LobbyMemberType::Player);
 	const char* type = "MATCH_PLAYER";
 
-	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.0f, 0.8f, 1.0f));
-	ImGui::TextUnformatted(("  Member["s << m_LobbyMember.m_Index << ' ' << m_LobbyMember.m_SteamID << "  team = " << team << "  type = " << type).c_str());
-	ImGui::PopStyleColor();
+	ImGui::TextFmt({ 0.8f, 0.0f, 0.8f, 1 }, "  Member[{}] {}  team = {}  type = {}",
+		m_LobbyMember.m_Index, m_LobbyMember.m_SteamID, team, type);
 }
 
 IConsoleLine::IConsoleLine(time_point_t timestamp) :
@@ -674,9 +673,9 @@ bool SVCUserMessageLine::ShouldPrint() const
 void SVCUserMessageLine::Print(const PrintArgs& args) const
 {
 	if (IsSpecial(m_MsgType))
-		ImGui::TextColoredUnformatted({ 0, 1, 1, 1 }, ""s << m_MsgType);
+		ImGui::TextFmt({ 0, 1, 1, 1 }, "{}", m_MsgType);
 	else
-		ImGui::Text("Msg from %s: svc_UserMessage: type %u, bytes %u", m_Address.c_str(), m_MsgType, m_MsgBytes);
+		ImGui::TextFmt("Msg from {}: svc_UserMessage: type {}, bytes {}", m_Address, int(m_MsgType), m_MsgBytes);
 }
 
 std::shared_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const std::string_view& text, time_point_t timestamp)

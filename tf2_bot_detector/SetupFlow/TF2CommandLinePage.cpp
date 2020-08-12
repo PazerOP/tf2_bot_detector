@@ -341,8 +341,8 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 	else if (!m_Data.m_RCONSuccess)
 	{
 		auto& args = m_Data.m_CommandLineArgs.value();
-		ImGui::TextUnformatted("Connecting to TF2 on 127.0.0.1:"s << args.m_RCONPort.value()
-			<< " with password " << std::quoted(args.m_RCONPassword) << "...");
+		ImGui::TextFmt("Connecting to TF2 on 127.0.0.1:{} with password {}...",
+			args.m_RCONPort.value(), std::quoted(args.m_RCONPassword));
 
 		if (!m_Data.m_TestRCONClient)
 			m_Data.m_TestRCONClient.emplace(args.m_RCONPassword, args.m_RCONPort.value());
