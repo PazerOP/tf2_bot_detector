@@ -6,3 +6,4 @@ libzippp
 fmt
 discord-game-sdk
 stb
+nlohmann-json

@@ -12,9 +12,9 @@ IF EXIST "%ProgramFiles(x86)%" (
 )
 ECHO VCPKG_DEFAULT_TRIPLET = %VCPKG_DEFAULT_TRIPLET%
 
-SETLOCAL
-
 SET VCPKG_EXE=%VCPKG_ROOT%\vcpkg.exe
+
+SETLOCAL
 
 IF NOT EXIST "%VCPKG_EXE%" (
 	ECHO Building vcpkg...
@@ -27,7 +27,7 @@ ECHO Installing missing packages...
 	IF %ERRORLEVEL% NEQ 0 EXIT /B
 
 ECHO Upgrading existing packages...
-	%VCPKG_EXE% upgrade
+	%VCPKG_EXE% upgrade --no-dry-run
 	IF %ERRORLEVEL% NEQ 0 EXIT /B
 
 ENDLOCAL

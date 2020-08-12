@@ -30,10 +30,6 @@ add_subdirectory(submodules/SourceRCON)
 add_subdirectory(submodules/imgui_desktop)
 add_subdirectory(submodules/mh_stuff)
 
-set(JSON_MultipleHeaders on CACHE BOOL "Enables nlohmann/json multi-header mode" FORCE)
-set(JSON_BuildTests off CACHE BOOL "Enables nlohmann/json tests" FORCE)
-add_subdirectory(submodules/nlohmann_json)
-
 set(ENABLE_EXAMPLES off CACHE BOOL "Build examples" FORCE)
 add_subdirectory("submodules/cppcoro")
 
@@ -207,6 +203,7 @@ target_link_libraries(tf2_bot_detector)
 find_path(HTTPLIB_PATH NAMES httplib.h)
 target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 
+find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
