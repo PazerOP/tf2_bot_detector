@@ -9,11 +9,40 @@
 #include <future>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace tf2_bot_detector
 {
 	class HTTPClient;
+}
+
+namespace tf2_bot_detector::SteamAPI
+{
+	class ErrorCategoryType final : public std::error_category
+	{
+	public:
+		const char* name() const noexcept override { return "SteamAPI"; }
+		std::string message(int condition) const override;
+	};
+
+	const ErrorCategoryType& ErrorCategory();
+
+	enum class ErrorCode
+	{
+		Success,
+
+		EmptyState,
+		InfoPrivate,
+		GameNotOwned,
+		UnexpectedDataFormat,
+	};
+}
+
+namespace std
+{
+	template<> struct is_error_condition_enum<tf2_bot_detector::SteamAPI::ErrorCode> : std::bool_constant<true> {};
+	std::error_condition make_error_condition(tf2_bot_detector::SteamAPI::ErrorCode e);
 }
 
 namespace tf2_bot_detector::SteamAPI
@@ -92,6 +121,21 @@ namespace tf2_bot_detector::SteamAPI
 	std::shared_future<std::vector<PlayerBans>> GetPlayerBansAsync(
 		const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client);
 
-	std::future<std::optional<duration_t>> GetTF2PlaytimeAsync(const std::string_view& apikey,
+	struct TF2PlaytimeResult
+	{
+	public:
+		TF2PlaytimeResult();
+		TF2PlaytimeResult(duration_t value);
+		TF2PlaytimeResult(std::error_condition e);
+
+		bool IsError() const;
+		std::optional<duration_t> GetValue() const;
+		std::error_condition GetError() const;
+
+	private:
+		std::variant<duration_t, std::error_condition> m_Value;
+	};
+
+	std::future<TF2PlaytimeResult> GetTF2PlaytimeAsync(const std::string_view& apikey,
 		const SteamID& steamID, const HTTPClient& client);
 }

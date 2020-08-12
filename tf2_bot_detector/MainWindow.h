@@ -50,6 +50,7 @@ namespace tf2_bot_detector
 		void OnDrawChat();
 		void OnDrawServerStats();
 		void OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
+		void OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
 
 		struct ColorPicker
 		{

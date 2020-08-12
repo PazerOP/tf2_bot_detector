@@ -119,7 +119,7 @@ namespace tf2_bot_detector
 			time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
 			const SteamAPI::PlayerSummary* GetPlayerSummary() const override;
 			const SteamAPI::PlayerBans* GetPlayerBans() const override;
-			std::optional<duration_t> GetTotalTF2Playtime() const override;
+			const SteamAPI::TF2PlaytimeResult* GetTF2Playtime() const override;
 			duration_t GetActiveTime() const override;
 
 			WorldState* m_World{};
@@ -149,7 +149,7 @@ namespace tf2_bot_detector
 			time_point_t m_LastStatusUpdateTime{};
 			time_point_t m_LastPingUpdateTime{};
 
-			mutable std::shared_future<std::optional<duration_t>> m_TF2Playtime;
+			mutable std::shared_future<SteamAPI::TF2PlaytimeResult> m_TF2Playtime;
 		};
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);

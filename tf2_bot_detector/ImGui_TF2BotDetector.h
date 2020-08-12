@@ -3,6 +3,7 @@
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
+#include <mh/text/fmtstr.hpp>
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <filesystem>
@@ -15,6 +16,22 @@ namespace ImGui
 	void TextUnformatted(const std::string_view& text);
 	void TextColoredUnformatted(const ImVec4& col, const char* text, const char* text_end = nullptr);
 	void TextColoredUnformatted(const ImVec4& col, const std::string_view& text);
+
+	inline void TextFmt(const std::string_view& text) { return TextUnformatted(text); }
+	inline void TextFmt(const ImVec4& color, const std::string_view& text)
+	{
+		return TextColoredUnformatted(color, text);
+	}
+	template<typename... TArgs>
+	inline void TextFmt(const std::string_view& fmtStr, const TArgs&... args)
+	{
+		return TextUnformatted(mh::fmtstr<3073>(fmtStr, args...));
+	}
+	template<typename... TArgs>
+	inline void TextFmt(const ImVec4& color, const std::string_view& fmtStr, const TArgs&... args)
+	{
+		return TextColoredUnformatted(color, mh::fmtstr<3073>(fmtStr, args...));
+	}
 
 	void AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* userData), void* userData = nullptr);
 	inline void AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(const void* userData), const void* userData = nullptr)
@@ -154,6 +171,8 @@ namespace ImGui
 			}
 		}
 	}
+
+	void SameLineNoPad();
 
 	void PacifierText();
 }

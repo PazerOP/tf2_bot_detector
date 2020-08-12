@@ -37,12 +37,14 @@ namespace
 	class Texture final : public ITexture
 	{
 	public:
-		Texture(const TextureManager& manager, const Bitmap& bitmap);
+		Texture(const TextureManager& manager, const Bitmap& bitmap, const TextureSettings& settings);
 
 		handle_type GetHandle() const override { return m_Handle; }
+		const TextureSettings& GetSettings() const override { return m_Settings; }
 
 	private:
 		TextureHandle m_Handle{};
+		TextureSettings m_Settings{};
 	};
 
 	class TextureManager final : public ITextureManager
@@ -51,7 +53,7 @@ namespace
 		TextureManager();
 
 		void EndFrame() override;
-		std::shared_ptr<ITexture> CreateTexture(const Bitmap& bitmap) override;
+		std::shared_ptr<ITexture> CreateTexture(const Bitmap& bitmap, const TextureSettings& settings) override;
 		size_t GetActiveTextureCount() const override { return m_Textures.size(); }
 
 		bool HasExtension(GLextension ext) const { return GetExtensions().contains(ext); }
@@ -86,12 +88,13 @@ void TextureManager::EndFrame()
 		});
 }
 
-std::shared_ptr<ITexture> TextureManager::CreateTexture(const Bitmap& bitmap)
+std::shared_ptr<ITexture> TextureManager::CreateTexture(const Bitmap& bitmap, const TextureSettings& settings)
 {
-	return m_Textures.emplace_back(std::make_shared<Texture>(*this, bitmap));
+	return m_Textures.emplace_back(std::make_shared<Texture>(*this, bitmap, settings));
 }
 
-Texture::Texture(const TextureManager& manager, const Bitmap& bitmap)
+Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const TextureSettings& settings) :
+	m_Settings(settings)
 {
 	GLenum internalFormat{};
 	GLenum sourceFormat{};
@@ -137,7 +140,7 @@ Texture::Texture(const TextureManager& manager, const Bitmap& bitmap)
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA_EXT, swizzle.data());
 	}
 
-	if (manager.GetContextVersion() >= glbinding::Version(3, 0))
+	if (m_Settings.m_EnableMips && manager.GetContextVersion() >= glbinding::Version(3, 0))
 	{
 		gl30::glGenerateMipmap(GL_TEXTURE_2D);
 	}

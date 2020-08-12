@@ -666,7 +666,7 @@ const SteamAPI::PlayerBans* WorldState::PlayerExtraData::GetPlayerBans() const
 	return nullptr;
 }
 
-std::optional<duration_t> WorldState::PlayerExtraData::GetTotalTF2Playtime() const
+const SteamAPI::TF2PlaytimeResult* WorldState::PlayerExtraData::GetTF2Playtime() const
 {
 	if (!m_TF2Playtime.valid() && !m_World->m_Settings->m_SteamAPIKey.empty())
 	{
@@ -678,7 +678,7 @@ std::optional<duration_t> WorldState::PlayerExtraData::GetTotalTF2Playtime() con
 	}
 
 	if (mh::is_future_ready(m_TF2Playtime))
-		return m_TF2Playtime.get();
+		return &m_TF2Playtime.get();
 
 	return {};
 }

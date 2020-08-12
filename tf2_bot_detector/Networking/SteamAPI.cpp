@@ -267,7 +267,7 @@ std::shared_future<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlaye
 		});
 }
 
-std::future<std::optional<duration_t>> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
+std::future<TF2PlaytimeResult> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 	const std::string_view& apikey, const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
@@ -285,41 +285,103 @@ std::future<std::optional<duration_t>> tf2_bot_detector::SteamAPI::GetTF2Playtim
 	auto url = mh::format("https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&input_json=%7B%22appids_filter%22%3A%5B440%5D,%22include_played_free_games%22%3Atrue,%22steamid%22%3A{}%7D", apikey, steamID.ID64);
 
 	auto data = SteamAPIGET(client, url);
-	return std::async([data, steamID]() -> std::optional<duration_t>
+	return std::async([data, steamID]() -> TF2PlaytimeResult
 		{
 			const auto json = nlohmann::json::parse(data.get().m_Response);
 
 			auto& response = json.at("response");
 			if (!response.contains("game_count"))
 			{
-				DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Unable to retrieve TF2 playtime for "s
-					<< steamID << ": games list is private");
-				return {};
+				// response is empty (as opposed to games being empty and game_count = 0) if games list is private
+				return std::make_error_condition(ErrorCode::InfoPrivate);
 			}
 
 			auto& games = response.find("games");
 			if (games == response.end())
-			{
-				DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Unable to retrieve TF2 playtime for "s
-					<< steamID << ": TF2 not found on account");
-				return {};
-			}
+				return std::make_error_condition(ErrorCode::GameNotOwned); // TF2 not on their owned games list
 
 			if (games->size() != 1)
 			{
 				if (games->size() != 0)
 					LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected games array size "s << games->size());
 
-				return {};
+				return std::make_error_condition(ErrorCode::UnexpectedDataFormat);
 			}
 
 			auto& firstElem = games->at(0);
 			if (uint32_t appid = firstElem.at("appid"); appid != 440)
 			{
 				LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected appid "s << appid << " at response.games[0].appid");
-				return {};
+				return std::make_error_condition(ErrorCode::UnexpectedDataFormat);
 			}
 
 			return std::chrono::minutes(firstElem.at("playtime_forever"));
 		});
+}
+
+TF2PlaytimeResult::TF2PlaytimeResult() :
+	TF2PlaytimeResult(std::make_error_condition(ErrorCode::EmptyState))
+{
+}
+
+TF2PlaytimeResult::TF2PlaytimeResult(duration_t value) :
+	m_Value(value)
+{
+}
+
+TF2PlaytimeResult::TF2PlaytimeResult(std::error_condition e) :
+	m_Value(e)
+{
+}
+
+bool TF2PlaytimeResult::IsError() const
+{
+	return std::holds_alternative<std::error_condition>(m_Value);
+}
+
+std::optional<duration_t> TF2PlaytimeResult::GetValue() const
+{
+	if (auto val = std::get_if<duration_t>(&m_Value))
+		return *val;
+
+	return std::nullopt;
+}
+
+std::error_condition TF2PlaytimeResult::GetError() const
+{
+	if (auto val = std::get_if<std::error_condition>(&m_Value))
+		return *val;
+
+	return std::make_error_condition(ErrorCode::Success);
+}
+
+const ErrorCategoryType& tf2_bot_detector::SteamAPI::ErrorCategory()
+{
+	static const ErrorCategoryType s_Value;
+	return s_Value;
+}
+
+std::string ErrorCategoryType::message(int condition) const
+{
+	switch (ErrorCode(condition))
+	{
+	case ErrorCode::Success:
+		return "Success";
+	case ErrorCode::EmptyState:
+		return "The state does not contain any value.";
+	case ErrorCode::InfoPrivate:
+		return "Your Steam account does not have permission to access this information.";
+	case ErrorCode::GameNotOwned:
+		return "The specified AppID is not owned by the specified account.";
+	case ErrorCode::UnexpectedDataFormat:
+		return "The response from the Steam API was formatted in an unexpected and unsupported way.";
+
+	default:
+		return mh::format("Unknown SteamAPI error ({})", condition);
+	}
+}
+
+std::error_condition std::make_error_condition(tf2_bot_detector::SteamAPI::ErrorCode e)
+{
+	return std::error_condition(int(e), tf2_bot_detector::SteamAPI::ErrorCategory());
 }
