@@ -24,6 +24,7 @@
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/stringops.hpp>
+#include <srcon/async_client.h>
 
 #include <cassert>
 #include <chrono>
@@ -745,6 +746,18 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::TreePop();
 		}
 
+		if (ImGui::TreeNode("Logging"))
+		{
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+			if (ImGui::Checkbox("Discord Rich Presence", &m_Settings.m_Logging.m_DiscordRichPresence))
+				m_Settings.SaveFile();
+#endif
+			if (ImGui::Checkbox("RCON Packets", &m_Settings.m_Logging.m_RCONPackets))
+				m_Settings.SaveFile();
+
+			ImGui::TreePop();
+		}
+
 		if (ImGui::TreeNode("Moderation"))
 		{
 			// Auto temp mute
@@ -1389,6 +1402,9 @@ void MainWindow::OnUpdate()
 	m_ActionManager.Update();
 
 	HandleUpdateCheck();
+
+	if (m_Settings.m_Unsaved.m_RCONClient)
+		m_Settings.m_Unsaved.m_RCONClient->set_logging(m_Settings.m_Logging.m_RCONPackets);
 
 	if (m_SetupFlow.OnUpdate(m_Settings))
 	{

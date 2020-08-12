@@ -113,6 +113,22 @@ namespace tf2_bot_detector
 		static constexpr Settings::Discord DEFAULTS;
 		try_get_to_defaulted(j, d.m_EnableRichPresence, "rich_presence_enable", DEFAULTS.m_EnableRichPresence);
 	}
+
+	void to_json(nlohmann::json& j, const Settings::Logging& d)
+	{
+		j =
+		{
+			{ "rcon_packets", d.m_RCONPackets },
+			{ "discord_rich_presence", d.m_DiscordRichPresence },
+		};
+	}
+	void from_json(const nlohmann::json& j, Settings::Logging& d)
+	{
+		static constexpr Settings::Logging DEFAULTS;
+
+		try_get_to_defaulted(j, d.m_RCONPackets, "rcon_packets", DEFAULTS.m_RCONPackets);
+		try_get_to_defaulted(j, d.m_DiscordRichPresence, "discord_rich_presence", DEFAULTS.m_DiscordRichPresence);
+	}
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const ProgramUpdateCheckMode& d)

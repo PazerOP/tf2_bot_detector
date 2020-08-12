@@ -73,12 +73,20 @@ static constexpr const char DEFAULT_LARGE_IMAGE_KEY[] = "tf2_1x1";
 
 static constexpr LogMessageColor DISCORD_LOG_COLOR{ 117 / 255.0f, 136 / 255.0f, 215 / 255.0f };
 
+static bool s_DiscordDebugLogEnabled = true;
+
 static void DiscordDebugLog(const std::string_view& msg)
 {
+	if (!s_DiscordDebugLogEnabled)
+		return;
+
 	DebugLog("DRP: "s << msg, DISCORD_LOG_COLOR);
 }
 static void DiscordDebugLog(const mh::source_location& location, const std::string_view& msg = {})
 {
+	if (!s_DiscordDebugLogEnabled)
+		return;
+
 	if (msg.empty())
 		DebugLog(location, {}, DISCORD_LOG_COLOR);
 	else
@@ -863,6 +871,8 @@ static void DiscordLogFunc(discord::LogLevel level, const char* msg)
 
 void DiscordState::Update()
 {
+	s_DiscordDebugLogEnabled = m_Settings->m_Logging.m_DiscordRichPresence;
+
 	// Initialize discord
 	const auto curTime = clock_t::now();
 	if (!m_Core && (curTime - m_LastDiscordInitializeTime) > 10s)

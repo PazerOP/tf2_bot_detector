@@ -96,6 +96,14 @@ namespace tf2_bot_detector
 
 		std::vector<GotoProfileSite> m_GotoProfileSites;
 
+		struct Logging
+		{
+			bool m_RCONPackets = false;
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+			bool m_DiscordRichPresence = false;
+#endif
+		} m_Logging;
+
 		struct Discord
 		{
 			bool m_EnableRichPresence = true;
