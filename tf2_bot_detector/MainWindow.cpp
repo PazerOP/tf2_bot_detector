@@ -368,7 +368,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		else
 		{
 			const auto hours = std::chrono::duration_cast<std::chrono::hours>(*playtime->GetValue());
-			ImGui::TextFmt({ 174 / 255.0f, 84 / 255.0f, 38 / 255.0f, 1 }, "{} hours", hours.count());
+			ImGui::TextFmt("{} hours", hours.count());
 		}
 	}
 	else
@@ -536,6 +536,9 @@ void MainWindow::OnDrawScoreboard()
 			{
 				for (IPlayer& player : m_ConsoleLogParser->GeneratePlayerPrintData())
 				{
+					if (!m_Settings.m_LazyLoadAPIData)
+						TryGetAvatarTexture(player);
+
 					const auto& playerName = player.GetNameSafe();
 					ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
 					ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
@@ -853,6 +856,12 @@ void MainWindow::OnDrawSettingsPopup()
 		{
 			if (ImGui::Checkbox("Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
 				m_Settings.SaveFile();
+
+#ifdef _DEBUG
+			if (ImGui::Checkbox("Lazy Load API Data", &m_Settings.m_LazyLoadAPIData))
+				m_Settings.SaveFile();
+			ImGui::SetHoverTooltip("If enabled, waits until data is actually needed by the UI before requesting it, saving system resources. Otherwise, instantly loads all data from integration APIs as soon as a player joins the server.");
+#endif
 
 			if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
 				ImGui::Checkbox("Allow internet connectivity", &allowInternet))
@@ -1681,6 +1690,7 @@ std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
 	{
 		std::shared_future<Bitmap> m_Bitmap;
 		std::shared_ptr<ITexture> m_Texture;
+		bool m_PrintedErrorMessage = false;
 	};
 
 	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>();
@@ -1694,7 +1704,11 @@ std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
 		}
 		catch (const std::exception& e)
 		{
-			LogWarning("Failed to create avatar texture from bitmap: "s << typeid(e).name() << ": " << e.what());
+			if (!avatarData.m_PrintedErrorMessage)
+			{
+				LogWarning("Failed to create avatar texture from bitmap: "s << typeid(e).name() << ": " << e.what());
+				avatarData.m_PrintedErrorMessage = true;
+			}
 		}
 	}
 	else

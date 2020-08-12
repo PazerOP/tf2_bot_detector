@@ -611,6 +611,13 @@ WorldState::PlayerExtraData::PlayerExtraData(WorldState& world, SteamID id) :
 	m_World(&world)
 {
 	m_Status.m_SteamID = id;
+
+	if (!m_World->m_Settings->m_LazyLoadAPIData)
+	{
+		GetPlayerSummary();
+		GetPlayerBans();
+		GetTF2Playtime();
+	}
 }
 
 const LobbyMember* WorldState::PlayerExtraData::GetLobbyMember() const

@@ -62,6 +62,8 @@ namespace tf2_bot_detector
 		bool m_AutoTempMute = true;
 		bool m_AutoLaunchTF2 = false;
 
+		bool m_LazyLoadAPIData = true;
+
 		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
 
 		constexpr auto GetAutoVotekickDelay() const { return std::chrono::duration<float>(m_AutoVotekickDelay); }

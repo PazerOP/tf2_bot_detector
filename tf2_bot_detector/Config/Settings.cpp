@@ -216,6 +216,7 @@ void Settings::LoadFile()
 		try_get_to_defaulted(*found, m_AutoVotekick, "auto_votekick", DEFAULTS.m_AutoVotekick);
 		try_get_to_defaulted(*found, m_AutoVotekickDelay, "auto_votekick_delay", DEFAULTS.m_AutoVotekickDelay);
 		try_get_to_defaulted(*found, m_AutoMark, "auto_mark", DEFAULTS.m_AutoMark);
+		try_get_to_defaulted(*found, m_LazyLoadAPIData, "lazy_load_api_data", DEFAULTS.m_LazyLoadAPIData);
 
 		if (auto foundDir = found->find("steam_dir_override"); foundDir != found->end())
 			m_SteamDirOverride = foundDir->get<std::string_view>();
@@ -254,6 +255,7 @@ bool Settings::SaveFile() const
 				{ "auto_votekick", m_AutoVotekick },
 				{ "auto_votekick_delay", m_AutoVotekickDelay },
 				{ "auto_mark", m_AutoMark },
+				{ "lazy_load_api_data", m_LazyLoadAPIData },
 			}
 		},
 		{ "goto_profile_sites", m_GotoProfileSites },
