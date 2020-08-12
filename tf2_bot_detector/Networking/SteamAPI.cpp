@@ -285,20 +285,35 @@ std::future<std::optional<duration_t>> tf2_bot_detector::SteamAPI::GetTF2Playtim
 	auto url = mh::format("https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&input_json=%7B%22appids_filter%22%3A%5B440%5D,%22include_played_free_games%22%3Atrue,%22steamid%22%3A{}%7D", apikey, steamID.ID64);
 
 	auto data = SteamAPIGET(client, url);
-	return std::async([data]() -> std::optional<duration_t>
+	return std::async([data, steamID]() -> std::optional<duration_t>
 		{
-			auto json = nlohmann::json::parse(data.get().m_Response);
+			const auto json = nlohmann::json::parse(data.get().m_Response);
 
-			auto& games = json.at("response").at("games");
-			if (games.size() != 1)
+			auto& response = json.at("response");
+			if (!response.contains("game_count"))
 			{
-				if (games.size() != 0)
-					LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected games array size "s << games.size());
+				DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Unable to retrieve TF2 playtime for "s
+					<< steamID << ": games list is private");
+				return {};
+			}
+
+			auto& games = response.find("games");
+			if (games == response.end())
+			{
+				DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Unable to retrieve TF2 playtime for "s
+					<< steamID << ": TF2 not found on account");
+				return {};
+			}
+
+			if (games->size() != 1)
+			{
+				if (games->size() != 0)
+					LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected games array size "s << games->size());
 
 				return {};
 			}
 
-			auto& firstElem = games.at(0);
+			auto& firstElem = games->at(0);
 			if (uint32_t appid = firstElem.at("appid"); appid != 440)
 			{
 				LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected appid "s << appid << " at response.games[0].appid");
