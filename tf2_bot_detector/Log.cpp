@@ -5,6 +5,7 @@
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -47,8 +48,10 @@ namespace
 		std::filesystem::path m_FileName;
 		std::ofstream m_File;
 		mutable std::recursive_mutex m_LogMutex;
-		std::vector<LogMessage> m_LogMessages;
+		std::deque<LogMessage> m_LogMessages;
 		size_t m_VisibleLogMessagesStart = 0;
+
+		static constexpr size_t MAX_LOG_MESSAGES = 500;
 
 		mutable std::recursive_mutex m_ConsoleLogMutex;
 		std::ofstream m_ConsoleLogFile;
@@ -141,6 +144,12 @@ void LogManager::Log(std::string msg, const LogMessageColor& color, time_point_t
 	std::lock_guard lock(m_LogMutex);
 	LogToStream(msg, m_File, timestamp);
 	m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
+
+	if (m_LogMessages.size() > MAX_LOG_MESSAGES)
+	{
+		m_LogMessages.erase(m_LogMessages.begin(),
+			std::next(m_LogMessages.begin(), m_LogMessages.size() - MAX_LOG_MESSAGES));
+	}
 }
 
 namespace
@@ -223,8 +232,8 @@ cppcoro::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
 	std::lock_guard lock(m_LogMutex);
 
 	size_t start = m_VisibleLogMessagesStart;
-	if (m_LogMessages.size() > 500)
-		start = std::max(start, m_LogMessages.size() - 500);
+	if (m_LogMessages.size() > MAX_LOG_MESSAGES)
+		start = std::max(start, m_LogMessages.size() - MAX_LOG_MESSAGES);
 
 	for (size_t i = start; i < m_LogMessages.size(); i++)
 		co_yield m_LogMessages[i];
