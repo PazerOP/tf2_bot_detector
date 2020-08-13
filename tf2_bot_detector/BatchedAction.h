@@ -83,7 +83,7 @@ namespace tf2_bot_detector
 	private:
 		static constexpr duration_t MIN_INTERVAL = std::chrono::seconds(5);
 		state_type m_State{};
-		std::mutex m_Mutex;
+		std::recursive_mutex m_Mutex;
 		queue_collection_type m_Queued;
 		response_future_type m_ResponseFuture;
 		time_point_t m_LastUpdate{};
