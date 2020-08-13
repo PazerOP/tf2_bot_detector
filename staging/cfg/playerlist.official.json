@@ -1573,12 +1573,20 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "shasta bot 1",
+				"time": 1597295788
+			},
 			"steamid": "[U:1:1083366297]"
 		},
 		{
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "shasta bot 2",
+				"time": 1597295790
+			},
 			"steamid": "[U:1:1083851265]"
 		},
 		{
@@ -1959,6 +1967,10 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "shasta bot 3",
+				"time": 1597295788
+			},
 			"steamid": "[U:1:1090308155]"
 		},
 		{
@@ -3731,6 +3743,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "royalhack.net B0T",
+				"time": 1597296866
+			},
+			"steamid": "[U:1:1104984444]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "[t0gym]OGBADGER",
 				"time": 1592028814
 			},
@@ -4753,6 +4775,16 @@
 			],
 			"last_seen": {
 				"player_name": "shasta bot",
+				"time": 1597295953
+			},
+			"steamid": "[U:1:1118912835]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "shasta bot",
 				"time": 1596948802
 			},
 			"steamid": "[U:1:1118913268]"
@@ -4812,6 +4844,16 @@
 				"time": 1596779890
 			},
 			"steamid": "[U:1:1119865323]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "[shasta] igor",
+				"time": 1597295581
+			},
+			"steamid": "[U:1:1120119065]"
 		},
 		{
 			"attributes": [
