@@ -4,6 +4,7 @@
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
 #include <mh/text/fmtstr.hpp>
+#include <mh/types/disable_copy_move.hpp>
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <filesystem>
@@ -66,16 +67,7 @@ namespace ImGui
 
 	namespace detail
 	{
-		struct DisableCopyMove
-		{
-			DisableCopyMove() = default;
-			DisableCopyMove(const DisableCopyMove&) = delete;
-			DisableCopyMove(DisableCopyMove&&) = delete;
-			DisableCopyMove& operator=(const DisableCopyMove&) = delete;
-			DisableCopyMove& operator=(DisableCopyMove&&) = delete;
-		};
-
-		struct [[nodiscard]] PopupScope final : DisableCopyMove
+		struct [[nodiscard]] PopupScope final : mh::disable_copy_move
 		{
 			constexpr explicit PopupScope(bool enabled) : m_Enabled(enabled) {}
 			~PopupScope() { if (m_Enabled) { ImGui::EndPopup(); } }
