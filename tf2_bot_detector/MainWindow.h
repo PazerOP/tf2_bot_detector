@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Actions/Actions.h"
-#include "Actions/HijackActionManager.h"
 #include "Actions/RCONActionManager.h"
 #include "Clock.h"
 #include "CompensatedTS.h"
@@ -104,11 +103,6 @@ namespace tf2_bot_detector
 
 		bool m_Paused = false;
 
-		WorldState& GetWorld() { return m_WorldState; }
-		const WorldState& GetWorld() const { return m_WorldState; }
-		ModeratorLogic& GetModLogic() { return m_ModeratorLogic; }
-		const ModeratorLogic& GetModLogic() const { return m_ModeratorLogic; }
-
 		// Gets the current timestamp, but time progresses in real time even without new messages
 		time_point_t GetCurrentTimestampCompensated() const;
 
@@ -152,32 +146,41 @@ namespace tf2_bot_detector
 		time_point_t m_LastServerPingSample{};
 
 		Settings m_Settings;
-		WorldState m_WorldState{ m_Settings };
-#ifdef _WIN32
-		HijackActionManager m_HijackActionManager{ m_Settings };
-#endif
-		RCONActionManager m_ActionManager{ m_Settings, m_WorldState };
-		ModeratorLogic m_ModeratorLogic{ m_WorldState, m_Settings, m_ActionManager };
 		SetupFlow m_SetupFlow;
-		SponsorsList m_SponsorsList{ m_Settings };
 
-		void OnUpdateDiscord();
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-		std::unique_ptr<IDRPManager> m_DRPManager;
-#endif
+		WorldState m_WorldState;
+		RCONActionManager m_ActionManager;
 
-		time_point_t GetLastStatusUpdateTime() const;
+		WorldState& GetWorld() { return m_WorldState; }
+		const WorldState& GetWorld() const { return m_WorldState; }
+		RCONActionManager& GetActionManager() { return m_ActionManager; }
+		const RCONActionManager& GetActionManager() const { return m_ActionManager; }
 
-		struct ConsoleLogParserExtra
+		struct PostSetupFlowState
 		{
-			ConsoleLogParserExtra(MainWindow& parent);
-			MainWindow* m_Parent = nullptr;
-			ConsoleLogParser m_Parser;
+			PostSetupFlowState(MainWindow& window);
 
+			MainWindow* m_Parent = nullptr;
+			ModeratorLogic m_ModeratorLogic;
+			SponsorsList m_SponsorsList;
+
+			ConsoleLogParser m_Parser;
 			std::list<std::shared_ptr<const IConsoleLine>> m_PrintingLines;  // newest to oldest order
 			static constexpr size_t MAX_PRINTING_LINES = 512;
 			cppcoro::generator<IPlayer&> GeneratePlayerPrintData();
+
+			void OnUpdateDiscord();
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+			std::unique_ptr<IDRPManager> m_DRPManager;
+#endif
 		};
-		std::optional<ConsoleLogParserExtra> m_ConsoleLogParser;
+		std::optional<PostSetupFlowState> m_MainState;
+
+		ModeratorLogic& GetModLogic() { return m_MainState.value().m_ModeratorLogic; }
+		const ModeratorLogic& GetModLogic() const { return m_MainState.value().m_ModeratorLogic; }
+		SponsorsList& GetSponsorsList() { return m_MainState.value().m_SponsorsList; }
+		const SponsorsList& GetSponsorsList() const { return m_MainState.value().m_SponsorsList; }
+
+		time_point_t GetLastStatusUpdateTime() const;
 	};
 }

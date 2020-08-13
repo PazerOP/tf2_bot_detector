@@ -37,7 +37,9 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 MainWindow::MainWindow() :
-	ImGuiDesktop::Window(800, 600, ("TF2 Bot Detector v"s << VERSION).c_str())
+	ImGuiDesktop::Window(800, 600, ("TF2 Bot Detector v"s << VERSION).c_str()),
+	m_WorldState(m_Settings),
+	m_ActionManager(m_Settings, m_WorldState)
 {
 	m_TextureManager = CreateTextureManager();
 
@@ -155,10 +157,10 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 #ifdef _DEBUG
 		ImGui::Separator();
 
-		if (bool isRunning = m_ModeratorLogic.IsUserRunningTool(player);
+		if (bool isRunning = GetModLogic().IsUserRunningTool(player);
 			ImGui::MenuItem("Is Running TFBD", nullptr, isRunning))
 		{
-			m_ModeratorLogic.SetUserRunningTool(player, !isRunning);
+			GetModLogic().SetUserRunningTool(player, !isRunning);
 		}
 #endif
 	}
@@ -540,9 +542,9 @@ void MainWindow::OnDrawScoreboard()
 				ImGui::Separator();
 			}
 
-			if (m_ConsoleLogParser)
+			if (m_MainState)
 			{
-				for (IPlayer& player : m_ConsoleLogParser->GeneratePlayerPrintData())
+				for (IPlayer& player : m_MainState->GeneratePlayerPrintData())
 				{
 					if (!m_Settings.m_LazyLoadAPIData)
 						TryGetAvatarTexture(player);
@@ -570,7 +572,7 @@ void MainWindow::OnDrawScoreboard()
 
 					// Selectable
 					{
-						const auto teamShareResult = m_ModeratorLogic.GetTeamShareResult(player);
+						const auto teamShareResult = GetModLogic().GetTeamShareResult(player);
 						ImVec4 bgColor = [&]() -> ImVec4
 						{
 							switch (teamShareResult)
@@ -716,13 +718,13 @@ void MainWindow::OnDrawChat()
 
 	ImGui::AutoScrollBox("##fileContents", { 0, 0 }, [&]()
 		{
-			if (!m_ConsoleLogParser)
+			if (!m_MainState)
 				return;
 
 			ImGui::PushTextWrapPos();
 
 			const IConsoleLine::PrintArgs args{ m_Settings };
-			for (auto it = m_ConsoleLogParser->m_PrintingLines.rbegin(); it != m_ConsoleLogParser->m_PrintingLines.rend(); ++it)
+			for (auto it = m_MainState->m_PrintingLines.rbegin(); it != m_MainState->m_PrintingLines.rend(); ++it)
 			{
 				assert(*it);
 				(*it)->Print(args);
@@ -1072,7 +1074,7 @@ void MainWindow::OnDrawAboutPopup()
 		ImGui::Separator();
 		ImGui::NewLine();
 
-		if (const auto sponsors = m_SponsorsList.GetSponsors(); !sponsors.empty())
+		if (const auto sponsors = GetSponsorsList().GetSponsors(); !sponsors.empty())
 		{
 			ImGui::TextUnformatted("Sponsors\n"
 				"Huge thanks to the people sponsoring this project via GitHub Sponsors:");
@@ -1180,12 +1182,15 @@ void MainWindow::OnDraw()
 
 	{
 		ISetupFlowPage::DrawState ds;
-		ds.m_ActionManager = &m_ActionManager;
+		ds.m_ActionManager = &GetActionManager();
 		ds.m_Settings = &m_Settings;
 
 		if (m_SetupFlow.OnDraw(m_Settings, ds))
 			return;
 	}
+
+	if (!m_MainState)
+		return;
 
 	ImGui::Columns(2, "MainWindowSplit");
 
@@ -1222,12 +1227,12 @@ void MainWindow::OnDraw()
 
 #ifdef _DEBUG
 	{
-		auto leader = m_ModeratorLogic.GetBotLeader();
+		auto leader = GetModLogic().GetBotLeader();
 		ImGui::Value("Bot Leader", leader ? (""s << *leader).c_str() : "");
 
 		ImGui::TextUnformatted("Is vote in progress:");
 		ImGui::SameLine();
-		if (m_WorldState.IsVoteInProgress())
+		if (GetWorld().IsVoteInProgress())
 			ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "YES");
 		else
 			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "NO");
@@ -1238,14 +1243,14 @@ void MainWindow::OnDraw()
 	}
 #endif
 
-	ImGui::Value("Blackslisted user count", m_ModeratorLogic.GetBlacklistedPlayerCount());
-	ImGui::Value("Rule count", m_ModeratorLogic.GetRuleCount());
+	ImGui::Value("Blackslisted user count", GetModLogic().GetBlacklistedPlayerCount());
+	ImGui::Value("Rule count", GetModLogic().GetRuleCount());
 
-	if (m_ConsoleLogParser)
+	if (m_MainState)
 	{
 		auto& world = GetWorld();
 		const auto parsedLineCount = m_ParsedLineCount;
-		const auto parseProgress = m_ConsoleLogParser->m_Parser.GetParseProgress();
+		const auto parseProgress = m_MainState->m_Parser.GetParseProgress();
 
 		if (parseProgress < 0.95f)
 		{
@@ -1299,9 +1304,6 @@ void MainWindow::OnDrawMenuBar()
 #ifdef _DEBUG
 	if (ImGui::BeginMenu("Debug"))
 	{
-		if (ImGui::MenuItem("Reload Localization Files"))
-			m_ActionManager.QueueAction<GenericCommandAction>("cl_reload_localization_files");
-
 		ImGui::Separator();
 
 		if (ImGui::MenuItem("Crash"))
@@ -1435,15 +1437,15 @@ void MainWindow::HandleUpdateCheck()
 	}
 }
 
-void MainWindow::OnUpdateDiscord()
+void MainWindow::PostSetupFlowState::OnUpdateDiscord()
 {
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
 	const auto curTime = clock_t::now();
-	if (!m_DRPManager && m_Settings.m_Discord.m_EnableRichPresence)
+	if (!m_DRPManager && m_Parent->m_Settings.m_Discord.m_EnableRichPresence)
 	{
-		m_DRPManager = IDRPManager::Create(m_Settings, m_WorldState);
+		m_DRPManager = IDRPManager::Create(m_Parent->m_Settings, m_Parent->m_WorldState);
 	}
-	else if (m_DRPManager && !m_Settings.m_Discord.m_EnableRichPresence)
+	else if (m_DRPManager && !m_Parent->m_Settings.m_Discord.m_EnableRichPresence)
 	{
 		m_DRPManager.reset();
 	}
@@ -1458,12 +1460,7 @@ void MainWindow::OnUpdate()
 	if (m_Paused)
 		return;
 
-#ifdef _WIN32
-	m_HijackActionManager.Update();
-#endif
-
 	m_WorldState.Update();
-	m_ActionManager.Update();
 
 	HandleUpdateCheck();
 
@@ -1472,29 +1469,25 @@ void MainWindow::OnUpdate()
 
 	if (m_SetupFlow.OnUpdate(m_Settings))
 	{
-		m_ConsoleLogParser.reset();
-
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-		m_DRPManager.reset();
-#endif
-		return;
+		m_MainState.reset();
 	}
 	else
 	{
-		if (!m_ConsoleLogParser)
-			m_ConsoleLogParser.emplace(*this);
+		if (!m_MainState)
+			m_MainState.emplace(*this);
 
-		OnUpdateDiscord();
-		m_ConsoleLogParser->m_Parser.Update();
-		m_ModeratorLogic.Update();
+		m_MainState->m_Parser.Update();
+		m_MainState->m_ModeratorLogic.Update();
+
+		m_MainState->OnUpdateDiscord();
 	}
+
+	m_ActionManager.Update();
 }
 
 void MainWindow::OnConsoleLogChunkParsed(WorldState& world, bool consoleLinesUpdated)
 {
 	assert(&world == &GetWorld());
-
-	QueueUpdate();
 
 	if (consoleLinesUpdated)
 		UpdateServerPing(GetCurrentTimestampCompensated());
@@ -1522,13 +1515,12 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 {
 	m_ParsedLineCount++;
 
-	if (parsed.ShouldPrint() && m_ConsoleLogParser)
+	if (parsed.ShouldPrint() && m_MainState)
 	{
-		auto& parser = *m_ConsoleLogParser;
-		while (parser.m_PrintingLines.size() > parser.MAX_PRINTING_LINES)
-			parser.m_PrintingLines.pop_back();
+		while (m_MainState->m_PrintingLines.size() > m_MainState->MAX_PRINTING_LINES)
+			m_MainState->m_PrintingLines.pop_back();
 
-		parser.m_PrintingLines.push_front(parsed.shared_from_this());
+		m_MainState->m_PrintingLines.push_front(parsed.shared_from_this());
 	}
 
 	switch (parsed.GetType())
@@ -1539,7 +1531,7 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 		const LobbyChangeType changeType = lobbyChangedLine.GetChangeType();
 
 		if (changeType == LobbyChangeType::Created || changeType == LobbyChangeType::Updated)
-			m_ActionManager.QueueAction<LobbyUpdateAction>();
+			GetActionManager().QueueAction<LobbyUpdateAction>();
 
 		break;
 	}
@@ -1561,13 +1553,7 @@ void MainWindow::OnConsoleLineUnparsed(WorldState& world, const std::string_view
 	m_ParsedLineCount++;
 }
 
-MainWindow::ConsoleLogParserExtra::ConsoleLogParserExtra(MainWindow& parent) :
-	m_Parent(&parent),
-	m_Parser(parent.m_WorldState, parent.m_Settings, parent.m_Settings.GetTFDir() / "console.log")
-{
-}
-
-cppcoro::generator<IPlayer&> MainWindow::ConsoleLogParserExtra::GeneratePlayerPrintData()
+cppcoro::generator<IPlayer&> MainWindow::PostSetupFlowState::GeneratePlayerPrintData()
 {
 	IPlayer* printData[33]{};
 	auto begin = std::begin(printData);
@@ -1729,4 +1715,15 @@ std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
 	}
 
 	return nullptr;
+}
+
+MainWindow::PostSetupFlowState::PostSetupFlowState(MainWindow& window) :
+	m_Parent(&window),
+	m_ModeratorLogic(window.m_WorldState, window.m_Settings, window.m_ActionManager),
+	m_SponsorsList(window.m_Settings),
+	m_Parser(window.m_WorldState, window.m_Settings, window.m_Settings.GetTFDir() / "console.log")
+{
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+	m_DRPManager = IDRPManager::Create(window.m_Settings, window.m_WorldState);
+#endif
 }
