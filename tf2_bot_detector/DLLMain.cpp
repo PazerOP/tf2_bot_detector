@@ -1,5 +1,6 @@
 #include "DLLMain.h"
 
+#include "Tests/Tests.h"
 #include "Util/TextUtils.h"
 #include "MainWindow.h"
 #include "Log.h"
@@ -30,6 +31,11 @@ namespace tf2_bot_detector
 
 TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** argv)
 {
+#ifdef _DEBUG
+	// Pretty jank
+	tf2_bot_detector::RunTests();
+#endif
+
 	for (int i = 1; i < argc; i++)
 	{
 #ifdef _DEBUG

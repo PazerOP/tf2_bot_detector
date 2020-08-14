@@ -7,3 +7,4 @@ fmt
 discord-game-sdk
 stb
 nlohmann-json
+catch2

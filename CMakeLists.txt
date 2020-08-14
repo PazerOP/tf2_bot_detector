@@ -115,6 +115,9 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/SetupFlow/SetupFlow.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
+	"tf2_bot_detector/Tests/Catch2.cpp"
+	"tf2_bot_detector/Tests/ConsoleLineTests.cpp"
+	"tf2_bot_detector/Tests/Tests.h"
 	"tf2_bot_detector/Util/JSONUtils.h"
 	"tf2_bot_detector/Util/PathUtils.cpp"
 	"tf2_bot_detector/Util/PathUtils.h"
@@ -152,7 +155,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
- )
+)
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
@@ -208,6 +211,7 @@ target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(Catch2 CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	imgui_desktop
@@ -220,6 +224,7 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	OpenSSL::SSL # cpp-httplib requires openssl
 	nlohmann_json::nlohmann_json
 	fmt::fmt
+	Catch2::Catch2
 )
 
 # TODO: Find a way to do this locally
