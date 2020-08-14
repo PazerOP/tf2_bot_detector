@@ -296,7 +296,8 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"\n"
+						"\n",
+						"\r"
 					]
 				}
 			}
