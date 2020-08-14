@@ -70,7 +70,7 @@ namespace Catch
 	}
 }
 
-void tf2_bot_detector::RunTests()
+int tf2_bot_detector::RunTests()
 {
-	Catch::Session().run();
+	return Catch::Session().run();
 }

@@ -46,6 +46,7 @@ if (WIN32)
 		"tf2_bot_detector/Launcher/main.cpp"
 		"tf2_bot_detector/Launcher/Resources.rc"
 	)
+	target_compile_definitions(tf2_bot_detector_launcher PRIVATE TF2BD_LAUNCHER_USE_WINMAIN)
 
 	target_include_directories(tf2_bot_detector_launcher PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
 	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector)
@@ -115,9 +116,6 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/SetupFlow/SetupFlow.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
-	"tf2_bot_detector/Tests/Catch2.cpp"
-	"tf2_bot_detector/Tests/ConsoleLineTests.cpp"
-	"tf2_bot_detector/Tests/Tests.h"
 	"tf2_bot_detector/Util/JSONUtils.h"
 	"tf2_bot_detector/Util/PathUtils.cpp"
 	"tf2_bot_detector/Util/PathUtils.h"
@@ -211,7 +209,6 @@ target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
-find_package(Catch2 CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	imgui_desktop
@@ -224,8 +221,34 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	OpenSSL::SSL # cpp-httplib requires openssl
 	nlohmann_json::nlohmann_json
 	fmt::fmt
-	Catch2::Catch2
 )
+
+option(TF2BD_ENABLE_TESTS "Enable test compilation" off)
+if (TF2BD_ENABLE_TESTS)
+	enable_testing()
+
+	find_package(Catch2 CONFIG REQUIRED)
+	target_link_libraries(tf2_bot_detector PRIVATE Catch2::Catch2)
+	target_compile_definitions(tf2_bot_detector PRIVATE TF2BD_ENABLE_TESTS)
+	target_sources(tf2_bot_detector PRIVATE
+		"tf2_bot_detector/Tests/Catch2.cpp"
+		"tf2_bot_detector/Tests/ConsoleLineTests.cpp"
+		"tf2_bot_detector/Tests/Tests.h"
+	)
+
+	SET(TF2BD_ENABLE_CLI_EXE true)
+
+	add_test(NAME TF2BD_Tests COMMAND tf2_bot_detector_cli --run-tests
+		WORKING_DIRECTORY staging
+	)
+endif()
+
+if(TF2BD_ENABLE_CLI_EXE)
+	add_executable(tf2_bot_detector_cli "tf2_bot_detector/Launcher/main.cpp")
+	target_include_directories(tf2_bot_detector_cli PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)
+	target_link_libraries(tf2_bot_detector_cli PRIVATE tf2_bot_detector)
+	set_property(TARGET tf2_bot_detector_cli PROPERTY CXX_STANDARD 17)
+endif()
 
 # TODO: Find a way to do this locally
 if(MSVC)

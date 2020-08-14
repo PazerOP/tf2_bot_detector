@@ -31,36 +31,7 @@ namespace tf2_bot_detector
 
 TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** argv)
 {
-#ifdef _DEBUG
-	// Pretty jank
-	tf2_bot_detector::RunTests();
-#endif
-
-	for (int i = 1; i < argc; i++)
-	{
-#ifdef _DEBUG
-		if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
-			tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
-		else if (!strcmp(argv[i], "--allow-open-tf2"))
-			tf2_bot_detector::g_SkipOpenTF2Check = true;
-#endif
-	}
-
-	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
-
-	tf2_bot_detector::MainWindow window;
-
-	while (!window.ShouldClose())
-		window.Update();
-
-	DebugLog(""s << __func__ << "(): Graceful shutdown");
-	return 0;
-}
-
-#ifdef WIN32
-TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
-{
-	using tf2_bot_detector::Windows::GetLastErrorException;
+#ifdef _WIN32
 	try
 	{
 		const auto langID = MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
@@ -93,7 +64,45 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(HINSTANCE hInstance, HI
 		MessageBoxA(nullptr, e.what(), "Initialization failed", MB_OK);
 		return 1;
 	}
+#endif
 
+	for (int i = 1; i < argc; i++)
+	{
+#ifdef _DEBUG
+		if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
+			tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--allow-open-tf2"))
+			tf2_bot_detector::g_SkipOpenTF2Check = true;
+		else if (!strcmp(argv[i], "--run-tests"))
+		{
+#ifdef TF2BD_ENABLE_TESTS
+			return tf2_bot_detector::RunTests();
+#else
+			LogError("--run-tests was on the command line, but tests were not compiled in");
+#endif
+		}
+#endif
+	}
+
+#if defined(_DEBUG) && defined(TF2BD_ENABLE_TESTS)
+	// Always run the tests debug builds (but don't quit afterwards)
+	tf2_bot_detector::RunTests();
+#endif
+
+	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
+
+	tf2_bot_detector::MainWindow window;
+
+	while (!window.ShouldClose())
+		window.Update();
+
+	DebugLog(""s << __func__ << "(): Graceful shutdown");
+	return 0;
+}
+
+#ifdef WIN32
+TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+{
 	int argc;
 	auto argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
 

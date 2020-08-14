@@ -10,7 +10,13 @@
 			"cmakeCommandArgs": "",
 			"buildCommandArgs": "",
 			"ctestCommandArgs": "",
-			"variables": [],
+			"variables": [
+				{
+					"name": "TF2BD_ENABLE_TESTS",
+					"value": "True",
+					"type": "BOOL"
+				}
+			],
 			"cmakeToolchain": "submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		},
 		{
@@ -23,7 +29,13 @@
 			"buildCommandArgs": "",
 			"ctestCommandArgs": "",
 			"inheritEnvironments": [ "msvc_x64_x64" ],
-			"variables": [],
+			"variables": [
+				{
+					"name": "TF2BD_ENABLE_TESTS",
+					"value": "True",
+					"type": "BOOL"
+				}
+			],
 			"cmakeToolchain": "submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		},
 		{
@@ -36,7 +48,13 @@
 			"buildCommandArgs": "",
 			"ctestCommandArgs": "",
 			"inheritEnvironments": [ "msvc_x86_x64" ],
-			"variables": [],
+			"variables": [
+				{
+					"name": "TF2BD_ENABLE_TESTS",
+					"value": "True",
+					"type": "BOOL"
+				}
+			],
 			"cmakeToolchain": "submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		},
 		{
@@ -49,7 +67,13 @@
 			"buildCommandArgs": "",
 			"ctestCommandArgs": "",
 			"inheritEnvironments": [ "msvc_x86_x64" ],
-			"variables": [],
+			"variables": [
+				{
+					"name": "TF2BD_ENABLE_TESTS",
+					"value": "True",
+					"type": "BOOL"
+				}
+			],
 			"cmakeToolchain": "submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
 		}
 	]
