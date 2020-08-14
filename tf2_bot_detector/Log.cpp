@@ -202,6 +202,22 @@ void tf2_bot_detector::LogError(const mh::source_location& location, const std::
 	Log(location, msg, COLOR_ERROR);
 }
 
+static std::string FormatException(const std::string_view& msg, const std::exception& e)
+{
+	return mh::format("{}: {}: {}", msg, typeid(e).name(), e.what());
+}
+
+void tf2_bot_detector::LogException(const std::string_view& msg, const std::exception& e)
+{
+	LogError(FormatException(msg, e));
+}
+
+void tf2_bot_detector::LogException(const mh::source_location& location, const std::string_view& msg,
+	const std::exception& e)
+{
+	LogError(location, FormatException(msg, e));
+}
+
 void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
 {
 #ifdef _DEBUG

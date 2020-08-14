@@ -52,6 +52,7 @@ namespace tf2_bot_detector
 		virtual const SteamAPI::PlayerSummary* GetPlayerSummary() const = 0;
 		virtual const SteamAPI::PlayerBans* GetPlayerBans() const = 0;
 		virtual const SteamAPI::TF2PlaytimeResult* GetTF2Playtime() const = 0;
+		virtual bool IsFriend() const = 0;
 		virtual std::optional<UserID_t> GetUserID() const = 0;
 
 		virtual PlayerStatusState GetConnectionState() const = 0;

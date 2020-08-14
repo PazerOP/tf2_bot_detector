@@ -9,6 +9,7 @@
 #include <future>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -138,5 +139,8 @@ namespace tf2_bot_detector::SteamAPI
 	};
 
 	std::future<TF2PlaytimeResult> GetTF2PlaytimeAsync(const std::string_view& apikey,
+		const SteamID& steamID, const HTTPClient& client);
+
+	std::future<std::unordered_set<SteamID>> GetFriendList(const std::string_view& apikey,
 		const SteamID& steamID, const HTTPClient& client);
 }

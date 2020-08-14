@@ -42,6 +42,8 @@ namespace tf2_bot_detector
 	void LogWarning(const mh::source_location& location, const std::string_view& msg = {});
 	void LogError(std::string msg);
 	void LogError(const mh::source_location& location, const std::string_view& msg = {});
+	void LogException(const std::string_view& msg, const std::exception& e);
+	void LogException(const mh::source_location& location, const std::string_view& msg, const std::exception& e);
 
 	void DebugLog(std::string msg, const LogMessageColor& color = DEBUG_MSG_COLOR);
 	void DebugLog(const mh::source_location& location, const std::string_view& msg = {}, const LogMessageColor& color = DEBUG_MSG_COLOR);

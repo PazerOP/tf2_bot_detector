@@ -31,6 +31,7 @@ namespace tf2_bot_detector
 	class IConsoleLineListener;
 	class ITexture;
 	class ITextureManager;
+	class IBaseTextures;
 
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener, BaseWorldEventListener
 	{
@@ -44,8 +45,9 @@ namespace tf2_bot_detector
 		void OnDrawMenuBar() override;
 		bool HasMenuBar() const override { return true; }
 		void OnDrawScoreboard();
-		void OnDrawColorPicker(const char* name_id, std::array<float, 4>& color);
 		void OnDrawScoreboardContextMenu(IPlayer& player);
+		void OnDrawScoreboardRow(IPlayer& player);
+		void OnDrawColorPicker(const char* name_id, std::array<float, 4>& color);
 		void OnDrawChat();
 		void OnDrawServerStats();
 		void OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
@@ -108,6 +110,7 @@ namespace tf2_bot_detector
 
 		std::shared_ptr<ITexture> TryGetAvatarTexture(IPlayer& player);
 		std::unique_ptr<ITextureManager> m_TextureManager;
+		std::unique_ptr<IBaseTextures> m_BaseTextures;
 
 		struct PingSample
 		{

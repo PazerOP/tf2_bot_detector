@@ -120,6 +120,7 @@ namespace tf2_bot_detector
 			const SteamAPI::PlayerSummary* GetPlayerSummary() const override;
 			const SteamAPI::PlayerBans* GetPlayerBans() const override;
 			const SteamAPI::TF2PlaytimeResult* GetTF2Playtime() const override;
+			bool IsFriend() const override;
 			duration_t GetActiveTime() const override;
 
 			WorldState* m_World{};
@@ -151,6 +152,9 @@ namespace tf2_bot_detector
 
 			mutable std::shared_future<SteamAPI::TF2PlaytimeResult> m_TF2Playtime;
 		};
+
+		std::shared_future<std::unordered_set<SteamID>> m_Friends;
+		time_point_t m_LastFriendsUpdate{};
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);
 

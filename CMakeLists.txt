@@ -120,6 +120,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/Util/PathUtils.h"
 	"tf2_bot_detector/Util/TextUtils.cpp"
 	"tf2_bot_detector/Util/TextUtils.h"
+	"tf2_bot_detector/BaseTextures.h"
+	"tf2_bot_detector/BaseTextures.cpp"
 	"tf2_bot_detector/BatchedAction.h"
 	"tf2_bot_detector/Bitmap.h"
 	"tf2_bot_detector/Bitmap.cpp"
@@ -150,7 +152,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
 	"tf2_bot_detector/Version.h"
-)
+ )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
 target_include_directories(tf2_bot_detector PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/tf2_bot_detector)

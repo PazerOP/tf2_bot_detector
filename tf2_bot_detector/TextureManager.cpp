@@ -42,9 +42,14 @@ namespace
 		handle_type GetHandle() const override { return m_Handle; }
 		const TextureSettings& GetSettings() const override { return m_Settings; }
 
+		uint16_t GetWidth() const override { return m_Width; }
+		uint16_t GetHeight() const override { return m_Height; }
+
 	private:
 		TextureHandle m_Handle{};
 		TextureSettings m_Settings{};
+		uint16_t m_Width{};
+		uint16_t m_Height{};
 	};
 
 	class TextureManager final : public ITextureManager
@@ -94,7 +99,9 @@ std::shared_ptr<ITexture> TextureManager::CreateTexture(const Bitmap& bitmap, co
 }
 
 Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const TextureSettings& settings) :
-	m_Settings(settings)
+	m_Settings(settings),
+	m_Width(bitmap.GetWidth()),
+	m_Height(bitmap.GetHeight())
 {
 	GLenum internalFormat{};
 	GLenum sourceFormat{};

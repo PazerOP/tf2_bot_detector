@@ -400,3 +400,37 @@ std::error_condition std::make_error_condition(tf2_bot_detector::SteamAPI::Error
 {
 	return std::error_condition(int(e), tf2_bot_detector::SteamAPI::ErrorCategory());
 }
+
+std::future<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(const std::string_view& apikey,
+	const SteamID& steamID, const HTTPClient& client)
+{
+	if (!steamID.IsValid())
+	{
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Invalid SteamID "s << steamID.ID64);
+		return {};
+	}
+
+	if (apikey.empty())
+	{
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
+		return {};
+	}
+
+	auto url = mh::format("https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}", apikey, steamID.ID64);
+
+	auto data = SteamAPIGET(client, url);
+	return std::async([data, steamID]() -> std::unordered_set<SteamID>
+		{
+			const auto json = nlohmann::json::parse(data.get().m_Response);
+
+			std::unordered_set<SteamID> retVal;
+
+			auto& friendsList = json.at("friendslist");
+			auto& friends = friendsList.at("friends");
+
+			for (const auto& friendEntry : friends)
+				retVal.insert(SteamID(friendEntry.at("steamid").get<std::string_view>()));
+
+			return retVal;
+		});
+}

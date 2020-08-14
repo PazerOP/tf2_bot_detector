@@ -20,6 +20,9 @@ namespace tf2_bot_detector
 
 		virtual handle_type GetHandle() const = 0;
 		virtual const TextureSettings& GetSettings() const = 0;
+
+		virtual uint16_t GetWidth() const = 0;
+		virtual uint16_t GetHeight() const = 0;
 	};
 
 	class ITextureManager

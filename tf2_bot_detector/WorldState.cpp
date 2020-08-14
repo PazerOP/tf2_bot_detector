@@ -34,6 +34,13 @@ void WorldState::Update()
 {
 	m_PlayerSummaryUpdates.Update();
 	m_PlayerBansUpdates.Update();
+
+	if (auto client = m_Settings->GetHTTPClient();
+		client && !m_Settings->m_SteamAPIKey.empty() && (clock_t::now() - 5min) > m_LastFriendsUpdate)
+	{
+		m_LastFriendsUpdate = clock_t::now();
+		m_Friends = SteamAPI::GetFriendList(m_Settings->m_SteamAPIKey, m_Settings->GetLocalSteamID(), *client);
+	}
 }
 
 void WorldStateConLog::AddConsoleLineListener(IConsoleLineListener* listener)
@@ -688,6 +695,14 @@ const SteamAPI::TF2PlaytimeResult* WorldState::PlayerExtraData::GetTF2Playtime()
 		return &m_TF2Playtime.get();
 
 	return {};
+}
+
+bool WorldState::PlayerExtraData::IsFriend() const
+{
+	if (mh::is_future_ready(m_World->m_Friends))
+		return m_World->m_Friends.get().contains(GetSteamID());
+
+	return false;
 }
 
 duration_t WorldState::PlayerExtraData::GetActiveTime() const

@@ -6,14 +6,11 @@
 #include "Platform/Platform.h"
 #include "ImGui_TF2BotDetector.h"
 #include "Actions/ActionGenerators.h"
+#include "BaseTextures.h"
 #include "Log.h"
 #include "TextureManager.h"
 #include "Util/PathUtils.h"
 #include "Version.h"
-
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-#include "DiscordRichPresence.h"
-#endif
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -39,9 +36,12 @@ using namespace std::string_view_literals;
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, ("TF2 Bot Detector v"s << VERSION).c_str()),
 	m_WorldState(m_Settings),
-	m_ActionManager(m_Settings, m_WorldState)
+	m_ActionManager(m_Settings, m_WorldState),
+	m_TextureManager(CreateTextureManager()),
+	m_BaseTextures(IBaseTextures::Create(*m_TextureManager))
 {
 	m_TextureManager = CreateTextureManager();
+
 
 	ILogManager::GetInstance().CleanupLogFiles();
 
@@ -415,6 +415,222 @@ void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareR
 	ImGui::EndTooltip();
 }
 
+void MainWindow::OnDrawScoreboardRow(IPlayer& player)
+{
+	if (!m_Settings.m_LazyLoadAPIData)
+		TryGetAvatarTexture(player);
+
+	const auto& playerName = player.GetNameSafe();
+	ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
+	ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
+
+	ImGuiDesktop::ScopeGuards::StyleColor textColor;
+	if (player.GetConnectionState() != PlayerStatusState::Active || player.GetNameSafe().empty())
+		textColor = { ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG };
+	else if (player.GetSteamID() == m_Settings.GetLocalSteamID())
+		textColor = { ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG };
+
+	char buf[32];
+	if (!player.GetUserID().has_value())
+	{
+		buf[0] = '?';
+		buf[1] = '\0';
+	}
+	else if (auto result = mh::to_chars(buf, player.GetUserID().value()))
+		*result.ptr = '\0';
+	else
+		return;
+
+	// Selectable
+	{
+		const auto teamShareResult = GetModLogic().GetTeamShareResult(player);
+		ImVec4 bgColor = [&]() -> ImVec4
+		{
+			switch (teamShareResult)
+			{
+			case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG;
+			case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG;
+			}
+
+			switch (player.GetTeam())
+			{
+			case TFTeam::Red:   return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
+			case TFTeam::Blue:  return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
+			default: return ImVec4(0.5f, 0.5f, 0.5f, 0);
+			}
+		}();
+
+		const auto& modLogic = GetModLogic();
+		const auto playerAttribs = modLogic.GetPlayerAttributes(player);
+		if (playerAttribs.Has(PlayerAttribute::Cheater))
+			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG));
+		else if (playerAttribs.Has(PlayerAttribute::Suspicious))
+			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG));
+		else if (playerAttribs.Has(PlayerAttribute::Exploiter))
+			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG));
+		else if (playerAttribs.Has(PlayerAttribute::Racist))
+			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG));
+
+		ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
+
+		bgColor.w = std::min(bgColor.w + 0.25f, 0.8f);
+		ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeHovered(ImGuiCol_HeaderHovered, bgColor);
+
+		bgColor.w = std::min(bgColor.w + 0.5f, 1.0f);
+		ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
+		ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
+
+		if (ImGui::IsItemHovered())
+			OnDrawPlayerTooltip(player, teamShareResult, playerAttribs);
+
+		ImGui::NextColumn();
+	}
+
+	OnDrawScoreboardContextMenu(player);
+
+	// player names column
+	{
+		static constexpr bool DEBUG_ALWAYS_DRAW_ICONS = false;
+
+		const auto columnEndX = ImGui::GetCursorPosX() - ImGui::GetStyle().ItemSpacing.x + ImGui::GetColumnWidth();
+
+		if (!playerName.empty())
+			ImGui::TextUnformatted(playerName);
+		else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
+			ImGui::TextUnformatted(summary->m_Nickname);
+		else
+			ImGui::TextUnformatted("<Unknown>");
+
+		// If their steamcommunity name doesn't match their ingame name
+		if (auto summary = player.GetPlayerSummary();
+			summary && !playerName.empty() && summary->m_Nickname != playerName)
+		{
+			ImGui::SameLine();
+			ImGui::TextColored({ 1, 0, 0, 1 }, "(%s)", summary->m_Nickname.c_str());
+		}
+
+		// Move cursor pos up a few pixels if we have icons to draw
+		struct IconDrawData
+		{
+			ImTextureID m_Texture;
+			ImVec4 m_Color{ 1, 1, 1, 1 };
+		};
+		std::vector<IconDrawData> icons;
+
+		// If they are VAC banned
+		if (auto bans = player.GetPlayerBans())
+		{
+			std::invoke([&]
+				{
+					if constexpr (!DEBUG_ALWAYS_DRAW_ICONS)
+					{
+						if (bans->m_VACBanCount <= 0)
+							return;
+					}
+
+					auto icon = m_BaseTextures->GetVACShield_16();
+					if (!icon)
+						return;
+
+					icons.push_back({ (ImTextureID)(intptr_t)icon->GetHandle(), { 1, 1, 1, 1 } });
+				});
+		}
+
+		// If they are friends with us on Steam
+		std::invoke([&]
+			{
+				if constexpr (!DEBUG_ALWAYS_DRAW_ICONS)
+				{
+					if (!player.IsFriend())
+						return;
+				}
+
+				auto icon = m_BaseTextures->GetHeart_16();
+				if (!icon)
+					return;
+
+				icons.push_back({ (ImTextureID)(intptr_t)icon->GetHandle(), { 1, 0, 0, 1 } });
+			});
+
+		if (!icons.empty())
+		{
+			// We have at least one icon to draw
+			ImGui::SameLine();
+
+			// Move it up very slightly so it looks centered in these tiny rows
+			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
+
+			const auto spacing = ImGui::GetStyle().ItemSpacing.x;
+			ImGui::SetCursorPosX(columnEndX - (16 + spacing) * icons.size());
+
+			for (size_t i = 0; i < icons.size(); i++)
+			{
+				ImGui::Image(icons[i].m_Texture, { 16, 16 }, { 0, 0 }, { 1, 1 }, icons[i].m_Color);
+				ImGui::SameLine(0, spacing);
+			}
+		}
+
+		ImGui::NextColumn();
+	}
+
+	// Kills column
+	{
+		if (playerName.empty())
+			ImGui::TextRightAligned("?");
+		else
+			ImGui::TextRightAlignedF("%u", player.GetScores().m_Kills);
+
+		ImGui::NextColumn();
+	}
+
+	// Deaths column
+	{
+		if (playerName.empty())
+			ImGui::TextRightAligned("?");
+		else
+			ImGui::TextRightAlignedF("%u", player.GetScores().m_Deaths);
+
+		ImGui::NextColumn();
+	}
+
+	// Connected time column
+	{
+		if (playerName.empty())
+		{
+			ImGui::TextRightAligned("?");
+		}
+		else
+		{
+			ImGui::TextRightAlignedF("%u:%02u",
+				std::chrono::duration_cast<std::chrono::minutes>(player.GetConnectedTime()).count(),
+				std::chrono::duration_cast<std::chrono::seconds>(player.GetConnectedTime()).count() % 60);
+		}
+
+		ImGui::NextColumn();
+	}
+
+	// Ping column
+	{
+		if (playerName.empty())
+			ImGui::TextRightAligned("?");
+		else
+			ImGui::TextRightAlignedF("%u", player.GetPing());
+
+		ImGui::NextColumn();
+	}
+
+	// Steam ID column
+	{
+		const auto str = player.GetSteamID().str();
+		if (player.GetSteamID().Type != SteamAccountType::Invalid)
+			ImGui::TextColoredUnformatted(ImGui::GetStyle().Colors[ImGuiCol_Text], str);
+		else
+			ImGui::TextUnformatted(str);
+
+		ImGui::NextColumn();
+	}
+}
+
 void MainWindow::OnDrawScoreboard()
 {
 	static float frameWidth, contentWidth, windowContentWidth, windowWidth;
@@ -545,160 +761,7 @@ void MainWindow::OnDrawScoreboard()
 			if (m_MainState)
 			{
 				for (IPlayer& player : m_MainState->GeneratePlayerPrintData())
-				{
-					if (!m_Settings.m_LazyLoadAPIData)
-						TryGetAvatarTexture(player);
-
-					const auto& playerName = player.GetNameSafe();
-					ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
-					ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
-
-					ImGuiDesktop::ScopeGuards::StyleColor textColor;
-					if (player.GetConnectionState() != PlayerStatusState::Active || player.GetNameSafe().empty())
-						textColor = { ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG };
-					else if (player.GetSteamID() == m_Settings.GetLocalSteamID())
-						textColor = { ImGuiCol_Text, m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG };
-
-					char buf[32];
-					if (!player.GetUserID().has_value())
-					{
-						buf[0] = '?';
-						buf[1] = '\0';
-					}
-					else if (auto result = mh::to_chars(buf, player.GetUserID().value()))
-						*result.ptr = '\0';
-					else
-						continue;
-
-					// Selectable
-					{
-						const auto teamShareResult = GetModLogic().GetTeamShareResult(player);
-						ImVec4 bgColor = [&]() -> ImVec4
-						{
-							switch (teamShareResult)
-							{
-							case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG;
-							case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG;
-							}
-
-							switch (player.GetTeam())
-							{
-							case TFTeam::Red:   return ImVec4(1.0f, 0.5f, 0.5f, 0.5f);
-							case TFTeam::Blue:  return ImVec4(0.5f, 0.5f, 1.0f, 0.5f);
-							default: return ImVec4(0.5f, 0.5f, 0.5f, 0);
-							}
-						}();
-
-						const auto& modLogic = GetModLogic();
-						const auto playerAttribs = modLogic.GetPlayerAttributes(player);
-						if (playerAttribs.Has(PlayerAttribute::Cheater))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG));
-						else if (playerAttribs.Has(PlayerAttribute::Suspicious))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG));
-						else if (playerAttribs.Has(PlayerAttribute::Exploiter))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG));
-						else if (playerAttribs.Has(PlayerAttribute::Racist))
-							bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG));
-
-						ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
-
-						bgColor.w = std::min(bgColor.w + 0.25f, 0.8f);
-						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeHovered(ImGuiCol_HeaderHovered, bgColor);
-
-						bgColor.w = std::min(bgColor.w + 0.5f, 1.0f);
-						ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
-						ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
-
-						if (ImGui::IsItemHovered())
-							OnDrawPlayerTooltip(player, teamShareResult, playerAttribs);
-						if ((player.GetSteamID() != m_Settings.GetLocalSteamID()) &&
-							ImGui::IsItemHovered() &&
-							(playerAttribs || (teamShareResult != TeamShareResult::SameTeams)))
-						{
-						}
-
-						ImGui::NextColumn();
-					}
-
-					OnDrawScoreboardContextMenu(player);
-
-					// player names column
-					{
-						if (!playerName.empty())
-							ImGui::TextUnformatted(playerName);
-						else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
-							ImGui::TextUnformatted(summary->m_Nickname);
-						else
-							ImGui::TextUnformatted("<Unknown>");
-
-						// If their steamcommunity name doesn't match their ingame name
-						if (auto summary = player.GetPlayerSummary();
-							summary && !playerName.empty() && summary->m_Nickname != playerName)
-						{
-							ImGui::SameLine();
-							ImGui::TextColored({ 1, 0, 0, 1 }, "(%s)", summary->m_Nickname.c_str());
-						}
-
-						ImGui::NextColumn();
-					}
-
-					// Kills column
-					{
-						if (playerName.empty())
-							ImGui::TextRightAligned("?");
-						else
-							ImGui::TextRightAlignedF("%u", player.GetScores().m_Kills);
-
-						ImGui::NextColumn();
-					}
-
-					// Deaths column
-					{
-						if (playerName.empty())
-							ImGui::TextRightAligned("?");
-						else
-							ImGui::TextRightAlignedF("%u", player.GetScores().m_Deaths);
-
-						ImGui::NextColumn();
-					}
-
-					// Connected time column
-					{
-						if (playerName.empty())
-						{
-							ImGui::TextRightAligned("?");
-						}
-						else
-						{
-							ImGui::TextRightAlignedF("%u:%02u",
-								std::chrono::duration_cast<std::chrono::minutes>(player.GetConnectedTime()).count(),
-								std::chrono::duration_cast<std::chrono::seconds>(player.GetConnectedTime()).count() % 60);
-						}
-
-						ImGui::NextColumn();
-					}
-
-					// Ping column
-					{
-						if (playerName.empty())
-							ImGui::TextRightAligned("?");
-						else
-							ImGui::TextRightAlignedF("%u", player.GetPing());
-
-						ImGui::NextColumn();
-					}
-
-					// Steam ID column
-					{
-						const auto str = player.GetSteamID().str();
-						if (player.GetSteamID().Type != SteamAccountType::Invalid)
-							ImGui::TextColoredUnformatted(ImGui::GetStyle().Colors[ImGuiCol_Text], str);
-						else
-							ImGui::TextUnformatted(str);
-
-						ImGui::NextColumn();
-					}
-				}
+					OnDrawScoreboardRow(player);
 			}
 		}
 		//ImGui::EndChild();
