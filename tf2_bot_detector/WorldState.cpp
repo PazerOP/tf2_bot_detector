@@ -700,7 +700,17 @@ const SteamAPI::TF2PlaytimeResult* WorldState::PlayerExtraData::GetTF2Playtime()
 bool WorldState::PlayerExtraData::IsFriend() const
 {
 	if (mh::is_future_ready(m_World->m_Friends))
-		return m_World->m_Friends.get().contains(GetSteamID());
+	{
+		try
+		{
+			return m_World->m_Friends.get().contains(GetSteamID());
+		}
+		catch (const std::exception& e)
+		{
+			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to access friends list", e);
+			m_World->m_Friends = {};
+		}
+	}
 
 	return false;
 }
