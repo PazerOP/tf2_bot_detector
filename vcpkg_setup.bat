@@ -24,6 +24,12 @@ IF NOT EXIST "%VCPKG_EXE%" (
 
 ECHO Installing missing packages...
 	%VCPKG_EXE% install @vcpkg_packages.txt
+	IF "%VCPKG_DEFAULT_TRIPLET%"=="x64-windows" (
+		if [%1]==[/MULTIARCH] (
+			%VCPKG_EXE% install @vcpkg_packages.txt --triplet x86-windows
+		)
+	)
+
 	IF %ERRORLEVEL% NEQ 0 EXIT /B
 
 ECHO Upgrading existing packages...
