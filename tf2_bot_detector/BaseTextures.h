@@ -16,5 +16,6 @@ namespace tf2_bot_detector
 
 		virtual const ITexture* GetHeart_16() const = 0;
 		virtual const ITexture* GetVACShield_16() const = 0;
+		virtual const ITexture* GetGameBanIcon_16() const = 0;
 	};
 }

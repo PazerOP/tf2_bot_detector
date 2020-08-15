@@ -514,12 +514,14 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 		{
 			ImTextureID m_Texture;
 			ImVec4 m_Color{ 1, 1, 1, 1 };
+			std::string_view m_Tooltip;
 		};
 		std::vector<IconDrawData> icons;
 
-		// If they are VAC banned
+		// Check their steam bans
 		if (auto bans = player.GetPlayerBans())
 		{
+			// If they are VAC banned
 			std::invoke([&]
 				{
 					if constexpr (!DEBUG_ALWAYS_DRAW_ICONS)
@@ -532,7 +534,23 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 					if (!icon)
 						return;
 
-					icons.push_back({ (ImTextureID)(intptr_t)icon->GetHandle(), { 1, 1, 1, 1 } });
+					icons.push_back({ (ImTextureID)(intptr_t)icon->GetHandle(), { 1, 1, 1, 1 }, "VAC Banned" });
+				});
+
+			// If they are game banned
+			std::invoke([&]
+				{
+					if constexpr (!DEBUG_ALWAYS_DRAW_ICONS)
+					{
+						if (bans->m_GameBanCount <= 0)
+							return;
+					}
+
+					auto icon = m_BaseTextures->GetGameBanIcon_16();
+					if (!icon)
+						return;
+
+					icons.push_back({ (ImTextureID)(intptr_t)icon->GetHandle(), { 1, 1, 1, 1 }, "Game Banned" });
 				});
 		}
 
@@ -549,7 +567,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 				if (!icon)
 					return;
 
-				icons.push_back({ (ImTextureID)(intptr_t)icon->GetHandle(), { 1, 0, 0, 1 } });
+				icons.push_back({ (ImTextureID)(intptr_t)icon->GetHandle(), { 1, 0, 0, 1 }, "Steam Friends" });
 			});
 
 		if (!icons.empty())
@@ -1132,33 +1150,41 @@ void MainWindow::OnDrawAboutPopup()
 
 			ImGui::TreePop();
 		}
+		if (ImGui::TreeNode("Other Attributions"))
+		{
+			ImGui::TextFmt("\"Game Ban\" icon made by Freepik from www.flaticon.com");
+			ImGui::TreePop();
+		}
 
 		ImGui::NewLine();
 		ImGui::Separator();
 		ImGui::NewLine();
 
-		if (const auto sponsors = GetSponsorsList().GetSponsors(); !sponsors.empty())
+		if (m_MainState)
 		{
-			ImGui::TextUnformatted("Sponsors\n"
-				"Huge thanks to the people sponsoring this project via GitHub Sponsors:");
-
-			ImGui::NewLine();
-
-			for (const auto& sponsor : sponsors)
+			if (const auto sponsors = GetSponsorsList().GetSponsors(); !sponsors.empty())
 			{
-				ImGui::Bullet();
-				ImGui::TextUnformatted(sponsor.m_Name);
+				ImGui::TextUnformatted("Sponsors\n"
+					"Huge thanks to the people sponsoring this project via GitHub Sponsors:");
 
-				if (!sponsor.m_Message.empty())
+				ImGui::NewLine();
+
+				for (const auto& sponsor : sponsors)
 				{
-					ImGui::SameLine();
-					ImGui::TextUnformatted("-");
-					ImGui::SameLine();
-					ImGui::TextUnformatted(sponsor.m_Message);
-				}
-			}
+					ImGui::Bullet();
+					ImGui::TextUnformatted(sponsor.m_Name);
 
-			ImGui::NewLine();
+					if (!sponsor.m_Message.empty())
+					{
+						ImGui::SameLine();
+						ImGui::TextUnformatted("-");
+						ImGui::SameLine();
+						ImGui::TextUnformatted(sponsor.m_Message);
+					}
+				}
+
+				ImGui::NewLine();
+			}
 		}
 
 		ImGui::TextUnformatted("If you're feeling generous, you can make a small donation to help support my work.");
@@ -1768,11 +1794,10 @@ std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
 			}
 		}
 	}
-	else
+	else if (avatarData.m_Texture)
+		return avatarData.m_Texture;
+	else if (!avatarData.m_Bitmap.valid())
 	{
-		if (avatarData.m_Texture)
-			return avatarData.m_Texture;
-
 		if (auto summary = player.GetPlayerSummary())
 			avatarData.m_Bitmap = summary->GetAvatarBitmap(m_Settings.GetHTTPClient());
 	}

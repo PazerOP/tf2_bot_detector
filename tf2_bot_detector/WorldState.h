@@ -150,10 +150,13 @@ namespace tf2_bot_detector
 			time_point_t m_LastStatusUpdateTime{};
 			time_point_t m_LastPingUpdateTime{};
 
+			mutable bool m_TF2PlaytimeFetched = false;
 			mutable std::shared_future<SteamAPI::TF2PlaytimeResult> m_TF2Playtime;
 		};
 
-		std::shared_future<std::unordered_set<SteamID>> m_Friends;
+		void UpdateFriends();
+		std::future<std::unordered_set<SteamID>> m_FriendsFuture;
+		std::unordered_set<SteamID> m_Friends;
 		time_point_t m_LastFriendsUpdate{};
 
 		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);

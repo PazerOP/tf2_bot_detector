@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include <compare>
+#include <optional>
 #include <ostream>
 #include <string>
 
@@ -29,7 +30,9 @@ namespace tf2_bot_detector
 	{
 	public:
 		http_error(int statusCode);
-		http_error(std::string msg);
+		http_error(std::string msg, int statusCode = -1);
+
+		std::optional<int> m_StatusCode;
 	};
 }
 

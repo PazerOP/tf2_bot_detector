@@ -20,12 +20,14 @@ namespace
 
 		const ITexture* GetHeart_16() const override { return m_Heart_16.get(); }
 		const ITexture* GetVACShield_16() const override { return m_VACShield_16.get(); }
+		const ITexture* GetGameBanIcon_16() const override { return m_GameBanIcon_16.get(); }
 
 	private:
 		ITextureManager& m_TextureManager;
 
 		std::shared_ptr<ITexture> m_Heart_16;
 		std::shared_ptr<ITexture> m_VACShield_16;
+		std::shared_ptr<ITexture> m_GameBanIcon_16;
 
 		std::shared_ptr<ITexture> TryLoadTexture(const std::filesystem::path& file) const;
 	};
@@ -40,7 +42,8 @@ BaseTextures::BaseTextures(ITextureManager& textureManager) :
 	m_TextureManager(textureManager),
 
 	m_Heart_16(TryLoadTexture("images/heart_16.png")),
-	m_VACShield_16(TryLoadTexture("images/vac_icon_16.png"))
+	m_VACShield_16(TryLoadTexture("images/vac_icon_16.png")),
+	m_GameBanIcon_16(TryLoadTexture("images/game_ban_icon_16.png"))
 {
 }
 

@@ -37,6 +37,8 @@ namespace tf2_bot_detector::SteamAPI
 		InfoPrivate,
 		GameNotOwned,
 		UnexpectedDataFormat,
+		GenericHttpError,
+		JSONParseError,
 	};
 }
 

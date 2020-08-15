@@ -5,6 +5,7 @@
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "GameData/TFClassType.h"
 #include "GameData/UserMessageType.h"
+#include "Networking/HTTPHelpers.h"
 #include "Util/RegexUtils.h"
 #include "Util/TextUtils.h"
 #include "Log.h"
@@ -35,11 +36,45 @@ void WorldState::Update()
 	m_PlayerSummaryUpdates.Update();
 	m_PlayerBansUpdates.Update();
 
+	UpdateFriends();
+}
+
+void WorldState::UpdateFriends()
+{
 	if (auto client = m_Settings->GetHTTPClient();
 		client && !m_Settings->m_SteamAPIKey.empty() && (clock_t::now() - 5min) > m_LastFriendsUpdate)
 	{
 		m_LastFriendsUpdate = clock_t::now();
-		m_Friends = SteamAPI::GetFriendList(m_Settings->m_SteamAPIKey, m_Settings->GetLocalSteamID(), *client);
+		m_FriendsFuture = SteamAPI::GetFriendList(m_Settings->m_SteamAPIKey, m_Settings->GetLocalSteamID(), *client);
+	}
+
+	if (mh::is_future_ready(m_FriendsFuture))
+	{
+		const auto GenericException = [](const mh::source_location& loc, const std::exception& e)
+		{
+			LogException(loc, "Failed to update our friends list", e);
+		};
+
+		try
+		{
+			m_Friends = m_FriendsFuture.get();
+		}
+		catch (const http_error& e)
+		{
+			if (e.m_StatusCode == 401)
+			{
+				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Failed to access friends list (our friends list is "
+					"private/friends only, and the Steam API is bugged)");
+			}
+			else
+			{
+				GenericException(MH_SOURCE_LOCATION_CURRENT(), e);
+			}
+		}
+		catch (const std::exception& e)
+		{
+			GenericException(MH_SOURCE_LOCATION_CURRENT(), e);
+		}
 	}
 }
 
@@ -682,36 +717,43 @@ const SteamAPI::PlayerBans* WorldState::PlayerExtraData::GetPlayerBans() const
 
 const SteamAPI::TF2PlaytimeResult* WorldState::PlayerExtraData::GetTF2Playtime() const
 {
-	if (!m_TF2Playtime.valid() && !m_World->m_Settings->m_SteamAPIKey.empty())
+	if (!m_TF2PlaytimeFetched)
 	{
-		if (auto client = m_World->m_Settings->GetHTTPClient())
+		if (!m_World->m_Settings->m_SteamAPIKey.empty())
 		{
-			m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(
-				m_World->m_Settings->m_SteamAPIKey, GetSteamID(), *client);
+			if (auto client = m_World->m_Settings->GetHTTPClient())
+			{
+				m_TF2PlaytimeFetched = true;
+				m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(
+					m_World->m_Settings->m_SteamAPIKey, GetSteamID(), *client);
+			}
 		}
 	}
 
 	if (mh::is_future_ready(m_TF2Playtime))
-		return &m_TF2Playtime.get();
-
-	return {};
-}
-
-bool WorldState::PlayerExtraData::IsFriend() const
-{
-	if (mh::is_future_ready(m_World->m_Friends))
 	{
 		try
 		{
-			return m_World->m_Friends.get().contains(GetSteamID());
+			return &m_TF2Playtime.get();
 		}
 		catch (const std::exception& e)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to access friends list", e);
-			m_World->m_Friends = {};
+			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to get TF2 playtime for "s << *this, e);
+			m_TF2Playtime = {};
 		}
 	}
 
+	return nullptr;
+}
+
+bool WorldState::PlayerExtraData::IsFriend() const try
+{
+	return m_World->m_Friends.contains(GetSteamID());
+}
+catch (const std::exception& e)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to access friends list", e);
+	m_World->m_Friends = {};
 	return false;
 }
 

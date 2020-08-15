@@ -53,11 +53,13 @@ URL::URL(const std::string_view& url)
 }
 
 http_error::http_error(int statusCode) :
-	http_error("HTTP error "s << statusCode)
+	http_error("HTTP error "s << statusCode, statusCode)
 {
 }
 
-http_error::http_error(std::string msg) :
+http_error::http_error(std::string msg, int statusCode) :
 	std::runtime_error(std::move(msg))
 {
+	if (statusCode > 0)
+		m_StatusCode = statusCode;
 }

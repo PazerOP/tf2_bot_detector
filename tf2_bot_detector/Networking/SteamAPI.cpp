@@ -29,6 +29,7 @@ namespace
 		URL m_RequestURL;
 		std::string m_Response;
 	};
+
 	static mh::thread_pool<SteamAPITask> s_SteamAPIThreadPool(2);
 	static std::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, const URL& url)
 	{
@@ -302,7 +303,27 @@ std::future<TF2PlaytimeResult> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 	auto data = SteamAPIGET(client, url);
 	return std::async([data, steamID]() -> TF2PlaytimeResult
 		{
-			const auto json = nlohmann::json::parse(data.get().m_Response);
+			std::string responseString;
+			try
+			{
+				responseString = data.get().m_Response;
+			}
+			catch (const std::exception& e)
+			{
+				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to get response string", e);
+				return std::make_error_condition(ErrorCode::GenericHttpError);
+			}
+
+			nlohmann::json json;
+			try
+			{
+				json = nlohmann::json::parse(responseString);
+			}
+			catch (const std::exception& e)
+			{
+				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse response json", e);
+				return std::make_error_condition(ErrorCode::JSONParseError);
+			}
 
 			auto& response = json.at("response");
 			if (!response.contains("game_count"))
