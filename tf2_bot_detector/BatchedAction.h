@@ -65,14 +65,23 @@ namespace tf2_bot_detector
 				std::lock_guard lock(m_Mutex);
 				try
 				{
-					OnDataReady(m_State, m_ResponseFuture.get(), m_Queued);
-					m_ResponseFuture = {};
+					const auto& response = m_ResponseFuture.get();
+
+					try
+					{
+						OnDataReady(m_State, response, m_Queued);
+					}
+					catch (const std::exception& e)
+					{
+						LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to process batched action", e);
+					}
 				}
 				catch (const std::exception& e)
 				{
-					LogError(""s << __FUNCTION__ << " Failed to process batched action: "
-						<< typeid(e).name() << ": " << e.what());
+					LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to get batched action future", e);
 				}
+
+				m_ResponseFuture = {};
 			}
 		}
 
