@@ -262,6 +262,16 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "Glue",
+				"time": 1597540769
+			},
+			"steamid": "[U:1:128368967]"
+		},
+		{
+			"attributes": [
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "Aegean Honey Badger",
 				"time": 1592189072
 			},
@@ -4874,6 +4884,16 @@
 				"time": 1596862751
 			},
 			"steamid": "[U:1:1120302513]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "shasta bot",
+				"time": 1597546241
+			},
+			"steamid": "[U:1:1122264462]"
 		}
 	]
 }
