@@ -66,7 +66,7 @@
 <!-- GETTING STARTED -->
 ## Getting Started
 
-These instructions will give a quick overview of getting started with TF2BD. There is also a video by CrazyGunman#6724 [here][install-video].
+These instructions will give a quick overview of getting started with TF2BD. There is also a (very slightly out of date, but still useable) video by CrazyGunman#6724 [here][install-video].
 
 ### Prerequisites
 
@@ -76,10 +76,9 @@ This program requires [Microsoft Visual C++ Redistributable for Visual Studio 20
 
 ### Installation
 
-1. Go to the [releases page][releases-link]
-2. Download the zip
-   ![zip image][zip-image]
-3. Extract the zip in any location outside of your tf directory
+1. Download and install the [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
+2. Download the [latest release][latest-64] ([32bit version][latest-86])
+3. Extract the zip in any location inside of your user folder (e.g. Downloads, Documents)
 
 ### How to use
 
@@ -109,7 +108,7 @@ It monitors the console output (saved to a log file) to get information about th
 
 ### How is the list of known cheaters curated?
 
-The official list that is included with the program is maintained by Pazer exclusively. No user submissions are accepted at this time and it is unlikely that they will be in the future. While this approach this may seem limiting, it is to avoid false positives and to maintain the integrity of the project as a whole. There are some community player lists that can be added to your own detector. These are not maintained by Pazer. For more information go [here][wiki-customization-link].
+The official list that is included with the program is maintained by Pazer exclusively. No user submissions are accepted at this time and it is unlikely that they will be in the future. While this approach this may seem limiting, it is to avoid false positives and to maintain the integrity of the project as a whole. There are some community player lists that can be added to your own detector. These are not maintained by Pazer. For more information on installing community lists go [here][wiki-customization-link].
 
 ### I don't like how the tool spams chat. Can I change that?
 
@@ -129,7 +128,7 @@ This project does not advocate for the use of cheating in any fashion. Putting a
 
 ### I have a question that is not listed here!
 
-Take a look at the [wiki][wiki-link]. There is not a ton there but that will be the location of all future documentation. If you can't find your answer there, stop by the [discord][discord-link].
+Take a look at the [wiki][wiki-link]. There is not a ton there right now but that will be the location of all future documentation. If you can't find your answer there, stop by the [discord][discord-link].
 
 <!-- LICENSE -->
 ## License
@@ -176,6 +175,8 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [wiki-link]: https://github.com/PazerOP/tf2_bot_detector/wiki
 [issues-link]: https://github.com/PazerOP/tf2_bot_detector/issues
 [releases-link]: https://github.com/PazerOP/tf2_bot_detector/releases
+[latest-64]: https://pazerop.github.io/tf2_bot_detector/releases_redirect/?cpu=x64
+[latest-86]: https://pazerop.github.io/tf2_bot_detector/releases_redirect/?cpu=x86
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
 [mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
