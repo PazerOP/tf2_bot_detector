@@ -9,8 +9,8 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-![Build Status][build-shield]
-
+[![Build Status][build-shield]][actions-build-url]
+[![Discord Status][discord-shield]][discord-link]
 
 
 <!-- PROJECT LOGO -->
@@ -51,34 +51,39 @@
   - [What does it do?](#what-does-it-do)
   - [Will this get me VAC banned?](#will-this-get-me-vac-banned)
   - [How does it work?](#how-does-it-work)
-  - [Sometimes I get these popups!](#sometimes-i-get-these-popups)
+  - [How is the list of known cheaters curated?](#how-is-the-list-of-known-cheaters-curated)
+  - [I don't like how the tool spams chat. Can I change that?](#i-dont-like-how-the-tool-spams-chat-can-i-change-that)
+  - [I downloaded the tool but I don't see an executable. What did I do wrong?](#i-downloaded-the-tool-but-i-dont-see-an-executable-what-did-i-do-wrong)
+  - [Help! The tool wont open!](#help-the-tool-wont-open)
+  - [What do you think of using aimbot/cathook/esp/cheats against the bots?](#what-do-you-think-of-using-aimbotcathookespcheats-against-the-bots)
+  - [I have a question that is not listed here!](#i-have-a-question-that-is-not-listed-here)
 - [License](#license)
 - [Contact](#contact)
 - [Acknowledgements](#acknowledgements)
+  - [Sponsors](#sponsors)
 
 
 <!-- GETTING STARTED -->
 ## Getting Started
 
-These instructions will give a quick overview of getting started with TF2BD.
+These instructions will give a quick overview of getting started with TF2BD. There is also a (very slightly out of date, but still useable) video by CrazyGunman#6724 [here][install-video].
 
 ### Prerequisites
 
-This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
+>A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
+
+This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] ([32bit version available here][mscr86-link])
 
 ### Installation
 
->A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
-
-1. Go to the [releases page][releases-link]
-2. Download the zip
-   ![zip image][zip-image]
-3. Extract the zip in any location outside of your tf directory
+1. Download and install the [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
+2. Download the [latest release][latest-64] ([32bit version][latest-86])
+3. Extract the zip in any location inside of your user folder (e.g. Downloads, Documents)
 
 ### How to use
 
 1. Run tf2_bot_detector.exe before TF2
-2. On first run it will ask you if you would like to allow internet connectivity and if you would like to be notified of future updates. Both are heavily recommended
+2. On first run it will ask you if you would like to allow internet connectivity and if you would like to be notified of future updates. Both are highly recommended
 
 >Note: The tool should automatically determine your steamID and tf2 directory. If for whatever reason they are not detected correctly you can override the generated values in the settings menu
 
@@ -91,22 +96,39 @@ Currently the program does not self update. You can update the program by extrac
 
 ### What does it do?
 
-If a cheater is on your team, calls a votekick against them. If a known cheater is on the other team, sends a chat message telling the other team to kick their cheater.
+TF2 Bot Detector calls a votekick against bots (and select human cheaters) on your team. If they are on the other team, sends a chat message telling the other team to kick their cheater.
 
 ### Will this get me VAC banned?
 
-No. It does not modify the game or OS memory in any way. It is only using built-in functionality in the engine, exactly the way it was intended. Anecdotally, myself and several other friends have been using it for several weeks with no issues.
+No. It does not modify the game or OS memory in any way. It is only using built-in functionality in the engine, exactly the way it was intended. Anecdotally, many users have been using this tool for a few months now without issue.
 
 ### How does it work?
 
-It monitors the console output (saved to a log file) to get information about the game state. Invoking commands in the game is done via the `-hijack` command line paramter. Getting players in the current game is done via the `tf_lobby_debug` and `status` commands. Cheaters are identified by their behavior and/or their Steam ID.
+It monitors the console output (saved to a log file) to get information about the game state. Invoking commands in the game is done via passing rcon commands to your client. Getting players in the current game is done via the `tf_lobby_debug` and `status` commands. Cheaters are identified by some rules but primarily by comparing players steamIDs against a list of known cheaters.
 
-### Sometimes I get these popups!
+### How is the list of known cheaters curated?
 
-![src_engine_declined_request](https://user-images.githubusercontent.com/6569500/83913792-dc01fb00-a724-11ea-83c4-7b5aab364611.png)
-![src_engine_not_running](https://user-images.githubusercontent.com/6569500/83913866-fc31ba00-a724-11ea-914c-5b36c9188d8c.png)
+The official list that is included with the program is maintained by Pazer exclusively. No user submissions are accepted at this time and it is unlikely that they will be in the future. While this approach this may seem limiting, it is to avoid false positives and to maintain the integrity of the project as a whole. There are some community player lists that can be added to your own detector. These are not maintained by Pazer. For more information on installing community lists go [here][wiki-customization-link].
 
-Ignore these. They will automatically close after 5 seconds. A fix to prevent these popups entirely will happen in an upcoming release.
+### I don't like how the tool spams chat. Can I change that?
+
+You can turn off chat warnings by unchecking the checkbox labeled "Enable Chat Warnings." By default if there are multiple tool users in the same server a "Bot Leader" is chosen and only their tool will send messages. There is no other way to customize chat messages outside of editing the code yourself.
+
+### I downloaded the tool but I don't see an executable. What did I do wrong?
+
+You likely downloaded the source code instead of the actual tool. Make sure you are downloading one of the .ZIPs that is not labeled "Source Code." There are two of them, one labeled with an x86 and one with an x64. If you don't know which one you want, you almost certainly want the one with the x64. For further instructions go [here][wiki-installation-link].
+
+### Help! The tool wont open!
+
+Make sure you have [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] installed. If you just installed it make to to restart your computer after to finish the installation. For further assistance either open an [issue][issues-url] on github or join our [discord][discord-link] for faster, community based support.
+
+### What do you think of using aimbot/cathook/esp/cheats against the bots?
+
+This project does not advocate for the use of cheating in any fashion. Putting aside the obvious moral issues with using cheats, that would introduce the possibility of a VAC ban. This project is committed to maintaining the safety of its users.
+
+### I have a question that is not listed here!
+
+Take a look at the [wiki][wiki-link]. There is not a ton there right now but that will be the location of all future documentation. If you can't find your answer there, stop by the [discord][discord-link].
 
 <!-- LICENSE -->
 ## License
@@ -125,6 +147,19 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 * Artwork/icon by S-Purple - [@spurpleheart](https://twitter.com/spurpleheart) (NSFW)
 * Documentation by [Nicholas "ClusterConsultant" Flamel](https://github.com/ClusterConsultant)
 
+### Sponsors
+Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-sponsors-pazerop]:
+<!--$10-->
+* [Crazy Gunman](https://github.com/CrazyGunman2C4U)
+* [camp3r101](https://github.com/camp3r101)
+* [bgausden](https://github.com/bgausden)
+* [kajutzu](https://github.com/flohdieter)
+* [minecraftpro123](https://github.com/Claxtian)
+<!--$5-->
+* [ClusterConsultant](https://github.com/ClusterConsultant)
+* [KTachibanaM](https://github.com/KTachibanaM)
+* [Admiral Bread Crumbs](https://github.com/AdmiralBreadCrumbs)
+
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [stars-shield]: https://img.shields.io/github/stars/PazerOP/tf2_bot_detector
@@ -133,11 +168,20 @@ Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 [issues-url]: https://github.com/PazerOP/tf2_bot_detector/issues
 [license-shield]: https://img.shields.io/github/license/PazerOP/tf2_bot_detector
 [license-url]: https://github.com/PazerOP/tf2_bot_detector/blob/master/LICENSE
+[actions-build-url]: https://github.com/PazerOP/tf2_bot_detector/actions?query=workflow%3Abuild
 [build-shield]: https://github.com/PazerOP/tf2_bot_detector/workflows/build/badge.svg
+[discord-shield]: https://img.shields.io/discord/716525494421553243?label=discord&logo=discord
 [repo-link]: https://github.com/PazerOP/tf2_bot_detector
 [wiki-link]: https://github.com/PazerOP/tf2_bot_detector/wiki
 [issues-link]: https://github.com/PazerOP/tf2_bot_detector/issues
 [releases-link]: https://github.com/PazerOP/tf2_bot_detector/releases
+[latest-64]: https://pazerop.github.io/tf2_bot_detector/releases_redirect/?cpu=x64
+[latest-86]: https://pazerop.github.io/tf2_bot_detector/releases_redirect/?cpu=x86
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
-[zip-image]: https://user-images.githubusercontent.com/6569500/85929969-8de89f00-b86d-11ea-859e-2632a1034ea7.png
+[mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
+[zip-image]: https://i.imgur.com/ZeCuUul.png
+[github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
+[wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists
+[wiki-installation-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Getting-Started
+[install-video]: https://www.youtube.com/watch?v=MbFDUmsUakQ
