@@ -36,19 +36,7 @@ namespace
 		auto clientPtr = client.shared_from_this();
 		return s_SteamAPIThreadPool.add_task([clientPtr, url]() -> SteamAPITask
 			{
-				static const std::regex s_Regex(R"regex([?&]key=([0-9a-fA-F]*))regex", std::regex::optimize);
-				{
-					auto urlCopy = url;
-					if (std::smatch result; std::regex_search(urlCopy.m_Path, result, s_Regex))
-					{
-						const size_t startPos = result[1].first - urlCopy.m_Path.begin();
-						const auto length = result[1].length();
-						urlCopy.m_Path.erase(startPos, length);
-						urlCopy.m_Path.insert(startPos, mh::fmtstr<64>("<KEY:{}>", length));
-					}
-
-					DebugLog("[SteamAPI] HTTP GET "s << urlCopy);
-				}
+				DebugLog("[SteamAPI] HTTP GET "s << url);
 
 				SteamAPITask retVal;
 				retVal.m_RequestURL = url;

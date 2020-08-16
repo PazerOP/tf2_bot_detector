@@ -42,10 +42,10 @@ void WorldState::Update()
 void WorldState::UpdateFriends()
 {
 	if (auto client = m_Settings->GetHTTPClient();
-		client && !m_Settings->m_SteamAPIKey.empty() && (clock_t::now() - 5min) > m_LastFriendsUpdate)
+		client && !m_Settings->GetSteamAPIKey().empty() && (clock_t::now() - 5min) > m_LastFriendsUpdate)
 	{
 		m_LastFriendsUpdate = clock_t::now();
-		m_FriendsFuture = SteamAPI::GetFriendList(m_Settings->m_SteamAPIKey, m_Settings->GetLocalSteamID(), *client);
+		m_FriendsFuture = SteamAPI::GetFriendList(m_Settings->GetSteamAPIKey(), m_Settings->GetLocalSteamID(), *client);
 	}
 
 	if (mh::is_future_ready(m_FriendsFuture))
@@ -719,13 +719,13 @@ const SteamAPI::TF2PlaytimeResult* WorldState::PlayerExtraData::GetTF2Playtime()
 {
 	if (!m_TF2PlaytimeFetched)
 	{
-		if (!m_World->m_Settings->m_SteamAPIKey.empty())
+		if (!m_World->m_Settings->GetSteamAPIKey().empty())
 		{
 			if (auto client = m_World->m_Settings->GetHTTPClient())
 			{
 				m_TF2PlaytimeFetched = true;
 				m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(
-					m_World->m_Settings->m_SteamAPIKey, GetSteamID(), *client);
+					m_World->m_Settings->GetSteamAPIKey(), GetSteamID(), *client);
 			}
 		}
 	}
@@ -814,13 +814,13 @@ auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 	if (!client)
 		return {};
 
-	if (state->m_Settings->m_SteamAPIKey.empty())
+	if (state->m_Settings->GetSteamAPIKey().empty())
 		return {};
 
 	std::vector<SteamID> steamIDs = Take100(collection);
 
 	return SteamAPI::GetPlayerSummariesAsync(
-		state->m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
+		state->m_Settings->GetSteamAPIKey(), std::move(steamIDs), *client);
 }
 
 void WorldState::PlayerSummaryUpdateAction::OnDataReady(WorldState*& state,
@@ -841,12 +841,12 @@ auto WorldState::PlayerBansUpdateAction::SendRequest(state_type& state,
 	if (!client)
 		return {};
 
-	if (state->m_Settings->m_SteamAPIKey.empty())
+	if (state->m_Settings->GetSteamAPIKey().empty())
 		return {};
 
 	std::vector<SteamID> steamIDs = Take100(collection);
 	return SteamAPI::GetPlayerBansAsync(
-		state->m_Settings->m_SteamAPIKey, std::move(steamIDs), *client);
+		state->m_Settings->GetSteamAPIKey(), std::move(steamIDs), *client);
 }
 
 void WorldState::PlayerBansUpdateAction::OnDataReady(state_type& state,

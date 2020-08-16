@@ -131,6 +131,12 @@ namespace tf2_bot_detector
 	}
 }
 
+void GeneralSettings::SetSteamAPIKey(std::string key)
+{
+	ILogManager::GetInstance().AddSecret(key, mh::format("<STEAM_API_KEY:{}>", key.size()));
+	m_SteamAPIKey = std::move(key);
+}
+
 void tf2_bot_detector::to_json(nlohmann::json& j, const ProgramUpdateCheckMode& d)
 {
 	switch (d)
@@ -202,14 +208,13 @@ void Settings::LoadFile()
 
 	if (auto found = json.find("general"); found != json.end())
 	{
-		constexpr GeneralSettings DEFAULTS;
+		static const GeneralSettings DEFAULTS;
 
 		try_get_to_defaulted(*found, m_LocalSteamIDOverride, "local_steamid_override");
 		try_get_to_defaulted(*found, m_SleepWhenUnfocused, "sleep_when_unfocused");
 		try_get_to_defaulted(*found, m_AutoTempMute, "auto_temp_mute", DEFAULTS.m_AutoTempMute);
 		try_get_to_defaulted(*found, m_AllowInternetUsage, "allow_internet_usage");
 		try_get_to_defaulted(*found, m_ProgramUpdateCheckMode, "program_update_check_mode", DEFAULTS.m_ProgramUpdateCheckMode);
-		try_get_to_defaulted(*found, m_SteamAPIKey, "steam_api_key");
 		try_get_to_defaulted(*found, m_AutoLaunchTF2, "auto_launch_tf2", DEFAULTS.m_AutoLaunchTF2);
 		try_get_to_defaulted(*found, m_AutoChatWarnings, "auto_chat_warnings", DEFAULTS.m_AutoChatWarnings);
 		try_get_to_defaulted(*found, m_AutoChatWarningsConnecting, "auto_chat_warnings_connecting", DEFAULTS.m_AutoChatWarningsConnecting);
@@ -217,6 +222,12 @@ void Settings::LoadFile()
 		try_get_to_defaulted(*found, m_AutoVotekickDelay, "auto_votekick_delay", DEFAULTS.m_AutoVotekickDelay);
 		try_get_to_defaulted(*found, m_AutoMark, "auto_mark", DEFAULTS.m_AutoMark);
 		try_get_to_defaulted(*found, m_LazyLoadAPIData, "lazy_load_api_data", DEFAULTS.m_LazyLoadAPIData);
+
+		{
+			std::string apiKey;
+			try_get_to_defaulted(*found, apiKey, "steam_api_key");
+			SetSteamAPIKey(std::move(apiKey));
+		}
 
 		if (auto foundDir = found->find("steam_dir_override"); foundDir != found->end())
 			m_SteamDirOverride = foundDir->get<std::string_view>();
@@ -248,7 +259,7 @@ bool Settings::SaveFile() const
 				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
 				{ "auto_temp_mute", m_AutoTempMute },
 				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
-				{ "steam_api_key", m_SteamAPIKey },
+				{ "steam_api_key", GetSteamAPIKey() },
 				{ "auto_launch_tf2", m_AutoLaunchTF2 },
 				{ "auto_chat_warnings", m_AutoChatWarnings },
 				{ "auto_chat_warnings_connecting", m_AutoChatWarningsConnecting },

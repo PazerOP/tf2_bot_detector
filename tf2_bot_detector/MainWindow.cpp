@@ -42,7 +42,6 @@ MainWindow::MainWindow() :
 {
 	m_TextureManager = CreateTextureManager();
 
-
 	ILogManager::GetInstance().CleanupLogFiles();
 
 	m_WorldState.AddConsoleLineListener(this);
@@ -964,10 +963,10 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
 				{
 					ImGui::NewLine();
-					if (std::string key = m_Settings.m_SteamAPIKey;
+					if (std::string key = m_Settings.GetSteamAPIKey();
 						InputTextSteamAPIKey("Steam API Key", key, true))
 					{
-						m_Settings.m_SteamAPIKey = key;
+						m_Settings.SetSteamAPIKey(key);
 						m_Settings.SaveFile();
 					}
 					ImGui::NewLine();

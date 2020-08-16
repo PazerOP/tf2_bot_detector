@@ -67,6 +67,12 @@ namespace tf2_bot_detector
 		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
 
 		constexpr auto GetAutoVotekickDelay() const { return std::chrono::duration<float>(m_AutoVotekickDelay); }
+
+		const std::string& GetSteamAPIKey() const { return m_SteamAPIKey; }
+		void SetSteamAPIKey(std::string key);
+
+	private:
+		std::string m_SteamAPIKey;
 	};
 
 	class Settings final : public AutoDetectedSettings, public GeneralSettings
@@ -90,8 +96,6 @@ namespace tf2_bot_detector
 			std::unique_ptr<srcon::async_client> m_RCONClient;
 
 		} m_Unsaved;
-
-		std::string m_SteamAPIKey;
 
 		std::optional<bool> m_AllowInternetUsage;
 		const HTTPClient* GetHTTPClient() const;

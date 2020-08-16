@@ -4,6 +4,7 @@
 #include <imgui.h>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <mh/text/stringops.hpp>
 
 #include <deque>
 #include <filesystem>
@@ -32,7 +33,7 @@ namespace
 		LogManager& operator=(const LogManager&) = delete;
 
 		void Log(std::string msg, const LogMessageColor& color = {}, time_point_t timestamp = clock_t::now()) override;
-		void LogToStream(const std::string_view& msg, std::ostream& output, time_point_t timestamp = clock_t::now()) const;
+		void LogToStream(std::string msg, std::ostream& output, time_point_t timestamp = clock_t::now(), bool skipScrub = false) const;
 
 		const std::filesystem::path& GetFileName() const override { return m_FileName; }
 		cppcoro::generator<const LogMessage&> GetVisibleMsgs() const override;
@@ -44,12 +45,22 @@ namespace
 
 		void CleanupLogFiles() override;
 
+		void AddSecret(std::string value, std::string replace) override;
+
 	private:
 		std::filesystem::path m_FileName;
 		std::ofstream m_File;
 		mutable std::recursive_mutex m_LogMutex;
 		std::deque<LogMessage> m_LogMessages;
 		size_t m_VisibleLogMessagesStart = 0;
+
+		struct Secret
+		{
+			std::string m_Value;
+			std::string m_Replacement;
+		};
+		std::vector<Secret> m_Secrets;
+		void ReplaceSecrets(std::string& str) const;
 
 		static constexpr size_t MAX_LOG_MESSAGES = 500;
 
@@ -120,9 +131,12 @@ LogManager::LogManager()
 	}
 }
 
-void LogManager::LogToStream(const std::string_view& msg, std::ostream& output, time_point_t timestamp) const
+void LogManager::LogToStream(std::string msg, std::ostream& output, time_point_t timestamp, bool skipScrub) const
 {
 	std::lock_guard lock(m_LogMutex);
+
+	if (!skipScrub)
+		ReplaceSecrets(msg);
 
 	tm t = ToTM(timestamp);
 	const auto WriteToStream = [&](std::ostream& str)
@@ -142,13 +156,52 @@ void LogManager::LogToStream(const std::string_view& msg, std::ostream& output, 
 void LogManager::Log(std::string msg, const LogMessageColor& color, time_point_t timestamp)
 {
 	std::lock_guard lock(m_LogMutex);
-	LogToStream(msg, m_File, timestamp);
+
+	ReplaceSecrets(msg);
+	LogToStream(msg, m_File, timestamp, true);
 	m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 
 	if (m_LogMessages.size() > MAX_LOG_MESSAGES)
 	{
 		m_LogMessages.erase(m_LogMessages.begin(),
 			std::next(m_LogMessages.begin(), m_LogMessages.size() - MAX_LOG_MESSAGES));
+	}
+}
+
+void LogManager::AddSecret(std::string value, std::string replace)
+{
+	if (value.empty())
+		return;
+
+	std::lock_guard lock(m_LogMutex);
+	for (auto& scrubbed : m_Secrets)
+	{
+		if (scrubbed.m_Value == value)
+		{
+			scrubbed.m_Replacement = std::move(replace);
+			return;
+		}
+	}
+
+	m_Secrets.push_back(Secret
+		{
+			.m_Value = std::move(value),
+			.m_Replacement = std::move(replace)
+		});
+}
+
+void LogManager::ReplaceSecrets(std::string& msg) const
+{
+	std::lock_guard lock(m_LogMutex);
+	for (const auto& scrubbed : m_Secrets)
+	{
+		size_t index = msg.find(scrubbed.m_Value);
+		while (index != msg.npos)
+		{
+			msg.erase(index, scrubbed.m_Value.size());
+			msg.insert(index, scrubbed.m_Replacement);
+			index = msg.find(scrubbed.m_Value, index + scrubbed.m_Replacement.size());
+		}
 	}
 }
 
