@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
-project(tf2_bot_detector VERSION 1.1.0.8)
+project(tf2_bot_detector VERSION 1.1.0.9)
 
 include(GenerateExportHeader)
 
@@ -150,9 +150,9 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/TextureManager.h"
 	"tf2_bot_detector/TextureManager.cpp"
 	"tf2_bot_detector/TFConstants.h"
+	"tf2_bot_detector/Version.h"
 	"tf2_bot_detector/WorldState.cpp"
 	"tf2_bot_detector/WorldState.h"
-	"tf2_bot_detector/Version.h"
 )
 
 configure_file(tf2_bot_detector/Version.base.h tf2_bot_detector/Version.h)
