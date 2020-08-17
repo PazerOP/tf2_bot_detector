@@ -2,7 +2,6 @@
 
 #include "Clock.h"
 
-#include <functional>
 #include <list>
 #include <memory>
 #include <string_view>

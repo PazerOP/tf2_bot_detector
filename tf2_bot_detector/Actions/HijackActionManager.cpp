@@ -1,6 +1,5 @@
 #ifdef _WIN32
 #include "HijackActionManager.h"
-#include "Actions.h"
 #include "ICommandSource.h"
 #include "Log.h"
 #include "Config/Settings.h"
