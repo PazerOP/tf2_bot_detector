@@ -36,7 +36,7 @@ using namespace std::string_view_literals;
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, ("TF2 Bot Detector v"s << VERSION).c_str()),
 	m_WorldState(m_Settings),
-	m_ActionManager(m_Settings, m_WorldState),
+	m_ActionManager(IRCONActionManager::Create(m_Settings, m_WorldState)),
 	m_TextureManager(CreateTextureManager()),
 	m_BaseTextures(IBaseTextures::Create(*m_TextureManager))
 {
@@ -76,9 +76,9 @@ MainWindow::MainWindow() :
 
 	m_OpenTime = clock_t::now();
 
-	m_ActionManager.AddPeriodicActionGenerator<StatusUpdateActionGenerator>();
-	m_ActionManager.AddPeriodicActionGenerator<ConfigActionGenerator>();
-	m_ActionManager.AddPeriodicActionGenerator<LobbyDebugActionGenerator>();
+	GetActionManager().AddPeriodicActionGenerator<StatusUpdateActionGenerator>();
+	GetActionManager().AddPeriodicActionGenerator<ConfigActionGenerator>();
+	GetActionManager().AddPeriodicActionGenerator<LobbyDebugActionGenerator>();
 	//m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 }
 
@@ -1570,7 +1570,7 @@ void MainWindow::OnUpdate()
 		m_MainState->OnUpdateDiscord();
 	}
 
-	m_ActionManager.Update();
+	GetActionManager().Update();
 }
 
 void MainWindow::OnConsoleLogChunkParsed(WorldState& world, bool consoleLinesUpdated)
@@ -1806,7 +1806,7 @@ std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
 
 MainWindow::PostSetupFlowState::PostSetupFlowState(MainWindow& window) :
 	m_Parent(&window),
-	m_ModeratorLogic(IModeratorLogic::Create(window.m_WorldState, window.m_Settings, window.m_ActionManager)),
+	m_ModeratorLogic(IModeratorLogic::Create(window.m_WorldState, window.m_Settings, window.GetActionManager())),
 	m_SponsorsList(window.m_Settings),
 	m_Parser(window.m_WorldState, window.m_Settings, window.m_Settings.GetTFDir() / "console.log")
 {

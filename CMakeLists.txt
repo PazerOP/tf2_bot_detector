@@ -67,6 +67,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/Actions/Actions.h"
 	"tf2_bot_detector/Actions/HijackActionManager.h"
 	"tf2_bot_detector/Actions/HijackActionManager.cpp"
+	"tf2_bot_detector/Actions/IActionManager.h"
 	"tf2_bot_detector/Actions/ICommandSource.h"
 	"tf2_bot_detector/Config/ConfigHelpers.cpp"
 	"tf2_bot_detector/Config/ConfigHelpers.h"

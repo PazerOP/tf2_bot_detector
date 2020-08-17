@@ -2,10 +2,7 @@
 
 namespace tf2_bot_detector
 {
-	class RCONActionManager;
-#ifdef _WIN32
-	class HijackActionManager;
-#endif
+	class IActionManager;
 	class Settings;
 
 	class ISetupFlowPage
@@ -26,10 +23,7 @@ namespace tf2_bot_detector
 
 		struct DrawState
 		{
-#ifdef _WIN32
-			HijackActionManager* m_HijackActionManager = nullptr;
-#endif
-			RCONActionManager* m_ActionManager = nullptr;
+			IActionManager* m_ActionManager = nullptr;
 			Settings* m_Settings = nullptr;
 		};
 

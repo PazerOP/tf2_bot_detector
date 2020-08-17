@@ -152,12 +152,12 @@ namespace tf2_bot_detector
 		SetupFlow m_SetupFlow;
 
 		WorldState m_WorldState;
-		RCONActionManager m_ActionManager;
+		std::unique_ptr<IRCONActionManager> m_ActionManager;
 
 		WorldState& GetWorld() { return m_WorldState; }
 		const WorldState& GetWorld() const { return m_WorldState; }
-		RCONActionManager& GetActionManager() { return m_ActionManager; }
-		const RCONActionManager& GetActionManager() const { return m_ActionManager; }
+		IRCONActionManager& GetActionManager() { return *m_ActionManager; }
+		const IRCONActionManager& GetActionManager() const { return *m_ActionManager; }
 
 		struct PostSetupFlowState
 		{

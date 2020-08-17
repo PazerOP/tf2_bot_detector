@@ -1,7 +1,7 @@
 #include "ActionGenerators.h"
 #include "Actions.h"
+#include "IActionManager.h"
 #include "Log.h"
-#include "RCONActionManager.h"
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
@@ -11,7 +11,7 @@ duration_t StatusUpdateActionGenerator::GetInterval() const
 	return 3s;
 }
 
-bool StatusUpdateActionGenerator::ExecuteImpl(RCONActionManager& manager)
+bool StatusUpdateActionGenerator::ExecuteImpl(IActionManager& manager)
 {
 	// 3 second interval, we want:
 	//   1. status
@@ -45,7 +45,7 @@ duration_t ConfigActionGenerator::GetInterval() const
 	return 10s;
 }
 
-bool ConfigActionGenerator::ExecuteImpl(RCONActionManager& manager)
+bool ConfigActionGenerator::ExecuteImpl(IActionManager& manager)
 {
 	if (!manager.QueueAction<GenericCommandAction>("con_logfile", "console.log"))
 		return false;
@@ -60,7 +60,7 @@ bool ConfigActionGenerator::ExecuteImpl(RCONActionManager& manager)
 	return true;
 }
 
-bool IPeriodicActionGenerator::Execute(RCONActionManager& manager)
+bool IPeriodicActionGenerator::Execute(IActionManager& manager)
 {
 	const auto curTime = clock_t::now();
 	const auto interval = GetInterval();
@@ -87,7 +87,7 @@ bool IPeriodicActionGenerator::Execute(RCONActionManager& manager)
 	return true;
 }
 
-bool LobbyDebugActionGenerator::ExecuteImpl(RCONActionManager& manager)
+bool LobbyDebugActionGenerator::ExecuteImpl(IActionManager& manager)
 {
 	if (!manager.QueueAction<GenericCommandAction>("tf_lobby_debug"))
 		return false;

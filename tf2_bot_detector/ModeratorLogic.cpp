@@ -31,7 +31,7 @@ namespace
 	class ModeratorLogic final : public IModeratorLogic, IConsoleLineListener, BaseWorldEventListener
 	{
 	public:
-		ModeratorLogic(WorldState& world, const Settings& settings, RCONActionManager& actionManager);
+		ModeratorLogic(WorldState& world, const Settings& settings, IRCONActionManager& actionManager);
 
 		void Update() override;
 
@@ -74,7 +74,7 @@ namespace
 	private:
 		WorldState* m_World = nullptr;
 		const Settings* m_Settings = nullptr;
-		RCONActionManager* m_ActionManager = nullptr;
+		IRCONActionManager* m_ActionManager = nullptr;
 
 		struct PlayerExtraData
 		{
@@ -130,7 +130,7 @@ namespace
 }
 
 std::unique_ptr<IModeratorLogic> IModeratorLogic::Create(WorldState& world,
-	const Settings& settings, RCONActionManager& actionManager)
+	const Settings& settings, IRCONActionManager& actionManager)
 {
 	return std::make_unique<ModeratorLogic>(world, settings, actionManager);
 }
@@ -690,7 +690,7 @@ void ModeratorLogic::ReloadConfigFiles()
 	m_Rules.LoadFiles();
 }
 
-ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, RCONActionManager& actionManager) :
+ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, IRCONActionManager& actionManager) :
 	m_World(&world),
 	m_Settings(&settings),
 	m_ActionManager(&actionManager),

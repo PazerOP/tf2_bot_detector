@@ -5,14 +5,14 @@
 namespace tf2_bot_detector
 {
 	class IAction;
-	class RCONActionManager;
+	class IActionManager;
 
 	class IActionGenerator
 	{
 	public:
 		virtual ~IActionGenerator() = default;
 
-		virtual bool Execute(RCONActionManager& manager) = 0;
+		virtual bool Execute(IActionManager& manager) = 0;
 	};
 
 	class IPeriodicActionGenerator : public IActionGenerator
@@ -23,10 +23,10 @@ namespace tf2_bot_detector
 		virtual duration_t GetInterval() const = 0;
 		virtual duration_t GetInitialDelay() const { return {}; }
 
-		bool Execute(RCONActionManager& manager) override final;
+		bool Execute(IActionManager& manager) override final;
 
 	protected:
-		[[nodiscard]] virtual bool ExecuteImpl(RCONActionManager& manager) = 0;
+		[[nodiscard]] virtual bool ExecuteImpl(IActionManager& manager) = 0;
 
 	private:
 		time_point_t m_LastRunTime{};
@@ -38,7 +38,7 @@ namespace tf2_bot_detector
 		duration_t GetInterval() const override;
 
 	protected:
-		bool ExecuteImpl(RCONActionManager& manager) override;
+		bool ExecuteImpl(IActionManager& manager) override;
 
 	private:
 		bool m_NextShort = false;
@@ -51,7 +51,7 @@ namespace tf2_bot_detector
 		duration_t GetInterval() const override;
 
 	protected:
-		bool ExecuteImpl(RCONActionManager& manager) override;
+		bool ExecuteImpl(IActionManager& manager) override;
 	};
 
 	class LobbyDebugActionGenerator final : public IPeriodicActionGenerator
@@ -60,6 +60,6 @@ namespace tf2_bot_detector
 		duration_t GetInterval() const override { return std::chrono::seconds(1); }
 
 	protected:
-		bool ExecuteImpl(RCONActionManager& manager) override;
+		bool ExecuteImpl(IActionManager& manager) override;
 	};
 }
