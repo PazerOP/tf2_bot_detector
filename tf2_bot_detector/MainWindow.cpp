@@ -1565,7 +1565,7 @@ void MainWindow::OnUpdate()
 			m_MainState.emplace(*this);
 
 		m_MainState->m_Parser.Update();
-		m_MainState->m_ModeratorLogic.Update();
+		GetModLogic().Update();
 
 		m_MainState->OnUpdateDiscord();
 	}
@@ -1806,7 +1806,7 @@ std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
 
 MainWindow::PostSetupFlowState::PostSetupFlowState(MainWindow& window) :
 	m_Parent(&window),
-	m_ModeratorLogic(window.m_WorldState, window.m_Settings, window.m_ActionManager),
+	m_ModeratorLogic(IModeratorLogic::Create(window.m_WorldState, window.m_Settings, window.m_ActionManager)),
 	m_SponsorsList(window.m_Settings),
 	m_Parser(window.m_WorldState, window.m_Settings, window.m_Settings.GetTFDir() / "console.log")
 {

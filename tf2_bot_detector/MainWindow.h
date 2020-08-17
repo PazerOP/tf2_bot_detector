@@ -164,7 +164,7 @@ namespace tf2_bot_detector
 			PostSetupFlowState(MainWindow& window);
 
 			MainWindow* m_Parent = nullptr;
-			ModeratorLogic m_ModeratorLogic;
+			std::unique_ptr<IModeratorLogic> m_ModeratorLogic;
 			SponsorsList m_SponsorsList;
 
 			ConsoleLogParser m_Parser;
@@ -179,8 +179,8 @@ namespace tf2_bot_detector
 		};
 		std::optional<PostSetupFlowState> m_MainState;
 
-		ModeratorLogic& GetModLogic() { return m_MainState.value().m_ModeratorLogic; }
-		const ModeratorLogic& GetModLogic() const { return m_MainState.value().m_ModeratorLogic; }
+		IModeratorLogic& GetModLogic() { return *m_MainState.value().m_ModeratorLogic; }
+		const IModeratorLogic& GetModLogic() const { return *m_MainState.value().m_ModeratorLogic; }
 		SponsorsList& GetSponsorsList() { return m_MainState.value().m_SponsorsList; }
 		const SponsorsList& GetSponsorsList() const { return m_MainState.value().m_SponsorsList; }
 
