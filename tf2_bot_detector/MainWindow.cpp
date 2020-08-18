@@ -1331,7 +1331,7 @@ void MainWindow::OnDraw()
 	}
 #endif
 
-	ImGui::Value("Blackslisted user count", GetModLogic().GetBlacklistedPlayerCount());
+	ImGui::Value("Blacklisted user count", GetModLogic().GetBlacklistedPlayerCount());
 	ImGui::Value("Rule count", GetModLogic().GetRuleCount());
 
 	if (m_MainState)
