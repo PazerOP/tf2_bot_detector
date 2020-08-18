@@ -234,7 +234,7 @@ bool TF2CommandLinePage::RCONClientData::Update()
 			m_Future = m_Client->send_command_async("echo RCON connection successful.", false);
 	}
 
-	ImGui::TextColoredUnformatted(m_MessageColor, m_Message);
+	ImGui::TextFmt(m_MessageColor, m_Message);
 
 	return m_Success;
 }
@@ -273,47 +273,47 @@ void TF2CommandLinePage::DrawCommandLineArgsInvalid(const DrawState& ds, const T
 
 	if (args.m_FullCommandLine.empty())
 	{
-		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Failed to get TF2 command line arguments.");
+		ImGui::TextFmt({ 1, 1, 0, 1 }, "Failed to get TF2 command line arguments.");
 		ImGui::NewLine();
-		ImGui::TextUnformatted("This might be caused by TF2 or Steam running as administrator. Remove any"
+		ImGui::TextFmt("This might be caused by TF2 or Steam running as administrator. Remove any"
 			" compatibility options that are causing TF2 or Steam to require administrator and try again.");
 	}
 	else
 	{
-		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Invalid TF2 command line arguments.");
+		ImGui::TextFmt({ 1, 1, 0, 1 }, "Invalid TF2 command line arguments.");
 		ImGui::NewLine();
-		ImGui::TextUnformatted("TF2 must be launched via TF2 Bot Detector. Please close it, then open it again with the button below.");
+		ImGui::TextFmt("TF2 must be launched via TF2 Bot Detector. Please close it, then open it again with the button below.");
 		ImGui::EnabledSwitch(false, [&] { DrawLaunchTF2Button(ds); }, "TF2 is currently running. Please close it first.");
 
 		ImGui::NewLine();
 
 		ImGuiDesktop::ScopeGuards::GlobalAlpha alpha(0.65f);
-		ImGui::TextUnformatted("Details:");
-		ImGui::TextUnformatted("- Instance:");
+		ImGui::TextFmt("Details:");
+		ImGui::TextFmt("- Instance:");
 		ImGui::SameLine();
-		ImGui::TextUnformatted(args.m_FullCommandLine);
+		ImGui::TextFmt(args.m_FullCommandLine);
 
 		ImGuiDesktop::ScopeGuards::Indent indent;
 
 		if (!args.m_UseRCON)
-			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unable to find \"-usercon\"");
+			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unable to find \"-usercon\"");
 		else
-			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "-usercon");
+			ImGui::TextFmt({ 0, 1, 0, 1 }, "-usercon");
 
 		if (args.m_IP.empty())
-			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unable to find \"+ip\"");
+			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unable to find \"+ip\"");
 		else
-			ImGui::TextColored({ 0, 1, 0, 1 }, "+ip %s", args.m_IP.c_str());
+			ImGui::TextFmt({ 0, 1, 0, 1 }, "+ip {}", args.m_IP);
 
 		if (args.m_RCONPassword.empty())
-			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unable to find \"+rcon_password\"");
+			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unable to find \"+rcon_password\"");
 		else
-			ImGui::TextColored({ 0, 1, 0, 1 }, "+rcon_password %s", args.m_RCONPassword.c_str());
+			ImGui::TextFmt({ 0, 1, 0, 1 }, "+rcon_password {}", args.m_RCONPassword);
 
 		if (!args.m_RCONPort.has_value())
-			ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "Unable to find \"+hostport\"");
+			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unable to find \"+hostport\"");
 		else
-			ImGui::TextColored({ 0, 1, 0, 1 }, "+hostport %u", args.m_RCONPort.value());
+			ImGui::TextFmt({ 0, 1, 0, 1 }, "+hostport {}", args.m_RCONPort.value());
 	}
 }
 
@@ -324,13 +324,13 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 	if (!m_Data.m_CommandLineArgs.has_value())
 	{
 		m_Data.m_TestRCONClient.reset();
-		ImGui::TextUnformatted("TF2 must be launched via TF2 Bot Detector. You can open it by clicking the button below.");
+		ImGui::TextFmt("TF2 must be launched via TF2 Bot Detector. You can open it by clicking the button below.");
 		DrawLaunchTF2Button(ds);
 	}
 	else if (m_Data.m_MultipleInstances)
 	{
 		m_Data.m_TestRCONClient.reset();
-		ImGui::TextUnformatted("More than one instance of hl2.exe found. Please close the other instances.");
+		ImGui::TextFmt("More than one instance of hl2.exe found. Please close the other instances.");
 
 		ImGui::EnabledSwitch(false, [&] { DrawLaunchTF2Button(ds); }, "TF2 is currently running. Please close it first.");
 	}

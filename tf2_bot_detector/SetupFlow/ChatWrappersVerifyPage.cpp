@@ -68,7 +68,7 @@ auto ChatWrappersVerifyPage::OnDraw(const DrawState& ds) -> OnDrawResult
 		}
 	}
 
-	ImGui::TextColoredUnformatted(m_MessageColor, m_Message);
+	ImGui::TextFmt(m_MessageColor, m_Message);
 
 	ImGui::NewLine();
 	if (AutoLaunchTF2Checkbox(ds.m_Settings->m_AutoLaunchTF2))

@@ -29,14 +29,14 @@ auto ChatWrappersGeneratorPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	{
 		if (m_WasInitiallyClosed)
 		{
-			ImGui::TextColoredUnformatted({ 1, 1, 0, 1 },
+			ImGui::TextFmt({ 1, 1, 0, 1 },
 				"TF2 was opened during chat wrapper generation. You must close TF2 before continuing.\n"
 				"\n"
 				"tl;dr: close tf2");
 		}
 		else
 		{
-			ImGui::TextColoredUnformatted({ 1, 1, 0, 1 },
+			ImGui::TextFmt({ 1, 1, 0, 1 },
 				"Existing chat wrappers were not found, so TF2 must be closed during chat wrapper generation.\n"
 				"\n"
 				"tl;dr: close tf2");
@@ -44,7 +44,7 @@ auto ChatWrappersGeneratorPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	}
 	else
 	{
-		ImGui::TextUnformatted("Generating chat message wrappers...");
+		ImGui::TextFmt("Generating chat message wrappers...");
 
 		ImGui::NewLine();
 

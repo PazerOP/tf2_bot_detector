@@ -25,7 +25,7 @@ bool NetworkSettingsPage::ValidateSettings(const Settings& settings) const
 
 auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 {
-	ImGui::TextUnformatted("This tool can optionally connect to the internet to automatically update.");
+	ImGui::TextFmt("This tool can optionally connect to the internet to automatically update.");
 
 	ImGui::Indent();
 	{
@@ -33,7 +33,7 @@ auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 			m_Settings.m_AllowInternetUsage = allow;
 
 		if (m_Settings.m_AllowInternetUsage.value_or(false))
-			ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "If you use antivirus software, connecting to the internet may trigger warnings.");
+			ImGui::TextFmt({ 1, 1, 0, 1 }, "If you use antivirus software, connecting to the internet may trigger warnings.");
 	}
 	ImGui::Unindent();
 	ImGui::NewLine();
@@ -42,7 +42,7 @@ auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	ImGui::EnabledSwitch(enabled, [&](bool enabled)
 		{
 			ImGui::BeginGroup();
-			ImGui::TextUnformatted("This tool can also check for updated functionality and bugfixes on startup.");
+			ImGui::TextFmt("This tool can also check for updated functionality and bugfixes on startup.");
 			ImGui::Indent();
 			{
 				auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
@@ -50,7 +50,7 @@ auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 					m_Settings.m_ProgramUpdateCheckMode = mode;
 
 				if (m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Disabled)
-					ImGui::TextUnformatted("You can always check for updates manually via the Help menu.");
+					ImGui::TextFmt("You can always check for updates manually via the Help menu.");
 			}
 			ImGui::Unindent();
 			ImGui::EndGroup();

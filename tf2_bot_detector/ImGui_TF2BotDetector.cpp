@@ -34,23 +34,6 @@ namespace
 	};
 }
 
-void ImGui::TextUnformatted(const std::string_view& text)
-{
-	return ImGui::TextUnformatted(text.data(), text.data() + text.size());
-}
-
-void ImGui::TextColoredUnformatted(const ImVec4& col, const char* text, const char* text_end)
-{
-	ImGui::PushStyleColor(ImGuiCol_Text, col);
-	ImGui::TextUnformatted(text, text_end);
-	ImGui::PopStyleColor();
-}
-
-void ImGui::TextColoredUnformatted(const ImVec4& col, const std::string_view& text)
-{
-	ImGui::TextColoredUnformatted(col, text.data(), text.data() + text.size());
-}
-
 void ImGui::TextRightAligned(const std::string_view& text, float offsetX)
 {
 	const auto textSize = ImGui::CalcTextSize(text.data(), text.data() + text.size());
@@ -62,7 +45,7 @@ void ImGui::TextRightAligned(const std::string_view& text, float offsetX)
 	cursorPosX -= offsetX;
 
 	ImGui::SetCursorPosX(cursorPosX);
-	ImGui::TextUnformatted(text);
+	ImGui::TextFmt(text);
 }
 
 void ImGui::TextRightAlignedF(const char* fmt, ...)
@@ -194,23 +177,23 @@ static bool InputPathValidated(const std::string_view& label_id, const std::file
 	if (auto label = GetVisibleLabel(label_id); !label.empty())
 	{
 		ImGui::SameLine(0, 4);
-		ImGui::TextUnformatted(label);
+		ImGui::TextFmt(label);
 	}
 
 	bool modifySuccess = false;
 	const std::filesystem::path newPath(pathStr);
 	if (newPath.empty())
 	{
-		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Cannot be empty"sv);
+		ImGui::TextFmt({ 1, 1, 0, 1 }, "Cannot be empty"sv);
 	}
 	else if (const auto validationResult = validator(newPath); !validationResult)
 	{
-		ImGui::TextColoredUnformatted({ 1, 0, 0, 1 },
-			"Doesn't look like a real "s << GetLastPathElement(exampleDir) << " directory: " << validationResult.m_Message);
+		ImGui::TextFmt({ 1, 0, 0, 1 }, "Doesn't look like a real {} directory: {}",
+			GetLastPathElement(exampleDir), validationResult.m_Message);
 	}
 	else
 	{
-		ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Looks good!"sv);
+		ImGui::TextFmt({ 0, 1, 0, 1 }, "Looks good!"sv);
 
 		if (modified)
 			modifySuccess = true;
@@ -289,7 +272,7 @@ static bool InputTextSteamID(const char* label, SteamID& steamID, bool requireVa
 		if (steamIDStr.empty())
 		{
 			ScopeGuards::TextColor textColor({ 1, 1, 0, 1 });
-			ImGui::TextUnformatted("Cannot be empty"sv);
+			ImGui::TextFmt("Cannot be empty");
 		}
 		else
 		{
@@ -314,12 +297,12 @@ static bool InputTextSteamID(const char* label, SteamID& steamID, bool requireVa
 				if (valid)
 				{
 					ScopeGuards::TextColor textColor({ 0, 1, 0, 1 });
-					ImGui::TextUnformatted("Looks good!"sv);
+					ImGui::TextFmt("Looks good!"sv);
 				}
 				else
 				{
 					ScopeGuards::TextColor textColor({ 1, 0, 0, 1 });
-					ImGui::TextUnformatted("Invalid SteamID"sv);
+					ImGui::TextFmt("Invalid SteamID"sv);
 				}
 			}
 			catch (const std::invalid_argument& error)
@@ -457,7 +440,7 @@ static bool InputTextIPv4(std::string& addr, bool requireValid)
 		}
 		else
 		{
-			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "Looks good!");
+			ImGui::TextFmt({ 0, 1, 0, 1 }, "Looks good!");
 			return true;
 		}
 	}
@@ -598,37 +581,8 @@ void ImGui::Value(const char* prefix, double v, const char* float_format)
 	return Value(prefix, float(v), float_format);
 }
 
-void ImGui::Value(const char* prefix, const char* str)
-{
-	Text("%s: %s", prefix, str ? str : "<NULL>");
-}
-
-void ImGui::Value(const char* prefix, uint64_t v)
-{
-	Text("%s: %llu", prefix, v);
-}
-
-void ImGui::SetHoverTooltip(const char* tooltipFmt, ...)
-{
-	va_list args;
-	va_start(args, tooltipFmt);
-
-	if (IsItemHovered())
-	{
-		ImGui::BeginTooltip();
-		ImGui::PushTextWrapPos(500);
-
-		ImGui::TextV(tooltipFmt, args);
-
-		ImGui::PopTextWrapPos();
-		ImGui::EndTooltip();
-	}
-
-	va_end(args);
-}
-
 void ImGui::PacifierText()
 {
 	// TODO
-	ImGui::TextUnformatted("..."sv);
+	ImGui::TextFmt("..."sv);
 }

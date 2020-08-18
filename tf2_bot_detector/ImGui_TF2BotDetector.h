@@ -14,24 +14,19 @@
 
 namespace ImGui
 {
-	void TextUnformatted(const std::string_view& text);
-	void TextColoredUnformatted(const ImVec4& col, const char* text, const char* text_end = nullptr);
-	void TextColoredUnformatted(const ImVec4& col, const std::string_view& text);
-
-	inline void TextFmt(const std::string_view& text) { return TextUnformatted(text); }
-	inline void TextFmt(const ImVec4& color, const std::string_view& text)
-	{
-		return TextColoredUnformatted(color, text);
-	}
 	template<typename... TArgs>
 	inline void TextFmt(const std::string_view& fmtStr, const TArgs&... args)
 	{
-		return TextUnformatted(mh::fmtstr<3073>(fmtStr, args...));
+		if constexpr (sizeof...(TArgs) > 0)
+			return TextFmt(mh::fmtstr<3073>(fmtStr, args...));
+		else
+			return TextUnformatted(fmtStr.data(), fmtStr.data() + fmtStr.size());
 	}
 	template<typename... TArgs>
 	inline void TextFmt(const ImVec4& color, const std::string_view& fmtStr, const TArgs&... args)
 	{
-		return TextColoredUnformatted(color, mh::fmtstr<3073>(fmtStr, args...));
+		ImGuiDesktop::TextColor scope(color);
+		TextFmt(fmtStr, args...);
 	}
 
 	void AutoScrollBox(const char* ID, ImVec2 size, void(*contentsFn)(void* userData), void* userData = nullptr);
@@ -125,13 +120,32 @@ namespace ImGui
 	ImVec2 CalcButtonSize(const char* label);
 
 	void Value(const char* prefix, double v, const char* float_format = nullptr);
-	void Value(const char* prefix, const char* str);
-	void Value(const char* prefix, uint64_t v);
+	template<typename TPrefix, typename TValue>
+	inline void Value(const TPrefix& prefix, const TValue& v)
+	{
+		ImGui::TextFmt("{}: {}"sv, prefix, v);
+	}
 
-	void SetHoverTooltip(const char* tooltipFmt, ...);
+	template<typename... TArgs>
+	inline bool SetHoverTooltip(const std::string_view& fmtStr, const TArgs&... args)
+	{
+		if (IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::PushTextWrapPos(500);
+
+			ImGui::TextFmt(fmtStr, args...);
+
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+			return true;
+		}
+
+		return false;
+	}
 
 	template<typename TFunc>
-	inline void EnabledSwitch(bool enabled, TFunc&& func, const char* disabledTooltip = nullptr)
+	inline void EnabledSwitch(bool enabled, TFunc&& func, const std::string_view& disabledTooltip = {})
 	{
 		if (enabled)
 		{
@@ -156,10 +170,10 @@ namespace ImGui
 			}
 			ImGui::EndGroup();
 
-			if (disabledTooltip)
+			if (!disabledTooltip.empty())
 			{
 				ImGuiDesktop::ScopeGuards::GlobalAlpha tooltipAlpha(1);
-				ImGui::SetHoverTooltip("%s", disabledTooltip);
+				ImGui::SetHoverTooltip(disabledTooltip);
 			}
 		}
 	}

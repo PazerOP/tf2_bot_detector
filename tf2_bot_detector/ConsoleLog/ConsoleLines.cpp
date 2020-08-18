@@ -35,7 +35,7 @@ std::shared_ptr<IConsoleLine> GenericConsoleLine::TryParse(const std::string_vie
 
 void GenericConsoleLine::Print(const PrintArgs& args) const
 {
-	ImGui::TextUnformatted(m_Text.data(), m_Text.data() + m_Text.size());
+	ImGui::TextFmt(m_Text);
 }
 
 ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message,
@@ -160,7 +160,7 @@ void ChatConsoleLine::Print(const PrintArgs& args) const
 
 	ImGui::BeginGroup();
 	ProcessChatMessage(*this, args,
-		[](const ImVec4& color, const std::string_view& msg) { ImGui::TextColoredUnformatted(color, msg); },
+		[](const ImVec4& color, const std::string_view& msg) { ImGui::TextFmt(color, msg); },
 		[] { ImGui::SameLine(); });
 	ImGui::EndGroup();
 
@@ -210,7 +210,7 @@ std::shared_ptr<IConsoleLine> LobbyHeaderLine::TryParse(const std::string_view& 
 
 void LobbyHeaderLine::Print(const PrintArgs& args) const
 {
-	ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.8f, 1.0f), "CTFLobbyShared: %u member(s), %u pending",
+	ImGui::TextFmt({ 1.0f, 1.0f, 0.8f, 1.0f }, "CTFLobbyShared: {} member(s), {} pending",
 		m_MemberCount, m_PendingCount);
 }
 
@@ -407,7 +407,7 @@ std::shared_ptr<IConsoleLine> ClientReachedServerSpawnLine::TryParse(const std::
 
 void ClientReachedServerSpawnLine::Print(const PrintArgs& args) const
 {
-	ImGui::TextUnformatted("Client reached server_spawn.");
+	ImGui::TextFmt("Client reached server_spawn.");
 }
 
 KillNotificationLine::KillNotificationLine(time_point_t timestamp, std::string attackerName,
@@ -432,7 +432,7 @@ std::shared_ptr<IConsoleLine> KillNotificationLine::TryParse(const std::string_v
 
 void KillNotificationLine::Print(const PrintArgs& args) const
 {
-	ImGui::Text("%s killed %s with %s.%s", m_AttackerName.c_str(),
+	ImGui::TextFmt("{} killed {} with {}.{}", m_AttackerName.c_str(),
 		m_VictimName.c_str(), m_WeaponName.c_str(), m_WasCrit ? " (crit)" : "");
 }
 
@@ -547,7 +547,7 @@ std::shared_ptr<IConsoleLine> VoiceReceiveLine::TryParse(const std::string_view&
 
 void VoiceReceiveLine::Print(const PrintArgs& args) const
 {
-	ImGui::Text("Voice - chan %u, ent %u, bufsize: %u", m_Channel, m_Entindex, m_BufSize);
+	ImGui::TextFmt("Voice - chan {}, ent {}, bufsize: {}", +m_Channel, m_Entindex, m_BufSize);
 }
 
 ServerStatusPlayerCountLine::ServerStatusPlayerCountLine(time_point_t timestamp, uint8_t playerCount,
@@ -574,7 +574,7 @@ std::shared_ptr<IConsoleLine> ServerStatusPlayerCountLine::TryParse(const std::s
 
 void ServerStatusPlayerCountLine::Print(const PrintArgs& args) const
 {
-	ImGui::Text("players : %u humans, %u bots (%u max)", m_PlayerCount, m_BotCount, m_MaxPlayers);
+	ImGui::TextFmt("players : {} humans, {} bots ({} max)", m_PlayerCount, m_BotCount, m_MaxPlayers);
 }
 
 EdictUsageLine::EdictUsageLine(time_point_t timestamp, uint16_t usedEdicts, uint16_t totalEdicts) :
@@ -599,7 +599,7 @@ std::shared_ptr<IConsoleLine> EdictUsageLine::TryParse(const std::string_view& t
 
 void EdictUsageLine::Print(const PrintArgs& args) const
 {
-	ImGui::Text("edicts  : %u used of %u max", m_UsedEdicts, m_TotalEdicts);
+	ImGui::TextFmt("edicts  : {} used of {} max", m_UsedEdicts, m_TotalEdicts);
 }
 
 PingLine::PingLine(time_point_t timestamp, uint16_t ping, std::string playerName) :
@@ -767,7 +767,7 @@ bool TeamsSwitchedLine::ShouldPrint() const
 
 void TeamsSwitchedLine::Print(const PrintArgs& args) const
 {
-	ImGui::TextColoredUnformatted({ 0.98f, 0.73f, 0.01f, 1 }, "Teams have been switched.");
+	ImGui::TextFmt({ 0.98f, 0.73f, 0.01f, 1 }, "Teams have been switched.");
 }
 
 ConnectingLine::ConnectingLine(time_point_t timestamp, std::string address, bool isMatchmaking, bool isRetrying) :
@@ -795,11 +795,11 @@ std::shared_ptr<IConsoleLine> ConnectingLine::TryParse(const std::string_view& t
 void ConnectingLine::Print(const PrintArgs& args) const
 {
 	if (m_IsMatchmaking)
-		ImGui::Text("Connecting to matchmaking server %s...", m_Address.c_str());
+		ImGui::TextFmt("Connecting to matchmaking server {}...", m_Address);
 	else if (m_IsRetrying)
-		ImGui::Text("Retrying %s...", m_Address.c_str());
+		ImGui::TextFmt("Retrying {}...", m_Address);
 	else
-		ImGui::Text("Connecting to %s...", m_Address.c_str());
+		ImGui::TextFmt("Connecting to {}...", m_Address);
 }
 
 std::shared_ptr<IConsoleLine> HostNewGameLine::TryParse(const std::string_view& text, time_point_t timestamp)
@@ -812,7 +812,7 @@ std::shared_ptr<IConsoleLine> HostNewGameLine::TryParse(const std::string_view& 
 
 void HostNewGameLine::Print(const PrintArgs& args) const
 {
-	ImGui::TextUnformatted("---- Host_NewGame ----"sv);
+	ImGui::TextFmt("---- Host_NewGame ----"sv);
 }
 
 PartyHeaderLine::PartyHeaderLine(time_point_t timestamp, TFParty party) :
@@ -859,7 +859,7 @@ std::shared_ptr<IConsoleLine> GameQuitLine::TryParse(const std::string_view& tex
 
 void GameQuitLine::Print(const PrintArgs& args) const
 {
-	ImGui::TextUnformatted("CTFGCClientSystem::ShutdownGC"sv);
+	ImGui::TextFmt("CTFGCClientSystem::ShutdownGC"sv);
 }
 
 QueueStateChangeLine::QueueStateChangeLine(time_point_t timestamp, TFMatchGroup queueType,
@@ -909,7 +909,7 @@ void QueueStateChangeLine::Print(const PrintArgs& args) const
 		if (match.m_QueueType == m_QueueType &&
 			match.m_StateChange == m_StateChange)
 		{
-			ImGui::TextUnformatted(match.m_String);
+			ImGui::TextFmt(match.m_String);
 			return;
 		}
 	}
@@ -968,7 +968,7 @@ void InQueueLine::Print(const PrintArgs& args) const
 
 	const uint64_t seconds = to_seconds<uint64_t>(clock_t::now() - m_QueueStartTime);
 
-	ImGui::Text("    MatchGroup: %u  Started matchmaking: %s (%u seconds ago, now is %s)",
+	ImGui::TextFmt("    MatchGroup: {}  Started matchmaking: {} ({} seconds ago, now is {})",
 		uint32_t(m_QueueType), timeBufThen, seconds, timeBufNow);
 }
 
@@ -1004,8 +1004,8 @@ std::shared_ptr<IConsoleLine> ServerJoinLine::TryParse(const std::string_view& t
 
 void ServerJoinLine::Print(const PrintArgs& args) const
 {
-	ImGui::Text("\n%s\nMap: %s\nPlayers: %u / %u\nBuild: %u\nServer Number: %u\n",
-		m_HostName.c_str(), m_MapName.c_str(), m_PlayerCount, m_PlayerMaxCount, m_BuildNumber, m_ServerNumber);
+	ImGui::TextFmt("\n{}\nMap: {}\nPlayers: {} / {}\nBuild: {}\nServer Number: {}\n",
+		m_HostName, m_MapName, m_PlayerCount, m_PlayerMaxCount, m_BuildNumber, m_ServerNumber);
 }
 
 ServerDroppedPlayerLine::ServerDroppedPlayerLine(time_point_t timestamp, std::string playerName, std::string reason) :
@@ -1027,7 +1027,7 @@ std::shared_ptr<IConsoleLine> ServerDroppedPlayerLine::TryParse(const std::strin
 
 void ServerDroppedPlayerLine::Print(const PrintArgs& args) const
 {
-	ImGui::Text("Dropped %s from server (%s)", m_PlayerName.c_str(), m_Reason.c_str());
+	ImGui::TextFmt("Dropped {} from server ({})", m_PlayerName, m_Reason);
 }
 
 ServerStatusPlayerIPLine::ServerStatusPlayerIPLine(time_point_t timestamp, std::string localIP, std::string publicIP) :
@@ -1047,7 +1047,7 @@ std::shared_ptr<IConsoleLine> ServerStatusPlayerIPLine::TryParse(const std::stri
 
 void ServerStatusPlayerIPLine::Print(const PrintArgs& args) const
 {
-	ImGui::Text("udp/ip  : %s  (public ip: %s)", m_LocalIP.c_str(), m_PublicIP.c_str());
+	ImGui::TextFmt("udp/ip  : {}  (public ip: {})", m_LocalIP, m_PublicIP);
 }
 
 DifferingLobbyReceivedLine::DifferingLobbyReceivedLine(time_point_t timestamp, const Lobby& newLobby,
@@ -1097,10 +1097,7 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 
 void DifferingLobbyReceivedLine::Print(const PrintArgs& args) const
 {
-	ImGui::TextUnformatted(
-		"Differing lobby received. Lobby: "s << m_NewLobby
-		<< " CurrentlyAssigned: " << m_CurrentLobby
-		<< " ConnectectedToMatchServer: " << int(m_ConnectedToMatchServer)
-		<< " HasLobby: " << int(m_HasLobby)
-		<< " AssignedMatchEnded: " << int(m_AssignedMatchEnded));
+	ImGui::TextFmt(
+		"Differing lobby received. Lobby: {} CurrentlyAssigned: {} ConnectedToMatchServer: {} HasLobby: {} AssignedMatchEnded: {}",
+		m_NewLobby, m_CurrentLobby, int(m_ConnectedToMatchServer), int(m_HasLobby), int(m_AssignedMatchEnded));
 }

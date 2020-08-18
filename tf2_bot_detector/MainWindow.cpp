@@ -284,13 +284,13 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		if (!summary->m_ProfileConfigured)
 		{
 			ImGui::SameLineNoPad();
-			ImGui::TextUnformatted(", ");
+			ImGui::TextFmt(", ");
 			ImGui::SameLineNoPad();
 			ImGui::TextFmt({ 1, 0, 0, 1 }, "Not Configured");
 		}
 
 #if 0 // decreed as useless information by overlord czechball
-		ImGui::TextUnformatted("Comment Permissions: ");
+		ImGui::TextFmt("Comment Permissions: ");
 		ImGui::SameLineNoPad();
 		if (summary->m_CommentPermissions)
 			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "You can comment");
@@ -440,9 +440,12 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 	else
 		return;
 
+	bool shouldDrawPlayerTooltip = false;
+
 	// Selectable
+	const auto teamShareResult = GetModLogic().GetTeamShareResult(player);
+	const auto playerAttribs = GetModLogic().GetPlayerAttributes(player);
 	{
-		const auto teamShareResult = GetModLogic().GetTeamShareResult(player);
 		ImVec4 bgColor = [&]() -> ImVec4
 		{
 			switch (teamShareResult)
@@ -459,8 +462,6 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 			}
 		}();
 
-		const auto& modLogic = GetModLogic();
-		const auto playerAttribs = modLogic.GetPlayerAttributes(player);
 		if (playerAttribs.Has(PlayerAttribute::Cheater))
 			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG));
 		else if (playerAttribs.Has(PlayerAttribute::Suspicious))
@@ -479,8 +480,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 		ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 		ImGui::Selectable(buf, true, ImGuiSelectableFlags_SpanAllColumns);
 
-		if (ImGui::IsItemHovered())
-			OnDrawPlayerTooltip(player, teamShareResult, playerAttribs);
+		shouldDrawPlayerTooltip = ImGui::IsItemHovered();
 
 		ImGui::NextColumn();
 	}
@@ -494,18 +494,18 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 		const auto columnEndX = ImGui::GetCursorPosX() - ImGui::GetStyle().ItemSpacing.x + ImGui::GetColumnWidth();
 
 		if (!playerName.empty())
-			ImGui::TextUnformatted(playerName);
+			ImGui::TextFmt(playerName);
 		else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
-			ImGui::TextUnformatted(summary->m_Nickname);
+			ImGui::TextFmt(summary->m_Nickname);
 		else
-			ImGui::TextUnformatted("<Unknown>");
+			ImGui::TextFmt("<Unknown>");
 
 		// If their steamcommunity name doesn't match their ingame name
 		if (auto summary = player.GetPlayerSummary();
 			summary && !playerName.empty() && summary->m_Nickname != playerName)
 		{
 			ImGui::SameLine();
-			ImGui::TextColored({ 1, 0, 0, 1 }, "(%s)", summary->m_Nickname.c_str());
+			ImGui::TextFmt({ 1, 0, 0, 1 }, "({})", summary->m_Nickname);
 		}
 
 		// Move cursor pos up a few pixels if we have icons to draw
@@ -583,6 +583,10 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 			for (size_t i = 0; i < icons.size(); i++)
 			{
 				ImGui::Image(icons[i].m_Texture, { 16, 16 }, { 0, 0 }, { 1, 1 }, icons[i].m_Color);
+
+				if (ImGui::SetHoverTooltip(icons[i].m_Tooltip))
+					shouldDrawPlayerTooltip = false;
+
 				ImGui::SameLine(0, spacing);
 			}
 		}
@@ -640,12 +644,15 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 	{
 		const auto str = player.GetSteamID().str();
 		if (player.GetSteamID().Type != SteamAccountType::Invalid)
-			ImGui::TextColoredUnformatted(ImGui::GetStyle().Colors[ImGuiCol_Text], str);
+			ImGui::TextFmt(ImGui::GetStyle().Colors[ImGuiCol_Text], str);
 		else
-			ImGui::TextUnformatted(str);
+			ImGui::TextFmt(str);
 
 		ImGui::NextColumn();
 	}
+
+	if (shouldDrawPlayerTooltip)
+		OnDrawPlayerTooltip(player, teamShareResult, playerAttribs);
 }
 
 void MainWindow::OnDrawScoreboard()
@@ -695,7 +702,7 @@ void MainWindow::OnDrawScoreboard()
 				float nameColumnWidth = frameWidth;
 				// UserID header and column setup
 				{
-					ImGui::TextUnformatted("User ID");
+					ImGui::TextFmt("User ID");
 					if (scoreboardResized)
 					{
 						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
@@ -707,11 +714,11 @@ void MainWindow::OnDrawScoreboard()
 				}
 
 				// Name header and column setup
-				ImGui::TextUnformatted("Name"); ImGui::NextColumn();
+				ImGui::TextFmt("Name"); ImGui::NextColumn();
 
 				// Kills header and column setup
 				{
-					ImGui::TextUnformatted("Kills");
+					ImGui::TextFmt("Kills");
 					if (scoreboardResized)
 					{
 						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
@@ -724,7 +731,7 @@ void MainWindow::OnDrawScoreboard()
 
 				// Deaths header and column setup
 				{
-					ImGui::TextUnformatted("Deaths");
+					ImGui::TextFmt("Deaths");
 					if (scoreboardResized)
 					{
 						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
@@ -737,7 +744,7 @@ void MainWindow::OnDrawScoreboard()
 
 				// Connection time header and column setup
 				{
-					ImGui::TextUnformatted("Time");
+					ImGui::TextFmt("Time");
 					if (scoreboardResized)
 					{
 						const float width = 60;
@@ -750,7 +757,7 @@ void MainWindow::OnDrawScoreboard()
 
 				// Ping
 				{
-					ImGui::TextUnformatted("Ping");
+					ImGui::TextFmt("Ping");
 					if (scoreboardResized)
 					{
 						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
@@ -763,7 +770,7 @@ void MainWindow::OnDrawScoreboard()
 
 				// SteamID header and column setup
 				{
-					ImGui::TextUnformatted("Steam ID");
+					ImGui::TextFmt("Steam ID");
 					if (scoreboardResized)
 					{
 						nameColumnWidth -= 100;// +ImGui::GetStyle().ItemSpacing.x * 2;
@@ -832,7 +839,7 @@ void MainWindow::OnDrawAppLog()
 					timestamp.tm_hour, timestamp.tm_min, timestamp.tm_sec);
 
 				ImGui::SameLine();
-				ImGui::TextColoredUnformatted({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a }, msg.m_Text);
+				ImGui::TextFmt({ msg.m_Color.r, msg.m_Color.g, msg.m_Color.b, msg.m_Color.a }, msg.m_Text);
 				ImGui::EndGroup();
 
 				if (auto scope = ImGui::BeginPopupContextItemScope("AppLogContextMenu"))
@@ -1007,8 +1014,8 @@ void MainWindow::OnDrawUpdateCheckPopup()
 	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		ImGui::PushTextWrapPos();
-		ImGui::TextUnformatted("You have chosen to disable internet connectivity for TF2 Bot Detector. You can still manually check for updates below.");
-		ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "Reminder: if you use antivirus software, connecting to the internet may trigger warnings.");
+		ImGui::TextFmt("You have chosen to disable internet connectivity for TF2 Bot Detector. You can still manually check for updates below.");
+		ImGui::TextFmt({ 1, 1, 0, 1 }, "Reminder: if you use antivirus software, connecting to the internet may trigger warnings.");
 
 		ImGui::EnabledSwitch(!m_UpdateInfo.valid(), [&]
 			{
@@ -1024,32 +1031,32 @@ void MainWindow::OnDrawUpdateCheckPopup()
 
 			if (updateInfo.IsUpToDate())
 			{
-				ImGui::TextColoredUnformatted({ 0.1f, 1, 0.1f, 1 }, "You are already running the latest version of TF2 Bot Detector.");
+				ImGui::TextFmt({ 0.1f, 1, 0.1f, 1 }, "You are already running the latest version of TF2 Bot Detector.");
 			}
 			else if (updateInfo.IsPreviewAvailable())
 			{
-				ImGui::TextUnformatted("There is a new preview version available.");
+				ImGui::TextFmt("There is a new preview version available.");
 				if (ImGui::Button("View on Github"))
 					Shell::OpenURL(updateInfo.m_Preview->m_URL);
 			}
 			else if (updateInfo.IsReleaseAvailable())
 			{
-				ImGui::TextUnformatted("There is a new stable version available.");
+				ImGui::TextFmt("There is a new stable version available.");
 				if (ImGui::Button("View on Github"))
 					Shell::OpenURL(updateInfo.m_Stable->m_URL);
 			}
 			else if (updateInfo.IsError())
 			{
-				ImGui::TextColoredUnformatted({ 1, 0, 0, 1 }, "There was an error checking for updates.");
+				ImGui::TextFmt({ 1, 0, 0, 1 }, "There was an error checking for updates.");
 			}
 		}
 		else if (m_UpdateInfo.valid())
 		{
-			ImGui::TextUnformatted("Checking for updates...");
+			ImGui::TextFmt("Checking for updates...");
 		}
 		else
 		{
-			ImGui::TextUnformatted("Press \"Check for updates\" to check Github for a newer version.");
+			ImGui::TextFmt("Press \"Check for updates\" to check Github for a newer version.");
 		}
 
 		ImGui::EndPopup();
@@ -1118,13 +1125,19 @@ void MainWindow::OnDrawAboutPopup()
 			" for this program and its dependencies can be found in the licenses subfolder next to this"
 			" executable.";
 
-		ImGui::TextUnformatted(ABOUT_TEXT);
+		ImGui::TextFmt("TF2 Bot Detector v\"{}\n"
+			"\n"
+			"Automatically detects and votekicks cheaters in Team Fortress 2 Casual.\n"
+			"\n"
+			"This program is free, open source software licensed under the MIT license. Full license text"
+			" for this program and its dependencies can be found in the licenses subfolder next to this"
+			" executable.", VERSION);
 
 		ImGui::NewLine();
 		ImGui::Separator();
 		ImGui::NewLine();
 
-		ImGui::TextUnformatted("Credits");
+		ImGui::TextFmt("Credits");
 		ImGui::Spacing();
 		if (ImGui::TreeNode("Code/concept by Matt \"pazer\" Haynie"))
 		{
@@ -1163,7 +1176,7 @@ void MainWindow::OnDrawAboutPopup()
 		{
 			if (const auto sponsors = GetSponsorsList().GetSponsors(); !sponsors.empty())
 			{
-				ImGui::TextUnformatted("Sponsors\n"
+				ImGui::TextFmt("Sponsors\n"
 					"Huge thanks to the people sponsoring this project via GitHub Sponsors:");
 
 				ImGui::NewLine();
@@ -1171,14 +1184,12 @@ void MainWindow::OnDrawAboutPopup()
 				for (const auto& sponsor : sponsors)
 				{
 					ImGui::Bullet();
-					ImGui::TextUnformatted(sponsor.m_Name);
+					ImGui::TextFmt(sponsor.m_Name);
 
 					if (!sponsor.m_Message.empty())
 					{
-						ImGui::SameLine();
-						ImGui::TextUnformatted("-");
-						ImGui::SameLine();
-						ImGui::TextUnformatted(sponsor.m_Message);
+						ImGui::SameLineNoPad();
+						ImGui::TextFmt(" - {}", sponsor.m_Message);
 					}
 				}
 
@@ -1186,7 +1197,7 @@ void MainWindow::OnDrawAboutPopup()
 			}
 		}
 
-		ImGui::TextUnformatted("If you're feeling generous, you can make a small donation to help support my work.");
+		ImGui::TextFmt("If you're feeling generous, you can make a small donation to help support my work.");
 		if (ImGui::Button("GitHub Sponsors"))
 			Shell::OpenURL("https://github.com/sponsors/PazerOP");
 
@@ -1246,7 +1257,7 @@ void MainWindow::OnDrawServerStats()
 		ImGui::ProgressBar(percent, { -1, 0 },
 			mh::pfstr<64>("%i (%1.0f%%)", lastSample.m_UsedEdicts, percent * 100).c_str());
 
-		ImGui::SetHoverTooltip("%i of %i (%1.1f%%)", lastSample.m_UsedEdicts, lastSample.m_MaxEdicts, percent * 100);
+		ImGui::SetHoverTooltip("{} of {} ({:1.1f}%)", lastSample.m_UsedEdicts, lastSample.m_MaxEdicts, percent * 100);
 	}
 
 	if (!m_ServerPingSamples.empty())
@@ -1300,7 +1311,7 @@ void MainWindow::OnDraw()
 					orangeReason = "\n\nThis label is orange to highlight the fact that it is currently disabled.";
 
 				ImGui::SameLine();
-				ImGui::SetHoverTooltip("%s%s", tooltip, orangeReason);
+				ImGui::SetHoverTooltip("{}{}", tooltip, orangeReason);
 			};
 
 			ModerationCheckbox("Enable Chat Warnings", m_Settings.m_AutoChatWarnings, "Enables chat message warnings about cheaters.");
@@ -1318,16 +1329,16 @@ void MainWindow::OnDraw()
 		auto leader = GetModLogic().GetBotLeader();
 		ImGui::Value("Bot Leader", leader ? (""s << *leader).c_str() : "");
 
-		ImGui::TextUnformatted("Is vote in progress:");
+		ImGui::TextFmt("Is vote in progress:");
 		ImGui::SameLine();
 		if (GetWorld().IsVoteInProgress())
-			ImGui::TextColoredUnformatted({ 1, 1, 0, 1 }, "YES");
+			ImGui::TextFmt({ 1, 1, 0, 1 }, "YES");
 		else
-			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "NO");
+			ImGui::TextFmt({ 0, 1, 0, 1 }, "NO");
 
-		ImGui::Text("FPS: %1.1f", GetFPS());
+		ImGui::TextFmt("FPS: {:1.1f}", GetFPS());
 
-		ImGui::Text("Texture Count: %zu", m_TextureManager->GetActiveTextureCount());
+		ImGui::Value("Texture Count", m_TextureManager->GetActiveTextureCount());
 	}
 #endif
 
@@ -1346,7 +1357,7 @@ void MainWindow::OnDraw()
 			ImGui::SameLine(0, 4);
 		}
 
-		ImGui::Text("Parsed line count: %zu", parsedLineCount);
+		ImGui::TextFmt("Parsed line count: {}", parsedLineCount);
 	}
 
 	//OnDrawServerStats();
