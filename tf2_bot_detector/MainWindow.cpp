@@ -584,6 +584,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 			{
 				ImGui::Image(icons[i].m_Texture, { 16, 16 }, { 0, 0 }, { 1, 1 }, icons[i].m_Color);
 
+				ImGuiDesktop::ScopeGuards::TextColor color({ 1, 1, 1, 1 });
 				if (ImGui::SetHoverTooltip(icons[i].m_Tooltip))
 					shouldDrawPlayerTooltip = false;
 
