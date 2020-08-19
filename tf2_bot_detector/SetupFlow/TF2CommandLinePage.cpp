@@ -1,8 +1,8 @@
 #include "TF2CommandLinePage.h"
 #include "Config/Settings.h"
-#include "ImGui_TF2BotDetector.h"
-#include "Log.h"
 #include "Platform/Platform.h"
+#include "UI/ImGui_TF2BotDetector.h"
+#include "Log.h"
 
 #include <mh/future.hpp>
 #include <mh/text/charconv_helper.hpp>

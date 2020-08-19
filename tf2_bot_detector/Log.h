@@ -3,6 +3,7 @@
 #include "Clock.h"
 
 #include <cppcoro/generator.hpp>
+#include <mh/text/format.hpp>
 #include <mh/source_location.hpp>
 
 #include <filesystem>
@@ -15,6 +16,10 @@ namespace tf2_bot_detector
 	struct LogMessageColor
 	{
 		constexpr LogMessageColor() = default;
+		constexpr LogMessageColor(const LogMessageColor& rgb, float a_) :
+			r(rgb.r), g(rgb.g), b(rgb.b), a(a_)
+		{
+		}
 		constexpr LogMessageColor(float r_, float g_, float b_, float a_ = 1) :
 			r(r_), g(g_), b(b_), a(a_)
 		{
@@ -34,21 +39,29 @@ namespace tf2_bot_detector
 		LogMessageColor m_Color;
 	};
 
-	static constexpr LogMessageColor DEBUG_MSG_COLOR = { 1, 1, 1, float(2.0 / 3.0) };
+	namespace LogColors
+	{
+		constexpr float DEBUG_ALPHA = float(2.0 / 3.0);
+		constexpr LogMessageColor DEFAULT = { 1, 1, 1, 1 };
+		constexpr LogMessageColor DEFAULT_DEBUG = { DEFAULT, DEBUG_ALPHA };
+		constexpr LogMessageColor WARN = { 1, 1, 0, 1 };
+		constexpr LogMessageColor WARN_DEBUG = { WARN, DEBUG_ALPHA };
+#undef ERROR
+		constexpr LogMessageColor ERROR = { 1, 0.25, 0, 1 };
+	}
 
-	void Log(std::string msg, const LogMessageColor& color = {});
-	void Log(const mh::source_location& location, const std::string_view& msg = {}, const LogMessageColor& color = {});
-	void LogWarning(std::string msg);
-	void LogWarning(const mh::source_location& location, const std::string_view& msg = {});
-	void LogError(std::string msg);
-	void LogError(const mh::source_location& location, const std::string_view& msg = {});
-	void LogException(const std::string_view& msg, const std::exception& e);
-	void LogException(const mh::source_location& location, const std::string_view& msg, const std::exception& e);
+	enum class LogSeverity
+	{
+		Info,
+		Warning,
+		Error,
+	};
 
-	void DebugLog(std::string msg, const LogMessageColor& color = DEBUG_MSG_COLOR);
-	void DebugLog(const mh::source_location& location, const std::string_view& msg = {}, const LogMessageColor& color = DEBUG_MSG_COLOR);
-	void DebugLogWarning(std::string msg);
-	void DebugLogWarning(const mh::source_location& location, const std::string_view& msg = {});
+	enum class LogVisibility
+	{
+		Default,
+		Debug,
+	};
 
 	class ILogManager
 	{
@@ -57,7 +70,9 @@ namespace tf2_bot_detector
 
 		static ILogManager& GetInstance();
 
-		virtual void Log(std::string msg, const LogMessageColor& color = {}, time_point_t timestamp = clock_t::now()) = 0;
+		virtual void Log(std::string msg, const LogMessageColor& color,
+			LogSeverity severity, LogVisibility visibility,
+			time_point_t timestamp = clock_t::now()) = 0;
 
 		virtual const std::filesystem::path& GetFileName() const = 0;
 
@@ -70,4 +85,69 @@ namespace tf2_bot_detector
 
 		virtual void AddSecret(std::string value, std::string replace) = 0;
 	};
+
+#pragma push_macro("NOINLINE")
+#undef NOINLINE
+#ifdef _MSC_VER
+#define NOINLINE __declspec(noinline)
+#else
+#define NOINLINE
+#endif
+
+#undef LOG_DEFINITION_HELPER
+#define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
+	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
+	inline void name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) \
+	{ \
+		ILogManager::GetInstance().Log(mh::format(fmtStr, args...), color, (severity), (visibility)); \
+	} \
+	inline void name(const LogMessageColor& color, std::string msg) \
+	{ \
+		ILogManager::GetInstance().Log(std::move(msg), color, (severity), (visibility)); \
+	} \
+	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
+	inline void name(const std::string_view& fmtStr, const TArgs&... args) \
+	{ \
+		name((defaultColor), fmtStr, args...); \
+	} \
+	inline void name(std::string msg) \
+	{ \
+		name((defaultColor), std::move(msg)); \
+	} \
+	\
+	template<typename... TArgs> \
+	inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	{ \
+		std::string msg = mh::format("{}@{}:{}()", location.file_name(), location.line(), location.function_name()); \
+		if (!fmtStr.empty()) \
+			msg += ": " + mh::format(fmtStr, args...); \
+		\
+		name(color, std::move(msg)); \
+	} \
+	template<typename... TArgs> \
+	inline void name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	{ \
+		name((defaultColor), location, fmtStr, args...); \
+	} \
+	inline void name(const LogMessageColor& color, const mh::source_location& location) \
+	{ \
+		name(color, location, std::string_view{}); \
+	} \
+	inline void name(const mh::source_location& location) \
+	{ \
+		name((defaultColor), location); \
+	}
+
+	LOG_DEFINITION_HELPER(Log, LogColors::DEFAULT, LogSeverity::Info, LogVisibility::Default);
+	LOG_DEFINITION_HELPER(DebugLog, LogColors::DEFAULT_DEBUG, LogSeverity::Info, LogVisibility::Debug);
+	LOG_DEFINITION_HELPER(LogWarning, LogColors::WARN, LogSeverity::Warning, LogVisibility::Default);
+	LOG_DEFINITION_HELPER(DebugLogWarning, LogColors::WARN_DEBUG, LogSeverity::Warning, LogVisibility::Debug);
+	LOG_DEFINITION_HELPER(LogError, LogColors::ERROR, LogSeverity::Error, LogVisibility::Default);
+
+#undef LOG_DEFINITION_HELPER
+#undef NOINLINE
+#pragma pop_macro("NOINLINE")
+
+	void LogException(const std::string_view& msg, const std::exception& e);
+	void LogException(const mh::source_location& location, const std::string_view& msg, const std::exception& e);
 }

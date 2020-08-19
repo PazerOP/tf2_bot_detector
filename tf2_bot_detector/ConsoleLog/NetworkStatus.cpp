@@ -2,7 +2,7 @@
 #include "Util/RegexUtils.h"
 #include "Log.h"
 
-#include <imgui.h>
+#include "UI/ImGui_TF2BotDetector.h"
 
 using namespace tf2_bot_detector;
 using namespace std::string_literals;
@@ -105,7 +105,7 @@ std::shared_ptr<IConsoleLine> NetStatusConfigLine::TryParse(const std::string_vi
 			playerMode = PlayerMode::Singleplayer;
 		else
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown player mode "s << std::quoted(playerModeStr));
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown player mode {}", std::quoted(playerModeStr));
 			return nullptr;
 		}
 
@@ -117,7 +117,7 @@ std::shared_ptr<IConsoleLine> NetStatusConfigLine::TryParse(const std::string_vi
 			serverMode = ServerMode::Listen;
 		else
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown server mode "s << std::quoted(serverModeStr));
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown server mode {}", std::quoted(serverModeStr));
 			return nullptr;
 		}
 
@@ -136,4 +136,24 @@ void NetStatusConfigLine::Print(const PrintArgs& args) const
 		m_PlayerMode == PlayerMode::Multiplayer ? "Multiplayer" : "Singleplayer",
 		m_ServerMode == ServerMode::Dedicated ? "dedicated" : "listen",
 		m_ConnectionCount);
+}
+
+bool NetChannelDualFloatLineBase::TryParse(const std::string_view& text,
+	const std::string_view& pattern, float& f0, float& f1)
+{
+	const std::regex s_Regex(pattern.data(), pattern.data() + pattern.size());
+
+	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	{
+		from_chars_throw(result[1], f0);
+		from_chars_throw(result[2], f1);
+		return true;
+	}
+
+	return false;
+}
+
+void NetChannelDualFloatLineBase::Print(const IConsoleLine::PrintArgs& args, const std::string_view& fmtStr) const
+{
+	ImGui::TextFmt(fmtStr, m_Float0, m_Float1);
 }

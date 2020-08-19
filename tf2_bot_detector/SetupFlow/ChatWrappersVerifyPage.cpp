@@ -1,8 +1,8 @@
 #include "ChatWrappersVerifyPage.h"
-#include "ChatWrappersGeneratorPage.h"
 #include "Config/ChatWrappers.h"
 #include "Config/Settings.h"
-#include "ImGui_TF2BotDetector.h"
+#include "UI/ImGui_TF2BotDetector.h"
+#include "ChatWrappersGeneratorPage.h"
 
 #include <mh/future.hpp>
 #include <mh/text/string_insertion.hpp>

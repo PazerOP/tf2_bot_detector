@@ -2,8 +2,9 @@
 #include "Config/Settings.h"
 #include "GameData/MatchmakingQueue.h"
 #include "GameData/UserMessageType.h"
-#include "Log.h"
+#include "UI/ImGui_TF2BotDetector.h"
 #include "Util/RegexUtils.h"
+#include "Log.h"
 #include "WorldState.h"
 
 #include <mh/text/charconv_helper.hpp>
@@ -11,7 +12,6 @@
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <imgui_desktop/ScopeGuards.h>
-#include "ImGui_TF2BotDetector.h"
 
 #include <regex>
 #include <sstream>

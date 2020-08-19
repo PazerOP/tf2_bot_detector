@@ -1,8 +1,8 @@
 #include "DLLMain.h"
 
 #include "Tests/Tests.h"
+#include "UI/MainWindow.h"
 #include "Util/TextUtils.h"
-#include "MainWindow.h"
 #include "Log.h"
 
 #include <mh/text/string_insertion.hpp>

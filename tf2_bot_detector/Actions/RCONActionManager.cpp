@@ -165,7 +165,7 @@ void RCONActionManager::ProcessRunningCommands()
 				if (!resultStr.empty())
 					msg << ", response " << resultStr.size() << " bytes";
 
-				Log(std::move(msg), { 1, 1, 1, 0.6f });
+				DebugLog({ 1, 1, 1, 0.5f }, std::move(msg));
 			}
 
 			if (!resultStr.empty())

@@ -311,12 +311,12 @@ bool HijackActionManager::SendHijackCommand(std::string cmd)
 	}
 
 	if (m_Settings->m_Unsaved.m_DebugShowCommands)
-		Log("Game command: "s << std::quoted(cmd), { 1, 1, 1, 0.6f });
+		DebugLog("Game command: {}", std::quoted(cmd));
 
 	m_RunningCommands.emplace_back(pi.hProcess, std::move(cmd));
 
 	if (!CloseHandle(pi.hThread))
-		LogError(__FUNCTION__ ": Failed to close process thread");
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to close process thread");
 
 	return true;
 }

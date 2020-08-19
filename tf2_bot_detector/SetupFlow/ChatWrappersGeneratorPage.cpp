@@ -1,6 +1,6 @@
 #include "ChatWrappersGeneratorPage.h"
 #include "Config/Settings.h"
-#include "ImGui_TF2BotDetector.h"
+#include "UI/ImGui_TF2BotDetector.h"
 #include "Log.h"
 #include "Platform/Platform.h"
 

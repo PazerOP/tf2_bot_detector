@@ -1,13 +1,13 @@
 #include "SetupFlow.h"
+#include "Config/Settings.h"
+#include "Platform/Platform.h"
+#include "UI/ImGui_TF2BotDetector.h"
 #include "BasicSettingsPage.h"
 #include "ChatWrappersGeneratorPage.h"
 #include "ChatWrappersVerifyPage.h"
 #include "NetworkSettingsPage.h"
 #include "TF2CommandLinePage.h"
 #include "Log.h"
-#include "Config/Settings.h"
-#include "ImGui_TF2BotDetector.h"
-#include "Platform/Platform.h"
 #include "Version.h"
 
 #include <imgui.h>

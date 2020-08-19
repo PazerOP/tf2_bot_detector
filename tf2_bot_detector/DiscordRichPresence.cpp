@@ -80,7 +80,7 @@ static void DiscordDebugLog(const std::string_view& msg)
 	if (!s_DiscordDebugLogEnabled)
 		return;
 
-	DebugLog("DRP: "s << msg, DISCORD_LOG_COLOR);
+	DebugLog(DISCORD_LOG_COLOR, "DRP: {}", msg);
 }
 static void DiscordDebugLog(const mh::source_location& location, const std::string_view& msg = {})
 {
@@ -88,9 +88,9 @@ static void DiscordDebugLog(const mh::source_location& location, const std::stri
 		return;
 
 	if (msg.empty())
-		DebugLog(location, {}, DISCORD_LOG_COLOR);
+		DebugLog(DISCORD_LOG_COLOR, location);
 	else
-		DebugLog(location, "DRP: "s << msg, DISCORD_LOG_COLOR);
+		DebugLog(DISCORD_LOG_COLOR, location, "DRP: {}", msg);
 }
 
 namespace

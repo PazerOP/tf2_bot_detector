@@ -2,6 +2,7 @@
 #include "Util/PathUtils.h"
 
 #include <imgui.h>
+#include <mh/compiler.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
@@ -32,7 +33,8 @@ namespace
 		LogManager(const LogManager&) = delete;
 		LogManager& operator=(const LogManager&) = delete;
 
-		void Log(std::string msg, const LogMessageColor& color = {}, time_point_t timestamp = clock_t::now()) override;
+		void Log(std::string msg, const LogMessageColor& color, LogSeverity severity,
+			LogVisibility visibility = LogVisibility::Default, time_point_t timestamp = clock_t::now()) override;
 		void LogToStream(std::string msg, std::ostream& output, time_point_t timestamp = clock_t::now(), bool skipScrub = false) const;
 
 		const std::filesystem::path& GetFileName() const override { return m_FileName; }
@@ -97,7 +99,8 @@ LogManager::LogManager()
 		std::filesystem::create_directories(logPath, ec);
 		if (ec)
 		{
-			Log("Failed to create directory "s << logPath << ". Log output will go to stdout.", COLOR_WARNING);
+			this->Log(mh::format("Failed to create directory {}. Log output will go to stdout.", logPath),
+				COLOR_WARNING, LogSeverity::Warning);
 		}
 		else
 		{
@@ -110,7 +113,10 @@ LogManager::LogManager()
 	{
 		m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
 		if (!m_File.good())
-			Log("Failed to open log file "s << m_FileName << ". Log output will go to stdout only.", COLOR_WARNING);
+		{
+			this->Log(mh::format("Failed to open log file {}. Log output will go to stdout only.", m_FileName),
+				COLOR_WARNING, LogSeverity::Warning);
+		}
 	}
 
 	{
@@ -119,14 +125,20 @@ LogManager::LogManager()
 		std::filesystem::create_directories(logDir, ec);
 		if (ec)
 		{
-			Log(mh::format("Failed to create one or more directory in the path {}. Console output will not be logged.", logDir), COLOR_WARNING);
+			this->Log(
+				mh::format("Failed to create one or more directory in the path {}. Console output will not be logged.", logDir),
+				COLOR_WARNING, LogSeverity::Warning);
 		}
 		else
 		{
 			auto logPath = logDir / mh::format("console_{}.log", timestampStr);
 			m_ConsoleLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
 			if (!m_ConsoleLogFile.good())
-				Log(mh::format("Failed to open console log file {}. Console output will not be logged.", logPath), COLOR_WARNING);
+			{
+				this->Log(
+					mh::format("Failed to open console log file {}. Console output will not be logged.", logPath),
+					COLOR_WARNING, LogSeverity::Warning);
+			}
 		}
 	}
 }
@@ -151,21 +163,6 @@ void LogManager::LogToStream(std::string msg, std::ostream& output, time_point_t
 #ifdef _WIN32
 	OutputDebugStringA(mh::format("Log: {}\n", msg).c_str());
 #endif
-}
-
-void LogManager::Log(std::string msg, const LogMessageColor& color, time_point_t timestamp)
-{
-	std::lock_guard lock(m_LogMutex);
-
-	ReplaceSecrets(msg);
-	LogToStream(msg, m_File, timestamp, true);
-	m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
-
-	if (m_LogMessages.size() > MAX_LOG_MESSAGES)
-	{
-		m_LogMessages.erase(m_LogMessages.begin(),
-			std::next(m_LogMessages.begin(), m_LogMessages.size() - MAX_LOG_MESSAGES));
-	}
 }
 
 void LogManager::AddSecret(std::string value, std::string replace)
@@ -205,56 +202,6 @@ void LogManager::ReplaceSecrets(std::string& msg) const
 	}
 }
 
-namespace
-{
-	template<typename CharT, typename Traits>
-	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const mh::source_location& location)
-	{
-		return os << location.file_name() << '@' << location.line() << ':' << location.function_name() << "()";
-	}
-}
-
-void tf2_bot_detector::Log(std::string msg, const LogMessageColor& color)
-{
-	GetLogState().Log(std::move(msg), color);
-}
-
-static std::string FormatSourceLocation(const mh::source_location& location, const std::string_view& msg)
-{
-	std::string fullMsg;
-	fullMsg << location;
-
-	if (!msg.empty())
-		fullMsg << ": " << msg;
-
-	return fullMsg;
-}
-
-void tf2_bot_detector::Log(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
-{
-	Log(FormatSourceLocation(location, msg), color);
-}
-
-void tf2_bot_detector::LogWarning(std::string msg)
-{
-	Log(std::move(msg), COLOR_WARNING);
-}
-
-void tf2_bot_detector::LogWarning(const mh::source_location& location, const std::string_view& msg)
-{
-	Log(location, msg, COLOR_WARNING);
-}
-
-void tf2_bot_detector::LogError(std::string msg)
-{
-	Log(std::move(msg), COLOR_ERROR);
-}
-
-void tf2_bot_detector::LogError(const mh::source_location& location, const std::string_view& msg)
-{
-	Log(location, msg, COLOR_ERROR);
-}
-
 static std::string FormatException(const std::string_view& msg, const std::exception& e)
 {
 	return mh::format("{}: {}: {}", msg, typeid(e).name(), e.what());
@@ -271,29 +218,24 @@ void tf2_bot_detector::LogException(const mh::source_location& location, const s
 	LogError(location, FormatException(msg, e));
 }
 
-void tf2_bot_detector::DebugLog(std::string msg, const LogMessageColor& color)
+void LogManager::Log(std::string msg, const LogMessageColor & color,
+	LogSeverity severity, LogVisibility visibility, time_point_t timestamp)
 {
-#ifdef _DEBUG
-	Log(std::move(msg), color);
-#else
-	auto& state = GetLogState();
-	state.LogToStream(msg, state.GetFile());
-#endif
-}
+	std::lock_guard lock(m_LogMutex);
+	ReplaceSecrets(msg);
 
-void tf2_bot_detector::DebugLog(const mh::source_location& location, const std::string_view& msg, const LogMessageColor& color)
-{
-	DebugLog(FormatSourceLocation(location, msg), color);
-}
+	LogToStream(msg, m_File, timestamp, true);
 
-void tf2_bot_detector::DebugLogWarning(std::string msg)
-{
-	DebugLog(std::move(msg), { COLOR_WARNING.r, COLOR_WARNING.g, COLOR_WARNING.b, 0.67f });
-}
+	if (!(visibility == LogVisibility::Debug && !mh::is_debug))
+	{
+		m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 
-void tf2_bot_detector::DebugLogWarning(const mh::source_location& location, const std::string_view& msg)
-{
-	DebugLogWarning(FormatSourceLocation(location, msg));
+		if (m_LogMessages.size() > MAX_LOG_MESSAGES)
+		{
+			m_LogMessages.erase(m_LogMessages.begin(),
+				std::next(m_LogMessages.begin(), m_LogMessages.size() - MAX_LOG_MESSAGES));
+		}
+	}
 }
 
 cppcoro::generator<const LogMessage&> LogManager::GetVisibleMsgs() const

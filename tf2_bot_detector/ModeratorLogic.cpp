@@ -421,7 +421,7 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& en
 		{
 			if (m_Settings->m_AutoChatWarnings && m_ActionManager->QueueAction<ChatMessageAction>(chatMsg))
 			{
-				Log(logMsg, { 1, 0, 0, 1 });
+				Log({ 1, 0, 0, 1 }, logMsg);
 				m_NextCheaterWarningTime = now + CHEATER_WARNING_INTERVAL;
 			}
 		}
