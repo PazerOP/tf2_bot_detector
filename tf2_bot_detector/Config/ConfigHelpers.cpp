@@ -213,11 +213,11 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		std::ifstream file(filename);
 		if (!file.good())
 		{
-			DebugLog("Failed to open "s << filename);
+			DebugLog("Failed to open {}", filename);
 			return false;
 		}
 
-		Log("Loading "s << filename << "...");
+		Log("Loading {}...", filename);
 
 		try
 		{
@@ -225,7 +225,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		}
 		catch (const std::exception& e)
 		{
-			LogError(std::string(__FUNCTION__ ": Exception when parsing JSON from ") << filename << ": " << e.what());
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when parsing JSON from {}", filename);
 			return false;
 		}
 	}
@@ -236,7 +236,8 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to load "s << filename << ": existing json failed schema validation: " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to load {}, existing json failed schema validation", filename);
 		return false;
 	}
 
@@ -252,7 +253,8 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		}
 		catch (const std::exception& e)
 		{
-			LogWarning("Skipping auto-update for "s << filename << ": failed to parse file_info: " << e.what());
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+				"Skipping auto-update for {}, failed to parse file_info", filename);
 		}
 	}
 
@@ -266,7 +268,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 	}
 	else
 	{
-		DebugLog("Skipping auto-update for "s << filename << " because allowAutoupdate = false.");
+		DebugLog("Skipping auto-update for {} because allowAutoupdate = false.", filename);
 	}
 
 	try
@@ -275,12 +277,12 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to load "s << filename
-			<< ": existing file failed to deserialize, and auto-update did not occur. Reason: " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to load {}, existing file failed to deserialize, and auto-update did not occur", filename);
 		return false;
 	}
 
-	DebugLog("Loaded "s << filename << " in " << to_seconds(clock_t::now() - startTime) << " seconds");
+	DebugLog("Loaded {} in {} seconds", filename, to_seconds(clock_t::now() - startTime));
 	return true;
 }
 
@@ -296,7 +298,8 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to serialize "s << filename << ": schema failed to validate: " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to serialize {}, schema failed to validate", filename);
 		return false;
 	}
 
@@ -306,7 +309,7 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to serialize "s << filename << ": " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to serialize {}", filename);
 		return false;
 	}
 
@@ -316,7 +319,7 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to serialize "s << filename << ": LoadAndValidateSchema threw " << std::quoted(e.what()));
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to serialize {}", filename);
 		return false;
 	}
 
@@ -326,7 +329,7 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to write "s << filename << ": " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to write {}", filename);
 		return false;
 	}
 
