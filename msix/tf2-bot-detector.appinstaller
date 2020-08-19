@@ -7,8 +7,7 @@
 	<MainPackage
 		Name="tf2-bot-detector"
 		Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" Version="1.1.0.11"
-		ProcessorArchitecture="x64"
-		Uri="http://192.168.86.48:8089/tf2_bot_detector/tf2bd.msix" />
+		Uri="https://tf2bd-github-api.azurewebsites.net/api/GetGenericArtifact?code=dZm3sePk5wwYGRtoMmzcj2GUUWqlYaDQTnGL97XwE7DC1NPUw6IUag%3D%3D&amp;owner=PazerOP&amp;repo=tf2_bot_detector&amp;artifactID=14667276" />
 
 	<Dependencies>
 		<Package Name="Microsoft.VCLibs.140.00" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="14.0.27810.0" ProcessorArchitecture="x86" Uri="https://puu.sh/GjF4P/b104c9d60f.appx" />
