@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iomanip>
 #include <regex>
+#include <unordered_set>
 
 #undef min
 #undef max

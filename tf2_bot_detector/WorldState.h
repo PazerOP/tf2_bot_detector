@@ -1,18 +1,12 @@
 #pragma once
 
-#include "BatchedAction.h"
-#include "CompensatedTS.h"
-#include "IPlayer.h"
-#include "LobbyMember.h"
-#include "PlayerStatus.h"
-#include "Networking/SteamAPI.h"
+#include "Clock.h"
+#include "SteamID.h"
+#include "TFConstants.h"
 
 #include <cppcoro/generator.hpp>
 
-#include <any>
-#include <filesystem>
-#include <typeindex>
-#include <unordered_set>
+#include <optional>
 
 namespace tf2_bot_detector
 {
@@ -20,6 +14,7 @@ namespace tf2_bot_detector
 	class ConfigExecLine;
 	class ConsoleLogParser;
 	class IConsoleLineListener;
+	class IPlayer;
 	class IWorldEventListener;
 	enum class LobbyMemberTeam : uint8_t;
 	class Settings;

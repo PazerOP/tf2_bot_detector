@@ -4,6 +4,7 @@
 #include "UI/ImGui_TF2BotDetector.h"
 #include "BaseTextures.h"
 #include "IPlayer.h"
+#include "Networking/SteamAPI.h"
 #include "TextureManager.h"
 
 #include <mh/math/interpolation.hpp>

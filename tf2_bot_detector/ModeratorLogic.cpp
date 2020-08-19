@@ -5,8 +5,10 @@
 #include "Config/Rules.h"
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLineListener.h"
-#include "WorldEventListener.h"
+#include "IPlayer.h"
 #include "Log.h"
+#include "PlayerStatus.h"
+#include "WorldEventListener.h"
 #include "WorldState.h"
 
 #include <mh/text/case_insensitive_string.hpp>
@@ -20,6 +22,7 @@
 #include <locale>
 #include <random>
 #include <regex>
+#include <unordered_set>
 
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
@@ -170,12 +173,12 @@ void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& play
 	for (PlayerAttribute attribute : rule.m_Actions.m_Mark)
 	{
 		if (SetPlayerAttribute(player, attribute))
-			Log("Marked "s << player << " with " << attribute << " due to rule match with " << std::quoted(rule.m_Description));
+			Log("Marked {} with {} due to rule match with {}", player, attribute, std::quoted(rule.m_Description));
 	}
 	for (PlayerAttribute attribute : rule.m_Actions.m_Unmark)
 	{
 		if (SetPlayerAttribute(player, attribute, false))
-			Log("Unmarked "s << player << " with " << attribute << " due to rule match with " << std::quoted(rule.m_Description));
+			Log("Unmarked {} with {} due to rule match with {}", player, attribute, std::quoted(rule.m_Description));
 	}
 }
 

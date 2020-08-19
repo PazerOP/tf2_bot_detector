@@ -7,8 +7,11 @@
 #include "GameData/TFClassType.h"
 #include "GameData/UserMessageType.h"
 #include "Networking/HTTPHelpers.h"
+#include "Networking/SteamAPI.h"
 #include "Util/RegexUtils.h"
 #include "Util/TextUtils.h"
+#include "BatchedAction.h"
+#include "IPlayer.h"
 #include "Log.h"
 #include "WorldEventListener.h"
 
