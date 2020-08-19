@@ -175,7 +175,7 @@ jobs:
       run: |
         cat msix/package_staging/AppxManifest.xml \
           | sed 's/TF2BD_PROCESSOR_ARCH_REPLACE_ME/${{ matrix.tf2bd_arch }}/g' \
-          > msix/package_staging/AppxManifest.xml
+          | tee msix/package_staging/AppxManifest.xml
 
     - name: Create msix package
       run: |
