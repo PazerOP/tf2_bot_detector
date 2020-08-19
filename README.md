@@ -159,6 +159,8 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 * [ClusterConsultant](https://github.com/ClusterConsultant)
 * [KTachibanaM](https://github.com/KTachibanaM)
 * [Admiral Bread Crumbs](https://github.com/AdmiralBreadCrumbs)
+* [Czechball](https://github.com/Czechball)
+* [moeb](https://github.com/moebkun)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
