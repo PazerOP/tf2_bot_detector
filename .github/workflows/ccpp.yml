@@ -167,6 +167,9 @@ jobs:
         name: "tf2_bot_detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}"
         path: msix/package_staging/app
 
+    - name: Configure PATH for windows sdk
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: "Create package"
       shell: bash
       run: |
@@ -175,6 +178,13 @@ jobs:
         ls -la package_staging
         ls -la package_staging/app
         makeappx.exe pack /d package_staging /p ${{ env.TF2BD_MSIX_FILENAME }}
+
+    - name: Sign package
+      uses: PazerOP/code-sign-action@v3
+      with:
+        folder: '${{ msix/package_staging }}'
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: msix"
       uses: actions/upload-artifact@v2
