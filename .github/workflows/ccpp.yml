@@ -171,9 +171,9 @@ jobs:
       shell: bash
       run: |
         cd msix
-        ll
-        ll package_staging
-        ll package_staging/app
+        ls -la
+        ls -la package_staging
+        ls -la package_staging/app
         makeappx.exe pack /d package_staging /p ${{ env.TF2BD_MSIX_FILENAME }}
 
     - name: "Artifacts: msix"
