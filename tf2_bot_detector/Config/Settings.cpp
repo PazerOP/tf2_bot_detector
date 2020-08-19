@@ -248,7 +248,7 @@ void Settings::LoadFile()
 	}
 }
 
-bool Settings::SaveFile() const
+bool Settings::SaveFile() const try
 {
 	nlohmann::json json =
 	{
@@ -289,19 +289,24 @@ bool Settings::SaveFile() const
 		std::ofstream file(s_SettingsPath, std::ios::binary);
 		if (!file.good())
 		{
-			LogError(std::string(__FUNCTION__ ": Failed to open settings file for writing: ") << s_SettingsPath);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open settings file for writing: {}", s_SettingsPath);
 			return false;
 		}
 
 		file << jsonString << '\n';
 		if (!file.good())
 		{
-			LogError(std::string(__FUNCTION__ ": Failed to write settings to ") << s_SettingsPath);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to write settings to {}", s_SettingsPath);
 			return false;
 		}
 	}
 
 	return true;
+}
+catch (const std::exception& e)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to save settings");
+	return false;
 }
 
 Settings::Unsaved::~Unsaved()

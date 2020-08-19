@@ -73,12 +73,12 @@ namespace tf2_bot_detector
 					}
 					catch (const std::exception& e)
 					{
-						LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to process batched action", e);
+						LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to process batched action");
 					}
 				}
 				catch (const std::exception& e)
 				{
-					LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to get batched action future", e);
+					LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to get batched action future");
 				}
 
 				m_ResponseFuture = {};

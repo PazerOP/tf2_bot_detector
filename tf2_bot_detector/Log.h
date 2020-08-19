@@ -148,6 +148,12 @@ namespace tf2_bot_detector
 #undef NOINLINE
 #pragma pop_macro("NOINLINE")
 
-	void LogException(const std::string_view& msg, const std::exception& e);
-	void LogException(const mh::source_location& location, const std::string_view& msg, const std::exception& e);
+	void LogException(const mh::source_location& location, const std::exception& e, const std::string_view& msg = {});
+
+	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
+	void LogException(const mh::source_location& location, const std::exception& e,
+		const std::string_view& fmtStr, const TArgs&... args)
+	{
+		LogException(location, e, mh::format(fmtStr, args...));
+	}
 }

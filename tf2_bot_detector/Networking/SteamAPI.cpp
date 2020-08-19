@@ -298,7 +298,7 @@ std::future<TF2PlaytimeResult> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 			}
 			catch (const std::exception& e)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to get response string", e);
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to get response string");
 				return std::make_error_condition(ErrorCode::GenericHttpError);
 			}
 
@@ -309,7 +309,7 @@ std::future<TF2PlaytimeResult> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 			}
 			catch (const std::exception& e)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse response json", e);
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to parse response json");
 				return std::make_error_condition(ErrorCode::JSONParseError);
 			}
 

@@ -55,7 +55,7 @@ std::shared_ptr<ITexture> BaseTextures::TryLoadTexture(const std::filesystem::pa
 	}
 	catch (const std::exception& e)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load "s << file, e);
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load {}", file);
 	}
 
 	return nullptr;

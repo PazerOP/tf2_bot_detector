@@ -202,20 +202,10 @@ void LogManager::ReplaceSecrets(std::string& msg) const
 	}
 }
 
-static std::string FormatException(const std::string_view& msg, const std::exception& e)
+void tf2_bot_detector::LogException(const mh::source_location& location, const std::exception& e,
+	const std::string_view& msg)
 {
-	return mh::format("{}: {}: {}", msg, typeid(e).name(), e.what());
-}
-
-void tf2_bot_detector::LogException(const std::string_view& msg, const std::exception& e)
-{
-	LogError(FormatException(msg, e));
-}
-
-void tf2_bot_detector::LogException(const mh::source_location& location, const std::string_view& msg,
-	const std::exception& e)
-{
-	LogError(location, FormatException(msg, e));
+	LogError(location, "{}: {}: {}", msg, typeid(e).name(), e.what());
 }
 
 void LogManager::Log(std::string msg, const LogMessageColor & color,

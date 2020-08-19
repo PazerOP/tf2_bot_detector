@@ -256,7 +256,7 @@ void WorldState::UpdateFriends()
 	{
 		const auto GenericException = [](const mh::source_location& loc, const std::exception& e)
 		{
-			LogException(loc, "Failed to update our friends list", e);
+			LogException(loc, e, "Failed to update our friends list");
 		};
 
 		try
@@ -934,7 +934,7 @@ const SteamAPI::TF2PlaytimeResult* Player::GetTF2Playtime() const
 		}
 		catch (const std::exception& e)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to get TF2 playtime for "s << *this, e);
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to get TF2 playtime for {}", *this);
 			m_TF2Playtime = {};
 		}
 	}
