@@ -171,12 +171,8 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: "Create package"
-      shell: bash
       run: |
         cd msix
-        ls -la
-        ls -la package_staging
-        ls -la package_staging/app
         makeappx.exe pack /d package_staging /p ${{ env.TF2BD_MSIX_FILENAME }}
 
     - name: Sign package
