@@ -205,7 +205,7 @@ void LogManager::ReplaceSecrets(std::string& msg) const
 void tf2_bot_detector::LogException(const mh::source_location& location, const std::exception& e,
 	const std::string_view& msg)
 {
-	LogError(location, "{}: {}: {}", msg, typeid(e).name(), e.what());
+	LogError(location, msg.empty() ? "{1}: {2}" : "{0}: {1}: {2}", msg, typeid(e).name(), e.what());
 }
 
 void LogManager::Log(std::string msg, const LogMessageColor & color,

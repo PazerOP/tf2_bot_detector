@@ -177,7 +177,7 @@ std::filesystem::path tf2_bot_detector::FindTFDir(const std::filesystem::path& s
 	return {};
 }
 
-void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duration_t maxAge)
+void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duration_t maxAge) try
 {
 	std::vector<std::filesystem::path> files;
 	for (const auto& entry : std::filesystem::directory_iterator(path))
@@ -204,4 +204,8 @@ void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duratio
 				LogWarning("Failed to delete "s << path << ": " << ec.message());
 		}
 	}
+}
+catch (const std::exception& e)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT(), e);
 }
