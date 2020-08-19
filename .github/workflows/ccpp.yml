@@ -178,7 +178,7 @@ jobs:
     - name: Sign package
       uses: PazerOP/code-sign-action@v3
       with:
-        folder: '${{ msix/package_staging }}'
+        folder: msix/package_staging
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
