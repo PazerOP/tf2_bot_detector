@@ -156,7 +156,7 @@ jobs:
       run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
 
     - name: Config msix filename
-      run: echo "::set-env name=TF2BD_MSIX_FILENAME::tf2-bot-detector_${{ matrix.tf2bd_arch }}_${{ env.TF2BD_VERSION }}.msix"
+      run: echo "::set-env name=TF2BD_MSIX_FILENAME::tf2-bot-detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}.msix"
 
     - name: Configure PATH for windows sdk
       uses: ilammy/msvc-dev-cmd@v1
