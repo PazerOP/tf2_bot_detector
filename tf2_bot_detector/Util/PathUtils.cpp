@@ -179,6 +179,9 @@ std::filesystem::path tf2_bot_detector::FindTFDir(const std::filesystem::path& s
 
 void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duration_t maxAge) try
 {
+	if (!std::filesystem::exists(path))
+		return;
+
 	std::vector<std::filesystem::path> files;
 	for (const auto& entry : std::filesystem::directory_iterator(path))
 	{
