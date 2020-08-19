@@ -158,6 +158,9 @@ jobs:
     - name: Config msix filename
       run: echo "::set-env name=TF2BD_MSIX_FILENAME::tf2-bot-detector_${{ matrix.tf2bd_arch }}_${{ env.TF2BD_VERSION }}.msix"
 
+    - name: Configure PATH for windows sdk
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: Checkout
       uses: actions/checkout@v2
 
@@ -167,24 +170,77 @@ jobs:
         name: "tf2_bot_detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}"
         path: msix/package_staging/app
 
-    - name: Configure PATH for windows sdk
-      uses: ilammy/msvc-dev-cmd@v1
+    - name: Find and replace data in package Config
+      shell: bash
+      run: |
+        cat msix/package_staging/AppxManifest.xml \
+          | sed 's/TF2BD_PROCESSOR_ARCH_REPLACE_ME/${{ matrix.tf2bd_arch }}/g' \
+          > msix/package_staging/AppxManifest.xml
 
-    - name: "Create package"
+    - name: Create msix package
       run: |
         cd msix
         makeappx.exe pack /d package_staging /p ${{ env.TF2BD_MSIX_FILENAME }}
 
-    - name: Sign package
+    - name: Sign msix package
       uses: PazerOP/code-sign-action@v3
       with:
         folder: msix
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
-    - name: "Artifacts: msix"
+    - name: Upload msix package
       uses: actions/upload-artifact@v2
       with:
+        name: ${{ env.TF2BD_MSIX_FILENAME }}
         path: "msix/${{ env.TF2BD_MSIX_FILENAME }}"
 
+
+
+  msixbundle:
+    runs-on: windows-latest
+    needs: msix
+
+    steps:
+      - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
+      - uses: benjlevesque/short-sha@v1.1
+        id: short_sha
+      - name: Config TF2BD_VERSION (tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: echo "::set-env name=TF2BD_VERSION::${{ env.GIT_TAG_NAME }}"
+      - name: Config TF2BD_VERSION (SHA)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
+
+      - name: Configure PATH for windows sdk
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Download msix (x86)
+        uses: actions/download-artifact@v2
+        with:
+          name: "tf2_bot_detector_x86-windows_${{ env.TF2BD_VERSION }}.msix"
+          path: msix/bundle_staging
+      - name: Download msix (x64)
+        uses: actions/download-artifact@v2
+        with:
+          name: "tf2_bot_detector_x64-windows_${{ env.TF2BD_VERSION }}.msix"
+          path: msix/bundle_staging
+
+      - name: Create bundle
+        run: |
+          cd msix
+          makeappx bundle /d bundle_staging /p tf2_bot_detector.msixbundle
+
+      - name: Sign bundle
+        uses: PazerOP/code-sign-action@v3
+        with:
+          folder: msix
+          certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+          password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v2
+        with:
+          name: tf2_bot_detector.msixbundle
+          path: "msix/tf2_bot_detector.msixbundle"
 
