@@ -2,9 +2,7 @@
 
 #include "BatchedAction.h"
 #include "CompensatedTS.h"
-#include "ConsoleLog/IConsoleLineListener.h"
 #include "IPlayer.h"
-#include "IWorldEventListener.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
 #include "Networking/SteamAPI.h"
@@ -21,6 +19,8 @@ namespace tf2_bot_detector
 	class ChatConsoleLine;
 	class ConfigExecLine;
 	class ConsoleLogParser;
+	class IConsoleLineListener;
+	class IWorldEventListener;
 	enum class LobbyMemberTeam : uint8_t;
 	class Settings;
 	enum class TFClassType;
@@ -32,169 +32,73 @@ namespace tf2_bot_detector
 		Neither,
 	};
 
-	class WorldState;
+	class IWorldState;
 
-	class WorldStateConLog
+	class IWorldStateConLog
 	{
 	public:
-		void AddConsoleLineListener(IConsoleLineListener* listener);
-		void RemoveConsoleLineListener(IConsoleLineListener* listener);
-
-		void AddConsoleOutputChunk(const std::string_view& chunk);
-		void AddConsoleOutputLine(const std::string_view& line);
+		virtual ~IWorldStateConLog() = default;
 
 	private:
-		WorldState& GetWorldState();
-
-		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
 		friend class ConsoleLogParser;
+
+		virtual IConsoleLineListener& GetConsoleLineListenerBroadcaster() = 0;
+
+		virtual void UpdateTimestamp(const ConsoleLogParser& parser) = 0;
 	};
 
-	class WorldState : IConsoleLineListener, public WorldStateConLog
+	class IWorldState : public IWorldStateConLog
 	{
 	public:
-		WorldState(const Settings& settings);
-		~WorldState();
+		virtual ~IWorldState() = default;
 
-		time_point_t GetCurrentTime() const { return m_CurrentTimestamp.GetSnapshot(); }
-		void Update();
-		void UpdateTimestamp(const ConsoleLogParser& parser);
+		static std::unique_ptr<IWorldState> Create(const Settings& settings);
 
-		void AddWorldEventListener(IWorldEventListener* listener);
-		void RemoveWorldEventListener(IWorldEventListener* listener);
+		virtual void Update() = 0;
 
-		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const;
-		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const;
-		std::optional<UserID_t> FindUserID(const SteamID& id) const;
+		virtual time_point_t GetCurrentTime() const = 0;
+		virtual time_point_t GetLastStatusUpdateTime() const = 0;
 
-		TeamShareResult GetTeamShareResult(const SteamID& id) const;
-		TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const;
-		TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const;
+		virtual void AddWorldEventListener(IWorldEventListener* listener) = 0;
+		virtual void RemoveWorldEventListener(IWorldEventListener* listener) = 0;
+		virtual void AddConsoleLineListener(IConsoleLineListener* listener) = 0;
+		virtual void RemoveConsoleLineListener(IConsoleLineListener* listener) = 0;
+
+		virtual void AddConsoleOutputChunk(const std::string_view& chunk) = 0;
+		virtual void AddConsoleOutputLine(const std::string_view& line) = 0;
+
+		virtual std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const = 0;
+		virtual std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const = 0;
+		virtual std::optional<UserID_t> FindUserID(const SteamID& id) const = 0;
+
+		virtual TeamShareResult GetTeamShareResult(const SteamID& id) const = 0;
+		virtual TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const = 0;
+		virtual TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const = 0;
 		static TeamShareResult GetTeamShareResult(
 			const std::optional<LobbyMemberTeam>& team0, const std::optional<LobbyMemberTeam>& team1);
 
-		IPlayer* FindPlayer(const SteamID& id);
-		const IPlayer* FindPlayer(const SteamID& id) const;
+		virtual const IPlayer* FindPlayer(const SteamID& id) const = 0;
+		IPlayer* FindPlayer(const SteamID& id) { return const_cast<IPlayer*>(std::as_const(*this).FindPlayer(id)); }
 
-		size_t GetApproxLobbyMemberCount() const;
-
-		cppcoro::generator<const IPlayer&> GetLobbyMembers() const;
+		virtual size_t GetApproxLobbyMemberCount() const = 0;
+		virtual cppcoro::generator<const IPlayer&> GetLobbyMembers() const = 0;
 		cppcoro::generator<IPlayer&> GetLobbyMembers();
-		cppcoro::generator<const IPlayer&> GetPlayers() const;
+		virtual cppcoro::generator<const IPlayer&> GetPlayers() const = 0;
 		cppcoro::generator<IPlayer&> GetPlayers();
-		std::vector<const IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32) const;
-		std::vector<IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32);
-
-		time_point_t GetLastStatusUpdateTime() const { return m_LastStatusUpdateTime; }
 
 		// Have we joined a team and picked a class?
-		bool IsLocalPlayerInitialized() const { return m_IsLocalPlayerInitialized; }
-		bool IsVoteInProgress() const { return m_IsVoteInProgress; }
-
-	private:
-		const Settings* m_Settings = nullptr;
-
-		CompensatedTS m_CurrentTimestamp;
-
-		void OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed) override;
-		void OnConfigExecLineParsed(const ConfigExecLine& execLine);
-
-		struct PlayerExtraData final : IPlayer
-		{
-			PlayerExtraData(WorldState& world, SteamID id);
-
-			using IPlayer::GetWorld;
-			const WorldState& GetWorld() const override { return *m_World; }
-			const LobbyMember* GetLobbyMember() const override;
-			std::string_view GetNameUnsafe() const override { return m_Status.m_Name; }
-			std::string_view GetNameSafe() const override { return m_PlayerNameSafe; }
-			SteamID GetSteamID() const override { return m_Status.m_SteamID; }
-			PlayerStatusState GetConnectionState() const override { return m_Status.m_State; }
-			std::optional<UserID_t> GetUserID() const override;
-			TFTeam GetTeam() const override { return m_Team; }
-			time_point_t GetConnectionTime() const override { return m_Status.m_ConnectionTime; }
-			duration_t GetConnectedTime() const override;
-			const PlayerScores& GetScores() const override { return m_Scores; }
-			uint16_t GetPing() const override { return m_Status.m_Ping; }
-			time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
-			const SteamAPI::PlayerSummary* GetPlayerSummary() const override;
-			const SteamAPI::PlayerBans* GetPlayerBans() const override;
-			const SteamAPI::TF2PlaytimeResult* GetTF2Playtime() const override;
-			bool IsFriend() const override;
-			duration_t GetActiveTime() const override;
-
-			WorldState* m_World{};
-			PlayerScores m_Scores{};
-			TFTeam m_Team{};
-
-			uint8_t m_ClientIndex{};
-			std::optional<SteamAPI::PlayerSummary> m_PlayerSummary;
-			std::optional<SteamAPI::PlayerBans> m_PlayerSteamBans;
-
-			void SetStatus(PlayerStatus status, time_point_t timestamp);
-			const PlayerStatus& GetStatus() const { return m_Status; }
-
-			void SetPing(uint16_t ping, time_point_t timestamp);
-
-		protected:
-			std::map<std::type_index, std::any> m_UserData;
-			const std::any* FindDataStorage(const std::type_index& type) const override;
-			std::any& GetOrCreateDataStorage(const std::type_index& type) override;
-
-		private:
-			PlayerStatus m_Status{};
-			std::string m_PlayerNameSafe;
-
-			time_point_t m_LastStatusActiveBegin{};
-
-			time_point_t m_LastStatusUpdateTime{};
-			time_point_t m_LastPingUpdateTime{};
-
-			mutable bool m_TF2PlaytimeFetched = false;
-			mutable std::shared_future<SteamAPI::TF2PlaytimeResult> m_TF2Playtime;
-		};
-
-		void UpdateFriends();
-		std::future<std::unordered_set<SteamID>> m_FriendsFuture;
-		std::unordered_set<SteamID> m_Friends;
-		time_point_t m_LastFriendsUpdate{};
-
-		PlayerExtraData& FindOrCreatePlayer(const SteamID& id);
-
-		struct PlayerSummaryUpdateAction final :
-			BatchedAction<WorldState*, SteamID, std::vector<SteamAPI::PlayerSummary>>
-		{
-			using BatchedAction::BatchedAction;
-		protected:
-			response_future_type SendRequest(WorldState*& state, queue_collection_type& collection) override;
-			void OnDataReady(WorldState*& state, const response_type& response,
-				queue_collection_type& collection) override;
-		} m_PlayerSummaryUpdates;
-
-		struct PlayerBansUpdateAction final :
-			BatchedAction<WorldState*, SteamID, std::vector<SteamAPI::PlayerBans>>
-		{
-			using BatchedAction::BatchedAction;
-		protected:
-			response_future_type SendRequest(state_type& state, queue_collection_type& collection) override;
-			void OnDataReady(state_type& state, const response_type& response,
-				queue_collection_type& collection) override;
-		} m_PlayerBansUpdates;
-
-		std::vector<LobbyMember> m_CurrentLobbyMembers;
-		std::vector<LobbyMember> m_PendingLobbyMembers;
-		std::unordered_map<SteamID, PlayerExtraData> m_CurrentPlayerData;
-		bool m_IsLocalPlayerInitialized = false;
-		bool m_IsVoteInProgress = false;
-
-		time_point_t m_LastStatusUpdateTime{};
-
-		std::unordered_set<IWorldEventListener*> m_EventListeners;
-		template<typename TRet, typename... TArgs, typename... TArgs2>
-		inline void InvokeEventListener(TRet(IWorldEventListener::* func)(TArgs... args), TArgs2&&... args)
-		{
-			for (IWorldEventListener* listener : m_EventListeners)
-				(listener->*func)(std::forward<TArgs2>(args)...);
-		}
+		virtual bool IsLocalPlayerInitialized() const = 0;
+		virtual bool IsVoteInProgress() const = 0;
 	};
+
+	inline cppcoro::generator<IPlayer&> IWorldState::GetLobbyMembers()
+	{
+		for (const IPlayer& p : std::as_const(*this).GetLobbyMembers())
+			co_yield const_cast<IPlayer&>(p);
+	}
+	inline cppcoro::generator<IPlayer&> IWorldState::GetPlayers()
+	{
+		for (const IPlayer& p : std::as_const(*this).GetPlayers())
+			co_yield const_cast<IPlayer&>(p);
+	}
 }

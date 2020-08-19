@@ -2,11 +2,13 @@
 #include "DiscordRichPresence.h"
 #include "Config/DRPInfo.h"
 #include "Config/Settings.h"
+#include "ConsoleLog/ConsoleLineListener.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "ConsoleLog/NetworkStatus.h"
 #include "GameData/MatchmakingQueue.h"
 #include "GameData/TFClassType.h"
 #include "Log.h"
+#include "WorldEventListener.h"
 #include "WorldState.h"
 
 #include <mh/text/charconv_helper.hpp>
@@ -694,27 +696,30 @@ void DiscordGameState::OnConnectionCountUpdate(unsigned connectionCount)
 
 namespace
 {
-	class DiscordState final : public IDRPManager, BaseWorldEventListener, IConsoleLineListener
+	class DiscordState final : public IDRPManager, AutoWorldEventListener, AutoConsoleLineListener
 	{
 	public:
 		static constexpr duration_t UPDATE_INTERVAL = 10s;
 		static_assert(UPDATE_INTERVAL >= (20s / 5), "Update interval too low");
 
-		DiscordState(const Settings& settings, WorldState& world);
+		DiscordState(const Settings& settings, IWorldState& world);
 		~DiscordState();
 
 		void QueueUpdate() { m_WantsUpdate = true; }
 		void Update() override;
 
-		void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) override;
-		void OnLocalPlayerSpawned(WorldState& world, TFClassType classType) override;
+		void OnConsoleLineParsed(IWorldState& world, IConsoleLine& line) override;
+		void OnLocalPlayerSpawned(IWorldState& world, TFClassType classType) override;
 
 	private:
 		std::unique_ptr<discord::Core> m_Core;
 		time_point_t m_LastDiscordInitializeTime{};
 
-		const Settings* m_Settings = nullptr;
-		WorldState* m_WorldState = nullptr;
+		const Settings& GetSettings() const { return m_Settings; }
+		IWorldState& GetWorld() { return m_WorldState; }
+
+		const Settings& m_Settings;
+		IWorldState& m_WorldState;
 		DRPInfo m_DRPInfo;
 		DiscordGameState m_GameState;
 
@@ -724,24 +729,22 @@ namespace
 	};
 }
 
-DiscordState::DiscordState(const Settings& settings, WorldState& world) :
-	m_Settings(&settings),
-	m_WorldState(&world),
+DiscordState::DiscordState(const Settings& settings, IWorldState& world) :
+	AutoWorldEventListener(world),
+	AutoConsoleLineListener(world),
+	m_Settings(settings),
+	m_WorldState(world),
 	m_GameState(settings, m_DRPInfo),
 	m_DRPInfo(settings)
 {
-	world.AddConsoleLineListener(this);
-	world.AddWorldEventListener(this);
 }
 
 DiscordState::~DiscordState()
 {
 	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
-	m_WorldState->RemoveConsoleLineListener(this);
-	m_WorldState->RemoveWorldEventListener(this);
 }
 
-void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)
+void DiscordState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& line)
 {
 	switch (line.GetType())
 	{
@@ -840,7 +843,7 @@ void DiscordState::OnConsoleLineParsed(WorldState& world, IConsoleLine& line)
 	}
 }
 
-void DiscordState::OnLocalPlayerSpawned(WorldState& world, TFClassType classType)
+void DiscordState::OnLocalPlayerSpawned(IWorldState& world, TFClassType classType)
 {
 	QueueUpdate();
 	m_GameState.OnLocalPlayerSpawned(classType);
@@ -871,7 +874,7 @@ static void DiscordLogFunc(discord::LogLevel level, const char* msg)
 
 void DiscordState::Update()
 {
-	s_DiscordDebugLogEnabled = m_Settings->m_Logging.m_DiscordRichPresence;
+	s_DiscordDebugLogEnabled = GetSettings().m_Logging.m_DiscordRichPresence;
 
 	// Initialize discord
 	const auto curTime = clock_t::now();
@@ -958,7 +961,7 @@ void DiscordState::Update()
 
 #endif
 
-std::unique_ptr<IDRPManager> IDRPManager::Create(const Settings& settings, WorldState& world)
+std::unique_ptr<IDRPManager> IDRPManager::Create(const Settings& settings, IWorldState& world)
 {
 	return std::make_unique<DiscordState>(settings, world);
 }

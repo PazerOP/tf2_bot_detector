@@ -4,6 +4,7 @@
 #include "Actions/RCONActionManager.h"
 #include "Clock.h"
 #include "CompensatedTS.h"
+#include "ConsoleLog/ConsoleLineListener.h"
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "Config/PlayerListJSON.h"
 #include "Config/Settings.h"
@@ -12,11 +13,11 @@
 #include "Networking/GithubAPI.h"
 #include "ModeratorLogic.h"
 #include "SetupFlow/SetupFlow.h"
+#include "WorldEventListener.h"
 #include "WorldState.h"
 #include "LobbyMember.h"
 #include "PlayerStatus.h"
 #include "TFConstants.h"
-#include "ConsoleLog/IConsoleLineListener.h"
 
 #include <imgui_desktop/Window.h>
 
@@ -94,9 +95,9 @@ namespace tf2_bot_detector
 		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
 
 		// IConsoleLineListener
-		void OnConsoleLineParsed(WorldState& world, IConsoleLine& line) override;
-		void OnConsoleLineUnparsed(WorldState& world, const std::string_view& text) override;
-		void OnConsoleLogChunkParsed(WorldState& world, bool consoleLinesParsed) override;
+		void OnConsoleLineParsed(IWorldState& world, IConsoleLine& line) override;
+		void OnConsoleLineUnparsed(IWorldState& world, const std::string_view& text) override;
+		void OnConsoleLogChunkParsed(IWorldState& world, bool consoleLinesParsed) override;
 		size_t m_ParsedLineCount = 0;
 
 		// IWorldEventListener
@@ -151,11 +152,11 @@ namespace tf2_bot_detector
 		Settings m_Settings;
 		SetupFlow m_SetupFlow;
 
-		WorldState m_WorldState;
+		std::unique_ptr<IWorldState> m_WorldState;
 		std::unique_ptr<IRCONActionManager> m_ActionManager;
 
-		WorldState& GetWorld() { return m_WorldState; }
-		const WorldState& GetWorld() const { return m_WorldState; }
+		IWorldState& GetWorld() { return *m_WorldState; }
+		const IWorldState& GetWorld() const { return *m_WorldState; }
 		IRCONActionManager& GetActionManager() { return *m_ActionManager; }
 		const IRCONActionManager& GetActionManager() const { return *m_ActionManager; }
 

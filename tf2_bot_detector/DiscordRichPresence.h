@@ -6,7 +6,7 @@
 namespace tf2_bot_detector
 {
 	class Settings;
-	class WorldState;
+	class IWorldState;
 
 	class IDRPManager
 	{
@@ -14,7 +14,7 @@ namespace tf2_bot_detector
 		virtual ~IDRPManager() = default;
 		virtual void Update() = 0;
 
-		static std::unique_ptr<IDRPManager> Create(const Settings& settings, WorldState& world);
+		static std::unique_ptr<IDRPManager> Create(const Settings& settings, IWorldState& world);
 	};
 }
 

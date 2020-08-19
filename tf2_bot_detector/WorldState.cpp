@@ -1,6 +1,7 @@
 #include "WorldState.h"
 #include "Actions/Actions.h"
 #include "Config/Settings.h"
+#include "ConsoleLog/ConsoleLineListener.h"
 #include "ConsoleLog/ConsoleLines.h"
 #include "ConsoleLog/ConsoleLogParser.h"
 #include "GameData/TFClassType.h"
@@ -9,6 +10,7 @@
 #include "Util/RegexUtils.h"
 #include "Util/TextUtils.h"
 #include "Log.h"
+#include "WorldEventListener.h"
 
 #include <mh/concurrency/main_thread.hpp>
 #include <mh/future.hpp>
@@ -18,10 +20,209 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 
+namespace
+{
+	class WorldState;
+
+	class Player final : public IPlayer
+	{
+	public:
+		Player(WorldState& world, SteamID id);
+
+		using IPlayer::GetWorld;
+		const IWorldState& GetWorld() const override;
+		const LobbyMember* GetLobbyMember() const override;
+		std::string_view GetNameUnsafe() const override { return m_Status.m_Name; }
+		std::string_view GetNameSafe() const override { return m_PlayerNameSafe; }
+		SteamID GetSteamID() const override { return m_Status.m_SteamID; }
+		PlayerStatusState GetConnectionState() const override { return m_Status.m_State; }
+		std::optional<UserID_t> GetUserID() const override;
+		TFTeam GetTeam() const override { return m_Team; }
+		time_point_t GetConnectionTime() const override { return m_Status.m_ConnectionTime; }
+		duration_t GetConnectedTime() const override;
+		const PlayerScores& GetScores() const override { return m_Scores; }
+		uint16_t GetPing() const override { return m_Status.m_Ping; }
+		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
+		const SteamAPI::PlayerSummary* GetPlayerSummary() const override;
+		const SteamAPI::PlayerBans* GetPlayerBans() const override;
+		const SteamAPI::TF2PlaytimeResult* GetTF2Playtime() const override;
+		bool IsFriend() const override;
+		duration_t GetActiveTime() const override;
+
+		PlayerScores m_Scores{};
+		TFTeam m_Team{};
+
+		uint8_t m_ClientIndex{};
+		std::optional<SteamAPI::PlayerSummary> m_PlayerSummary;
+		std::optional<SteamAPI::PlayerBans> m_PlayerSteamBans;
+
+		void SetStatus(PlayerStatus status, time_point_t timestamp);
+		const PlayerStatus& GetStatus() const { return m_Status; }
+
+		void SetPing(uint16_t ping, time_point_t timestamp);
+
+	protected:
+		std::map<std::type_index, std::any> m_UserData;
+		const std::any* FindDataStorage(const std::type_index& type) const override;
+		std::any& GetOrCreateDataStorage(const std::type_index& type) override;
+
+	private:
+		WorldState* m_World = nullptr;
+		PlayerStatus m_Status{};
+		std::string m_PlayerNameSafe;
+
+		time_point_t m_LastStatusActiveBegin{};
+
+		time_point_t m_LastStatusUpdateTime{};
+		time_point_t m_LastPingUpdateTime{};
+
+		mutable bool m_TF2PlaytimeFetched = false;
+		mutable std::shared_future<SteamAPI::TF2PlaytimeResult> m_TF2Playtime;
+	};
+
+	class WorldState final : public IWorldState, BaseConsoleLineListener
+	{
+	public:
+		WorldState(const Settings& settings);
+		~WorldState();
+
+		time_point_t GetCurrentTime() const override { return m_CurrentTimestamp.GetSnapshot(); }
+		size_t GetApproxLobbyMemberCount() const override;
+
+		void Update() override;
+		void UpdateTimestamp(const ConsoleLogParser& parser);
+
+		void AddWorldEventListener(IWorldEventListener* listener) override;
+		void RemoveWorldEventListener(IWorldEventListener* listener) override;
+		void AddConsoleLineListener(IConsoleLineListener* listener) override;
+		void RemoveConsoleLineListener(IConsoleLineListener* listener) override;
+
+		void AddConsoleOutputChunk(const std::string_view& chunk) override;
+		void AddConsoleOutputLine(const std::string_view& line) override;
+
+		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const override;
+		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const override;
+		std::optional<UserID_t> FindUserID(const SteamID& id) const override;
+
+		TeamShareResult GetTeamShareResult(const SteamID& id) const override;
+		TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const override;
+		TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const override;
+		static TeamShareResult GetTeamShareResult(
+			const std::optional<LobbyMemberTeam>& team0, const std::optional<LobbyMemberTeam>& team1);
+
+		using IWorldState::FindPlayer;
+		const IPlayer* FindPlayer(const SteamID& id) const override;
+
+		cppcoro::generator<const IPlayer&> GetLobbyMembers() const;
+		cppcoro::generator<const IPlayer&> GetPlayers() const;
+		std::vector<const IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32) const;
+		std::vector<IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32);
+
+		time_point_t GetLastStatusUpdateTime() const { return m_LastStatusUpdateTime; }
+
+		// Have we joined a team and picked a class?
+		bool IsLocalPlayerInitialized() const override { return m_IsLocalPlayerInitialized; }
+		bool IsVoteInProgress() const override { return m_IsVoteInProgress; }
+
+		void QueuePlayerSummaryUpdate(const SteamID& id);
+		void QueuePlayerBansUpdate(const SteamID& id);
+
+		const Settings& GetSettings() const { return m_Settings; }
+		const std::vector<LobbyMember>& GetCurrentLobbyMembers() const { return m_CurrentLobbyMembers; }
+		const std::vector<LobbyMember>& GetPendingLobbyMembers() const { return m_PendingLobbyMembers; }
+		const std::unordered_set<SteamID> GetFriends() const { return m_Friends; }
+
+	protected:
+		virtual IConsoleLineListener& GetConsoleLineListenerBroadcaster() { return m_ConsoleLineListenerBroadcaster; }
+
+	private:
+		const Settings& m_Settings;
+
+		CompensatedTS m_CurrentTimestamp;
+
+		void OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed) override;
+		void OnConfigExecLineParsed(const ConfigExecLine& execLine);
+
+		void UpdateFriends();
+		std::future<std::unordered_set<SteamID>> m_FriendsFuture;
+		std::unordered_set<SteamID> m_Friends;
+		time_point_t m_LastFriendsUpdate{};
+
+		Player& FindOrCreatePlayer(const SteamID& id);
+
+		struct PlayerSummaryUpdateAction final :
+			BatchedAction<WorldState*, SteamID, std::vector<SteamAPI::PlayerSummary>>
+		{
+			using BatchedAction::BatchedAction;
+		protected:
+			response_future_type SendRequest(WorldState*& state, queue_collection_type& collection) override;
+			void OnDataReady(WorldState*& state, const response_type& response,
+				queue_collection_type& collection) override;
+		} m_PlayerSummaryUpdates;
+
+		struct PlayerBansUpdateAction final :
+			BatchedAction<WorldState*, SteamID, std::vector<SteamAPI::PlayerBans>>
+		{
+			using BatchedAction::BatchedAction;
+		protected:
+			response_future_type SendRequest(state_type& state, queue_collection_type& collection) override;
+			void OnDataReady(state_type& state, const response_type& response,
+				queue_collection_type& collection) override;
+		} m_PlayerBansUpdates;
+
+		std::vector<LobbyMember> m_CurrentLobbyMembers;
+		std::vector<LobbyMember> m_PendingLobbyMembers;
+		std::unordered_map<SteamID, Player> m_CurrentPlayerData;
+		bool m_IsLocalPlayerInitialized = false;
+		bool m_IsVoteInProgress = false;
+
+		time_point_t m_LastStatusUpdateTime{};
+
+		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
+		std::unordered_set<IWorldEventListener*> m_EventListeners;
+
+		struct ConsoleLineListenerBroadcaster final : IConsoleLineListener
+		{
+			ConsoleLineListenerBroadcaster(WorldState& world) : m_World(world) {}
+
+			void OnConsoleLineParsed(IWorldState& world, IConsoleLine& line) override
+			{
+				for (IConsoleLineListener* l : m_World.m_ConsoleLineListeners)
+					l->OnConsoleLineParsed(world, line);
+			}
+			void OnConsoleLineUnparsed(IWorldState& world, const std::string_view& text) override
+			{
+				for (IConsoleLineListener* l : m_World.m_ConsoleLineListeners)
+					l->OnConsoleLineUnparsed(world, text);
+			}
+			void OnConsoleLogChunkParsed(IWorldState& world, bool consoleLinesParsed) override
+			{
+				for (IConsoleLineListener* l : m_World.m_ConsoleLineListeners)
+					l->OnConsoleLogChunkParsed(world, consoleLinesParsed);
+			}
+
+			WorldState& m_World;
+
+		} m_ConsoleLineListenerBroadcaster;
+		template<typename TRet, typename... TArgs, typename... TArgs2>
+		inline void InvokeEventListener(TRet(IWorldEventListener::* func)(TArgs... args), TArgs2&&... args)
+		{
+			for (IWorldEventListener* listener : m_EventListeners)
+				(listener->*func)(std::forward<TArgs2>(args)...);
+		}
+	};
+}
+
+std::unique_ptr<IWorldState> IWorldState::Create(const Settings& settings)
+{
+	return std::make_unique<WorldState>(settings);
+}
+
 WorldState::WorldState(const Settings& settings) :
-	m_Settings(&settings),
+	m_Settings(settings),
 	m_PlayerSummaryUpdates(this),
-	m_PlayerBansUpdates(this)
+	m_PlayerBansUpdates(this),
+	m_ConsoleLineListenerBroadcaster(*this)
 {
 	AddConsoleLineListener(this);
 }
@@ -41,11 +242,11 @@ void WorldState::Update()
 
 void WorldState::UpdateFriends()
 {
-	if (auto client = m_Settings->GetHTTPClient();
-		client && !m_Settings->GetSteamAPIKey().empty() && (clock_t::now() - 5min) > m_LastFriendsUpdate)
+	if (auto client = GetSettings().GetHTTPClient();
+		client && !GetSettings().GetSteamAPIKey().empty() && (clock_t::now() - 5min) > m_LastFriendsUpdate)
 	{
 		m_LastFriendsUpdate = clock_t::now();
-		m_FriendsFuture = SteamAPI::GetFriendList(m_Settings->GetSteamAPIKey(), m_Settings->GetLocalSteamID(), *client);
+		m_FriendsFuture = SteamAPI::GetFriendList(GetSettings().GetSteamAPIKey(), GetSettings().GetLocalSteamID(), *client);
 	}
 
 	if (mh::is_future_ready(m_FriendsFuture))
@@ -78,17 +279,17 @@ void WorldState::UpdateFriends()
 	}
 }
 
-void WorldStateConLog::AddConsoleLineListener(IConsoleLineListener* listener)
+void WorldState::AddConsoleLineListener(IConsoleLineListener* listener)
 {
 	m_ConsoleLineListeners.insert(listener);
 }
 
-void WorldStateConLog::RemoveConsoleLineListener(IConsoleLineListener* listener)
+void WorldState::RemoveConsoleLineListener(IConsoleLineListener* listener)
 {
 	m_ConsoleLineListeners.erase(listener);
 }
 
-void WorldStateConLog::AddConsoleOutputChunk(const std::string_view& chunk)
+void WorldState::AddConsoleOutputChunk(const std::string_view& chunk)
 {
 	size_t last = 0;
 	for (auto i = chunk.find('\n', 0); i != chunk.npos; i = chunk.find('\n', last))
@@ -99,24 +300,19 @@ void WorldStateConLog::AddConsoleOutputChunk(const std::string_view& chunk)
 	}
 }
 
-void WorldStateConLog::AddConsoleOutputLine(const std::string_view& line)
+void WorldState::AddConsoleOutputLine(const std::string_view& line)
 {
-	auto parsed = IConsoleLine::ParseConsoleLine(line, GetWorldState().GetCurrentTime());
+	auto parsed = IConsoleLine::ParseConsoleLine(line, GetCurrentTime());
 	if (parsed)
 	{
 		for (auto listener : m_ConsoleLineListeners)
-			listener->OnConsoleLineParsed(GetWorldState(), *parsed);
+			listener->OnConsoleLineParsed(*this, *parsed);
 	}
 	else
 	{
 		for (auto listener : m_ConsoleLineListeners)
-			listener->OnConsoleLineUnparsed(GetWorldState(), line);
+			listener->OnConsoleLineUnparsed(*this, line);
 	}
-}
-
-WorldState& WorldStateConLog::GetWorldState()
-{
-	return *static_cast<WorldState*>(this);
 }
 
 void WorldState::UpdateTimestamp(const ConsoleLogParser& parser)
@@ -181,7 +377,7 @@ std::optional<UserID_t> WorldState::FindUserID(const SteamID& id) const
 
 TeamShareResult WorldState::GetTeamShareResult(const SteamID& id) const
 {
-	return GetTeamShareResult(id, m_Settings->GetLocalSteamID());
+	return GetTeamShareResult(id, GetSettings().GetLocalSteamID());
 }
 
 auto WorldState::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
@@ -204,11 +400,6 @@ auto WorldState::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
 		return TeamShareResult::OppositeTeams;
 	else
 		throw std::runtime_error("Unexpected team value(s)");
-}
-
-IPlayer* WorldState::FindPlayer(const SteamID& id)
-{
-	return const_cast<IPlayer*>(std::as_const(*this).FindPlayer(id));
 }
 
 const IPlayer* WorldState::FindPlayer(const SteamID& id) const
@@ -268,22 +459,20 @@ cppcoro::generator<const IPlayer&> WorldState::GetLobbyMembers() const
 	}
 }
 
-cppcoro::generator<IPlayer&> WorldState::GetLobbyMembers()
-{
-	for (const IPlayer& member : std::as_const(*this).GetLobbyMembers())
-		co_yield const_cast<IPlayer&>(member);
-}
-
 cppcoro::generator<const IPlayer&> WorldState::GetPlayers() const
 {
 	for (const auto& pair : m_CurrentPlayerData)
 		co_yield pair.second;
 }
 
-cppcoro::generator<IPlayer&> WorldState::GetPlayers()
+void WorldState::QueuePlayerSummaryUpdate(const SteamID& id)
 {
-	for (const IPlayer& player : std::as_const(*this).GetPlayers())
-		co_yield const_cast<IPlayer&>(player);
+	return m_PlayerSummaryUpdates.Queue(id);
+}
+
+void WorldState::QueuePlayerBansUpdate(const SteamID& id)
+{
+	return m_PlayerBansUpdates.Queue(id);
 }
 
 template<typename TMap>
@@ -362,7 +551,7 @@ void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
 	}
 }
 
-void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
+void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 {
 	assert(&world == this);
 
@@ -554,7 +743,7 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	case ConsoleLineType::KillNotification:
 	{
 		auto& killLine = static_cast<const KillNotificationLine&>(parsed);
-		const auto localSteamID = m_Settings->GetLocalSteamID();
+		const auto localSteamID = GetSettings().GetLocalSteamID();
 		const auto attackerSteamID = FindSteamIDForName(killLine.GetAttackerName());
 		const auto victimSteamID = FindSteamIDForName(killLine.GetVictimName());
 
@@ -632,13 +821,13 @@ void WorldState::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 }
 
-auto WorldState::FindOrCreatePlayer(const SteamID& id) -> PlayerExtraData&
+Player& WorldState::FindOrCreatePlayer(const SteamID& id)
 {
-	PlayerExtraData* data;
+	Player* data;
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
 		data = &found->second;
 	else
-		data = &m_CurrentPlayerData.emplace(id, PlayerExtraData{ *this, id }).first->second;
+		data = &m_CurrentPlayerData.emplace(id, Player{ *this, id }).first->second;
 
 	assert(data->GetSteamID() == id);
 	return *data;
@@ -649,12 +838,12 @@ auto WorldState::GetTeamShareResult(const SteamID& id0, const SteamID& id1) cons
 	return GetTeamShareResult(FindLobbyMemberTeam(id0), FindLobbyMemberTeam(id1));
 }
 
-WorldState::PlayerExtraData::PlayerExtraData(WorldState& world, SteamID id) :
+Player::Player(WorldState& world, SteamID id) :
 	m_World(&world)
 {
 	m_Status.m_SteamID = id;
 
-	if (!m_World->m_Settings->m_LazyLoadAPIData)
+	if (!m_World->GetSettings().m_LazyLoadAPIData)
 	{
 		GetPlayerSummary();
 		GetPlayerBans();
@@ -662,16 +851,20 @@ WorldState::PlayerExtraData::PlayerExtraData(WorldState& world, SteamID id) :
 	}
 }
 
-const LobbyMember* WorldState::PlayerExtraData::GetLobbyMember() const
+const IWorldState& Player::GetWorld() const
 {
-	auto& world = GetWorld();
+	return *m_World;
+}
+
+const LobbyMember* Player::GetLobbyMember() const
+{
 	const auto steamID = GetSteamID();
-	for (const auto& member : world.m_CurrentLobbyMembers)
+	for (const auto& member : m_World->GetCurrentLobbyMembers())
 	{
 		if (member.m_SteamID == steamID)
 			return &member;
 	}
-	for (const auto& member : world.m_PendingLobbyMembers)
+	for (const auto& member : m_World->GetPendingLobbyMembers())
 	{
 		if (member.m_SteamID == steamID)
 			return &member;
@@ -680,7 +873,7 @@ const LobbyMember* WorldState::PlayerExtraData::GetLobbyMember() const
 	return nullptr;
 }
 
-std::optional<UserID_t> WorldState::PlayerExtraData::GetUserID() const
+std::optional<UserID_t> Player::GetUserID() const
 {
 	if (m_Status.m_UserID > 0)
 		return m_Status.m_UserID;
@@ -688,7 +881,7 @@ std::optional<UserID_t> WorldState::PlayerExtraData::GetUserID() const
 	return std::nullopt;
 }
 
-duration_t WorldState::PlayerExtraData::GetConnectedTime() const
+duration_t Player::GetConnectedTime() const
 {
 	auto result = GetWorld().GetCurrentTime() - GetConnectionTime();
 	//assert(result >= -1s);
@@ -696,36 +889,36 @@ duration_t WorldState::PlayerExtraData::GetConnectedTime() const
 	return result;
 }
 
-const SteamAPI::PlayerSummary* WorldState::PlayerExtraData::GetPlayerSummary() const
+const SteamAPI::PlayerSummary* Player::GetPlayerSummary() const
 {
 	if (m_PlayerSummary)
 		return &*m_PlayerSummary;
 
 	// We'rd not loaded, so make sure we're queued to be loaded
-	m_World->m_PlayerSummaryUpdates.Queue(GetSteamID());
+	m_World->QueuePlayerSummaryUpdate(GetSteamID());
 	return nullptr;
 }
 
-const SteamAPI::PlayerBans* WorldState::PlayerExtraData::GetPlayerBans() const
+const SteamAPI::PlayerBans* Player::GetPlayerBans() const
 {
 	if (m_PlayerSteamBans)
 		return &*m_PlayerSteamBans;
 
-	m_World->m_PlayerBansUpdates.Queue(GetSteamID());
+	m_World->QueuePlayerBansUpdate(GetSteamID());
 	return nullptr;
 }
 
-const SteamAPI::TF2PlaytimeResult* WorldState::PlayerExtraData::GetTF2Playtime() const
+const SteamAPI::TF2PlaytimeResult* Player::GetTF2Playtime() const
 {
 	if (!m_TF2PlaytimeFetched)
 	{
-		if (!m_World->m_Settings->GetSteamAPIKey().empty())
+		if (!m_World->GetSettings().GetSteamAPIKey().empty())
 		{
-			if (auto client = m_World->m_Settings->GetHTTPClient())
+			if (auto client = m_World->GetSettings().GetHTTPClient())
 			{
 				m_TF2PlaytimeFetched = true;
 				m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(
-					m_World->m_Settings->GetSteamAPIKey(), GetSteamID(), *client);
+					m_World->GetSettings().GetSteamAPIKey(), GetSteamID(), *client);
 			}
 		}
 	}
@@ -746,18 +939,12 @@ const SteamAPI::TF2PlaytimeResult* WorldState::PlayerExtraData::GetTF2Playtime()
 	return nullptr;
 }
 
-bool WorldState::PlayerExtraData::IsFriend() const try
+bool Player::IsFriend() const
 {
-	return m_World->m_Friends.contains(GetSteamID());
-}
-catch (const std::exception& e)
-{
-	LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to access friends list", e);
-	m_World->m_Friends = {};
-	return false;
+	return m_World->GetFriends().contains(GetSteamID());
 }
 
-duration_t WorldState::PlayerExtraData::GetActiveTime() const
+duration_t Player::GetActiveTime() const
 {
 	if (m_Status.m_State != PlayerStatusState::Active)
 		return 0s;
@@ -765,7 +952,7 @@ duration_t WorldState::PlayerExtraData::GetActiveTime() const
 	return m_LastStatusUpdateTime - m_LastStatusActiveBegin;
 }
 
-void WorldState::PlayerExtraData::SetStatus(PlayerStatus status, time_point_t timestamp)
+void Player::SetStatus(PlayerStatus status, time_point_t timestamp)
 {
 	if (m_Status.m_State != PlayerStatusState::Active && status.m_State == PlayerStatusState::Active)
 		m_LastStatusActiveBegin = timestamp;
@@ -774,13 +961,13 @@ void WorldState::PlayerExtraData::SetStatus(PlayerStatus status, time_point_t ti
 	m_PlayerNameSafe = CollapseNewlines(m_Status.m_Name);
 	m_LastStatusUpdateTime = m_LastPingUpdateTime = timestamp;
 }
-void WorldState::PlayerExtraData::SetPing(uint16_t ping, time_point_t timestamp)
+void Player::SetPing(uint16_t ping, time_point_t timestamp)
 {
 	m_Status.m_Ping = ping;
 	m_LastPingUpdateTime = timestamp;
 }
 
-const std::any* WorldState::PlayerExtraData::FindDataStorage(const std::type_index& type) const
+const std::any* Player::FindDataStorage(const std::type_index& type) const
 {
 	if (auto found = m_UserData.find(type); found != m_UserData.end())
 		return &found->second;
@@ -788,7 +975,7 @@ const std::any* WorldState::PlayerExtraData::FindDataStorage(const std::type_ind
 	return nullptr;
 }
 
-std::any& WorldState::PlayerExtraData::GetOrCreateDataStorage(const std::type_index& type)
+std::any& Player::GetOrCreateDataStorage(const std::type_index& type)
 {
 	return m_UserData[type];
 }
@@ -810,17 +997,17 @@ static std::vector<SteamID> Take100(const T& collection)
 auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 	WorldState*& state, queue_collection_type& collection) -> response_future_type
 {
-	auto client = state->m_Settings->GetHTTPClient();
+	auto client = state->GetSettings().GetHTTPClient();
 	if (!client)
 		return {};
 
-	if (state->m_Settings->GetSteamAPIKey().empty())
+	if (state->GetSettings().GetSteamAPIKey().empty())
 		return {};
 
 	std::vector<SteamID> steamIDs = Take100(collection);
 
 	return SteamAPI::GetPlayerSummariesAsync(
-		state->m_Settings->GetSteamAPIKey(), std::move(steamIDs), *client);
+		state->GetSettings().GetSteamAPIKey(), std::move(steamIDs), *client);
 }
 
 void WorldState::PlayerSummaryUpdateAction::OnDataReady(WorldState*& state,
@@ -837,16 +1024,16 @@ void WorldState::PlayerSummaryUpdateAction::OnDataReady(WorldState*& state,
 auto WorldState::PlayerBansUpdateAction::SendRequest(state_type& state,
 	queue_collection_type& collection) -> response_future_type
 {
-	auto client = state->m_Settings->GetHTTPClient();
+	auto client = state->GetSettings().GetHTTPClient();
 	if (!client)
 		return {};
 
-	if (state->m_Settings->GetSteamAPIKey().empty())
+	if (state->GetSettings().GetSteamAPIKey().empty())
 		return {};
 
 	std::vector<SteamID> steamIDs = Take100(collection);
 	return SteamAPI::GetPlayerBansAsync(
-		state->m_Settings->GetSteamAPIKey(), std::move(steamIDs), *client);
+		state->GetSettings().GetSteamAPIKey(), std::move(steamIDs), *client);
 }
 
 void WorldState::PlayerBansUpdateAction::OnDataReady(state_type& state,

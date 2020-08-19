@@ -5,11 +5,11 @@
 namespace tf2_bot_detector
 {
 	class Settings;
-	class WorldState;
+	class IWorldState;
 
 	class IRCONActionManager : public IActionManager
 	{
 	public:
-		static std::unique_ptr<IRCONActionManager> Create(const Settings& settings, WorldState& world);
+		static std::unique_ptr<IRCONActionManager> Create(const Settings& settings, IWorldState& world);
 	};
 }

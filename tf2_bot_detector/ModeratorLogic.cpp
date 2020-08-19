@@ -4,8 +4,8 @@
 #include "Config/PlayerListJSON.h"
 #include "Config/Rules.h"
 #include "Config/Settings.h"
-#include "ConsoleLog/IConsoleLineListener.h"
-#include "IWorldEventListener.h"
+#include "ConsoleLog/ConsoleLineListener.h"
+#include "WorldEventListener.h"
 #include "Log.h"
 #include "WorldState.h"
 
@@ -28,10 +28,10 @@ using namespace std::string_view_literals;
 
 namespace
 {
-	class ModeratorLogic final : public IModeratorLogic, IConsoleLineListener, BaseWorldEventListener
+	class ModeratorLogic final : public IModeratorLogic, AutoConsoleLineListener, AutoWorldEventListener
 	{
 	public:
-		ModeratorLogic(WorldState& world, const Settings& settings, IRCONActionManager& actionManager);
+		ModeratorLogic(IWorldState& world, const Settings& settings, IRCONActionManager& actionManager);
 
 		void Update() override;
 
@@ -72,7 +72,7 @@ namespace
 		void ReloadConfigFiles() override;
 
 	private:
-		WorldState* m_World = nullptr;
+		IWorldState* m_World = nullptr;
 		const Settings* m_Settings = nullptr;
 		IRCONActionManager* m_ActionManager = nullptr;
 
@@ -97,8 +97,8 @@ namespace
 		// Steam IDs of players that we think are running the tool.
 		std::unordered_set<SteamID> m_PlayersRunningTool;
 
-		void OnPlayerStatusUpdate(WorldState& world, const IPlayer& player) override;
-		void OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg) override;
+		void OnPlayerStatusUpdate(IWorldState& world, const IPlayer& player) override;
+		void OnChatMsg(IWorldState& world, IPlayer& player, const std::string_view& msg) override;
 
 		void OnRuleMatch(const ModerationRule& rule, const IPlayer& player);
 
@@ -129,7 +129,7 @@ namespace
 	};
 }
 
-std::unique_ptr<IModeratorLogic> IModeratorLogic::Create(WorldState& world,
+std::unique_ptr<IModeratorLogic> IModeratorLogic::Create(IWorldState& world,
 	const Settings& settings, IRCONActionManager& actionManager)
 {
 	return std::make_unique<ModeratorLogic>(world, settings, actionManager);
@@ -179,7 +179,7 @@ void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& play
 	}
 }
 
-void ModeratorLogic::OnPlayerStatusUpdate(WorldState& world, const IPlayer& player)
+void ModeratorLogic::OnPlayerStatusUpdate(IWorldState& world, const IPlayer& player)
 {
 	const auto name = player.GetNameUnsafe();
 	const auto steamID = player.GetSteamID();
@@ -205,7 +205,7 @@ static bool IsCheaterConnectedWarning(const std::string_view& msg)
 	return std::regex_match(msg.begin(), msg.end(), s_IngameWarning);
 }
 
-void ModeratorLogic::OnChatMsg(WorldState& world, IPlayer& player, const std::string_view& msg)
+void ModeratorLogic::OnChatMsg(IWorldState& world, IPlayer& player, const std::string_view& msg)
 {
 	bool botMsgDetected = IsCheaterConnectedWarning(msg);
 	// Check if it is a moderation message from someone else
@@ -690,15 +690,15 @@ void ModeratorLogic::ReloadConfigFiles()
 	m_Rules.LoadFiles();
 }
 
-ModeratorLogic::ModeratorLogic(WorldState& world, const Settings& settings, IRCONActionManager& actionManager) :
+ModeratorLogic::ModeratorLogic(IWorldState& world, const Settings& settings, IRCONActionManager& actionManager) :
+	AutoConsoleLineListener(world),
+	AutoWorldEventListener(world),
 	m_World(&world),
 	m_Settings(&settings),
 	m_ActionManager(&actionManager),
 	m_PlayerList(settings),
 	m_Rules(settings)
 {
-	m_World->AddConsoleLineListener(this);
-	m_World->AddWorldEventListener(this);
 }
 
 PlayerMarks ModeratorLogic::GetPlayerAttributes(const SteamID& id) const

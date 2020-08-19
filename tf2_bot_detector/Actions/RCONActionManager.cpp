@@ -1,9 +1,10 @@
 #include "RCONActionManager.h"
-#include "Actions.h"
+#include "Actions/ActionGenerators.h"
 #include "Config/Settings.h"
 #include "ConsoleLog/ConsoleLines.h"
+#include "Actions.h"
 #include "Log.h"
-#include "Actions/ActionGenerators.h"
+#include "WorldEventListener.h"
 #include "WorldState.h"
 
 #include <mh/text/insertion_conversion.hpp>
@@ -30,7 +31,7 @@ namespace
 	class RCONActionManager final : public IRCONActionManager, BaseWorldEventListener
 	{
 	public:
-		RCONActionManager(const Settings& settings, WorldState& world);
+		RCONActionManager(const Settings& settings, IWorldState& world);
 		~RCONActionManager();
 
 		void Update();
@@ -52,7 +53,7 @@ namespace
 		}
 
 	private:
-		void OnLocalPlayerInitialized(WorldState& world, bool initialized) override;
+		void OnLocalPlayerInitialized(IWorldState& world, bool initialized) override;
 
 		struct RunningCommand
 		{
@@ -68,8 +69,8 @@ namespace
 
 		static constexpr duration_t UPDATE_INTERVAL = std::chrono::milliseconds(250);
 
-		WorldState* m_WorldState = nullptr;
-		const Settings* m_Settings = nullptr;
+		IWorldState& m_WorldState;
+		const Settings& m_Settings;
 		time_point_t m_LastUpdateTime{};
 		std::vector<std::unique_ptr<IAction>> m_Actions;
 		std::vector<std::unique_ptr<IPeriodicActionGenerator>> m_PeriodicActionGenerators;
@@ -92,13 +93,13 @@ struct SRCONInit
 
 } s_SRCONInit;
 
-std::unique_ptr<IRCONActionManager> IRCONActionManager::Create(const Settings& settings, WorldState& world)
+std::unique_ptr<IRCONActionManager> IRCONActionManager::Create(const Settings& settings, IWorldState& world)
 {
 	return std::make_unique<RCONActionManager>(settings, world);
 }
 
-RCONActionManager::RCONActionManager(const Settings& settings, WorldState& world) :
-	m_Settings(&settings), m_WorldState(&world)
+RCONActionManager::RCONActionManager(const Settings& settings, IWorldState& world) :
+	m_Settings(settings), m_WorldState(world)
 {
 	world.AddWorldEventListener(this);
 }
@@ -133,7 +134,7 @@ void RCONActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActi
 	m_PeriodicActionGenerators.push_back(std::move(action));
 }
 
-void RCONActionManager::OnLocalPlayerInitialized(WorldState& world, bool initialized)
+void RCONActionManager::OnLocalPlayerInitialized(IWorldState& world, bool initialized)
 {
 	m_IsDiscardingServerCommands = !initialized;
 	DebugLog("m_IsDiscardingServerCommands = "s << m_IsDiscardingServerCommands);
@@ -157,7 +158,7 @@ void RCONActionManager::ProcessRunningCommands()
 		{
 			auto resultStr = cmd.m_Future.get();
 
-			if (m_Settings->m_Unsaved.m_DebugShowCommands)
+			if (m_Settings.m_Unsaved.m_DebugShowCommands)
 			{
 				const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock_t::now() - cmd.m_StartTime);
 				std::string msg = "Game command processed in "s << elapsed.count() << "ms : " << std::quoted(cmd.m_Command);
@@ -169,17 +170,7 @@ void RCONActionManager::ProcessRunningCommands()
 			}
 
 			if (!resultStr.empty())
-			{
-				if (m_WorldState)
-				{
-					m_WorldState->AddConsoleOutputChunk(resultStr);
-				}
-				else
-				{
-					LogError("WorldState was nullptr when we tried to give it the result for "s
-						<< std::quoted(cmd.m_Command) << ": " << resultStr);
-				}
-			}
+				m_WorldState.AddConsoleOutputChunk(resultStr);
 		}
 		catch (const std::future_error& e)
 		{
@@ -222,7 +213,7 @@ bool RCONActionManager::ShouldDiscardCommand(const std::string_view& cmd) const
 
 void RCONActionManager::ProcessQueuedCommands()
 {
-	if (!m_Settings->m_Unsaved.m_RCONClient)
+	if (!m_Settings.m_Unsaved.m_RCONClient)
 		return;
 
 	const auto curTime = clock_t::now();
@@ -251,7 +242,7 @@ void RCONActionManager::ProcessQueuedCommands()
 					{
 						.m_StartTime = clock_t::now(),
 						.m_Command = cmd,
-						.m_Future = m_Manager->m_Settings->m_Unsaved.m_RCONClient->send_command_async(cmd, false),
+						.m_Future = m_Manager->m_Settings.m_Unsaved.m_RCONClient->send_command_async(cmd, false),
 					});
 			}
 

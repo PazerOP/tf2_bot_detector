@@ -16,14 +16,14 @@ namespace tf2_bot_detector
 	class IRCONActionManager;
 	class Settings;
 	class SteamID;
-	class WorldState;
+	class IWorldState;
 
 	class IModeratorLogic
 	{
 	public:
 		virtual ~IModeratorLogic() = default;
 
-		static std::unique_ptr<IModeratorLogic> Create(WorldState& world, const Settings& settings, IRCONActionManager& actionManager);
+		static std::unique_ptr<IModeratorLogic> Create(IWorldState& world, const Settings& settings, IRCONActionManager& actionManager);
 
 		virtual void Update() = 0;
 

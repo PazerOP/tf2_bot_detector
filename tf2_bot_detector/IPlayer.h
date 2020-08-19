@@ -15,7 +15,7 @@ namespace tf2_bot_detector
 	struct LobbyMember;
 	enum class PlayerStatusState : uint8_t;
 	enum class TFTeam : uint8_t;
-	class WorldState;
+	class IWorldState;
 
 	namespace SteamAPI
 	{
@@ -37,8 +37,8 @@ namespace tf2_bot_detector
 	public:
 		virtual ~IPlayer() = default;
 
-		virtual WorldState& GetWorld() { return const_cast<WorldState&>(std::as_const(*this).GetWorld()); }
-		virtual const WorldState& GetWorld() const = 0;
+		virtual IWorldState& GetWorld() { return const_cast<IWorldState&>(std::as_const(*this).GetWorld()); }
+		virtual const IWorldState& GetWorld() const = 0;
 
 		virtual const LobbyMember* GetLobbyMember() const = 0;
 

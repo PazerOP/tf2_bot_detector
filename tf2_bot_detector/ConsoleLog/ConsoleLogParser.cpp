@@ -1,5 +1,6 @@
 #include "ConsoleLogParser.h"
 #include "Config/ChatWrappers.h"
+#include "ConsoleLog/ConsoleLineListener.h"
 #include "ConsoleLines.h"
 #include "Log.h"
 #include "Util/RegexUtils.h"
@@ -27,7 +28,7 @@ void ConsoleLogParser::TrySnapshot(bool& snapshotUpdated)
 	}
 }
 
-ConsoleLogParser::ConsoleLogParser(WorldState& world, const Settings& settings, std::filesystem::path conLogFile) :
+ConsoleLogParser::ConsoleLogParser(IWorldState& world, const Settings& settings, std::filesystem::path conLogFile) :
 	m_Settings(&settings), m_WorldState(&world), m_FileName(std::move(conLogFile))
 {
 }
@@ -79,10 +80,7 @@ void ConsoleLogParser::Update()
 	TrySnapshot(snapshotUpdated);
 
 	if (linesProcessed)
-	{
-		for (IConsoleLineListener* listener : m_WorldState->m_ConsoleLineListeners)
-			listener->OnConsoleLogChunkParsed(*m_WorldState, consoleLinesUpdated);
-	}
+		m_WorldState->GetConsoleLineListenerBroadcaster().OnConsoleLogChunkParsed(*m_WorldState, consoleLinesUpdated);
 }
 
 void ConsoleLogParser::CustomDeleters::operator()(FILE* f) const
@@ -239,16 +237,13 @@ void ConsoleLogParser::ParseChunk(striter& parseEnd, bool& linesProcessed, bool&
 			{
 				if (result == ParseLineResult::Success || result == ParseLineResult::Modified)
 				{
-					for (auto listener : m_WorldState->m_ConsoleLineListeners)
-						listener->OnConsoleLineParsed(*m_WorldState, *parsed);
-
+					m_WorldState->GetConsoleLineListenerBroadcaster().OnConsoleLineParsed(*m_WorldState, *parsed);
 					consoleLinesUpdated = true;
 				}
 			}
 			else
 			{
-				for (auto listener : m_WorldState->m_ConsoleLineListeners)
-					listener->OnConsoleLineUnparsed(*m_WorldState, lineStr);
+				m_WorldState->GetConsoleLineListenerBroadcaster().OnConsoleLineUnparsed(*m_WorldState, lineStr);
 			}
 		}
 

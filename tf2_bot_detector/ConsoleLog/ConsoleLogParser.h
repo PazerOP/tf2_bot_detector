@@ -11,12 +11,12 @@ namespace tf2_bot_detector
 	class IConsoleLine;
 	class IConsoleLineListener;
 	class Settings;
-	class WorldState;
+	class IWorldState;
 
 	class ConsoleLogParser final
 	{
 	public:
-		ConsoleLogParser(WorldState& world, const Settings& settings, std::filesystem::path conLogFile);
+		ConsoleLogParser(IWorldState& world, const Settings& settings, std::filesystem::path conLogFile);
 
 		void Update();
 
@@ -26,7 +26,7 @@ namespace tf2_bot_detector
 
 	private:
 		const Settings* m_Settings = nullptr;
-		WorldState* m_WorldState = nullptr;
+		IWorldState* m_WorldState = nullptr;
 
 		void TrySnapshot(bool& snapshotUpdated);
 		CompensatedTS m_CurrentTimestamp;

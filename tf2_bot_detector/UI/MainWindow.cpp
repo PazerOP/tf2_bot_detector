@@ -36,8 +36,8 @@ using namespace std::string_view_literals;
 
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
-	m_WorldState(m_Settings),
-	m_ActionManager(IRCONActionManager::Create(m_Settings, m_WorldState)),
+	m_WorldState(IWorldState::Create(m_Settings)),
+	m_ActionManager(IRCONActionManager::Create(m_Settings, GetWorld())),
 	m_TextureManager(CreateTextureManager()),
 	m_BaseTextures(IBaseTextures::Create(*m_TextureManager))
 {
@@ -45,8 +45,8 @@ MainWindow::MainWindow() :
 
 	ILogManager::GetInstance().CleanupLogFiles();
 
-	m_WorldState.AddConsoleLineListener(this);
-	m_WorldState.AddWorldEventListener(this);
+	GetWorld().AddConsoleLineListener(this);
+	GetWorld().AddWorldEventListener(this);
 
 	DebugLog("Debug Info:"s
 		<< "\n\tSteam dir:         " << m_Settings.GetSteamDir()
@@ -844,7 +844,7 @@ void MainWindow::PostSetupFlowState::OnUpdateDiscord()
 	const auto curTime = clock_t::now();
 	if (!m_DRPManager && m_Parent->m_Settings.m_Discord.m_EnableRichPresence)
 	{
-		m_DRPManager = IDRPManager::Create(m_Parent->m_Settings, m_Parent->m_WorldState);
+		m_DRPManager = IDRPManager::Create(m_Parent->m_Settings, m_Parent->GetWorld());
 	}
 	else if (m_DRPManager && !m_Parent->m_Settings.m_Discord.m_EnableRichPresence)
 	{
@@ -861,7 +861,7 @@ void MainWindow::OnUpdate()
 	if (m_Paused)
 		return;
 
-	m_WorldState.Update();
+	GetWorld().Update();
 
 	HandleUpdateCheck();
 
@@ -886,7 +886,7 @@ void MainWindow::OnUpdate()
 	GetActionManager().Update();
 }
 
-void MainWindow::OnConsoleLogChunkParsed(WorldState& world, bool consoleLinesUpdated)
+void MainWindow::OnConsoleLogChunkParsed(IWorldState& world, bool consoleLinesUpdated)
 {
 	assert(&world == &GetWorld());
 
@@ -912,7 +912,7 @@ float MainWindow::TimeSine(float interval, float min, float max) const
 	return mh::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
 }
 
-void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
+void MainWindow::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 {
 	m_ParsedLineCount++;
 
@@ -949,7 +949,7 @@ void MainWindow::OnConsoleLineParsed(WorldState& world, IConsoleLine& parsed)
 	}
 }
 
-void MainWindow::OnConsoleLineUnparsed(WorldState& world, const std::string_view& text)
+void MainWindow::OnConsoleLineUnparsed(IWorldState& world, const std::string_view& text)
 {
 	m_ParsedLineCount++;
 }
@@ -961,13 +961,13 @@ cppcoro::generator<IPlayer&> MainWindow::PostSetupFlowState::GeneratePlayerPrint
 	auto end = std::end(printData);
 	assert(begin <= end);
 	auto& world = m_Parent->m_WorldState;
-	assert(static_cast<size_t>(end - begin) >= world.GetApproxLobbyMemberCount());
+	assert(static_cast<size_t>(end - begin) >= world->GetApproxLobbyMemberCount());
 
 	std::fill(begin, end, nullptr);
 
 	{
 		auto* current = begin;
-		for (IPlayer& member : world.GetLobbyMembers())
+		for (IPlayer& member : world->GetLobbyMembers())
 		{
 			*current = &member;
 			current++;
@@ -977,9 +977,9 @@ cppcoro::generator<IPlayer&> MainWindow::PostSetupFlowState::GeneratePlayerPrint
 		{
 			// We seem to have either an empty lobby or we're playing on a community server.
 			// Just find the most recent status updates.
-			for (IPlayer& playerData : world.GetPlayers())
+			for (IPlayer& playerData : world->GetPlayers())
 			{
-				if (playerData.GetLastStatusUpdateTime() >= (m_Parent->GetWorld().GetLastStatusUpdateTime() - 15s))
+				if (playerData.GetLastStatusUpdateTime() >= (world->GetLastStatusUpdateTime() - 15s))
 				{
 					*current = &playerData;
 					current++;
@@ -1076,7 +1076,7 @@ float MainWindow::PlayerExtraData::GetAveragePing() const
 
 time_point_t MainWindow::GetCurrentTimestampCompensated() const
 {
-	return m_WorldState.GetCurrentTime();
+	return GetWorld().GetCurrentTime();
 }
 
 std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
@@ -1119,11 +1119,11 @@ std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
 
 MainWindow::PostSetupFlowState::PostSetupFlowState(MainWindow& window) :
 	m_Parent(&window),
-	m_ModeratorLogic(IModeratorLogic::Create(window.m_WorldState, window.m_Settings, window.GetActionManager())),
+	m_ModeratorLogic(IModeratorLogic::Create(window.GetWorld(), window.m_Settings, window.GetActionManager())),
 	m_SponsorsList(window.m_Settings),
-	m_Parser(window.m_WorldState, window.m_Settings, window.m_Settings.GetTFDir() / "console.log")
+	m_Parser(window.GetWorld(), window.m_Settings, window.m_Settings.GetTFDir() / "console.log")
 {
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-	m_DRPManager = IDRPManager::Create(window.m_Settings, window.m_WorldState);
+	m_DRPManager = IDRPManager::Create(window.m_Settings, window.GetWorld());
 #endif
 }
