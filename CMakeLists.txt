@@ -4,6 +4,7 @@ project(tf2_bot_detector VERSION 1.1.0.12)
 include(GenerateExportHeader)
 
 message("TF2BD CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+message("TF2BD CMAKE_PROJECT_VERSION_TWEAK = ${CMAKE_PROJECT_VERSION_TWEAK}")
 
 option(TF2BD_IS_CI_COMPILE "Set to true if this is a compile on a CI service. Used to help determine if user has made modifications to the source code." off)
 if (TF2BD_IS_CI_COMPILE)
