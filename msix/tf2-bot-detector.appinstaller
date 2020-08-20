@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AppInstaller
 	xmlns="http://schemas.microsoft.com/appx/appinstaller/2017/2"
-	Version="1.0.0.0"
-	Uri="https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller">
+	Version="1.0.1.0"
+	Uri="http://home.pazer.us/tf2_bot_detector/tf2-bot-detector.appinstaller">
 
-	<MainPackage
+	<MainBundle
 		Name="tf2-bot-detector"
 		Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" Version="1.1.0.11"
-		Uri="https://puu.sh/GjITB/7d3ad8b51f.msixbundle" />
+		Uri="http://home.pazer.us/tf2_bot_detector/tf2bd.msixbundle" />
 
 	<Dependencies>
-		<Package Name="Microsoft.VCLibs.140.00" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="14.0.27810.0" ProcessorArchitecture="x86" Uri="https://puu.sh/GjF4P/b104c9d60f.appx" />
-		<Package Name="Microsoft.VCLibs.140.00" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="14.0.27810.0" ProcessorArchitecture="x64" Uri="https://puu.sh/GjF4n/1f19c731df.appx" />
+		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="14.0.27810.0" ProcessorArchitecture="x64" Uri="http://home.pazer.us/tf2_bot_detector/Microsoft.VCLibs.x64.14.00.Desktop.appx" />
+		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="14.0.27810.0" ProcessorArchitecture="x86" Uri="http://home.pazer.us/tf2_bot_detector/Microsoft.VCLibs.x86.14.00.Desktop.appx" />
 	</Dependencies>
 
 	<UpdateSettings>
