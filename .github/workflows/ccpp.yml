@@ -229,7 +229,7 @@ jobs:
       - name: Create bundle
         run: |
           cd msix
-          makeappx bundle /d bundle_staging /p tf2_bot_detector.msixbundle
+          makeappx bundle /d bundle_staging /bv 1.1.0.11 /p tf2_bot_detector.msixbundle
 
       - name: Sign bundle
         uses: PazerOP/code-sign-action@v3
