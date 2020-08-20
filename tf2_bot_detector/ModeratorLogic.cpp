@@ -15,12 +15,7 @@
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
 
-#include <codecvt>
-#include <cuchar>
-#include <fstream>
 #include <iomanip>
-#include <locale>
-#include <random>
 #include <regex>
 #include <unordered_set>
 
