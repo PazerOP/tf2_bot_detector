@@ -22,7 +22,11 @@ using namespace tf2_bot_detector;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-static const std::filesystem::path s_SettingsPath("cfg/settings.json");
+static const std::filesystem::path& GetSettingsPath()
+{
+	static const auto s_SettingsPath = tf2_bot_detector::GetMutableDataPath() / "cfg" / "settings.json";
+	return s_SettingsPath;
+}
 
 namespace tf2_bot_detector
 {
@@ -181,10 +185,11 @@ void Settings::LoadFile()
 {
 	nlohmann::json json;
 	{
-		std::ifstream file(s_SettingsPath);
+		const auto& settingsPath = GetSettingsPath();
+		std::ifstream file(settingsPath);
 		if (!file.good())
 		{
-			LogError(std::string(__FUNCTION__ ": Failed to open ") << s_SettingsPath);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open {}", settingsPath);
 		}
 		else
 		{
@@ -194,14 +199,19 @@ void Settings::LoadFile()
 			}
 			catch (const nlohmann::json::exception& e)
 			{
-				auto backupPath = std::filesystem::path(s_SettingsPath).replace_filename("settings.backup.json");
-				LogError(std::string(__FUNCTION__) << ": Failed to parse JSON from " << s_SettingsPath << ": " << e.what()
-					<< ". Writing backup to ");
+				const auto backupPath = std::filesystem::path(settingsPath).replace_filename("settings.backup.json");
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+					"Failed to parse JSON from {}. Writing backup to {}...", settingsPath, backupPath);
 
-				std::error_code ec;
-				std::filesystem::copy_file(s_SettingsPath, backupPath, ec);
-				if (!ec)
-					LogError(std::string(__FUNCTION__) << ": Failed to make backup of settings.json to " << backupPath);
+				try
+				{
+					std::filesystem::copy_file(settingsPath, backupPath);
+				}
+				catch (const std::exception& e)
+				{
+					LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+						"Failed to make backup of settings.json to {}", backupPath);
+				}
 			}
 		}
 	}
@@ -285,18 +295,19 @@ bool Settings::SaveFile() const try
 	// Make sure we successfully serialize BEFORE we destroy our file
 	auto jsonString = json.dump(1, '\t', true);
 	{
-		std::filesystem::create_directories(std::filesystem::path(s_SettingsPath).remove_filename());
-		std::ofstream file(s_SettingsPath, std::ios::binary);
+		const auto& settingsPath = GetSettingsPath();
+		std::filesystem::create_directories(std::filesystem::path(settingsPath).remove_filename());
+		std::ofstream file(settingsPath, std::ios::binary);
 		if (!file.good())
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open settings file for writing: {}", s_SettingsPath);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open settings file for writing: {}", settingsPath);
 			return false;
 		}
 
 		file << jsonString << '\n';
 		if (!file.good())
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to write settings to {}", s_SettingsPath);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to write settings to {}", settingsPath);
 			return false;
 		}
 	}

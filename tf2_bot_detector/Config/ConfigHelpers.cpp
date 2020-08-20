@@ -1,5 +1,6 @@
 #include "ConfigHelpers.h"
 #include "Networking/HTTPHelpers.h"
+#include "Platform/Platform.h"
 #include "Util/JSONUtils.h"
 #include "Util/RegexUtils.h"
 #include "Log.h"
@@ -16,11 +17,161 @@ using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 
+namespace
+{
+	class ConfigSystem final
+	{
+	public:
+		ConfigSystem();
+
+		const std::filesystem::path& GetAppDataDir() const { return m_AppDataDir; }
+		const std::filesystem::path& GetExeDir() const { return m_ExeDir; }
+		const std::filesystem::path& GetMutableDataDir() const { return m_MutableDataDir; }
+		bool IsPortable() const { return m_IsPortable; }
+
+	private:
+		static constexpr char NON_PORTABLE_MARKER[] = ".non_portable";
+
+		bool CheckIsPortable() const;
+		std::filesystem::path CreateAppDataPath() const;
+		std::filesystem::path ChooseMutableDataPath() const;
+
+		std::filesystem::path m_ExeDir = Platform::GetCurrentExeDir();
+		std::filesystem::path m_WorkingDir = std::filesystem::current_path();
+		std::filesystem::path m_AppDataDir = CreateAppDataPath();
+		std::filesystem::path m_MutableDataDir = ChooseMutableDataPath();
+		bool m_IsPortable = CheckIsPortable();
+	};
+
+	ConfigSystem::ConfigSystem() try
+	{
+		DebugLog("Initializing config system..."
+			"\n\t  Executable dir : {}"
+			"\n\t     Working dir : {}"
+			"\n\t     AppData dir : {}"
+			"\n\tMutable data dir : {}"
+			,GetExeDir()
+			,m_WorkingDir
+			,m_AppDataDir
+			,GetMutableDataDir()
+		);
+
+		if (GetMutableDataDir() != GetExeDir())
+		{
+			DebugLog("Mutable data path is {}, while exe path is {}. Preparing to copy missing files to mutable data path...",
+				GetMutableDataDir(), GetExeDir());
+
+			std::filesystem::create_directories(GetMutableDataDir());
+
+			const auto sourcePath = GetExeDir() / "cfg";
+			if (!std::filesystem::exists(sourcePath))
+			{
+				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(),
+					"\"cfg\" folder not found next to exe, not copying shipped cfg files to mutable data directory {}",
+					GetMutableDataDir());
+			}
+			else
+			{
+				const auto destPath = GetMutableDataDir() / "cfg";
+
+				// Copy directory structure
+				std::filesystem::copy(sourcePath, destPath, std::filesystem::copy_options::directories_only);
+
+				for (const auto entry : std::filesystem::recursive_directory_iterator(sourcePath))
+				{
+					const auto relativePath = std::filesystem::relative(entry.path(), sourcePath);
+					const auto fullDestPath = destPath / relativePath;
+
+					if (!entry.is_regular_file())
+						continue;
+
+					// FIXME: kind of an awful hack, shouldn't just have this hardcoded like this
+					if (entry.path().filename() == "settings.json")
+						continue;
+
+					std::filesystem::copy_file(entry.path(), fullDestPath,
+						std::filesystem::copy_options::overwrite_existing);
+				}
+			}
+		}
+	}
+	catch (const std::exception& e)
+	{
+		LogFatalException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to initialize config system");
+	}
+
+	bool ConfigSystem::CheckIsPortable() const try
+	{
+		DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Current mutable data path: {}", GetMutableDataDir());
+		const auto shippedCfgPath = GetMutableDataDir() / "cfg";
+
+		if (!std::filesystem::exists(shippedCfgPath))
+		{
+			LogFatalError(MH_SOURCE_LOCATION_CURRENT(),
+				"The folder {} is missing or invalid.\nIt contains required files for this program.", shippedCfgPath);
+		}
+
+		const auto nonPortablePath = shippedCfgPath / NON_PORTABLE_MARKER;
+		if (std::filesystem::exists(nonPortablePath))
+		{
+			DebugLog("Installation is non-portable because marker file exists ({})", nonPortablePath);
+			return true;
+		}
+		else
+		{
+			DebugLog("Installation is portable because marker file does not exist ({})", nonPortablePath);
+			return false;
+		}
+
+		return true;
+	}
+	catch (const std::exception& e)
+	{
+		LogFatalException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to determine install type (installed/portable)");
+	}
+
+	std::filesystem::path ConfigSystem::CreateAppDataPath() const
+	{
+		return Platform::GetAppDataDir() / "TF2 Bot Detector";
+	}
+
+	std::filesystem::path ConfigSystem::ChooseMutableDataPath() const try
+	{
+		// Check the working directory for a cfg folder
+		auto mutableDir = m_WorkingDir;
+		if (!std::filesystem::exists(mutableDir / "cfg"))
+			mutableDir = m_ExeDir;
+
+		if (!std::filesystem::exists(mutableDir / "cfg"))
+		{
+			LogFatalError(MH_SOURCE_LOCATION_CURRENT(),
+				"\"cfg\" folder not found in either the exe directory or working directory");
+		}
+
+		return mutableDir;
+	}
+	catch (const std::exception& e)
+	{
+		LogFatalException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to choose mutable data path");
+	}
+
+	static ConfigSystem& GetConfigSystem()
+	{
+		static ConfigSystem s_ConfigSystem;
+		return s_ConfigSystem;
+	}
+}
+
+const std::filesystem::path& tf2_bot_detector::GetMutableDataPath()
+{
+	return GetConfigSystem().GetMutableDataDir();
+}
+
 auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> ConfigFilePaths
 {
 	ConfigFilePaths retVal;
 
-	const std::filesystem::path cfg("cfg");
+	const std::filesystem::path cfg = GetMutableDataPath() / "cfg";
 	if (std::filesystem::is_directory(cfg))
 	{
 		try
@@ -42,7 +193,8 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 		}
 		catch (const std::filesystem::filesystem_error& e)
 		{
-			LogError(std::string(__FUNCTION__ ": Exception when loading playerlist.*.json files from ./cfg/: ") << e.what());
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+				"Failed to gather names matching {}.*.json in {}", basename, cfg);
 		}
 	}
 
@@ -73,20 +225,30 @@ static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, cons
 	return schema;
 }
 
-static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann::json& existingJson,
+static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& existingJson,
 	SharedConfigFileBase& config, const HTTPClient& client)
 {
+	try
+	{
+		filename = std::filesystem::absolute(filename);
+	}
+	catch (const std::exception& e)
+	{
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to convert {} to absolute path", filename);
+		return false;
+	}
+
 	auto fileInfoJson = existingJson.find("file_info");
 	if (fileInfoJson == existingJson.end())
 	{
-		DebugLog("Skipping auto-update of "s << filename << ": file_info object missing");
+		DebugLog("Skipping auto-update of {}: file_info object missing", filename);
 		return false;
 	}
 
 	const ConfigFileInfo info(*fileInfoJson);
 	if (info.m_UpdateURL.empty())
 	{
-		DebugLog("Skipping auto-update of "s << filename << ": update_url was empty");
+		DebugLog("Skipping auto-update of {}: update_url was empty", filename);
 		return false;
 	}
 
@@ -97,8 +259,8 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to auto-update "s << filename << ": failed to parse new json from "
-			<< info.m_UpdateURL << ": " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to auto-update {}: failed to parse new json from {}", filename, info.m_UpdateURL);
 		return false;
 	}
 
@@ -108,8 +270,8 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to auto-update "s << filename << " from " << info.m_UpdateURL
-			<< ": new json failed schema validation: " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to auto-update {} from {}: new json failed schema validation", filename, info.m_UpdateURL);
 		return false;
 	}
 
@@ -121,8 +283,8 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to auto-update "s << filename << " from " << info.m_UpdateURL
-			<< ": failed to parse file info from new json: " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to auto-update {} from {}: failed to parse file info from new json", filename, info.m_UpdateURL);
 		return false;
 	}
 
@@ -135,8 +297,8 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Skipping auto-update of "s << filename << ": failed to deserialize response from "
-			<< info.m_UpdateURL << ": " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to auto-update {}: failed to deserialize response from {}", filename, info.m_UpdateURL);
 		return false;
 	}
 

@@ -178,6 +178,7 @@ if(WIN32)
 		"tf2_bot_detector/Platform/Windows/Steam.cpp"
 		"tf2_bot_detector/Platform/Windows/WindowsHelpers.h"
 		"tf2_bot_detector/Resources.rc"
+		"tf2_bot_detector/Platform/Windows/Windows.cpp"
 	)
 endif()
 

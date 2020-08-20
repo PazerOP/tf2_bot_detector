@@ -14,6 +14,9 @@ namespace tf2_bot_detector
 		std::filesystem::path GetCurrentSteamDir();
 		SteamID GetCurrentActiveSteamID();
 
+		std::filesystem::path GetCurrentExeDir();
+		std::filesystem::path GetAppDataDir();
+
 		namespace Processes
 		{
 			bool IsTF2Running();

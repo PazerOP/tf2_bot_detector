@@ -97,7 +97,7 @@ namespace tf2_bot_detector
 #undef LOG_DEFINITION_HELPER
 #define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	inline void name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) \
+	NOINLINE inline void name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		ILogManager::GetInstance().Log(mh::format(fmtStr, args...), color, (severity), (visibility)); \
 	} \
@@ -116,7 +116,7 @@ namespace tf2_bot_detector
 	} \
 	\
 	template<typename... TArgs> \
-	inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	NOINLINE inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		std::string msg = mh::format("{}@{}:{}()", location.file_name(), location.line(), location.function_name()); \
 		if (!fmtStr.empty()) \
@@ -145,15 +145,30 @@ namespace tf2_bot_detector
 	LOG_DEFINITION_HELPER(LogError, LogColors::ERROR, LogSeverity::Error, LogVisibility::Default);
 
 #undef LOG_DEFINITION_HELPER
+
+#define LOG_DEFINITION_HELPER(name, attr) \
+	attr void name(const mh::source_location& location, const std::exception& e, const std::string_view& msg = {}); \
+	\
+	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
+	attr void name(const mh::source_location& location, const std::exception& e, \
+		const std::string_view& fmtStr, const TArgs&... args) \
+	{ \
+		name(location, e, mh::format(fmtStr, args...)); \
+	}
+
+	LOG_DEFINITION_HELPER(LogException, );
+	LOG_DEFINITION_HELPER(LogFatalException, [[noreturn]]);
+
+#undef LOG_DEFINITION_HELPER
+
 #undef NOINLINE
 #pragma pop_macro("NOINLINE")
 
-	void LogException(const mh::source_location& location, const std::exception& e, const std::string_view& msg = {});
-
+	[[noreturn]] void LogFatalError(const mh::source_location& location, const std::string_view& msg);
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
-	void LogException(const mh::source_location& location, const std::exception& e,
-		const std::string_view& fmtStr, const TArgs&... args)
+	[[noreturn]] void LogFatalError(const mh::source_location& location,
+			const std::string_view& fmtStr, const TArgs&... args)
 	{
-		LogException(location, e, mh::format(fmtStr, args...));
+		LogFatalError(location, mh::format(fmtStr, args...));
 	}
 }

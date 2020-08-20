@@ -346,3 +346,4 @@ staging/cfg/settings.json
 out/
 staging/debug_report.zip
 staging/cfg/playerlist.json
+staging/cfg/.non_portable

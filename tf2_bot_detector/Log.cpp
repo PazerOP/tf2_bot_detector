@@ -6,6 +6,7 @@
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
+#include <SDL2/SDL_messagebox.h>
 
 #include <deque>
 #include <filesystem>
@@ -206,6 +207,43 @@ void tf2_bot_detector::LogException(const mh::source_location& location, const s
 	const std::string_view& msg)
 {
 	LogError(location, msg.empty() ? "{1}: {2}" : "{0}: {1}: {2}", msg, typeid(e).name(), e.what());
+}
+
+void tf2_bot_detector::LogFatalError(const mh::source_location& location, const std::string_view& msg)
+{
+	LogError(location, msg);
+
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal error",
+		mh::format(
+R"({}
+
+Error source filename: {}:{}
+Error source function: {})"
+		, msg, location.file_name(), location.line(), location.function_name()
+		).c_str(), nullptr);
+
+	std::exit(1);
+}
+
+void tf2_bot_detector::LogFatalException(const mh::source_location& location, const std::exception& e,
+	const std::string_view& msg)
+{
+	LogException(location, e, msg);
+
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal error",
+		mh::format(
+R"({}
+
+Exception type: {}
+Exception message: {}
+
+Exception source filename: {}:{}
+Exception source function: {})"
+			, msg, typeid(e).name(), e.what(),
+			location.file_name(), location.line(), location.function_name()
+		).c_str(), nullptr);
+
+	std::exit(1);
 }
 
 void LogManager::Log(std::string msg, const LogMessageColor & color,
