@@ -76,6 +76,12 @@ This program requires [Microsoft Visual C++ Redistributable for Visual Studio 20
 
 ### Installation
 
+#### Automatic Install
+
+If you are using Windows 10 1709 or newer, just click this link: [Install][msix-install-link]
+
+#### Manual/Portable Install
+
 1. Download and install the [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
 2. Download the [latest release][latest-64] ([32bit version][latest-86])
 3. Extract the zip in any location inside of your user folder (e.g. Downloads, Documents)
@@ -182,6 +188,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
 [mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
+[msix-install-link]: ms-appinstaller:?source=https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller
 [zip-image]: https://i.imgur.com/ZeCuUul.png
 [github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
 [wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists
