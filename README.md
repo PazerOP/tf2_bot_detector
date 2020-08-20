@@ -30,6 +30,8 @@
     <br />
     -->
     <br />
+    <a href="https://tf2bd-github-api.azurewebsites.net/api/AppInstallerRedirect?source=https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller">Install</a>
+    ·
     <a href="https://github.com/PazerOP/tf2_bot_detector/issues">Report a Bug</a>
     ·
     <a href="https://github.com/PazerOP/tf2_bot_detector/issues">Request a Feature</a>
