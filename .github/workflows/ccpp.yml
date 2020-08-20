@@ -170,6 +170,10 @@ jobs:
         name: "tf2_bot_detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}"
         path: msix/package_staging/app
 
+    - name: Mark as non-portable
+      shell: bash
+      run: touch msix/package_staging/app/cfg/.non_portable
+
     - name: Find and replace data in package Config
       shell: bash
       run: |
