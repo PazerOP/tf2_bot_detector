@@ -54,6 +54,8 @@ jobs:
         echo "github.event_name = ${{ github.event_name }}"
         echo "github.sha = ${{ github.sha }}"
         echo "github.ref = ${{ github.ref }}"
+        echo "github.run_id = ${{ github.run_id }}"
+        echo "github.run_number = ${{ github.run_number }}"
         echo "matrix.os = ${{ matrix.os }}"
         echo "matrix.triplet = ${{ matrix.triplet }}"
         echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
@@ -84,7 +86,7 @@ jobs:
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} ../
+        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} ../
         cmake --build . --config Release
 
     - name: Sign artifacts
@@ -179,6 +181,7 @@ jobs:
       run: |
         cat msix/package_staging/AppxManifest.xml \
           | sed 's/TF2BD_PROCESSOR_ARCH_REPLACE_ME/${{ matrix.tf2bd_arch }}/g' \
+          | sed 's/TF2BD_BUILD_NUMBER_REPLACE_ME/${{ github.run_number }}/g' \
           | tee msix/package_staging/AppxManifest.xml
 
     - name: Create msix package
