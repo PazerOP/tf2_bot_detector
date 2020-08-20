@@ -188,7 +188,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
 [mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
-[msix-install-link]: ms-appinstaller:?source=https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller
+[msix-install-link]: https://tf2bd-github-api.azurewebsites.net/api/AppInstallerRedirect?source=https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller
 [zip-image]: https://i.imgur.com/ZeCuUul.png
 [github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
 [wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists
