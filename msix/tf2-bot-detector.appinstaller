@@ -2,12 +2,12 @@
 <AppInstaller
 	xmlns="http://schemas.microsoft.com/appx/appinstaller/2017/2"
 	Version="1.0.1.0"
-	Uri="http://home.pazer.us/tf2_bot_detector/tf2-bot-detector.appinstaller">
+	Uri="https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller">
 
 	<MainBundle
 		Name="tf2-bot-detector"
 		Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" Version="1.1.0.11"
-		Uri="http://home.pazer.us/tf2_bot_detector/tf2bd.msixbundle" />
+		Uri="http://home.pazer.us/tf2_bot_detector/tf2-bot-detector.msixbundle" />
 
 	<Dependencies>
 		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="14.0.27810.0" ProcessorArchitecture="x64" Uri="http://home.pazer.us/tf2_bot_detector/Microsoft.VCLibs.x64.14.00.Desktop.appx" />
