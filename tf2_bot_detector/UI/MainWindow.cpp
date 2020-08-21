@@ -8,6 +8,7 @@
 #include "ImGui_TF2BotDetector.h"
 #include "Actions/ActionGenerators.h"
 #include "BaseTextures.h"
+#include "Filesystem.h"
 #include "Log.h"
 #include "IPlayer.h"
 #include "TextureManager.h"
@@ -509,30 +510,28 @@ void MainWindow::OnDrawAboutPopup()
 	}
 }
 
-void MainWindow::GenerateDebugReport()
+void MainWindow::GenerateDebugReport() try
 {
 	Log("Generating debug_report.zip...");
+	const auto dbgReportLocation = IFilesystem::Get().ResolvePath("debug_report.zip", PathUsage::Write);
+
 	{
 		using namespace libzippp;
-		ZipArchive archive("debug_report.zip");
+		ZipArchive archive(dbgReportLocation.string());
 		archive.open(ZipArchive::NEW);
 
-		if (!archive.addFile("console.log", (m_Settings.GetTFDir() / "console.log").string()))
-		{
-			LogError("Failed to add console.log to debug report");
-		}
-
-		for (const auto& entry : std::filesystem::recursive_directory_iterator("logs"))
+		const auto mutableDir = IFilesystem::Get().GetMutableDataDir();
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(mutableDir / "logs"))
 		{
 			if (!entry.is_regular_file())
 				continue;
 
 			const auto& path = entry.path();
 
-			if (archive.addFile(path.string(), path.string()))
+			if (archive.addFile(std::filesystem::relative(path, mutableDir).string(), path.string()))
 				Log("Added file to debug report: {}", path);
 			else
-				Log("Failed to add file to debug report: {}", path);
+				LogWarning("Failed to add file to debug report: {}", path);
 		}
 
 		if (auto err = archive.close(); err != LIBZIPPP_OK)
@@ -541,8 +540,13 @@ void MainWindow::GenerateDebugReport()
 			return;
 		}
 	}
-	Log("Finished generating debug_report.zip.");
-	Shell::ExploreToAndSelect("debug_report.zip");
+
+	Log("Finished generating debug_report.zip ({})", dbgReportLocation);
+	Shell::ExploreToAndSelect(dbgReportLocation);
+}
+catch (const std::exception& e)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to generate debug_report.zip");
 }
 
 void MainWindow::OnDrawServerStats()

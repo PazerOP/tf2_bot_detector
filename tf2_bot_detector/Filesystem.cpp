@@ -29,11 +29,6 @@ namespace
 		std::vector<std::filesystem::path> m_SearchPaths;
 		bool m_IsPortable;
 
-		bool CheckIsPortable() const;
-		std::filesystem::path CreateAppDataPath() const;
-		std::filesystem::path ChooseMutableDataPath() const;
-		std::vector<std::filesystem::path> CreateSearchPaths() const;
-
 		const std::filesystem::path m_ExeDir = Platform::GetCurrentExeDir();
 		const std::filesystem::path m_WorkingDir = std::filesystem::current_path();
 		const std::filesystem::path m_AppDataDir = Platform::GetAppDataDir() / "TF2 Bot Detector";
@@ -49,7 +44,7 @@ IFilesystem& IFilesystem::Get()
 
 Filesystem::Filesystem() try
 {
-	DebugLog("Initializing filesystem...");
+	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Initializing filesystem...");
 
 	m_SearchPaths.insert(m_SearchPaths.begin(), m_ExeDir);
 
@@ -58,11 +53,20 @@ Filesystem::Filesystem() try
 
 	if (!ResolvePath(std::filesystem::path("cfg") / NON_PORTABLE_MARKER, PathUsage::Read).empty())
 	{
+		DebugLog("Installation detected as non-portable.");
 		m_SearchPaths.insert(m_SearchPaths.begin(), m_AppDataDir);
 		m_IsPortable = false;
+
+		// If we crash, we want our working directory to be somewhere we can write to.
+		if (std::filesystem::create_directories(m_AppDataDir))
+			DebugLog("Created {}", m_AppDataDir);
+
+		std::filesystem::current_path(m_AppDataDir);
+		DebugLog("Set working directory to {}", m_AppDataDir);
 	}
 	else
 	{
+		DebugLog("Installation detected as portable.");
 		m_IsPortable = true;
 	}
 
@@ -172,24 +176,4 @@ std::filesystem::path Filesystem::GetMutableDataDir() const
 		return m_WorkingDir;
 	else
 		return m_AppDataDir;
-}
-
-std::vector<std::filesystem::path> Filesystem::CreateSearchPaths() const try
-{
-	std::vector<std::filesystem::path> retVal;
-
-	const auto exeDir = Platform::GetCurrentExeDir();
-	retVal.insert(retVal.begin(), exeDir);
-
-	if (auto workingDir = std::filesystem::current_path(); workingDir != exeDir)
-		retVal.insert(retVal.begin(), std::move(workingDir));
-
-	if (!ResolvePath(std::filesystem::path("cfg") / NON_PORTABLE_MARKER, PathUsage::Read).empty())
-		retVal.insert(retVal.begin(), Platform::GetAppDataDir() / "TF2 Bot Detector");
-
-	return retVal;
-}
-catch (const std::exception& e)
-{
-	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), e);
 }
