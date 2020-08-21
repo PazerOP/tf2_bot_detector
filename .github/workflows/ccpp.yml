@@ -16,6 +16,7 @@ jobs:
         os: [windows-latest]
         triplet: [x86-windows, x64-windows]
         discord_integration: [true, false]
+        build_type: [Debug, Release]
         include:
           - os: windows-latest
             triplet: x86-windows
@@ -61,6 +62,7 @@ jobs:
         echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
         echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
         echo "matrix.build_arch = ${{ matrix.build_arch }}"
+        echo "matrix.build_type = ${{ matrix.build_type }}"
         echo "env.TF2BD_ENABLE_ARTIFACT_UPLOAD = ${{ env.TF2BD_ENABLE_ARTIFACT_UPLOAD }}"
         echo "steps.tf2bd_paths.outputs.workspace = ${{ steps.tf2bd_paths.outputs.workspace }}"
         echo "steps.tf2bd_paths.outputs.build_dir = ${{ steps.tf2bd_paths.outputs.build_dir }}"
@@ -86,8 +88,8 @@ jobs:
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} ../
-        cmake --build . --config Release
+        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} ../
+        cmake --build . --config ${{ matrix.build_type }}
 
     - name: Sign artifacts
       if: ${{ startsWith(matrix.os, 'windows') }}
@@ -101,7 +103,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "smartscreen_${{ matrix.triplet }}"
+        name: "smartscreen_${{ matrix.triplet }}_${{ matrix.build_type }}"
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
@@ -124,7 +126,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
+        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         if-no-files-found: error
         path: ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
@@ -132,7 +134,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
+        name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.pdb"
 
 
@@ -145,6 +147,10 @@ jobs:
       fail-fast: false
       matrix:
         tf2bd_arch: [x86, x64]
+        build_type:
+          - name: Debug
+            suffix: -debug
+          - name: Release
 
     steps:
     - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
@@ -157,8 +163,14 @@ jobs:
       if: ${{ !startsWith(github.ref, 'refs/tags/') }}
       run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
 
+    - name: Debug
+      run: |
+        echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
+        echo "matrix.build_type.name = ${{ matrix.build_type.name }}"
+        echo "matrix.build_type.suffix = ${{ matrix.build_type.suffix }}"
+
     - name: Config msix filename
-      run: echo "::set-env name=TF2BD_MSIX_FILENAME::tf2_bot_detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}.msix"
+      run: echo "::set-env name=TF2BD_MSIX_FILENAME::tf2_bot_detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
 
     - name: Configure PATH for windows sdk
       uses: ilammy/msvc-dev-cmd@v1
@@ -169,19 +181,21 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}"
+        name: "tf2_bot_detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}"
         path: msix/package_staging/app
 
     - name: Mark as non-portable
       shell: bash
       run: touch msix/package_staging/app/cfg/.non_portable
 
-    - name: Find and replace data in package Config
+    - name: Find and replace data in package config
       shell: bash
       run: |
         cat msix/package_staging/AppxManifest.xml \
           | sed 's/TF2BD_PROCESSOR_ARCH_REPLACE_ME/${{ matrix.tf2bd_arch }}/g' \
           | sed 's/TF2BD_BUILD_NUMBER_REPLACE_ME/${{ github.run_number }}/g' \
+          | sed 's/TF2BD_IDENTITY_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
+          | sed 's/TF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
           | tee msix/package_staging/AppxManifest.xml
 
     - name: Create msix package
@@ -207,6 +221,13 @@ jobs:
   msixbundle:
     runs-on: windows-latest
     needs: msix
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type:
+          - name: Debug
+            suffix: -debug
+          - name: Release
 
     steps:
       - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
@@ -225,12 +246,12 @@ jobs:
       - name: Download msix (x86)
         uses: actions/download-artifact@v2
         with:
-          name: "tf2_bot_detector_x86-windows_${{ env.TF2BD_VERSION }}.msix"
+          name: "tf2_bot_detector_x86-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
           path: msix/bundle_staging
       - name: Download msix (x64)
         uses: actions/download-artifact@v2
         with:
-          name: "tf2_bot_detector_x64-windows_${{ env.TF2BD_VERSION }}.msix"
+          name: "tf2_bot_detector_x64-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
           path: msix/bundle_staging
 
       - name: Create bundle

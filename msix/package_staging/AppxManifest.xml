@@ -2,9 +2,9 @@
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
 	xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
 	xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
-	<Identity Name="tf2-bot-detector" Version="1.1.0.TF2BD_BUILD_NUMBER_REPLACE_ME" ProcessorArchitecture="TF2BD_PROCESSOR_ARCH_REPLACE_ME" Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" />
+	<Identity Name="tf2-bot-detectorTF2BD_IDENTITY_SUFFIX_REPLACE_ME" Version="1.1.0.TF2BD_BUILD_NUMBER_REPLACE_ME" ProcessorArchitecture="TF2BD_PROCESSOR_ARCH_REPLACE_ME" Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" />
 	<Properties>
-		<DisplayName>TF2 Bot Detector</DisplayName>
+		<DisplayName>TF2 Bot DetectorTF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME</DisplayName>
 		<PublisherDisplayName>pazer</PublisherDisplayName>
 		<Description>Automatically detects and votekicks cheaters/bots in TF2 casual.</Description>
 		<Logo>logo_256.png</Logo>
