@@ -142,6 +142,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/Config/ChatWrappers.h"
 	"tf2_bot_detector/DLLMain.cpp"
 	"tf2_bot_detector/DLLMain.h"
+	"tf2_bot_detector/Filesystem.cpp"
+	"tf2_bot_detector/Filesystem.h"
 	"tf2_bot_detector/IPlayer.cpp"
 	"tf2_bot_detector/IPlayer.h"
 	"tf2_bot_detector/Log.cpp"

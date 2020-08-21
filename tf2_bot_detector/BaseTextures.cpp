@@ -1,5 +1,6 @@
 #include "BaseTextures.h"
 #include "Bitmap.h"
+#include "Filesystem.h"
 #include "Log.h"
 #include "TextureManager.h"
 
@@ -29,7 +30,7 @@ namespace
 		std::shared_ptr<ITexture> m_VACShield_16;
 		std::shared_ptr<ITexture> m_GameBanIcon_16;
 
-		std::shared_ptr<ITexture> TryLoadTexture(const std::filesystem::path& file) const;
+		std::shared_ptr<ITexture> TryLoadTexture(std::filesystem::path file) const;
 	};
 }
 
@@ -47,8 +48,10 @@ BaseTextures::BaseTextures(ITextureManager& textureManager) :
 {
 }
 
-std::shared_ptr<ITexture> BaseTextures::TryLoadTexture(const std::filesystem::path& file) const
+std::shared_ptr<ITexture> BaseTextures::TryLoadTexture(std::filesystem::path file) const
 {
+	file = IFilesystem::Get().ResolvePath(file, PathUsage::Read);
+
 	try
 	{
 		return m_TextureManager.CreateTexture(Bitmap(file));

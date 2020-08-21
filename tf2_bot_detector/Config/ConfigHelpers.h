@@ -23,10 +23,6 @@ namespace tf2_bot_detector
 		COUNT,
 	};
 
-	// If this is a portable install, the application directory
-	// If this is a non-portable install, %APPDATA%/TF2 Bot Detector
-	const std::filesystem::path& GetMutableDataPath();
-
 	struct ConfigFilePaths
 	{
 		std::filesystem::path m_User;
@@ -184,11 +180,11 @@ namespace tf2_bot_detector
 			const T* defaultMutableList = GetDefaultMutableList();
 			const T* localList = GetLocalList();
 			if (localList)
-				localList->SaveFile(GetMutableDataPath() / "cfg" / mh::format("{}.json", GetBaseFileName()));
+				localList->SaveFile(std::filesystem::path("cfg") / mh::format("{}.json", GetBaseFileName()));
 
 			if (defaultMutableList && defaultMutableList != localList)
 			{
-				const auto filename = GetMutableDataPath() / "cfg" / mh::format("{}.official.json", GetBaseFileName());
+				const auto filename = std::filesystem::path("cfg") / mh::format("{}.official.json", GetBaseFileName());
 
 				if (!IsOfficial())
 					throw std::runtime_error("Attempted to save non-official data to "s << filename);

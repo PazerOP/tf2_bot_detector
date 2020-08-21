@@ -1,6 +1,7 @@
 #include "Settings.h"
 #include "Util/JSONUtils.h"
 #include "Util/PathUtils.h"
+#include "Filesystem.h"
 #include "IPlayer.h"
 #include "Log.h"
 #include "PlayerListJSON.h"
@@ -22,10 +23,9 @@ using namespace tf2_bot_detector;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-static const std::filesystem::path& GetSettingsPath()
+static std::filesystem::path GetSettingsPath(PathUsage usage)
 {
-	static const auto s_SettingsPath = tf2_bot_detector::GetMutableDataPath() / "cfg" / "settings.json";
-	return s_SettingsPath;
+	return IFilesystem::Get().ResolvePath("cfg/settings.json", usage);
 }
 
 namespace tf2_bot_detector
@@ -185,7 +185,7 @@ void Settings::LoadFile()
 {
 	nlohmann::json json;
 	{
-		const auto& settingsPath = GetSettingsPath();
+		const auto settingsPath = GetSettingsPath(PathUsage::Read);
 		std::ifstream file(settingsPath);
 		if (!file.good())
 		{
@@ -295,7 +295,7 @@ bool Settings::SaveFile() const try
 	// Make sure we successfully serialize BEFORE we destroy our file
 	auto jsonString = json.dump(1, '\t', true);
 	{
-		const auto& settingsPath = GetSettingsPath();
+		const auto settingsPath = GetSettingsPath(PathUsage::Write);
 		std::filesystem::create_directories(std::filesystem::path(settingsPath).remove_filename());
 		std::ofstream file(settingsPath, std::ios::binary);
 		if (!file.good())
