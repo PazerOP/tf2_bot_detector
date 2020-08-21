@@ -278,7 +278,7 @@ jobs:
     - name: Create bundle
       run: |
         cd msix
-        makeappx bundle /d bundle_staging /bv 1.1.0.11 /p ${{ env.TF2BD_MSIXBUNDLE_NAME }}
+        makeappx bundle /d bundle_staging /bv ${{ env.TF2BD_VERSION }} /p ${{ env.TF2BD_MSIXBUNDLE_NAME }}
 
     - name: Sign bundle
       uses: PazerOP/code-sign-action@v3
