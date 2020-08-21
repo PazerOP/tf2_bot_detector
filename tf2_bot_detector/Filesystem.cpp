@@ -25,7 +25,7 @@ namespace
 		};
 
 		std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const override;
-		std::vector<std::byte> ReadFile(std::filesystem::path path) const override;
+		std::string ReadFile(std::filesystem::path path) const override;
 		void WriteFile(std::filesystem::path path, const void* begin, const void* end) const override;
 
 	private:
@@ -88,35 +88,41 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 	if (path.is_absolute())
 		return path;
 
-	if (usage == PathUsage::Read)
+	auto retVal = std::invoke([&]() -> std::filesystem::path
 	{
-		for (const auto& searchPath : m_SearchPaths)
+		if (usage == PathUsage::Read)
 		{
-			auto fullPath = searchPath / path;
-			if (std::filesystem::exists(fullPath))
+			for (const auto& searchPath : m_SearchPaths)
 			{
-				assert(fullPath.is_absolute());
-				return fullPath;
+				auto fullPath = searchPath / path;
+				if (std::filesystem::exists(fullPath))
+				{
+					assert(fullPath.is_absolute());
+					return fullPath;
+				}
 			}
+
+			DebugLogWarning("Unable to find {} in any search path", path);
+			return {};
 		}
+		else if (usage == PathUsage::Write)
+		{
+			if (!m_IsPortable)
+				return m_AppDataDir / path;
 
-		DebugLogWarning("Unable to find {} in any search path", path);
-		return {};
-	}
-	else if (usage == PathUsage::Write)
-	{
-		if (!m_IsPortable)
-			return m_AppDataDir / path;
+			return m_WorkingDir / path;
+		}
+		else
+		{
+			throw std::invalid_argument(mh::format("{}: Unknown PathUsage value {}", __FUNCTION__, int(usage)));
+		}
+	});
 
-		return m_WorkingDir / path;
-	}
-	else
-	{
-		throw std::invalid_argument(mh::format("{}: Unknown PathUsage value {}", __FUNCTION__, int(usage)));
-	}
+	DebugLog("ResolvePath({}, {}) -> {}", path, usage, retVal);
+	return std::move(retVal);
 }
 
-std::vector<std::byte> Filesystem::ReadFile(std::filesystem::path path) const
+std::string Filesystem::ReadFile(std::filesystem::path path) const
 {
 	path = ResolvePath(path, PathUsage::Read);
 	if (path.empty())
@@ -135,9 +141,9 @@ std::vector<std::byte> Filesystem::ReadFile(std::filesystem::path path) const
 	if (!file.good())
 		throw std::runtime_error(mh::format("{}: Failed to seek to beginning of {}", __FUNCTION__, path));
 
-	std::vector<std::byte> retVal;
+	std::string retVal;
 	retVal.resize(length);
-	file.read(reinterpret_cast<char*>(retVal.data()), length);
+	file.read(retVal.data(), length);
 	if (!file.good())
 		throw std::runtime_error(mh::format("{}: Failed to read file {}", __FUNCTION__, path));
 

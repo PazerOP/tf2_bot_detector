@@ -3,6 +3,7 @@
 #include "Platform/Platform.h"
 #include "Util/JSONUtils.h"
 #include "Util/RegexUtils.h"
+#include "Filesystem.h"
 #include "Log.h"
 #include "Version.h"
 
@@ -10,7 +11,6 @@
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
-#include <fstream>
 #include <regex>
 
 using namespace std::string_literals;
@@ -53,15 +53,7 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 
 static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann::json& json)
 {
-	auto jsonString = json.dump(1, '\t', true);
-
-	std::ofstream file(filename, std::ios::binary);
-	if (!file.good())
-		throw std::runtime_error("Failed to open file for writing");
-
-	file << jsonString << '\n';
-	if (!file.good())
-		throw std::runtime_error("Failed to write json to file");
+	IFilesystem::Get().WriteFile(filename, json.dump(1, '\t', true) << '\n');
 }
 
 static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, const nlohmann::json& json)
@@ -78,16 +70,6 @@ static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, cons
 static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& existingJson,
 	SharedConfigFileBase& config, const HTTPClient& client)
 {
-	try
-	{
-		filename = std::filesystem::absolute(filename);
-	}
-	catch (const std::exception& e)
-	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to convert {} to absolute path", filename);
-		return false;
-	}
-
 	auto fileInfoJson = existingJson.find("file_info");
 	if (fileInfoJson == existingJson.end())
 	{
@@ -222,22 +204,26 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 
 	nlohmann::json json;
 	{
-		std::ifstream file(filename);
-		if (!file.good())
-		{
-			DebugLog("Failed to open {}", filename);
-			return false;
-		}
-
 		Log("Loading {}...", filename);
 
+		std::string file;
 		try
 		{
-			file >> json;
+			file = IFilesystem::Get().ReadFile(filename);
 		}
 		catch (const std::exception& e)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when parsing JSON from {}", filename);
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load {}", filename);
+			return false;
+		}
+
+		try
+		{
+			json = nlohmann::json::parse(file);
+		}
+		catch (const std::exception& e)
+		{
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to parse JSON from {}", filename);
 			return false;
 		}
 	}
