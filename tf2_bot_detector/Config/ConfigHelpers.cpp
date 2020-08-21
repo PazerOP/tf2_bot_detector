@@ -21,8 +21,16 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 {
 	ConfigFilePaths retVal;
 
-	const std::filesystem::path cfg("cfg");
-	if (std::filesystem::is_directory(cfg))
+	{
+		const std::filesystem::path cfg("cfg");
+		if (auto found = IFilesystem::Get().ResolvePath(cfg / mh::format("{}.official.json", basename), PathUsage::Read); !found.empty())
+			retVal.m_Official = found;
+		if (auto found = IFilesystem::Get().ResolvePath(cfg / mh::format("{}.json", basename), PathUsage::Read); !found.empty())
+			retVal.m_User = found;
+	}
+
+	if (const auto cfg = IFilesystem::Get().GetMutableDataDir() / std::filesystem::path("cfg");
+		std::filesystem::is_directory(cfg))
 	{
 		try
 		{

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cppcoro/generator.hpp>
+
 #include <cstddef>
 #include <filesystem>
 #include <iostream>
@@ -22,7 +24,11 @@ namespace tf2_bot_detector
 
 		static IFilesystem& Get();
 
+		virtual cppcoro::generator<std::filesystem::path> GetSearchPaths() const = 0;
+
 		virtual std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const = 0;
+
+		virtual std::filesystem::path GetMutableDataDir() const = 0;
 
 		//virtual std::fstream OpenFile(const std::filesystem::path& path) = 0;
 		virtual std::string ReadFile(std::filesystem::path path) const = 0;

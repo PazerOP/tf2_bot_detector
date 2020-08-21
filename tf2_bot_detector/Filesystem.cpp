@@ -16,17 +16,13 @@ namespace
 	public:
 		Filesystem();
 
-		struct FileDeleter
-		{
-			void operator()(FILE* file) const
-			{
-				fclose(file);
-			}
-		};
+		cppcoro::generator<std::filesystem::path> GetSearchPaths() const override;
 
 		std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const override;
 		std::string ReadFile(std::filesystem::path path) const override;
 		void WriteFile(std::filesystem::path path, const void* begin, const void* end) const override;
+
+		std::filesystem::path GetMutableDataDir() const;
 
 	private:
 		static constexpr char NON_PORTABLE_MARKER[] = ".non_portable";
@@ -81,6 +77,12 @@ Filesystem::Filesystem() try
 catch (const std::exception& e)
 {
 	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to initialize filesystem");
+}
+
+cppcoro::generator<std::filesystem::path> Filesystem::GetSearchPaths() const
+{
+	for (auto searchPath : m_SearchPaths)
+		co_yield searchPath;
 }
 
 std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path, PathUsage usage) const
@@ -162,6 +164,14 @@ void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const 
 	file.write(reinterpret_cast<const char*>(begin), bytes);
 	if (!file.good())
 		throw std::runtime_error(mh::format("{}: Failed to write {} bytes to {}", __FUNCTION__, bytes, path));
+}
+
+std::filesystem::path Filesystem::GetMutableDataDir() const
+{
+	if (m_IsPortable)
+		return m_WorkingDir;
+	else
+		return m_AppDataDir;
 }
 
 std::vector<std::filesystem::path> Filesystem::CreateSearchPaths() const try
