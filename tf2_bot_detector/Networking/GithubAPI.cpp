@@ -24,7 +24,7 @@ using namespace tf2_bot_detector::GithubAPI;
 static std::optional<Version> ParseSemVer(const char* version)
 {
 	Version v{};
-	auto parsed = sscanf_s(version, "%i.%i.%i.%i", &v.m_Major, &v.m_Minor, &v.m_Patch, &v.m_Preview);
+	auto parsed = sscanf_s(version, "%i.%i.%i.%i", &v.m_Major, &v.m_Minor, &v.m_Patch, &v.m_Build);
 	if (parsed < 2)
 		return std::nullopt;
 
@@ -88,7 +88,7 @@ static NewVersionResult GetLatestVersion(const HTTPClient& client)
 				break;
 			}
 
-			if (release.m_Version.m_Preview != 0)
+			if (release.m_IsPrerelease)
 				retVal.m_Preview = release;
 			else
 				retVal.m_Stable = release;

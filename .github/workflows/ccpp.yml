@@ -82,6 +82,7 @@ jobs:
         echo "matrix.build_arch = ${{ matrix.build_arch }}"
         echo "matrix.build_type = ${{ matrix.build_type }}"
         echo "env.TF2BD_ENABLE_ARTIFACT_UPLOAD = ${{ env.TF2BD_ENABLE_ARTIFACT_UPLOAD }}"
+        echo "env.TF2BD_VERSION = ${{ env.TF2BD_VERSION }}"
         echo "steps.tf2bd_paths.outputs.workspace = ${{ steps.tf2bd_paths.outputs.workspace }}"
         echo "steps.tf2bd_paths.outputs.build_dir = ${{ steps.tf2bd_paths.outputs.build_dir }}"
 

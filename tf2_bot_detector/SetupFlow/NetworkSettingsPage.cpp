@@ -12,8 +12,10 @@ static bool InternalValidateSettings(const T& settings)
 		return false;
 	if (settings.m_AllowInternetUsage.value() && settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Unknown)
 		return false;
+#if 0
 	if (settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Releases && VERSION.m_Preview != 0)
 		return false;
+#endif
 
 	return true;
 }

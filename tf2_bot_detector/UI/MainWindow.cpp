@@ -758,7 +758,7 @@ void MainWindow::OnDrawMenuBar()
 
 		ImGui::Separator();
 
-		static const mh::fmtstr<128> VERSION_STRING_LABEL("Version: {}", VERSION_STRING);
+		static const mh::fmtstr<128> VERSION_STRING_LABEL("Version: {}", VERSION);
 		ImGui::MenuItem(VERSION_STRING_LABEL.c_str(), nullptr, false, false);
 
 		if (m_Settings.m_AllowInternetUsage.value_or(false))

@@ -529,9 +529,11 @@ bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 
 	const auto oldMode = mode;
 
+#if 0
 	constexpr bool allowReleases = VERSION.m_Preview == 0;
 	if (!allowReleases && mode == ProgramUpdateCheckMode::Releases)
 		mode = ProgramUpdateCheckMode::Previews;
+#endif
 
 	switch (mode)
 	{
@@ -546,6 +548,7 @@ bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 		if (ImGui::Selectable(FRIENDLY_TEXT_DISABLED))
 			mode = ProgramUpdateCheckMode::Disabled;
 
+#if 0
 		ImGui::EnabledSwitch(allowReleases, [&]
 			{
 				ImGui::BeginGroup();
@@ -555,6 +558,10 @@ bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 
 				ImGui::EndGroup();
 			}, "Since you are using a preview build, you will always be notified of new previews.");
+#else
+		if (ImGui::Selectable(FRIENDLY_TEXT_STABLE))
+			mode = ProgramUpdateCheckMode::Releases;
+#endif
 
 		if (ImGui::Selectable(FRIENDLY_TEXT_PREVIEW))
 			mode = ProgramUpdateCheckMode::Previews;
