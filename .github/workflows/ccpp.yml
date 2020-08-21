@@ -168,7 +168,6 @@ jobs:
 
 
 
-
   msix:
     runs-on: windows-latest
     needs: build
@@ -179,6 +178,7 @@ jobs:
         build_type:
           - name: Debug
             suffix: -debug
+            appid_suffix: Debug
           - name: Release
 
     steps:
@@ -218,7 +218,8 @@ jobs:
         cat msix/package_staging/AppxManifest.xml \
           | sed 's/TF2BD_PROCESSOR_ARCH_REPLACE_ME/${{ matrix.tf2bd_arch }}/g' \
           | sed 's/TF2BD_BUILD_NUMBER_REPLACE_ME/${{ github.run_number }}/g' \
-          | sed 's/TF2BD_IDENTITY_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
+          | sed 's/TF2BD_PACKAGE_IDENTITY_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
+          | sed 's/TF2BD_APPLICATION_IDENTITY_SUFFIX_REPLACE_ME/${{ matrix.build_type.appid_suffix }}/g' \
           | sed 's/TF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
           | tee msix/package_staging/AppxManifest.xml
 

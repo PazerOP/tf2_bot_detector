@@ -2,7 +2,7 @@
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
 	xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
 	xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
-	<Identity Name="tf2-bot-detectorTF2BD_IDENTITY_SUFFIX_REPLACE_ME" Version="1.1.0.TF2BD_BUILD_NUMBER_REPLACE_ME" ProcessorArchitecture="TF2BD_PROCESSOR_ARCH_REPLACE_ME" Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" />
+	<Identity Name="tf2-bot-detectorTF2BD_PACKAGE_IDENTITY_SUFFIX_REPLACE_ME" Version="1.1.0.TF2BD_BUILD_NUMBER_REPLACE_ME" ProcessorArchitecture="TF2BD_PROCESSOR_ARCH_REPLACE_ME" Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" />
 	<Properties>
 		<DisplayName>TF2 Bot DetectorTF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME</DisplayName>
 		<PublisherDisplayName>pazer</PublisherDisplayName>
@@ -21,7 +21,7 @@
 		<rescap:Capability Name="runFullTrust"/>
 	</Capabilities>
 	<Applications>
-		<Application Id="BotDetectorLauncherTF2BD_IDENTITY_SUFFIX_REPLACE_ME" Executable="app/tf2_bot_detector.exe" EntryPoint="Windows.FullTrustApplication">
+		<Application Id="BotDetectorLauncherTF2BD_APPLICATION_IDENTITY_SUFFIX_REPLACE_ME" Executable="app/tf2_bot_detector.exe" EntryPoint="Windows.FullTrustApplication">
 			<uap:VisualElements DisplayName="TF2 Bot DetectorTF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME" Description="Automatically detects and votekicks cheaters/bots in TF2 casual." Square150x150Logo="logo_150.png" Square44x44Logo="logo_44.png" BackgroundColor="#33322e" />
 		</Application>
 	</Applications>
