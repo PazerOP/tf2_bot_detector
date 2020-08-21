@@ -8,7 +8,46 @@ on:
       - '*.md'
 
 jobs:
-  ci:
+  # setup_vcpkg:
+  #   runs-on: ${{ matrix.platform.os }}
+  #   strategy:
+  #     fail-fast: true
+  #     matrix:
+  #       platform:
+  #       - os: windows-latest
+  #         triplet: x64-windows
+  #       - os: windows-latest
+  #         triplet: x86-windows
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v2
+  #     with:
+  #       submodules: recursive
+
+  setup_version:
+    # needs: setup_vcpkg
+    runs-on: windows-latest
+    steps:
+    # - name: Checkout
+    #   uses: actions/checkout@v2
+    #   with:
+    #     submodules: recursive
+    - name: Extract TF2BD_VERSION
+      shell: bash
+      run: |
+        mkdir build_dir
+        cd build_dir
+        cmake ../
+        TF2BD_VERSION=`cat ${{ steps.tf2bd_paths.outputs.build_dir }}/CMakeCache.txt | grep CMAKE_PROJECT_VERSION: | cut -d "=" -f2`
+        echo "::set-env name=TF2BD_VERSION::$TF2BD_VERSION.${{ github.run_number }}"
+    - name: Store TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        data: ${{ env.TF2BD_VERSION }}
+        variable: TF2BD_VERSION
+
+  build:
+    needs: setup_version
     runs-on: ${{ matrix.os }}
     strategy:
       # fail-fast: false
@@ -28,16 +67,10 @@ jobs:
             build_arch: x64
 
     steps:
-    - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
-    - uses: benjlevesque/short-sha@v1.1
-      id: short_sha
-    - name: Config TF2BD_VERSION (tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      run: echo "::set-env name=TF2BD_VERSION::${{ env.GIT_TAG_NAME }}"
-    - name: Config TF2BD_VERSION (SHA)
-      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-      run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
-
+    - name: Retrieve TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        retrieve_variables: TF2BD_VERSION
     - name: Determine artifact behavior
       if: matrix.discord_integration == true
       run: echo "::set-env name=TF2BD_ENABLE_ARTIFACT_UPLOAD::1"
@@ -150,7 +183,7 @@ jobs:
 
   msix:
     runs-on: windows-latest
-    needs: ci
+    needs: build
     strategy:
       # fail-fast: false
       matrix:
@@ -161,15 +194,10 @@ jobs:
           - name: Release
 
     steps:
-    - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
-    - uses: benjlevesque/short-sha@v1.1
-      id: short_sha
-    - name: Config TF2BD_VERSION (tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      run: echo "::set-env name=TF2BD_VERSION::${{ env.GIT_TAG_NAME }}"
-    - name: Config TF2BD_VERSION (SHA)
-      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-      run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
+    - name: Retrieve TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        retrieve_variables: TF2BD_VERSION
 
     - name: Debug
       run: |
@@ -238,45 +266,40 @@ jobs:
           - name: Release
 
     steps:
-      - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
-      - uses: benjlevesque/short-sha@v1.1
-        id: short_sha
-      - name: Config TF2BD_VERSION (tag)
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "::set-env name=TF2BD_VERSION::${{ env.GIT_TAG_NAME }}"
-      - name: Config TF2BD_VERSION (SHA)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
+    - name: Retrieve TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        retrieve_variables: TF2BD_VERSION
 
-      - name: Configure PATH for windows sdk
-        uses: ilammy/msvc-dev-cmd@v1
+    - name: Configure PATH for windows sdk
+      uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Download msix (x86)
-        uses: actions/download-artifact@v2
-        with:
-          name: "tf2_bot_detector_x86-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
-          path: msix/bundle_staging
-      - name: Download msix (x64)
-        uses: actions/download-artifact@v2
-        with:
-          name: "tf2_bot_detector_x64-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
-          path: msix/bundle_staging
+    - name: Download msix (x86)
+      uses: actions/download-artifact@v2
+      with:
+        name: "tf2_bot_detector_x86-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
+        path: msix/bundle_staging
+    - name: Download msix (x64)
+      uses: actions/download-artifact@v2
+      with:
+        name: "tf2_bot_detector_x64-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
+        path: msix/bundle_staging
 
-      - name: Create bundle
-        run: |
-          cd msix
-          makeappx bundle /d bundle_staging /bv 1.1.0.11 /p tf2_bot_detector.msixbundle
+    - name: Create bundle
+      run: |
+        cd msix
+        makeappx bundle /d bundle_staging /bv 1.1.0.11 /p tf2_bot_detector.msixbundle
 
-      - name: Sign bundle
-        uses: PazerOP/code-sign-action@v3
-        with:
-          folder: msix
-          certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
-          password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+    - name: Sign bundle
+      uses: PazerOP/code-sign-action@v3
+      with:
+        folder: msix
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
-      - name: Upload bundle
-        uses: actions/upload-artifact@v2
-        with:
-          name: tf2_bot_detector.msixbundle
-          path: "msix/tf2_bot_detector.msixbundle"
+    - name: Upload bundle
+      uses: actions/upload-artifact@v2
+      with:
+        name: tf2_bot_detector.msixbundle
+        path: "msix/tf2_bot_detector.msixbundle"
 
