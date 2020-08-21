@@ -235,6 +235,14 @@ void MainWindow::OnDrawSettingsPopup()
 					"This is needed because players can't vote until they have joined a team and picked a class. If we call a vote before enough people are ready, it might fail.");
 			}
 
+			// Chat warning interval
+			{
+				if (ImGui::SliderFloat("Chat warning interval", &m_Settings.m_ChatWarningInterval, 20, 60, "%1.1f seconds"))
+					m_Settings.SaveFile();
+				ImGui::SetHoverTooltip("Interval between chat warnings.\n\n"
+					"Increase it if you feel that you are spamming too much.");
+			}
+
 			// Send warnings for connecting cheaters
 			{
 				if (ImGui::Checkbox("Chat message warnings for connecting cheaters", &m_Settings.m_AutoChatWarningsConnecting))
