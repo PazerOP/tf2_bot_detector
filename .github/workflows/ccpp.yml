@@ -271,10 +271,14 @@ jobs:
         name: "tf2_bot_detector_x64-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
         path: msix/bundle_staging
 
+    - name: Config msixbundle name
+      shell: bash
+      run: echo "::set-env name=TF2BD_MSIXBUNDLE_NAME::tf2-bot-detector_windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msixbundle"
+
     - name: Create bundle
       run: |
         cd msix
-        makeappx bundle /d bundle_staging /bv 1.1.0.11 /p tf2_bot_detector.msixbundle
+        makeappx bundle /d bundle_staging /bv 1.1.0.11 /p ${{ env.TF2BD_MSIXBUNDLE_NAME }}
 
     - name: Sign bundle
       uses: PazerOP/code-sign-action@v3
@@ -286,6 +290,6 @@ jobs:
     - name: Upload bundle
       uses: actions/upload-artifact@v2
       with:
-        name: tf2_bot_detector.msixbundle
-        path: "msix/tf2_bot_detector.msixbundle"
+        name: ${{ env.TF2BD_MSIXBUNDLE_NAME }}
+        path: "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}"
 
