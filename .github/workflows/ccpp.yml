@@ -20,7 +20,7 @@ jobs:
         mkdir build_dir
         cd build_dir
         cmake ../ || true     # we know this will fail, we just need version info from CMakeCache.txt
-        TF2BD_VERSION=`cat ${{ steps.tf2bd_paths.outputs.build_dir }}/CMakeCache.txt | grep CMAKE_PROJECT_VERSION: | cut -d "=" -f2`
+        TF2BD_VERSION=`cat CMakeCache.txt | grep CMAKE_PROJECT_VERSION: | cut -d "=" -f2`
         echo "::set-env name=TF2BD_VERSION::$TF2BD_VERSION.${{ github.run_number }}"
 
     - name: Store TF2BD_VERSION
