@@ -11,7 +11,7 @@ jobs:
   ci:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      # fail-fast: false
       matrix:
         os: [windows-latest]
         triplet: [x86-windows, x64-windows]
@@ -88,7 +88,15 @@ jobs:
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} ../
+        cmake -A${{ matrix.build_arch }} \
+          -DTF2BD_IS_CI_COMPILE=ON \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
+          -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
+          -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} \
+          ../
         cmake --build . --config ${{ matrix.build_type }}
 
     - name: Sign artifacts
@@ -144,7 +152,7 @@ jobs:
     runs-on: windows-latest
     needs: ci
     strategy:
-      fail-fast: false
+      # fail-fast: false
       matrix:
         tf2bd_arch: [x86, x64]
         build_type:
@@ -222,7 +230,7 @@ jobs:
     runs-on: windows-latest
     needs: msix
     strategy:
-      fail-fast: false
+      # fail-fast: false
       matrix:
         build_type:
           - name: Debug
