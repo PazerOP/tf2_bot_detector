@@ -690,9 +690,9 @@ void MainWindow::OnDrawMenuBar()
 	if (ImGui::BeginMenu("File"))
 	{
 		if (ImGui::MenuItem("Open Config Folder"))
-			Shell::OpenURL(IFilesystem::Get().GetConfigDir().string());
+			Shell::ExploreTo(IFilesystem::GetConfigDir(IFilesystem::Get().GetRealMutableDataDir()));
 		if (ImGui::MenuItem("Open Logs Folder"))
-			Shell::OpenURL(IFilesystem::Get().GetLogsDir().string());
+			Shell::ExploreTo(IFilesystem::GetLogsDir(IFilesystem::Get().GetRealMutableDataDir()));
 
 		ImGui::Separator();
 

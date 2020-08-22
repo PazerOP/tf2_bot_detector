@@ -29,6 +29,7 @@ namespace tf2_bot_detector
 		virtual std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const = 0;
 
 		virtual std::filesystem::path GetMutableDataDir() const = 0;
+		virtual std::filesystem::path GetRealMutableDataDir() const = 0;
 
 		//virtual std::fstream OpenFile(const std::filesystem::path& path) = 0;
 		virtual std::string ReadFile(std::filesystem::path path) const = 0;
@@ -39,13 +40,21 @@ namespace tf2_bot_detector
 			return WriteFile(path, data.data(), data.data() + data.size());
 		}
 
+		static std::filesystem::path GetLogsDir(const std::filesystem::path& baseDataDir)
+		{
+			return baseDataDir / "logs";
+		}
 		std::filesystem::path GetLogsDir() const
 		{
-			return GetMutableDataDir() / "logs";
+			return GetLogsDir(GetMutableDataDir());
+		}
+		static std::filesystem::path GetConfigDir(const std::filesystem::path& baseDataDir)
+		{
+			return baseDataDir / "cfg";
 		}
 		std::filesystem::path GetConfigDir() const
 		{
-			return GetMutableDataDir() / "cfg";
+			return GetConfigDir(GetMutableDataDir());
 		}
 
 		bool Exists(const std::filesystem::path& path) const

@@ -23,33 +23,71 @@ std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
 	return std::filesystem::path(path, path + length).remove_filename();
 }
 
-std::filesystem::path tf2_bot_detector::Platform::GetRealAppDataDir()
+namespace tf2_bot_detector
 {
-	WCHAR path[32768];
-	UINT32 pathLength = std::size(path);
-	const auto errc = GetCurrentPackagePath(&pathLength, path);
-
-	switch (errc)
+	static std::wstring GetCurrentPackageFamilyName()
 	{
-	case ERROR_SUCCESS:
-		return std::filesystem::path(path, path + pathLength);
-	case APPMODEL_ERROR_NO_PACKAGE:
-		return "";// GetAppDataDir(); // We're not in a package
-	case ERROR_INSUFFICIENT_BUFFER:
-		throw std::runtime_error(mh::format("{}: Buffer too small", __FUNCTION__));
-	default:
-		throw std::runtime_error(mh::format("{}: Unknown error {}", __FUNCTION__, errc));
+		WCHAR name[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1];
+		UINT32 nameLength = std::size(name);
+		const auto errc = ::GetCurrentPackageFamilyName(&nameLength, name);
+
+		switch (errc)
+		{
+		case ERROR_SUCCESS:
+			return std::wstring(name, name + nameLength);
+		case APPMODEL_ERROR_NO_PACKAGE:
+			return {};
+		case ERROR_INSUFFICIENT_BUFFER:
+			throw std::runtime_error(mh::format("{}: Buffer too small", __FUNCTION__));
+		default:
+			throw std::runtime_error(mh::format("{}: Unknown error {}", __FUNCTION__, errc));
+		}
+	}
+
+	static std::filesystem::path GetCurrentPackagePath()
+	{
+		WCHAR path[32768];
+		UINT32 pathLength = std::size(path);
+		const auto errc = ::GetCurrentPackagePath(&pathLength, path);
+
+		switch (errc)
+		{
+		case ERROR_SUCCESS:
+			return std::filesystem::path(path, path + pathLength);
+		case APPMODEL_ERROR_NO_PACKAGE:
+			return "";// GetAppDataDir(); // We're not in a package
+		case ERROR_INSUFFICIENT_BUFFER:
+			throw std::runtime_error(mh::format("{}: Buffer too small", __FUNCTION__));
+		default:
+			throw std::runtime_error(mh::format("{}: Unknown error {}", __FUNCTION__, errc));
+		}
 	}
 }
 
-std::filesystem::path tf2_bot_detector::Platform::GetAppDataDir()
+static std::filesystem::path GetKnownFolderPath(const KNOWNFOLDERID& id)
 {
-	auto test = GetRealAppDataDir();
 	PWSTR str;
-	CHECK_HR(SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &str));
+	CHECK_HR(SHGetKnownFolderPath(id, 0, nullptr, &str));
 
 	std::filesystem::path retVal(str);
 
 	CoTaskMemFree(str);
 	return retVal;
+}
+
+std::filesystem::path tf2_bot_detector::Platform::GetRealAppDataDir()
+{
+	const auto lad = GetKnownFolderPath(FOLDERID_LocalAppData);
+
+	const auto packageAppDataDir = lad / "Packages" / GetCurrentPackageFamilyName() / "LocalCache" / "Roaming";
+
+	if (std::filesystem::exists(packageAppDataDir))
+		return packageAppDataDir;
+	else
+		return GetAppDataDir();
+}
+
+std::filesystem::path tf2_bot_detector::Platform::GetAppDataDir()
+{
+	return GetKnownFolderPath(FOLDERID_RoamingAppData);
 }

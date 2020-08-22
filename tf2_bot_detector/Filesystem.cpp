@@ -22,16 +22,18 @@ namespace
 		std::string ReadFile(std::filesystem::path path) const override;
 		void WriteFile(std::filesystem::path path, const void* begin, const void* end) const override;
 
-		std::filesystem::path GetMutableDataDir() const;
+		std::filesystem::path GetMutableDataDir() const override;
+		std::filesystem::path GetRealMutableDataDir() const override;
 
 	private:
 		static constexpr char NON_PORTABLE_MARKER[] = ".non_portable";
+		static constexpr char APPDATA_SUBFOLDER[] = "TF2 Bot Detector";
 		std::vector<std::filesystem::path> m_SearchPaths;
 		bool m_IsPortable;
 
 		const std::filesystem::path m_ExeDir = Platform::GetCurrentExeDir();
 		const std::filesystem::path m_WorkingDir = std::filesystem::current_path();
-		const std::filesystem::path m_AppDataDir = Platform::GetAppDataDir() / "TF2 Bot Detector";
+		const std::filesystem::path m_AppDataDir = Platform::GetAppDataDir() / APPDATA_SUBFOLDER;
 		//std::filesystem::path m_MutableDataDir = ChooseMutableDataPath();
 	};
 }
@@ -176,4 +178,12 @@ std::filesystem::path Filesystem::GetMutableDataDir() const
 		return m_WorkingDir;
 	else
 		return m_AppDataDir;
+}
+
+std::filesystem::path Filesystem::GetRealMutableDataDir() const
+{
+	if (m_IsPortable)
+		return m_WorkingDir;
+	else
+		return Platform::GetRealAppDataDir() / APPDATA_SUBFOLDER;
 }
