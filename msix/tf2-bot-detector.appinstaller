@@ -10,18 +10,18 @@
 
 	<Dependencies>
 		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop"
-			 Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" 
+			 Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
 			 Version="14.0.27810.0"
 			 ProcessorArchitecture="x64"
 			 Uri="http://home.pazer.us/tf2_bot_detector/Microsoft.VCLibs.x64.14.00.Desktop.appx" />
 		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop"
-			 Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" 
+			 Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
 			 Version="14.0.27810.0"
-			 ProcessorArchitecture="x86" 
+			 ProcessorArchitecture="x86"
 			 Uri="http://home.pazer.us/tf2_bot_detector/Microsoft.VCLibs.x86.14.00.Desktop.appx" />
 	</Dependencies>
 
 	<UpdateSettings>
-		<OnLaunch HoursBetweenUpdateChecks="12" />
+		<OnLaunch HoursBetweenUpdateChecks="0" />
 	</UpdateSettings>
 </AppInstaller>
