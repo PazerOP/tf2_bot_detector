@@ -104,6 +104,9 @@ jobs:
       with:
         arch: ${{ matrix.tf2bd_arch }}
 
+    - name: Config Ninja
+      run: echo "::set-env name=NINJA_STATUS::[%f/%t/%e] "
+
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
       shell: bash
