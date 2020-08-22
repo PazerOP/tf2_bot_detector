@@ -689,12 +689,21 @@ void MainWindow::OnDrawMenuBar()
 
 	if (ImGui::BeginMenu("File"))
 	{
+		if (ImGui::MenuItem("Open Config Folder"))
+			Shell::OpenURL(IFilesystem::Get().GetConfigDir().string());
+		if (ImGui::MenuItem("Open Logs Folder"))
+			Shell::OpenURL(IFilesystem::Get().GetLogsDir().string());
+
+		ImGui::Separator();
+
 		if (!isInSetupFlow)
 		{
 			if (ImGui::MenuItem("Reload Playerlists/Rules"))
 				GetModLogic().ReloadConfigFiles();
 			if (ImGui::MenuItem("Reload Settings"))
 				m_Settings.LoadFile();
+
+			ImGui::Separator();
 		}
 
 		if (ImGui::MenuItem("Generate Debug Report"))

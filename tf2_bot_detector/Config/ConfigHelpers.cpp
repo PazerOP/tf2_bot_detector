@@ -7,6 +7,7 @@
 #include "Log.h"
 #include "Version.h"
 
+#include <mh/io/path_literals.hpp>
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
@@ -21,31 +22,25 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 {
 	ConfigFilePaths retVal;
 
-	{
-		const std::filesystem::path cfg("cfg");
-		if (auto found = IFilesystem::Get().ResolvePath(cfg / mh::format("{}.official.json", basename), PathUsage::Read); !found.empty())
-			retVal.m_Official = found;
-		if (auto found = IFilesystem::Get().ResolvePath(cfg / mh::format("{}.json", basename), PathUsage::Read); !found.empty())
-			retVal.m_User = found;
-	}
+	if (auto path = mh::format("cfg/{}.official.json", basename); IFilesystem::Get().Exists(path))
+		retVal.m_Official = path;
+	if (auto path = mh::format("cfg/{}.json", basename); IFilesystem::Get().Exists(path))
+		retVal.m_User = path;
 
 	if (const auto cfg = IFilesystem::Get().GetMutableDataDir() / std::filesystem::path("cfg");
 		std::filesystem::is_directory(cfg))
 	{
 		try
 		{
-			const std::regex s_PlayerListRegex(std::string(basename) << R"regex(\.(.*\.)?json)regex", std::regex::optimize);
+			const std::regex filenameRegex(mh::format("{}{}", basename, R"regex(\.(?!official).*\.json)regex"),
+				std::regex::optimize | std::regex::icase);
 
 			for (const auto& file : std::filesystem::directory_iterator(cfg,
 				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
 			{
 				const auto path = file.path();
 				const auto filename = path.filename().string();
-				if (mh::case_insensitive_compare(filename, std::string(basename) << ".json"sv))
-					retVal.m_User = cfg / filename;
-				else if (mh::case_insensitive_compare(filename, std::string(basename) << ".official.json"sv))
-					retVal.m_Official = cfg / filename;
-				else if (std::regex_match(filename.begin(), filename.end(), s_PlayerListRegex))
+				if (std::regex_match(filename.begin(), filename.end(), filenameRegex))
 					retVal.m_Others.push_back(cfg / filename);
 			}
 		}

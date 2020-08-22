@@ -38,6 +38,20 @@ namespace tf2_bot_detector
 		{
 			return WriteFile(path, data.data(), data.data() + data.size());
 		}
+
+		std::filesystem::path GetLogsDir() const
+		{
+			return GetMutableDataDir() / "logs";
+		}
+		std::filesystem::path GetConfigDir() const
+		{
+			return GetMutableDataDir() / "cfg";
+		}
+
+		bool Exists(const std::filesystem::path& path) const
+		{
+			return !ResolvePath(path, PathUsage::Read).empty();
+		}
 	};
 }
 
