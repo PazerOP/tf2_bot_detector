@@ -7,7 +7,6 @@
 #include "Log.h"
 #include "Version.h"
 
-#include <mh/io/path_literals.hpp>
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
