@@ -34,7 +34,7 @@ namespace tf2_bot_detector
 		switch (errc)
 		{
 		case ERROR_SUCCESS:
-			return std::wstring(name, name + nameLength);
+			return std::wstring(name, nameLength > 0 ? (nameLength - 1) : 0);
 		case APPMODEL_ERROR_NO_PACKAGE:
 			return {};
 		case ERROR_INSUFFICIENT_BUFFER:
@@ -53,7 +53,7 @@ namespace tf2_bot_detector
 		switch (errc)
 		{
 		case ERROR_SUCCESS:
-			return std::filesystem::path(path, path + pathLength);
+			return std::filesystem::path(path, path + (pathLength > 0 ? (pathLength - 1) : 0));
 		case APPMODEL_ERROR_NO_PACKAGE:
 			return "";// GetAppDataDir(); // We're not in a package
 		case ERROR_INSUFFICIENT_BUFFER:
