@@ -5,8 +5,8 @@
 	Uri="https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller">
 
 	<MainBundle Name="tf2-bot-detector"
-		Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" Version="1.1.0.524"
-		Uri="http://home.pazer.us/tf2_bot_detector/tf2-bot-detector_windows_1.1.0.524.msixbundle" />
+		Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" Version="1.1.0.528"
+		Uri="http://home.pazer.us/tf2_bot_detector/tf2-bot-detector_windows_1.1.0.528.msixbundle" />
 
 	<Dependencies>
 		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop"
