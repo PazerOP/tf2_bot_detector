@@ -7,6 +7,8 @@ on:
       - 'staging/cfg/**.json'
       - '*.md'
       - '*.appinstaller'
+  release:
+    types: [released, prereleased]
 
 jobs:
   setup_version:
@@ -69,6 +71,7 @@ jobs:
 
     - name: Debug
       run: |
+        echo "github.event = ${{ github.event }}"
         echo "github.event_name = ${{ github.event_name }}"
         echo "github.sha = ${{ github.sha }}"
         echo "github.ref = ${{ github.ref }}"
@@ -291,9 +294,28 @@ jobs:
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
-    - name: Upload bundle
+    - name: Upload bundle (github actions artifact)
       uses: actions/upload-artifact@v2
       with:
         name: ${{ env.TF2BD_MSIXBUNDLE_NAME }}
         path: "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}"
 
+    - name: Upload bundle (tf2bd-util)
+      if: matrix.build_type.name == Release
+      shell: bash
+      run: |
+        BASIC_URL="https://tf2bd-util.pazer.us/buildartifacts/upload?key=${{ secrets.TF2BD_UTIL_UPLOAD_KEY_TEST }}&version=${{ env.TF2BD_VERSION }}&buildtype="
+
+        if [ "${{ github.event_name }}" = "push" ]
+          then
+            curl -T ${{ env.TF2BD_MSIXBUNDLE_NAME }} "${BASIC_URL}continuous"
+          elif [ "${{ github.event_name }}" = "release" ]
+          then
+            curl -T ${{ env.TF2BD_MSIXBUNDLE_NAME }} "${BASIC_URL}public"
+          elif [ "${{ github.event_name }}" = "schedule" ]
+          then
+            curl -T ${{ env.TF2BD_MSIXBUNDLE_NAME }} "${BASIC_URL}preview"
+          elif [ "${{ github.event_name }}" = "schedule" ]
+          then
+            curl -T ${{ env.TF2BD_MSIXBUNDLE_NAME }} "${BASIC_URL}nightly"
+        fi
