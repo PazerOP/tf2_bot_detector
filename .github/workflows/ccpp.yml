@@ -301,7 +301,7 @@ jobs:
         path: "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}"
 
     - name: Upload bundle (tf2bd-util)
-      if: matrix.build_type.name == "Release"
+      if: matrix.build_type.name == 'Release'
       shell: bash
       run: |
         BASIC_URL="https://tf2bd-util.pazer.us/buildartifacts/upload?key=${{ secrets.TF2BD_UTIL_UPLOAD_KEY_TEST }}&version=${{ env.TF2BD_VERSION }}&buildtype="
