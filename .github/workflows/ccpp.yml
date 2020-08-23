@@ -304,18 +304,21 @@ jobs:
       if: matrix.build_type.name == 'Release'
       shell: bash
       run: |
-        BASIC_URL="https://tf2bd-util.pazer.us/buildartifacts/upload?key=${{ secrets.TF2BD_UTIL_UPLOAD_KEY_TEST }}&version=${{ env.TF2BD_VERSION }}&buildtype="
-
         if [ "${{ github.event_name }}" = "push" ]
           then
-            curl -T ${{ env.TF2BD_MSIXBUNDLE_NAME }} "${BASIC_URL}continuous"
+            BUILDTYPE=continuous
           elif [ "${{ github.event_name }}" = "released" ]
           then
-            curl -T ${{ env.TF2BD_MSIXBUNDLE_NAME }} "${BASIC_URL}public"
+            BUILDTYPE=public
           elif [ "${{ github.event_name }}" = "prereleased" ]
           then
-            curl -T ${{ env.TF2BD_MSIXBUNDLE_NAME }} "${BASIC_URL}preview"
+            BUILDTYPE=preview
           elif [ "${{ github.event_name }}" = "schedule" ]
           then
-            curl -T ${{ env.TF2BD_MSIXBUNDLE_NAME }} "${BASIC_URL}nightly"
+            BUILDTYPE=nightly
+        fi
+
+        if [ ! -z "$BUILDTYPE" ]
+          then
+            curl -T "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}" "https://tf2bd-util.pazer.us/buildartifacts/upload?key=${{ secrets.TF2BD_UTIL_UPLOAD_KEY }}&version=${{ env.TF2BD_VERSION }}&buildtype=$BUILDTYPE"
         fi
