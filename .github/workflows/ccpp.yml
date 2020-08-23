@@ -7,8 +7,6 @@ on:
       - 'staging/cfg/**.json'
       - '*.md'
       - '*.appinstaller'
-  release:
-    types: [released, prereleased]
 
 jobs:
   setup_version:
@@ -299,26 +297,3 @@ jobs:
       with:
         name: ${{ env.TF2BD_MSIXBUNDLE_NAME }}
         path: "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}"
-
-    - name: Upload bundle (tf2bd-util)
-      if: matrix.build_type.name == 'Release'
-      shell: bash
-      run: |
-        if [ "${{ github.event_name }}" = "push" ]
-          then
-            BUILDTYPE=continuous
-          elif [ "${{ github.event_name }}" = "released" ]
-          then
-            BUILDTYPE=public
-          elif [ "${{ github.event_name }}" = "prereleased" ]
-          then
-            BUILDTYPE=preview
-          elif [ "${{ github.event_name }}" = "schedule" ]
-          then
-            BUILDTYPE=nightly
-        fi
-
-        if [ ! -z "$BUILDTYPE" ]
-          then
-            curl -T "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}" "https://tf2bd-util.pazer.us/buildartifacts/upload?key=${{ secrets.TF2BD_UTIL_UPLOAD_KEY }}&version=${{ env.TF2BD_VERSION }}&buildtype=$BUILDTYPE"
-        fi

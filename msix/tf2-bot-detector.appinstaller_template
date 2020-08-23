@@ -6,7 +6,7 @@
 
 	<MainBundle Name="tf2-bot-detector"
 		Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" Version="%TF2BD_BUNDLE_VERSION%"
-		Uri="https://tf2bd-util.pazer.us/BuildArtifact/Get/%TF2BD_BUNDLE_VERSION%" />
+		Uri="%TF2BD_BUNDLE_URL%" />
 
 	<Dependencies>
 		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop"
