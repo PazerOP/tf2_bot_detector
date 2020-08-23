@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppInstaller
+	xmlns="http://schemas.microsoft.com/appx/appinstaller/2017/2"
+	Version="1.0.1.0"
+	Uri="%TF2BD_APPINSTALLER_URL%">
+
+	<MainBundle Name="tf2-bot-detector"
+		Publisher="CN=Matt Haynie, O=Matt Haynie, STREET=2416 201st Ave SE, L=Sammamish, S=Washington, PostalCode=98075, C=US" Version="%TF2BD_BUNDLE_VERSION%"
+		Uri="%TF2BD_BUNDLE_URL%" />
+
+	<Dependencies>
+		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop"
+			 Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+			 Version="14.0.27810.0"
+			 ProcessorArchitecture="x64"
+			 Uri="http://home.pazer.us/tf2_bot_detector/Microsoft.VCLibs.x64.14.00.Desktop.appx" />
+		<Package Name="Microsoft.VCLibs.140.00.UWPDesktop"
+			 Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+			 Version="14.0.27810.0"
+			 ProcessorArchitecture="x86"
+			 Uri="http://home.pazer.us/tf2_bot_detector/Microsoft.VCLibs.x86.14.00.Desktop.appx" />
+	</Dependencies>
+
+	<UpdateSettings>
+		<OnLaunch HoursBetweenUpdateChecks="0" />
+	</UpdateSettings>
+</AppInstaller>
