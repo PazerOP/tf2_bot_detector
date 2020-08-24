@@ -30,7 +30,7 @@
     <br />
     -->
     <br />
-    <a href="https://tf2bd-github-api.azurewebsites.net/api/AppInstallerRedirect?source=https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller">Install</a>
+    <a href="https://tf2bd-util.pazer.us/Redirect/AppInstaller?source=https://tf2bd-util.pazer.us/AppInstaller/Nightly">Install</a>
     ·
     <a href="https://github.com/PazerOP/tf2_bot_detector/issues">Report a Bug</a>
     ·
