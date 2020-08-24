@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <AppInstaller
 	xmlns="http://schemas.microsoft.com/appx/appinstaller/2017/2"
-	Version="1.0.1.0"
+	Version="%TF2BD_BUNDLE_VERSION%"
 	Uri="https://tf2bd-util.pazer.us/AppInstaller/%TF2BD_BUILD_TYPE%">
 
 	<MainBundle Name="tf2-bot-detector"
