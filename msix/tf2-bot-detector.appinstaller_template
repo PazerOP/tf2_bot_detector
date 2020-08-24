@@ -22,6 +22,6 @@
 	</Dependencies>
 
 	<UpdateSettings>
-		<OnLaunch ShowPrompt="true" HoursBetweenUpdateChecks="0" />
+		<OnLaunch HoursBetweenUpdateChecks="0" />
 	</UpdateSettings>
 </AppInstaller>
