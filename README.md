@@ -70,17 +70,14 @@
 
 These instructions will give a quick overview of getting started with TF2BD. There is also a (very slightly out of date, but still useable) video by CrazyGunman#6724 [here][install-video].
 
-### Prerequisites
-
->A note about 64 bit vs 32 bit: If your computer was made after 2011 it is 64 bit and you should use the 64 bit version.
-
-This program requires [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link] ([32bit version available here][mscr86-link])
-
 ### Installation
 
 #### Automatic Install
 
-If you are using Windows 10 1709 or newer, just click this link: [Install][msix-install-link]
+If you are using Windows 10 1809 or newer, just click this link: [Install][msix-install-link]
+
+#### Powershell Install
+`Add-AppxPackage -AppInstallerFile https://tf2bd-util.pazer.us/AppInstaller/Nightly.appinstaller`
 
 #### Manual/Portable Install
 
@@ -190,7 +187,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
 [mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
-[msix-install-link]: https://tf2bd-github-api.azurewebsites.net/api/AppInstallerRedirect?source=https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/msix_package/msix/tf2-bot-detector.appinstaller
+[msix-install-link]: https://tf2bd-util.pazer.us/Redirect/AppInstaller?source=https://tf2bd-util.pazer.us/AppInstaller/Nightly.appinstaller
 [zip-image]: https://i.imgur.com/ZeCuUul.png
 [github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
 [wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists
