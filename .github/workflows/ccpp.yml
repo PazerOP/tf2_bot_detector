@@ -6,7 +6,7 @@ on:
       - 'schemas/**.json'
       - 'staging/cfg/**.json'
       - '*.md'
-      - '*.appinstaller'
+      - '*.appinstaller_template'
 
 jobs:
   setup_version:
