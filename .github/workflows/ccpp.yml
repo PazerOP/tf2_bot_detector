@@ -219,7 +219,7 @@ jobs:
       run: |
         cat msix/package_staging/AppxManifest.xml \
           | sed 's/TF2BD_PROCESSOR_ARCH_REPLACE_ME/${{ matrix.tf2bd_arch }}/g' \
-          | sed 's/TF2BD_BUILD_NUMBER_REPLACE_ME/${{ github.run_number }}/g' \
+          | sed 's/TF2BD_VERSION_REPLACE_ME/${{ env.TF2BD_VERSION }}/g' \
           | sed 's/TF2BD_PACKAGE_IDENTITY_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
           | sed 's/TF2BD_APPLICATION_IDENTITY_SUFFIX_REPLACE_ME/${{ matrix.build_type.appid_suffix }}/g' \
           | sed 's/TF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
