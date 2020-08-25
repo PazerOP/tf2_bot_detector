@@ -156,6 +156,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/ModeratorLogic.cpp"
 	"tf2_bot_detector/ModeratorLogic.h"
 	"tf2_bot_detector/PlayerStatus.h"
+	"tf2_bot_detector/ReleaseChannel.h"
 	"tf2_bot_detector/SteamID.cpp"
 	"tf2_bot_detector/SteamID.h"
 	"tf2_bot_detector/TextureManager.h"

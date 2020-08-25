@@ -217,11 +217,15 @@ void LogManager::ReplaceSecrets(std::string& msg) const
 	}
 }
 
-void tf2_bot_detector::LogException(const mh::source_location& location, const std::exception& e,
-	const std::string_view& msg)
-{
-	LogError(location, msg.empty() ? "{1}: {2}" : "{0}: {1}: {2}", msg, typeid(e).name(), e.what());
-}
+#define LOG_EXCEPTION_IMPL(logExFn, logFn) \
+	void tf2_bot_detector::logExFn(const mh::source_location& location, const std::exception& e, \
+		const std::string_view& msg) \
+	{ \
+		logFn(location, msg.empty() ? "{1}: {2}" : "{0}: {1}: {2}", msg, typeid(e).name(), e.what()); \
+	}
+
+LOG_EXCEPTION_IMPL(LogException, LogError);
+LOG_EXCEPTION_IMPL(DebugLogException, DebugLogWarning);
 
 void tf2_bot_detector::LogFatalError(const mh::source_location& location, const std::string_view& msg)
 {

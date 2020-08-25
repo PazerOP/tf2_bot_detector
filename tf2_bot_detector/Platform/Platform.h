@@ -1,9 +1,11 @@
 #pragma once
 
+#include "ReleaseChannel.h"
 #include "SteamID.h"
 
 #include <filesystem>
 #include <future>
+#include <optional>
 #include <string>
 #include <system_error>
 
@@ -17,6 +19,7 @@ namespace tf2_bot_detector
 		std::filesystem::path GetCurrentExeDir();
 		std::filesystem::path GetAppDataDir();
 		std::filesystem::path GetRealAppDataDir();
+		std::optional<ReleaseChannel> GetPlatformUpdateChannel();
 
 		namespace Processes
 		{

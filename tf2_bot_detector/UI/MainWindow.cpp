@@ -37,8 +37,23 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
+static std::string_view GetVersionSuffix()
+{
+	const auto channel = Platform::GetPlatformUpdateChannel();
+	if (!channel.has_value())
+		return {};
+
+	switch (*channel)
+	{
+	default: return {};
+	case ReleaseChannel::Public:  return " (Stable)"sv;
+	case ReleaseChannel::Preview: return " (Preview)"sv;
+	case ReleaseChannel::Nightly: return " (Nightly)"sv;
+	}
+}
+
 MainWindow::MainWindow() :
-	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
+	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}{}", VERSION, GetVersionSuffix()).c_str()),
 	m_WorldState(IWorldState::Create(m_Settings)),
 	m_ActionManager(IRCONActionManager::Create(m_Settings, GetWorld())),
 	m_TextureManager(CreateTextureManager()),

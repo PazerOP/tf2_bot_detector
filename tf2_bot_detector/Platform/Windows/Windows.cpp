@@ -1,12 +1,20 @@
 #include "Platform/Platform.h"
+#include "Util/TextUtils.h"
+#include "Log.h"
 #include "WindowsHelpers.h"
 
 #include <mh/text/format.hpp>
+#include <mh/text/stringops.hpp>
 
 #define WIN32_LEAN_AND_MEAN 1
 #include <Windows.h>
 #include <appmodel.h>
 #include <Shlobj.h>
+#include <winrt/Windows.ApplicationModel.h>
+
+#pragma comment(lib, "windowsapp")
+
+using namespace std::string_view_literals;
 
 std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
 {
@@ -90,4 +98,39 @@ std::filesystem::path tf2_bot_detector::Platform::GetRealAppDataDir()
 std::filesystem::path tf2_bot_detector::Platform::GetAppDataDir()
 {
 	return GetKnownFolderPath(FOLDERID_RoamingAppData);
+}
+
+auto tf2_bot_detector::Platform::GetPlatformUpdateChannel() -> std::optional<ReleaseChannel>
+{
+	using namespace winrt::Windows::ApplicationModel;
+	Package package(nullptr);
+	try
+	{
+		package = Package::Current();
+		if (!package)
+			return std::nullopt;
+	}
+	catch (const winrt::hresult_error& e)
+	{
+		DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), ToMB(e.message()));
+		return std::nullopt;
+	}
+
+	const auto installerInfo = package.GetAppInstallerInfo();
+	if (!installerInfo)
+		return std::nullopt;
+
+	const std::wstring url = mh::tolower(installerInfo.Uri().ToString());
+
+	if (url.ends_with(L"public.appinstaller"sv))
+		return ReleaseChannel::Public;
+	else if (url.ends_with(L"preview.appinstaller"sv))
+		return ReleaseChannel::Preview;
+	else if (url.ends_with(L"nightly.appinstaller"sv))
+		return ReleaseChannel::Nightly;
+	else
+	{
+		DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Unable to associate url {} with a release channel", ToMB(url));
+		return std::nullopt;
+	}
 }

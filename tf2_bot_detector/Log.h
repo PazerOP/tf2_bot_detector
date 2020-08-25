@@ -156,6 +156,7 @@ namespace tf2_bot_detector
 		name(location, e, mh::format(fmtStr, args...)); \
 	}
 
+	LOG_DEFINITION_HELPER(DebugLogException, );
 	LOG_DEFINITION_HELPER(LogException, );
 	LOG_DEFINITION_HELPER(LogFatalException, [[noreturn]]);
 
