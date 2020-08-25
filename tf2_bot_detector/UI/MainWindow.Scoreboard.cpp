@@ -23,14 +23,14 @@ void MainWindow::OnDrawScoreboard()
 	// Horizontal scroller for color pickers
 	OnDrawColorPickers("ScoreboardColorPickers",
 		{
-			{ "You", m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG },
-			{ "Connecting", m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG },
-			{ "Friendly", m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG },
-			{ "Enemy", m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG },
-			{ "Cheater", m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG },
-			{ "Suspicious", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG },
-			{ "Exploiter", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG },
-			{ "Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG },
+			{ "u homie", m_Settings.m_Theme.m_Colors.m_ScoreboardYouFG },
+			{ "in da van", m_Settings.m_Theme.m_Colors.m_ScoreboardConnectingFG },
+			{ "gang", m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG },
+			{ "da ops", m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG },
+			{ "sik kunt", m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG },
+			{ "no one brah ur schizin", m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG },
+			{ "wizard", m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG },
+			{ "dog cunt", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG },
 		});
 
 	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
