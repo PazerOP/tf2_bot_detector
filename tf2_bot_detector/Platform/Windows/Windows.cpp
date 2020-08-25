@@ -10,6 +10,7 @@
 #include <Windows.h>
 #include <appmodel.h>
 #include <Shlobj.h>
+#include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.ApplicationModel.h>
 
 #pragma comment(lib, "windowsapp")
