@@ -714,6 +714,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "sudo chmod 777 /etc/pacman.conf",
+				"time": 1598422862
+			},
+			"steamid": "[U:1:471033454]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "Terry A Davis",
 				"time": 1593560898
 			},
@@ -1535,6 +1545,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "quizno",
+				"time": 1598427509
+			},
+			"steamid": "[U:1:1064627644]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"time": 1593570468
 			},
 			"steamid": "[U:1:1065143993]"
@@ -1618,6 +1638,16 @@
 				"time": 1597295790
 			},
 			"steamid": "[U:1:1083851265]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "cat-bot 2",
+				"time": 1598421773
+			},
+			"steamid": "[U:1:1084062396]"
 		},
 		{
 			"attributes": [
@@ -4904,6 +4934,56 @@
 				"time": 1597546241
 			},
 			"steamid": "[U:1:1122264462]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "ding dong.",
+				"time": 1598427560
+			},
+			"steamid": "[U:1:1123625747]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Karanl\u0131klardan Gelen Cemal",
+				"time": 1598421745
+			},
+			"steamid": "[U:1:1123754872]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "dimitris.kavalieros",
+				"time": 1598427550
+			},
+			"steamid": "[U:1:1123871412]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Zebrah",
+				"time": 1598427540
+			},
+			"steamid": "[U:1:1123881531]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Ghost Nate595",
+				"time": 1598427560
+			},
+			"steamid": "[U:1:1124033160]"
 		}
 	]
 }
