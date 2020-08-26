@@ -7,7 +7,7 @@
 		<DisplayName>TF2 Bot DetectorTF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME</DisplayName>
 		<PublisherDisplayName>pazer</PublisherDisplayName>
 		<Description>Automatically detects and votekicks cheaters/bots in TF2 casual.</Description>
-		<Logo>logo_256.png</Logo>
+		<Logo>logo.png</Logo>
 	</Properties>
 	<Resources>
 		<Resource Language="en-US" />
@@ -23,6 +23,14 @@
 	<Applications>
 		<Application Id="BotDetectorLauncherTF2BD_APPLICATION_IDENTITY_SUFFIX_REPLACE_ME" Executable="app/tf2_bot_detector.exe" EntryPoint="Windows.FullTrustApplication">
 			<uap:VisualElements DisplayName="TF2 Bot DetectorTF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME" Description="Automatically detects and votekicks cheaters/bots in TF2 casual." Square150x150Logo="logo_150.png" Square44x44Logo="logo_44.png" BackgroundColor="#33322e" />
+			<Extensions>
+				<uap:Extension Category="windows.protocol">
+					<uap:Protocol Name="tf2bd">
+						<uap:Logo>logo.png</uap:Logo>
+						<uap:DisplayName>TF2 Bot Detector URI Handler</uap:DisplayName>
+					</uap:Protocol>
+				</uap:Extension>
+			</Extensions>
 		</Application>
 	</Applications>
 </Package>
