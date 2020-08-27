@@ -1,16 +1,18 @@
 #pragma once
 
-#include "ReleaseChannel.h"
 #include "SteamID.h"
+#include "Version.h"
 
 #include <filesystem>
 #include <future>
 #include <optional>
 #include <string>
-#include <system_error>
 
 namespace tf2_bot_detector
 {
+	class HTTPClient;
+	enum class ReleaseChannel;
+
 	inline namespace Platform
 	{
 		std::filesystem::path GetCurrentSteamDir();
@@ -19,7 +21,14 @@ namespace tf2_bot_detector
 		std::filesystem::path GetCurrentExeDir();
 		std::filesystem::path GetAppDataDir();
 		std::filesystem::path GetRealAppDataDir();
-		std::optional<ReleaseChannel> GetPlatformUpdateChannel();
+
+		/// <summary>
+		/// Is there an update available via a platform-specific update mechanism?
+		/// msix(bundle) on Windows, APT on linux
+		/// </summary>
+		std::future<std::optional<Version>> CheckForPlatformUpdate(ReleaseChannel rc, const HTTPClient& client);
+		void BeginPlatformUpdate(ReleaseChannel rc, const HTTPClient& client);
+		bool IsInstalled(); // As opposed to portable
 
 		namespace Processes
 		{

@@ -1,27 +1,43 @@
 #pragma once
 
 #include <compare>
+#include <cstdint>
+#include <optional>
 #include <ostream>
+#include <string_view>
 
 namespace tf2_bot_detector
 {
 	struct Version
 	{
+		using value_type = uint16_t;
+
+		constexpr Version() = default;
+
+		explicit constexpr Version(value_type major, value_type minor, value_type patch = 0, value_type build = 0) :
+			m_Major(major),
+			m_Minor(minor),
+			m_Patch(patch),
+			m_Build(build)
+		{
+		}
+
+		static std::optional<Version> Parse(const char* str);
+
 		auto operator<=>(const Version&) const = default;
 
-		int m_Major;
-		int m_Minor;
-		int m_Patch;
-		int m_Build;
+		value_type m_Major{};
+		value_type m_Minor{};
+		value_type m_Patch{};
+		value_type m_Build{};
 	};
 
-	static constexpr Version VERSION =
-	{
-		.m_Major = ${CMAKE_PROJECT_VERSION_MAJOR},
-		.m_Minor = ${CMAKE_PROJECT_VERSION_MINOR},
-		.m_Patch = ${CMAKE_PROJECT_VERSION_PATCH},
-		.m_Build = ${CMAKE_PROJECT_VERSION_TWEAK},
-	};
+	static constexpr Version VERSION(
+		${CMAKE_PROJECT_VERSION_MAJOR},
+		${CMAKE_PROJECT_VERSION_MINOR},
+		${CMAKE_PROJECT_VERSION_PATCH},
+		${CMAKE_PROJECT_VERSION_TWEAK}
+	);
 }
 
 template<typename CharT, typename Traits>

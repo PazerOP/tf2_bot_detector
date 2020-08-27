@@ -3,6 +3,7 @@
 namespace tf2_bot_detector
 {
 	class IActionManager;
+	class IUpdateManager;
 	class Settings;
 
 	class ISetupFlowPage
@@ -10,7 +11,17 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ISetupFlowPage() = default;
 
-		[[nodiscard]] virtual bool ValidateSettings(const Settings& settings) const = 0;
+		enum class ValidateSettingsResult
+		{
+			// Everything is A-OK. No reason to open this page for user interaction.
+			Success,
+
+			// Either something's wrong, or we need to run some blocking logic.
+			// Open this page.
+			TriggerOpen,
+		};
+
+		[[nodiscard]] virtual ValidateSettingsResult ValidateSettings(const Settings& settings) const = 0;
 
 		enum class OnDrawResult
 		{
@@ -24,6 +35,7 @@ namespace tf2_bot_detector
 		struct DrawState
 		{
 			IActionManager* m_ActionManager = nullptr;
+			IUpdateManager* m_UpdateManager = nullptr;
 			Settings* m_Settings = nullptr;
 		};
 

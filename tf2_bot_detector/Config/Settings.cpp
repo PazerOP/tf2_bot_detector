@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include "Networking/NetworkHelpers.h"
 #include "Util/JSONUtils.h"
 #include "Util/PathUtils.h"
 #include "Filesystem.h"
@@ -6,7 +7,7 @@
 #include "Log.h"
 #include "PlayerListJSON.h"
 #include "Platform/Platform.h"
-#include "Networking/NetworkHelpers.h"
+#include "ReleaseChannel.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -141,37 +142,39 @@ void GeneralSettings::SetSteamAPIKey(std::string key)
 	m_SteamAPIKey = std::move(key);
 }
 
-void tf2_bot_detector::to_json(nlohmann::json& j, const ProgramUpdateCheckMode& d)
+void tf2_bot_detector::to_json(nlohmann::json& j, const ReleaseChannel& d)
 {
+	auto value = mh::enum_type<ReleaseChannel>::find_value_name(d);
+	if (value.empty())
+		throw std::invalid_argument(mh::format("Unknown ReleaseChannel {}", d));
+
+	j = mh::tolower(value);
+
 	switch (d)
 	{
-	case ProgramUpdateCheckMode::Unknown:   j = nullptr; return;
-	case ProgramUpdateCheckMode::Releases:  j = "releases"; return;
-	case ProgramUpdateCheckMode::Previews:  j = "previews"; return;
-	case ProgramUpdateCheckMode::Disabled:  j = "disabled"; return;
+	case ReleaseChannel::None:      j = "disabled"; return;
+	case ReleaseChannel::Public:    j = "releases"; return;
+	case ReleaseChannel::Preview:   j = "previews"; return;
+	case ReleaseChannel::Nightly:   j = "nightly"; return;
 
 	default:
-		throw std::invalid_argument("Unknown ProgramUpdateCheckMode "s << +std::underlying_type_t<ProgramUpdateCheckMode>(d));
+		throw std::invalid_argument("Unknown ReleaseChannel "s << +std::underlying_type_t<ReleaseChannel>(d));
 	}
 }
 
-void tf2_bot_detector::from_json(const nlohmann::json& j, ProgramUpdateCheckMode& d)
+void tf2_bot_detector::from_json(const nlohmann::json& j, ReleaseChannel& d)
 {
-	if (j.is_null())
-	{
-		d = ProgramUpdateCheckMode::Unknown;
-		return;
-	}
-
 	auto value = j.get<std::string_view>();
 	if (value == "releases"sv)
-		d = ProgramUpdateCheckMode::Releases;
+		d = ReleaseChannel::Public;
 	else if (value == "previews"sv)
-		d = ProgramUpdateCheckMode::Previews;
+		d = ReleaseChannel::Preview;
+	else if (value == "nightly"sv)
+		d = ReleaseChannel::Nightly;
 	else if (value == "disabled"sv)
-		d = ProgramUpdateCheckMode::Disabled;
+		d = ReleaseChannel::None;
 	else
-		throw std::invalid_argument("Unknown ProgramUpdateCheckMode "s << std::quoted(value));
+		throw std::invalid_argument("Unknown ReleaseChannel "s << std::quoted(value));
 }
 
 Settings::Settings()
@@ -224,7 +227,7 @@ void Settings::LoadFile()
 		try_get_to_defaulted(*found, m_SleepWhenUnfocused, "sleep_when_unfocused");
 		try_get_to_defaulted(*found, m_AutoTempMute, "auto_temp_mute", DEFAULTS.m_AutoTempMute);
 		try_get_to_defaulted(*found, m_AllowInternetUsage, "allow_internet_usage");
-		try_get_to_defaulted(*found, m_ProgramUpdateCheckMode, "program_update_check_mode", DEFAULTS.m_ProgramUpdateCheckMode);
+		try_get_to_defaulted(*found, m_ReleaseChannel, "program_update_check_mode");
 		try_get_to_defaulted(*found, m_AutoLaunchTF2, "auto_launch_tf2", DEFAULTS.m_AutoLaunchTF2);
 		try_get_to_defaulted(*found, m_AutoChatWarnings, "auto_chat_warnings", DEFAULTS.m_AutoChatWarnings);
 		try_get_to_defaulted(*found, m_AutoChatWarningsConnecting, "auto_chat_warnings_connecting", DEFAULTS.m_AutoChatWarningsConnecting);
@@ -268,7 +271,7 @@ bool Settings::SaveFile() const try
 			{
 				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
 				{ "auto_temp_mute", m_AutoTempMute },
-				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
+				{ "program_update_check_mode", m_ReleaseChannel },
 				{ "steam_api_key", GetSteamAPIKey() },
 				{ "auto_launch_tf2", m_AutoLaunchTF2 },
 				{ "auto_chat_warnings", m_AutoChatWarnings },

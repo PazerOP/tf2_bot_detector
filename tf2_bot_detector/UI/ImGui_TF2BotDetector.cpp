@@ -1,6 +1,5 @@
 #include "ImGui_TF2BotDetector.h"
 #include "Util/PathUtils.h"
-#include "CachedVariable.h"
 #include "Clock.h"
 #include "Networking/NetworkHelpers.h"
 #include "Config/Settings.h"
@@ -8,8 +7,10 @@
 #include "SteamID.h"
 #include "Platform/Platform.h"
 #include "Version.h"
+#include "ReleaseChannel.h"
 
 #include <imgui_desktop/ScopeGuards.h>
+#include <mh/memory/cached_variable.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <cstdarg>
@@ -450,7 +451,7 @@ static bool InputTextIPv4(std::string& addr, bool requireValid)
 
 bool tf2_bot_detector::InputTextLocalIPOverride(const std::string_view& label_id, std::string& ip, bool requireValid)
 {
-	static CachedVariable s_AutodetectedValue(1s, &Networking::GetLocalIP);
+	static mh::cached_variable s_AutodetectedValue(1s, &Networking::GetLocalIP);
 
 	static const auto IsValid = [](std::string value) -> bool
 	{
@@ -463,7 +464,7 @@ bool tf2_bot_detector::InputTextLocalIPOverride(const std::string_view& label_id
 		return InputTextIPv4(ip, true);
 	};
 
-	return OverrideControl(label_id, ip, s_AutodetectedValue.GetAndUpdate(), IsValid, InputFunc);
+	return OverrideControl(label_id, ip, s_AutodetectedValue.get(), IsValid, InputFunc);
 }
 
 bool tf2_bot_detector::InputTextSteamAPIKey(const char* label_id, std::string& key, bool requireValid)
@@ -520,10 +521,11 @@ bool tf2_bot_detector::InputTextSteamAPIKey(const char* label_id, std::string& k
 	return false;
 }
 
-bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
+bool tf2_bot_detector::Combo(const char* label_id, std::optional<ReleaseChannel>& mode)
 {
 	const char* friendlyText = "<UNKNOWN>";
 	static constexpr char FRIENDLY_TEXT_DISABLED[] = "Disable automatic update checks";
+	static constexpr char FRIENDLY_TEXT_NIGHTLY[] = "Notify about new every builds (unstable)";
 	static constexpr char FRIENDLY_TEXT_PREVIEW[] = "Notify about new preview releases";
 	static constexpr char FRIENDLY_TEXT_STABLE[] = "Notify about new stable releases";
 
@@ -535,18 +537,25 @@ bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 		mode = ProgramUpdateCheckMode::Previews;
 #endif
 
-	switch (mode)
+	if (mode.has_value())
 	{
-	case ProgramUpdateCheckMode::Disabled: friendlyText = FRIENDLY_TEXT_DISABLED; break;
-	case ProgramUpdateCheckMode::Previews: friendlyText = FRIENDLY_TEXT_PREVIEW; break;
-	case ProgramUpdateCheckMode::Releases: friendlyText = FRIENDLY_TEXT_STABLE; break;
-	case ProgramUpdateCheckMode::Unknown:  friendlyText = "Select an option"; break;
+		switch (*mode)
+		{
+		case ReleaseChannel::None:     friendlyText = FRIENDLY_TEXT_DISABLED; break;
+		case ReleaseChannel::Nightly:  friendlyText = FRIENDLY_TEXT_NIGHTLY; break;
+		case ReleaseChannel::Preview:  friendlyText = FRIENDLY_TEXT_PREVIEW; break;
+		case ReleaseChannel::Public:   friendlyText = FRIENDLY_TEXT_STABLE; break;
+		}
+	}
+	else
+	{
+		friendlyText = "Select an option";
 	}
 
 	if (ImGui::BeginCombo(label_id, friendlyText))
 	{
 		if (ImGui::Selectable(FRIENDLY_TEXT_DISABLED))
-			mode = ProgramUpdateCheckMode::Disabled;
+			mode = ReleaseChannel::None;
 
 #if 0
 		ImGui::EnabledSwitch(allowReleases, [&]
@@ -560,11 +569,13 @@ bool tf2_bot_detector::Combo(const char* label_id, ProgramUpdateCheckMode& mode)
 			}, "Since you are using a preview build, you will always be notified of new previews.");
 #else
 		if (ImGui::Selectable(FRIENDLY_TEXT_STABLE))
-			mode = ProgramUpdateCheckMode::Releases;
+			mode = ReleaseChannel::Public;
 #endif
 
 		if (ImGui::Selectable(FRIENDLY_TEXT_PREVIEW))
-			mode = ProgramUpdateCheckMode::Previews;
+			mode = ReleaseChannel::Preview;
+		if (ImGui::Selectable(FRIENDLY_TEXT_NIGHTLY))
+			mode = ReleaseChannel::Nightly;
 
 		ImGui::EndCombo();
 	}

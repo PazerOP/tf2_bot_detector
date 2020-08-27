@@ -124,6 +124,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/SetupFlow/SetupFlow.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.h"
 	"tf2_bot_detector/SetupFlow/TF2CommandLinePage.cpp"
+	"tf2_bot_detector/SetupFlow/UpdateCheckPage.cpp"
 	"tf2_bot_detector/UI/ImGui_TF2BotDetector.cpp"
 	"tf2_bot_detector/UI/ImGui_TF2BotDetector.h"
 	"tf2_bot_detector/UI/MainWindow.cpp"
@@ -162,7 +163,10 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/TextureManager.h"
 	"tf2_bot_detector/TextureManager.cpp"
 	"tf2_bot_detector/TFConstants.h"
+	"tf2_bot_detector/UpdateManager.h"
+	"tf2_bot_detector/UpdateManager.cpp"
 	"tf2_bot_detector/Version.h"
+	"tf2_bot_detector/Version.cpp"
 	"tf2_bot_detector/WorldEventListener.cpp"
 	"tf2_bot_detector/WorldEventListener.h"
 	"tf2_bot_detector/WorldState.cpp"
@@ -187,6 +191,7 @@ if(WIN32)
 		"tf2_bot_detector/Platform/Windows/WindowsHelpers.h"
 		"tf2_bot_detector/Resources.rc"
 		"tf2_bot_detector/Platform/Windows/Windows.cpp"
+		"tf2_bot_detector/Platform/Windows/PlatformInstall.cpp"
 	)
 endif()
 

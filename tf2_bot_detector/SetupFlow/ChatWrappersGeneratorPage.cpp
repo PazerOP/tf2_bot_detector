@@ -15,9 +15,10 @@
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
-bool ChatWrappersGeneratorPage::ValidateSettings(const Settings& settings) const
+auto ChatWrappersGeneratorPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 {
-	return settings.m_Unsaved.m_ChatMsgWrappers.has_value();
+	return settings.m_Unsaved.m_ChatMsgWrappers.has_value()
+		? ValidateSettingsResult::Success : ValidateSettingsResult::TriggerOpen;
 }
 
 auto ChatWrappersGeneratorPage::OnDraw(const DrawState& ds) -> OnDrawResult

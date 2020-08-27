@@ -1,6 +1,7 @@
 #include "NetworkSettingsPage.h"
 #include "Config/Settings.h"
 #include "UI/ImGui_TF2BotDetector.h"
+#include "ReleaseChannel.h"
 #include "Version.h"
 
 using namespace tf2_bot_detector;
@@ -10,7 +11,7 @@ static bool InternalValidateSettings(const T& settings)
 {
 	if (!settings.m_AllowInternetUsage)
 		return false;
-	if (settings.m_AllowInternetUsage.value() && settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Unknown)
+	if (!settings.m_ReleaseChannel.has_value())
 		return false;
 #if 0
 	if (settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Releases && VERSION.m_Preview != 0)
@@ -20,9 +21,9 @@ static bool InternalValidateSettings(const T& settings)
 	return true;
 }
 
-bool NetworkSettingsPage::ValidateSettings(const Settings& settings) const
+auto NetworkSettingsPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 {
-	return InternalValidateSettings(settings);
+	return InternalValidateSettings(settings) ? ValidateSettingsResult::Success : ValidateSettingsResult::TriggerOpen;
 }
 
 auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
@@ -47,11 +48,11 @@ auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 			ImGui::TextFmt("This tool can also check for updated functionality and bugfixes on startup.");
 			ImGui::Indent();
 			{
-				auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
+				std::optional<ReleaseChannel> mode = enabled ? m_Settings.m_ReleaseChannel : ReleaseChannel::None;
 				if (Combo("##SetupFlow_UpdateCheckingMode", mode))
-					m_Settings.m_ProgramUpdateCheckMode = mode;
+					m_Settings.m_ReleaseChannel = mode;
 
-				if (m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Disabled)
+				if (m_Settings.m_ReleaseChannel == ReleaseChannel::None)
 					ImGui::TextFmt("You can always check for updates manually via the Help menu.");
 			}
 			ImGui::Unindent();
@@ -64,9 +65,9 @@ auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 void NetworkSettingsPage::Init(const Settings& settings)
 {
 	m_Settings.m_AllowInternetUsage = settings.m_AllowInternetUsage.value_or(true);
-	m_Settings.m_ProgramUpdateCheckMode = settings.m_ProgramUpdateCheckMode;
-	if (m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Unknown)
-		m_Settings.m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Releases;
+	m_Settings.m_ReleaseChannel = settings.m_ReleaseChannel;
+	if (!m_Settings.m_ReleaseChannel.has_value())
+		m_Settings.m_ReleaseChannel = ReleaseChannel::Public;
 }
 
 bool NetworkSettingsPage::CanCommit() const
@@ -77,5 +78,5 @@ bool NetworkSettingsPage::CanCommit() const
 void NetworkSettingsPage::Commit(Settings& settings)
 {
 	settings.m_AllowInternetUsage = m_Settings.m_AllowInternetUsage;
-	settings.m_ProgramUpdateCheckMode = m_Settings.m_ProgramUpdateCheckMode;
+	settings.m_ReleaseChannel = m_Settings.m_ReleaseChannel;
 }

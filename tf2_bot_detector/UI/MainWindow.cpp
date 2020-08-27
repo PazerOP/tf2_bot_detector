@@ -11,7 +11,9 @@
 #include "Filesystem.h"
 #include "Log.h"
 #include "IPlayer.h"
+#include "ReleaseChannel.h"
 #include "TextureManager.h"
+#include "UpdateManager.h"
 #include "Util/PathUtils.h"
 #include "Version.h"
 
@@ -37,27 +39,13 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-static std::string_view GetVersionSuffix()
-{
-	const auto channel = Platform::GetPlatformUpdateChannel();
-	if (!channel.has_value())
-		return {};
-
-	switch (*channel)
-	{
-	default: return {};
-	case ReleaseChannel::Public:  return " (Stable)"sv;
-	case ReleaseChannel::Preview: return " (Preview)"sv;
-	case ReleaseChannel::Nightly: return " (Nightly)"sv;
-	}
-}
-
 MainWindow::MainWindow() :
-	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}{}", VERSION, GetVersionSuffix()).c_str()),
+	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
 	m_WorldState(IWorldState::Create(m_Settings)),
 	m_ActionManager(IRCONActionManager::Create(m_Settings, GetWorld())),
 	m_TextureManager(CreateTextureManager()),
-	m_BaseTextures(IBaseTextures::Create(*m_TextureManager))
+	m_BaseTextures(IBaseTextures::Create(*m_TextureManager)),
+	m_UpdateManager(IUpdateManager::Create(m_Settings))
 {
 	m_TextureManager = CreateTextureManager();
 
@@ -307,10 +295,10 @@ void MainWindow::OnDrawSettingsPopup()
 					}
 					ImGui::NewLine();
 
-					if (auto mode = enabled ? m_Settings.m_ProgramUpdateCheckMode : ProgramUpdateCheckMode::Disabled;
+					if (auto mode = enabled ? m_Settings.m_ReleaseChannel : ReleaseChannel::None;
 						Combo("Automatic update checking", mode))
 					{
-						m_Settings.m_ProgramUpdateCheckMode = mode;
+						m_Settings.m_ReleaseChannel = mode;
 						m_Settings.SaveFile();
 					}
 				}, "Requires \"Allow internet connectivity\"");
@@ -338,94 +326,11 @@ void MainWindow::OnDrawUpdateCheckPopup()
 		ImGui::OpenPopup(POPUP_NAME);
 		s_Open = true;
 	}
-
-	ImGui::SetNextWindowSize({ 500, 300 }, ImGuiCond_Appearing);
-	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
-	{
-		ImGui::PushTextWrapPos();
-		ImGui::TextFmt("You have chosen to disable internet connectivity for TF2 Bot Detector. You can still manually check for updates below.");
-		ImGui::TextFmt({ 1, 1, 0, 1 }, "Reminder: if you use antivirus software, connecting to the internet may trigger warnings.");
-
-		ImGui::EnabledSwitch(!m_UpdateInfo.valid(), [&]
-			{
-				if (ImGui::Button("Check for updates"))
-					GetUpdateInfo();
-			});
-
-		ImGui::NewLine();
-
-		if (mh::is_future_ready(m_UpdateInfo))
-		{
-			auto& updateInfo = m_UpdateInfo.get();
-
-			if (updateInfo.IsUpToDate())
-			{
-				ImGui::TextFmt({ 0.1f, 1, 0.1f, 1 }, "You are already running the latest version of TF2 Bot Detector.");
-			}
-			else if (updateInfo.IsPreviewAvailable())
-			{
-				ImGui::TextFmt("There is a new preview version available.");
-				if (ImGui::Button("View on Github"))
-					Shell::OpenURL(updateInfo.m_Preview->m_URL);
-			}
-			else if (updateInfo.IsReleaseAvailable())
-			{
-				ImGui::TextFmt("There is a new stable version available.");
-				if (ImGui::Button("View on Github"))
-					Shell::OpenURL(updateInfo.m_Stable->m_URL);
-			}
-			else if (updateInfo.IsError())
-			{
-				ImGui::TextFmt({ 1, 0, 0, 1 }, "There was an error checking for updates.");
-			}
-		}
-		else if (m_UpdateInfo.valid())
-		{
-			ImGui::TextFmt("Checking for updates...");
-		}
-		else
-		{
-			ImGui::TextFmt("Press \"Check for updates\" to check Github for a newer version.");
-		}
-
-		ImGui::EndPopup();
-	}
 }
 
 void MainWindow::OpenUpdateCheckPopup()
 {
-	m_NotifyOnUpdateAvailable = false;
 	m_UpdateCheckPopupOpen = true;
-}
-
-void MainWindow::OnDrawUpdateAvailablePopup()
-{
-	static constexpr char POPUP_NAME[] = "Update Available##Popup";
-
-	static bool s_Open = false;
-	if (m_UpdateAvailablePopupOpen)
-	{
-		m_UpdateAvailablePopupOpen = false;
-		ImGui::OpenPopup(POPUP_NAME);
-		s_Open = true;
-	}
-
-	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_AlwaysAutoResize))
-	{
-		ImGui::TextFmt("There is a new{} version of TF2 Bot Detector available for download.",
-			(m_UpdateInfo.get().IsPreviewAvailable() ? " preview" : ""));
-
-		if (ImGui::Button("View on Github"))
-			Shell::OpenURL(m_UpdateInfo.get().GetURL());
-
-		ImGui::EndPopup();
-	}
-}
-
-void MainWindow::OpenUpdateAvailablePopup()
-{
-	m_NotifyOnUpdateAvailable = false;
-	m_UpdateAvailablePopupOpen = true;
 }
 
 void MainWindow::OnDrawAboutPopup()
@@ -598,13 +503,13 @@ void MainWindow::OnDrawServerStats()
 void MainWindow::OnDraw()
 {
 	OnDrawSettingsPopup();
-	OnDrawUpdateAvailablePopup();
 	OnDrawUpdateCheckPopup();
 	OnDrawAboutPopup();
 
 	{
 		ISetupFlowPage::DrawState ds;
 		ds.m_ActionManager = &GetActionManager();
+		ds.m_UpdateManager = m_UpdateManager.get();
 		ds.m_Settings = &m_Settings;
 
 		if (m_SetupFlow.OnDraw(m_Settings, ds))
@@ -785,86 +690,12 @@ void MainWindow::OnDrawMenuBar()
 		static const mh::fmtstr<128> VERSION_STRING_LABEL("Version: {}", VERSION);
 		ImGui::MenuItem(VERSION_STRING_LABEL.c_str(), nullptr, false, false);
 
-		if (m_Settings.m_AllowInternetUsage.value_or(false))
-		{
-			auto newVersion = GetUpdateInfo();
-			if (!newVersion)
-			{
-				ImGui::MenuItem("Checking for new version...", nullptr, nullptr, false);
-			}
-			else if (newVersion->IsUpToDate())
-			{
-				ImGui::MenuItem("Up to date!", nullptr, nullptr, false);
-			}
-			else if (newVersion->IsReleaseAvailable())
-			{
-				ImGuiDesktop::ScopeGuards::TextColor green({ 0, 1, 0, 1 });
-				if (ImGui::MenuItem("A new version is available"))
-					Shell::OpenURL(newVersion->m_Stable->m_URL);
-			}
-			else if (newVersion->IsPreviewAvailable())
-			{
-				if (ImGui::MenuItem("A new preview is available"))
-					Shell::OpenURL(newVersion->m_Preview->m_URL);
-			}
-			else
-			{
-				assert(newVersion->IsError());
-				ImGui::MenuItem("Error occurred checking for new version.", nullptr, nullptr, false);
-			}
-		}
-		else
-		{
-			if (ImGui::MenuItem("Check for updates..."))
-				OpenUpdateCheckPopup();
-		}
-
 		ImGui::Separator();
 
 		if (ImGui::MenuItem("About TF2 Bot Detector"))
 			OpenAboutPopup();
 
 		ImGui::EndMenu();
-	}
-}
-
-GithubAPI::NewVersionResult* MainWindow::GetUpdateInfo()
-{
-	if (!m_UpdateInfo.valid())
-	{
-		if (auto client = m_Settings.GetHTTPClient())
-			m_UpdateInfo = GithubAPI::CheckForNewVersion(*client);
-		else
-			return nullptr;
-	}
-
-	if (mh::is_future_ready(m_UpdateInfo))
-		return const_cast<GithubAPI::NewVersionResult*>(&m_UpdateInfo.get());
-
-	return nullptr;
-}
-
-void MainWindow::HandleUpdateCheck()
-{
-	if (!m_NotifyOnUpdateAvailable)
-		return;
-
-	if (!m_Settings.m_AllowInternetUsage.value_or(false))
-		return;
-
-	const bool checkPreviews = m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Previews;
-	const bool checkReleases = checkPreviews || m_Settings.m_ProgramUpdateCheckMode == ProgramUpdateCheckMode::Releases;
-	if (!checkPreviews && !checkReleases)
-		return;
-
-	auto result = GetUpdateInfo();
-	if (!result)
-		return;
-
-	if ((result->IsPreviewAvailable() && checkPreviews) ||
-		(result->IsReleaseAvailable() && checkReleases))
-	{
-		OpenUpdateAvailablePopup();
 	}
 }
 
@@ -892,8 +723,7 @@ void MainWindow::OnUpdate()
 		return;
 
 	GetWorld().Update();
-
-	HandleUpdateCheck();
+	m_UpdateManager->Update();
 
 	if (m_Settings.m_Unsaved.m_RCONClient)
 		m_Settings.m_Unsaved.m_RCONClient->set_logging(m_Settings.m_Logging.m_RCONPackets);

@@ -118,11 +118,10 @@ namespace tf2_bot_detector
 	template<typename... TArgs> \
 	NOINLINE inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
-		std::string msg = mh::format("{}@{}:{}()", location.file_name(), location.line(), location.function_name()); \
-		if (!fmtStr.empty()) \
-			msg += ": " + mh::format(fmtStr, args...); \
-		\
-		name(color, std::move(msg)); \
+		if (fmtStr.empty()) \
+			name(color, "{}: {}", location, mh::format(fmtStr, args...)); \
+		else \
+			name(color, "{}", location); \
 	} \
 	template<typename... TArgs> \
 	inline void name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \

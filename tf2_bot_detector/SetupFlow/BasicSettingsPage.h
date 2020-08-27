@@ -8,7 +8,7 @@ namespace tf2_bot_detector
 	class BasicSettingsPage final : public ISetupFlowPage
 	{
 	public:
-		bool ValidateSettings(const Settings& settings) const override;
+		ValidateSettingsResult ValidateSettings(const Settings& settings) const override;
 		OnDrawResult OnDraw(const DrawState& ds) override;
 		void Init(const Settings& settings) override;
 

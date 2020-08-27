@@ -28,11 +28,12 @@ struct ImVec4;
 
 namespace tf2_bot_detector
 {
+	class IBaseTextures;
 	class IConsoleLine;
 	class IConsoleLineListener;
 	class ITexture;
 	class ITextureManager;
-	class IBaseTextures;
+	class IUpdateManager;
 
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener, BaseWorldEventListener
 	{
@@ -72,20 +73,11 @@ namespace tf2_bot_detector
 		bool m_UpdateCheckPopupOpen = false;
 		void OpenUpdateCheckPopup();
 
-		void OnDrawUpdateAvailablePopup();
-		bool m_UpdateAvailablePopupOpen = false;
-		void OpenUpdateAvailablePopup();
-
 		void OnDrawAboutPopup();
 		bool m_AboutPopupOpen = false;
 		void OpenAboutPopup() { m_AboutPopupOpen = true; }
 
 		void GenerateDebugReport();
-
-		GithubAPI::NewVersionResult* GetUpdateInfo();
-		std::shared_future<GithubAPI::NewVersionResult> m_UpdateInfo;
-		bool m_NotifyOnUpdateAvailable = true;
-		void HandleUpdateCheck();
 
 		void OnUpdate() override;
 
@@ -150,6 +142,9 @@ namespace tf2_bot_detector
 		time_point_t m_LastServerPingSample{};
 
 		Settings m_Settings;
+
+		std::unique_ptr<IUpdateManager> m_UpdateManager;
+
 		SetupFlow m_SetupFlow;
 
 		std::unique_ptr<IWorldState> m_WorldState;

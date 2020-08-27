@@ -20,9 +20,9 @@ static bool InternalValidateSettings(const T& settings)
 	return true;
 }
 
-bool BasicSettingsPage::ValidateSettings(const Settings& settings) const
+auto BasicSettingsPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 {
-	return InternalValidateSettings(settings);
+	return InternalValidateSettings(settings) ? ValidateSettingsResult::Success : ValidateSettingsResult::TriggerOpen;
 }
 
 auto BasicSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult

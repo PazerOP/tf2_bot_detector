@@ -7,10 +7,12 @@
 
 namespace tf2_bot_detector
 {
+	enum class ReleaseChannel;
+
 	class NetworkSettingsPage final : public ISetupFlowPage
 	{
 	public:
-		bool ValidateSettings(const Settings& settings) const override;
+		ValidateSettingsResult ValidateSettings(const Settings& settings) const override;
 		OnDrawResult OnDraw(const DrawState& ds) override;
 		void Init(const Settings& settings) override;
 		bool CanCommit() const override;
@@ -20,7 +22,7 @@ namespace tf2_bot_detector
 		struct
 		{
 			std::optional<bool> m_AllowInternetUsage;
-			ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
+			std::optional<ReleaseChannel> m_ReleaseChannel;
 
 		} m_Settings;
 	};

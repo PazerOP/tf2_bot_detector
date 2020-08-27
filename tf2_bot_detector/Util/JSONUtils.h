@@ -7,6 +7,27 @@
 #include <optional>
 #include <string_view>
 
+namespace std
+{
+	template<typename T>
+	void to_json(nlohmann::json& j, const optional<T>& d)
+	{
+		if (d.has_value())
+			j = *d;
+		else
+			j = nullptr;
+	}
+
+	template<typename T>
+	void from_json(const nlohmann::json& j, optional<T>& d)
+	{
+		if (j.is_null())
+			d.reset();
+		else
+			j.get_to<T>(d.emplace());
+	}
+}
+
 namespace tf2_bot_detector
 {
 	namespace detail
