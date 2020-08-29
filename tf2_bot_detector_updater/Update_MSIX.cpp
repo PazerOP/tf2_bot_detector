@@ -44,7 +44,7 @@ int tf2_bot_detector::Updater::Update_MSIX() try
 	}
 
 	const auto depURL = mh::format(L"https://tf2bd-util.pazer.us/AppInstaller/vcredist.x{}.msix", bits);
-	std::wcerr << "Dependency URL: " << depURL;
+	std::wcerr << "Dependency URL: " << depURL << std::endl;
 	deps.Append(Uri(depURL));
 
 	PackageManager mgr;
