@@ -185,8 +185,8 @@ if (TF2BD_ENABLE_DISCORD_INTEGRATION)
 	target_link_libraries(tf2_bot_detector PRIVATE ${DISCORD_CPP_GAME_SDK})
 
 	target_sources(tf2_bot_detector PRIVATE
-		"tf2_bot_detector/DiscordRichPresence.cpp"
-		"tf2_bot_detector/DiscordRichPresence.h"
+		"DiscordRichPresence.cpp"
+		"DiscordRichPresence.h"
 	)
 endif()
 
