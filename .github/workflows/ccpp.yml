@@ -131,6 +131,14 @@ jobs:
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
+    - name: "Artifacts: tf2_bot_detector_updater"
+      uses: actions/upload-artifact@v2
+      with:
+        name: "updater_${{ matrix.triplet }}_${{ matrix.build_type }}"
+        path: |
+          ${{ steps.tf2bd_paths.outputs.build_dir }}/tf2_bot_detector_updater/*.dll
+          ${{ steps.tf2bd_paths.outputs.build_dir }}/tf2_bot_detector_updater/*.exe
+
     - name: "Artifacts: Fresh, signed exe"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
