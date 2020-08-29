@@ -7,6 +7,7 @@
 
 #include <mh/future.hpp>
 
+#include <Windows.h>
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.Management.Deployment.h>
 #include <winrt/Windows.Foundation.h>
@@ -92,14 +93,6 @@ void tf2_bot_detector::Platform::BeginPlatformUpdate(ReleaseChannel rc, const HT
 	}
 	else
 	{
-		DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "App installer not found, attempting to install via API...");
-		const Uri uri = mh::format(L"https://tf2bd-util.pazer.us/AppInstaller/{:v}.msixbundle", rc);
 
-		IVector<Uri> deps{ winrt::single_threaded_vector<Uri>() };
-		deps.Append(Uri(L"https://tf2bd-util.pazer.us/AppInstaller/vcredist.x64.msix"));
-
-		auto task = mgr.UpdatePackageAsync(uri, deps, DeploymentOptions::ForceApplicationShutdown);
-		auto result = task.get();
-		throw "Not implemented";
 	}
 }

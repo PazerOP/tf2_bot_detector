@@ -144,12 +144,6 @@ void GeneralSettings::SetSteamAPIKey(std::string key)
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const ReleaseChannel& d)
 {
-	auto value = mh::enum_type<ReleaseChannel>::find_value_name(d);
-	if (value.empty())
-		throw std::invalid_argument(mh::format("Unknown ReleaseChannel {}", d));
-
-	j = mh::tolower(value);
-
 	switch (d)
 	{
 	case ReleaseChannel::None:      j = "disabled"; return;

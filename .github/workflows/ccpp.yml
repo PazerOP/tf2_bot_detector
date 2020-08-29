@@ -127,6 +127,7 @@ jobs:
       uses: PazerOP/code-sign-action@v3
       with:
         folder: '${{ steps.tf2bd_paths.outputs.build_dir }}'
+        recursive: true
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 

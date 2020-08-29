@@ -35,6 +35,8 @@ add_subdirectory(submodules/ValveFileVDF)
 add_subdirectory(submodules/SourceRCON)
 add_subdirectory(submodules/imgui_desktop)
 add_subdirectory(submodules/mh_stuff)
+add_subdirectory(tf2_bot_detector_common)
+add_subdirectory(tf2_bot_detector_updater)
 
 set(ENABLE_EXAMPLES off CACHE BOOL "Build examples" FORCE)
 add_subdirectory("submodules/cppcoro")
@@ -157,7 +159,6 @@ target_sources(tf2_bot_detector PRIVATE
 	"tf2_bot_detector/ModeratorLogic.cpp"
 	"tf2_bot_detector/ModeratorLogic.h"
 	"tf2_bot_detector/PlayerStatus.h"
-	"tf2_bot_detector/ReleaseChannel.h"
 	"tf2_bot_detector/SteamID.cpp"
 	"tf2_bot_detector/SteamID.h"
 	"tf2_bot_detector/TextureManager.h"
@@ -231,6 +232,7 @@ find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
+	tf2_bot_detector_common
 	imgui_desktop
 	mh_stuff
 	ValveFileVDF
