@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+
 include(GenerateExportHeader)
 
 if (WIN32)
@@ -37,12 +39,6 @@ target_include_directories(tf2_bot_detector PRIVATE
 )
 
 configure_file(Version.base.h Version.h)
-
-message("CMAKE_CURRENT_BINARY_DIR = ${CMAKE_CURRENT_BINARY_DIR}")
-get_target_property(dirs tf2_bot_detector INCLUDE_DIRECTORIES)
-foreach(dir ${dirs})
-  message(STATUS "dir='${dir}'")
-endforeach()
 
 target_sources(tf2_bot_detector PRIVATE
 	"Actions/RCONActionManager.cpp"
@@ -150,6 +146,13 @@ target_sources(tf2_bot_detector PRIVATE
 	"WorldEventListener.h"
 	"WorldState.cpp"
 	"WorldState.h"
+)
+
+target_precompile_headers(tf2_bot_detector
+	PUBLIC
+		"Clock.h"
+	PRIVATE
+		"Log.h"
 )
 
 if(WIN32)
