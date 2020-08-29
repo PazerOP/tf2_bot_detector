@@ -132,6 +132,7 @@ jobs:
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: tf2_bot_detector_updater"
+      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD
       uses: actions/upload-artifact@v2
       with:
         name: "updater_${{ matrix.triplet }}_${{ matrix.build_type }}"
