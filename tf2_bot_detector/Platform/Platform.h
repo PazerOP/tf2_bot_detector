@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ReleaseChannel.h"
 #include "SteamID.h"
 #include "Version.h"
 
@@ -11,7 +12,6 @@
 namespace tf2_bot_detector
 {
 	class HTTPClient;
-	enum class ReleaseChannel;
 
 	inline namespace Platform
 	{

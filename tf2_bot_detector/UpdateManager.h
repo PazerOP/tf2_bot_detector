@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ReleaseChannel.h"
 #include "Version.h"
 
 #include <mh/reflection/enum.hpp>
@@ -8,7 +9,6 @@
 
 namespace tf2_bot_detector
 {
-	enum class ReleaseChannel;
 	class Settings;
 
 	class IAvailableUpdate

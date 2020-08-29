@@ -4,6 +4,7 @@
 
 namespace tf2_bot_detector
 {
+	// DO NOT FORWARD DECLARE (implicit cast in fmt::format from enum class -> int)
 	enum class ReleaseChannel
 	{
 		None = -1, // Don't auto update

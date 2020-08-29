@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Networking/HTTPClient.h"
 #include "ChatWrappers.h"
 #include "Clock.h"
-#include "Networking/HTTPClient.h"
+#include "ReleaseChannel.h"
 #include "SteamID.h"
 
 #include <nlohmann/json_fwd.hpp>
@@ -18,8 +19,6 @@ namespace srcon
 
 namespace tf2_bot_detector
 {
-	enum class ReleaseChannel;
-
 	void to_json(nlohmann::json& j, const ReleaseChannel& d);
 	void from_json(const nlohmann::json& j, ReleaseChannel& d);
 

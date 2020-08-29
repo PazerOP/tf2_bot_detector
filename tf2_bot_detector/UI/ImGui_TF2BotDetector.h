@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ReleaseChannel.h"
+
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
@@ -185,7 +187,6 @@ namespace ImGui
 
 namespace tf2_bot_detector
 {
-	enum class ReleaseChannel;
 	class SteamID;
 
 	bool InputTextSteamIDOverride(const char* label_id, SteamID& steamID, bool requireValid = true);

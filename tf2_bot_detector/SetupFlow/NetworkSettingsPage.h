@@ -2,13 +2,12 @@
 
 #include "Config/Settings.h"
 #include "ISetupFlowPage.h"
+#include "ReleaseChannel.h"
 
 #include <optional>
 
 namespace tf2_bot_detector
 {
-	enum class ReleaseChannel;
-
 	class NetworkSettingsPage final : public ISetupFlowPage
 	{
 	public:
