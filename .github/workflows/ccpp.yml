@@ -135,7 +135,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD
       uses: actions/upload-artifact@v2
       with:
-        name: "updater_${{ matrix.triplet }}_${{ matrix.build_type }}"
+        name: "updater_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         path: |
           ${{ steps.tf2bd_paths.outputs.build_dir }}/tf2_bot_detector_updater/*.dll
           ${{ steps.tf2bd_paths.outputs.build_dir }}/tf2_bot_detector_updater/*.exe
@@ -144,7 +144,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "smartscreen_${{ matrix.triplet }}_${{ matrix.build_type }}"
+        name: "smartscreen_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
@@ -176,7 +176,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
-        path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.pdb"
+        path: "${{ steps.tf2bd_paths.outputs.build_dir }}/**.pdb"
 
 
 
