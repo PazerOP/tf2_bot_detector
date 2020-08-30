@@ -17,6 +17,7 @@ set_target_properties(tf2_bot_detector_updater PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${PROJECT_NAME}"
 	RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/${PROJECT_NAME}"
 	RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/${PROJECT_NAME}"
+	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
 
 find_package(fmt CONFIG REQUIRED)
@@ -24,5 +25,5 @@ find_package(fmt CONFIG REQUIRED)
 target_link_libraries(tf2_bot_detector_updater PRIVATE
 	tf2_bot_detector_common
 	mh_stuff
-	fmt::fmt
+	fmt::fmt-header-only
 )
