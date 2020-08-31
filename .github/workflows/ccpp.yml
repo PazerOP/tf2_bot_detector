@@ -94,9 +94,10 @@ jobs:
       uses: lukka/run-vcpkg@v3.2
       env:
         VCPKG_JSON_FILE: '${{ github.workspace }}/vcpkg.json'
+        VCPKG_FEATURE_FLAGS: manifests
       with:
         vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
-        vcpkgArguments: '--dry-run'
+        vcpkgArguments: 'fmt --dry-run'
         vcpkgTriplet: ${{ matrix.triplet }}
         appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}
 
