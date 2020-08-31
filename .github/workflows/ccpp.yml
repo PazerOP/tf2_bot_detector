@@ -94,7 +94,7 @@ jobs:
       uses: lukka/run-vcpkg@v3.2
       env:
         VCPKG_JSON_FILE: '${{ github.workspace }}/vcpkg.json'
-        VCPKG_FEATURE_FLAGS: manifests
+        VCPKG_FEATURE_FLAGS: -manifests
       with:
         vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
         vcpkgArguments: 'fmt --dry-run'
@@ -109,6 +109,8 @@ jobs:
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
       shell: bash
+      env:
+        VCPKG_FEATURE_FLAGS: manifests
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
