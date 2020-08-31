@@ -22,7 +22,10 @@ if (MSVC)
 	string(REPLACE "/Ob0" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Ob1")
 
-# Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
+	# Improve build performance when running without ninja
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+
+	# Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
 	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
 	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
