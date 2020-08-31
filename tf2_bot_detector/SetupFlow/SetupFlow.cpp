@@ -104,6 +104,7 @@ bool SetupFlow::OnDraw(Settings& settings, const ISetupFlowPage::DrawState& ds)
 		drewPage = true;
 
 		const bool canCommit = page->CanCommit();
+
 		ImGui::EnabledSwitch(canCommit, [&]
 			{
 				if ((wantsContinueButton && ImGui::Button(hasNextPage ? "Next >" : "Done")) ||
@@ -114,6 +115,10 @@ bool SetupFlow::OnDraw(Settings& settings, const ISetupFlowPage::DrawState& ds)
 						page->Commit(settings);
 						settings.SaveFile();
 					}
+
+					// If this assertion is hit, the page is reporting that it can commit, but we are failing validation.
+					// This means that we'll be closing and reopening the page every frame.
+					assert(page->ValidateSettings(settings) != ISetupFlowPage::ValidateSettingsResult::TriggerOpen);
 
 					m_ActivePage = INVALID_PAGE;
 					if (!hasNextPage)

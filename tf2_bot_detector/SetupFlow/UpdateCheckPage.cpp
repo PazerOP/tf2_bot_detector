@@ -27,16 +27,21 @@ namespace
 
 	private:
 		UpdateStatus m_LastUpdateStatus = UpdateStatus::Unknown;
+		bool m_HasChangedReleaseChannel = false;
 		bool m_HasCheckedForUpdate = false;
 		bool m_UpdateButtonPressed = false;
 	};
 
 	auto UpdateCheckPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 	{
-		if (settings.GetHTTPClient() && !m_HasCheckedForUpdate)
-			return ValidateSettingsResult::TriggerOpen;
+		if (m_HasCheckedForUpdate)
+			return ValidateSettingsResult::Success;
+		if (!settings.GetHTTPClient())
+			return ValidateSettingsResult::Success;
+		if (settings.m_ReleaseChannel.value_or(ReleaseChannel::None) == ReleaseChannel::None)
+			return ValidateSettingsResult::Success;
 
-		return ValidateSettingsResult::Success;
+		return ValidateSettingsResult::TriggerOpen;
 	}
 
 	auto UpdateCheckPage::OnDraw(const DrawState& ds) -> OnDrawResult
@@ -56,22 +61,36 @@ namespace
 		{
 			ds.m_Settings->m_ReleaseChannel = rc;
 			ds.m_UpdateManager->QueueUpdateCheck();
+			m_HasChangedReleaseChannel = true;
 		}
 
 		ImGui::NewLine();
 
-		bool drawContinueWithoutUpdating = false;
+		enum class ContinueButtonMode
+		{
+			None,
+			Continue,
+			ContinueWithoutUpdating,
+
+		} continueButtonMode = ContinueButtonMode::None;
 
 		switch (updateStatus)
 		{
 		case UpdateStatus::Unknown:
 			ImGui::TextFmt({ 1, 1, 0, 1 }, "Unknown");
-			drawContinueWithoutUpdating = true;
+			continueButtonMode = ContinueButtonMode::ContinueWithoutUpdating;
 			break;
 
 		case UpdateStatus::UpdateCheckDisabled:
+		{
 			ImGui::TextFmt("Automatic update checks disabled by user");
-			return OnDrawResult::EndDrawing;
+			if (!m_HasChangedReleaseChannel)
+				return OnDrawResult::EndDrawing;
+
+			ImGui::NewLine();
+			continueButtonMode = ContinueButtonMode::Continue;
+			break;
+		}
 		case UpdateStatus::InternetAccessDisabled:
 			ImGui::TextFmt("Internet connectivity disabled by user");
 			return OnDrawResult::EndDrawing;
@@ -85,19 +104,26 @@ namespace
 
 		case UpdateStatus::CheckFailed:
 			ImGui::TextFmt({ 1, 1, 0, 1 }, "Update check failed");
-			drawContinueWithoutUpdating = true;
+			continueButtonMode = ContinueButtonMode::ContinueWithoutUpdating;
 			ImGui::NewLine();
 			break;
 		case UpdateStatus::UpToDate:
+		{
 			ImGui::TextFmt({ 0, 1, 0, 1 }, "Up to date (v{} {:v})", VERSION,
 				mh::enum_fmt(ds.m_Settings->m_ReleaseChannel.value_or(ReleaseChannel::Public)));
-			return OnDrawResult::EndDrawing;
 
+			if (!m_HasChangedReleaseChannel)
+				return OnDrawResult::EndDrawing;
+
+			ImGui::NewLine();
+			continueButtonMode = ContinueButtonMode::Continue;
+
+			break;
+		}
 		case UpdateStatus::UpdateAvailable:
 		{
 			ImGui::TextFmt({ 0, 1, 1, 1 }, "Update available: v{} {:v} (current version v{})",
 				update->m_State.m_Version, mh::enum_fmt(update->m_State.m_ReleaseChannel), VERSION);
-			drawContinueWithoutUpdating = true;
 
 			ImGui::NewLine();
 
@@ -124,7 +150,7 @@ namespace
 				}, "Unable to determine GitHub URL");
 
 			ImGui::SameLine();
-
+			continueButtonMode = ContinueButtonMode::ContinueWithoutUpdating;
 			break;
 		}
 
@@ -145,10 +171,15 @@ namespace
 			break;
 		}
 
-		if (drawContinueWithoutUpdating)
+		if (continueButtonMode == ContinueButtonMode::ContinueWithoutUpdating &&
+			ImGui::Button("Continue without updating >"))
 		{
-			if (ImGui::Button("Continue without updating >"))
-				return OnDrawResult::EndDrawing;
+			return OnDrawResult::EndDrawing;
+		}
+		if (continueButtonMode == ContinueButtonMode::Continue &&
+			ImGui::Button("Continue >"))
+		{
+			return OnDrawResult::EndDrawing;
 		}
 
 		return OnDrawResult::ContinueDrawing;
@@ -156,11 +187,15 @@ namespace
 
 	void UpdateCheckPage::Init(const Settings& settings)
 	{
+		m_HasChangedReleaseChannel = false;
 		m_UpdateButtonPressed = false;
 	}
 
 	bool UpdateCheckPage::CanCommit() const
 	{
+		if (!m_HasCheckedForUpdate)
+			return false;
+
 		return mh::none_eq(m_LastUpdateStatus
 			, UpdateStatus::CheckQueued
 			, UpdateStatus::Checking
