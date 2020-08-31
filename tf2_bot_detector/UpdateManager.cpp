@@ -230,6 +230,7 @@ namespace
 			}
 			catch (const std::exception& e)
 			{
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e, __FUNCSIG__);
 				m_UpdateCheckState.emplace<ExceptionData<BuildInfo>>(typeid(e), e.what(), std::current_exception());
 			}
 		}
