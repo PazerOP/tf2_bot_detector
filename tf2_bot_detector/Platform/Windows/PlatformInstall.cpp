@@ -11,6 +11,7 @@
 #include <Windows.h>
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.Management.Deployment.h>
+#include <winrt/Windows.System.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Collections.h>
 
@@ -79,30 +80,30 @@ std::future<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdat
 		throw std::invalid_argument(ERROR_MSG);
 	}
 
-	using namespace winrt::Windows::ApplicationModel;
-	using namespace winrt::Windows::Foundation;
-	using namespace winrt::Windows::Foundation::Collections;
-	using namespace winrt::Windows::Management::Deployment;
+	using winrt::Windows::ApplicationModel::Package;
+	using winrt::Windows::Foundation::Uri;
+	using winrt::Windows::System::Launcher;
 
-	PackageManager mgr;
-	auto appInstallerPackages = mgr.FindPackages(L"Microsoft.DesktopAppInstaller_8wekyb3d8bbwe");
-	bool appInstallerFound = false;
-	for (const Package& pkg : appInstallerPackages)
-	{
-		appInstallerFound = true;
-		break;
-	}
+	const auto bundleUri = buildInfo.m_MSIXBundleURL;
 
-	if (appInstallerFound)
-	{
-		Shell::OpenURL(mh::format("ms-appinstaller:?source={}", buildInfo.m_MSIXBundleURL));
-		return mh::make_ready_future<InstallUpdate::Result>(InstallUpdate::StartedNoFeedback{});
-	}
-	else
-	{
-		return mh::make_ready_future<InstallUpdate::Result>(InstallUpdate::NeedsUpdateTool
+	return std::async([bundleUri]() -> InstallUpdate::Result
+		{
+			const Uri uri = mh::format(L"ms-appinstaller:?source={}", ToWC(bundleUri));
+
+			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Attempting to LaunchUriAsync for {}", ToMB(uri.ToString()));
+			auto result = Launcher::LaunchUriAsync(uri);
+
+			if (result.get())
 			{
-				.m_UpdateToolArgs = mh::format("--msix-bundle-url {}", std::quoted(buildInfo.m_MSIXBundleURL)),
-			});
-	}
+				return InstallUpdate::StartedNoFeedback{};
+			}
+			else
+			{
+				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "LaunchUriAsync returned false, requesting update tool");
+				return InstallUpdate::NeedsUpdateTool
+				{
+					.m_UpdateToolArgs = mh::format("--msix-bundle-url {}", std::quoted(bundleUri)),
+				};
+			}
+		});
 }
