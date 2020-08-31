@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.17.2)
+cmake_policy(SET CMP0091 NEW) # Enable [CMAKE_]MSVC_RUNTIME_LIBRARY
 project(tf2_bot_detector VERSION 1.1.0)
 
 message("TF2BD CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
@@ -14,6 +15,10 @@ if (TF2BD_IS_CI_COMPILE)
 	add_compile_definitions(TF2BD_IS_CI_COMPILE=1)
 else()
 	add_compile_definitions(TF2BD_IS_CI_COMPILE=0)
+endif()
+
+if (VCPKG_CRT_LINKAGE MATCHES "static")
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE true)

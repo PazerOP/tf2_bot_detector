@@ -197,6 +197,7 @@ find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(BZip2 REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	tf2_bot_detector_common
@@ -210,6 +211,7 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	OpenSSL::SSL # cpp-httplib requires openssl
 	nlohmann_json::nlohmann_json
 	fmt::fmt
+	BZip2::BZip2
 )
 
 find_path(HTTPLIB_PATH NAMES httplib.h)
