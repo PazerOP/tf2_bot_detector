@@ -8,7 +8,10 @@
 		"cpp-httplib",
 		"libzippp",
 		"fmt",
-		"discord-game-sdk",
+		{
+			"name": "discord-game-sdk",
+			"platform": "!static"
+		},
 		"stb",
 		"nlohmann-json",
 		"catch2"
