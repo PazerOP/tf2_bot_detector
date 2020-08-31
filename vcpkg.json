@@ -1,0 +1,16 @@
+{
+	"name": "tf2-bot-detector",
+	"version-string": "",
+	"dependencies": [
+		"sdl2",
+		"openssl",
+		"glbinding",
+		"cpp-httplib",
+		"libzippp",
+		"fmt",
+		"discord-game-sdk",
+		"stb",
+		"nlohmann-json",
+		"catch2"
+	]
+}

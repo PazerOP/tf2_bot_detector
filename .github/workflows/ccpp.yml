@@ -93,12 +93,12 @@ jobs:
     - name: run-vcpkg
       uses: lukka/run-vcpkg@v3.2
       env:
-        VCPKG_RESPONSE_FILE: '${{ github.workspace }}/vcpkg_packages.txt'
+        VCPKG_JSON_FILE: '${{ github.workspace }}/vcpkg.json'
       with:
         vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
-        vcpkgArguments: '@${{ env.VCPKG_RESPONSE_FILE }}'
+        vcpkgArguments: '--dry-run'
         vcpkgTriplet: ${{ matrix.triplet }}
-        appendedCacheKey: ${{ hashFiles(env.VCPKG_RESPONSE_FILE) }}
+        appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}
 
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
