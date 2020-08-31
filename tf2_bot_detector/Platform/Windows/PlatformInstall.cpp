@@ -6,7 +6,6 @@
 #include "UpdateManager.h"
 #include "Version.h"
 
-#include <mh/exception/error_code_exception.hpp>
 #include <mh/future.hpp>
 
 #include <Windows.h>
