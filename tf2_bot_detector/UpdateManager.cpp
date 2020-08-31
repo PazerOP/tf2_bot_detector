@@ -184,6 +184,7 @@ namespace
 			}
 			catch (const std::exception& e)
 			{
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e, __FUNCSIG__);
 				m_State.emplace<ExceptionData<TFutureResult>>(typeid(e), e.what(), std::current_exception());
 			}
 
