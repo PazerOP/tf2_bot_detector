@@ -84,7 +84,7 @@ namespace tf2_bot_detector
 		}
 		catch (const std::exception& e)
 		{
-			LogError(std::string(__FUNCTION__) << ": Exception when getting " << name << ": " << e.what());
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when getting {}", std::quoted(name));
 		}
 
 		defaultValFunc(value);
@@ -168,7 +168,7 @@ namespace tf2_bot_detector
 		}
 		catch (const std::exception& e)
 		{
-			LogError(std::string(__FUNCTION__) << ": Exception when getting " << name << ": " << e.what());
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when getting {}", std::quoted(name));
 		}
 
 		value.reset();

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <compare>
 #include <cstdint>
 #include <optional>
@@ -38,6 +40,9 @@ namespace tf2_bot_detector
 		${CMAKE_PROJECT_VERSION_PATCH},
 		${CMAKE_PROJECT_VERSION_TWEAK}
 	);
+
+	void to_json(nlohmann::json& j, const Version& d);
+	void from_json(const nlohmann::json& j, Version& d);
 }
 
 template<typename CharT, typename Traits>

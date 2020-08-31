@@ -147,28 +147,27 @@ void tf2_bot_detector::to_json(nlohmann::json& j, const ReleaseChannel& d)
 	switch (d)
 	{
 	case ReleaseChannel::None:      j = "disabled"; return;
-	case ReleaseChannel::Public:    j = "releases"; return;
-	case ReleaseChannel::Preview:   j = "previews"; return;
+	case ReleaseChannel::Public:    j = "public"; return;
+	case ReleaseChannel::Preview:   j = "preview"; return;
 	case ReleaseChannel::Nightly:   j = "nightly"; return;
-
-	default:
-		throw std::invalid_argument("Unknown ReleaseChannel "s << +std::underlying_type_t<ReleaseChannel>(d));
 	}
+
+	throw std::invalid_argument(mh::format("Unexpected value {}", mh::enum_fmt(d)));
 }
 
 void tf2_bot_detector::from_json(const nlohmann::json& j, ReleaseChannel& d)
 {
-	auto value = j.get<std::string_view>();
-	if (value == "releases"sv)
+	auto value = mh::tolower(j.get<std::string_view>());
+	if (value == "releases"sv || value == "public"sv)
 		d = ReleaseChannel::Public;
-	else if (value == "previews"sv)
+	else if (value == "previews"sv || value == "preview"sv)
 		d = ReleaseChannel::Preview;
 	else if (value == "nightly"sv)
 		d = ReleaseChannel::Nightly;
-	else if (value == "disabled"sv)
+	else if (value == "disabled"sv || value == "none"sv)
 		d = ReleaseChannel::None;
 	else
-		throw std::invalid_argument("Unknown ReleaseChannel "s << std::quoted(value));
+		throw std::invalid_argument(mh::format("Unknown ReleaseChannel {}", std::quoted(value)));
 }
 
 Settings::Settings()

@@ -16,16 +16,22 @@ else()
 	add_compile_definitions(TF2BD_IS_CI_COMPILE=0)
 endif()
 
-# Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
+set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE true)
+
 if (MSVC)
+	string(REPLACE "/Ob0" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Ob1")
+
+# Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
 	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
 	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
-endif()
 
-set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE true)
-if (MSVC AND (CMAKE_BUILD_TYPE MATCHES "Release"))
-	add_link_options(/OPT:REF /OPT:ICF)
+	if (CMAKE_BUILD_TYPE MATCHES "Release")
+		add_link_options(/OPT:REF /OPT:ICF)
+	endif()
+
+	add_definitions(/await)
 endif()
 
 add_subdirectory(submodules/ValveFileVDF)
@@ -45,10 +51,6 @@ option(TF2BD_ENABLE_TESTS "Enable test compilation" off)
 # TODO: Find a way to do this locally
 if(MSVC)
 	target_compile_options(tf2_bot_detector PRIVATE /WX)
-endif()
-
-if (MSVC)
-	add_definitions(/await)
 endif()
 
 # "installation" aka create a build we can upload to github as a release

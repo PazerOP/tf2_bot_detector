@@ -3,8 +3,6 @@
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
 
-#include <mh/text/string_insertion.hpp>
-
 #pragma warning(push, 1)
 #include <httplib.h>
 #pragma warning(pop)
@@ -24,7 +22,7 @@ std::string HTTPClient::GetString(const URL& url) const
 
 	auto response = client.Get(url.m_Path.c_str(), headers);
 	if (!response)
-		throw http_error("Failed to HTTP GET "s << url);
+		throw http_error(mh::format("Failed to HTTP GET {}", url));
 
 	if (response->status >= 400 && response->status < 600)
 		throw http_error(response->status);

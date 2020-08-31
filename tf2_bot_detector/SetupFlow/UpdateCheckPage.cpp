@@ -1,4 +1,5 @@
 #include "Config/Settings.h"
+#include "Platform/Platform.h"
 #include "SetupFlow/ISetupFlowPage.h"
 #include "UI/ImGui_TF2BotDetector.h"
 #include "Log.h"
@@ -21,6 +22,7 @@ namespace
 		bool CanCommit() const override;
 		void Commit(Settings& settings);
 
+		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
 
 	private:
@@ -41,10 +43,22 @@ namespace
 	{
 		m_HasCheckedForUpdate = true;
 
-		ImGui::NewLine();
-
 		const UpdateStatus updateStatus = m_LastUpdateStatus = ds.m_UpdateManager->GetUpdateStatus();
 		const IAvailableUpdate* update = ds.m_UpdateManager->GetAvailableUpdate();
+
+		ImGui::TextFmt("Update Check");
+		ImGui::NewLine();
+		ImGui::Separator();
+
+		ImGui::NewLine();
+
+		if (auto rc = ds.m_Settings->m_ReleaseChannel; Combo("##SetupFlow_UpdateCheckingMode", rc))
+		{
+			ds.m_Settings->m_ReleaseChannel = rc;
+			ds.m_UpdateManager->QueueUpdateCheck();
+		}
+
+		ImGui::NewLine();
 
 		bool drawContinueWithoutUpdating = false;
 
@@ -76,13 +90,13 @@ namespace
 			break;
 		case UpdateStatus::UpToDate:
 			ImGui::TextFmt({ 0, 1, 0, 1 }, "Up to date (v{} {:v})", VERSION,
-				ds.m_Settings->m_ReleaseChannel.value_or(ReleaseChannel::Public));
+				mh::enum_fmt(ds.m_Settings->m_ReleaseChannel.value_or(ReleaseChannel::Public)));
 			return OnDrawResult::EndDrawing;
 
 		case UpdateStatus::UpdateAvailable:
 		{
 			ImGui::TextFmt({ 0, 1, 1, 1 }, "Update available: v{} {:v} (current version v{})",
-				update->GetVersion(), update->GetReleaseChannel(), VERSION);
+				update->m_State.m_Version, mh::enum_fmt(update->m_State.m_ReleaseChannel), VERSION);
 			drawContinueWithoutUpdating = true;
 
 			ImGui::NewLine();
@@ -99,6 +113,15 @@ namespace
 						}, "Update in progress...");
 
 				}, "Self-update not currently available. Visit GitHub to download and install the new version.");
+
+			ImGui::SameLine();
+
+			ImGui::EnabledSwitch(!update->m_State.m_GitHubURL.empty(), [&]
+				{
+					if (ImGui::Button("View on GitHub"))
+						Shell::OpenURL(update->m_State.m_GitHubURL);
+
+				}, "Unable to determine GitHub URL");
 
 			ImGui::SameLine();
 

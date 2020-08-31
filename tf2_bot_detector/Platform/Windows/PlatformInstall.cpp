@@ -3,8 +3,10 @@
 #include "Networking/HTTPHelpers.h"
 #include "Util/TextUtils.h"
 #include "Log.h"
+#include "UpdateManager.h"
 #include "Version.h"
 
+#include <mh/exception/error_code_exception.hpp>
 #include <mh/future.hpp>
 
 #include <Windows.h>
@@ -48,30 +50,36 @@ bool tf2_bot_detector::Platform::IsInstalled()
 	return !!GetAppPackage();
 }
 
-std::future<std::optional<Version>> tf2_bot_detector::Platform::CheckForPlatformUpdate(
-	ReleaseChannel rc, const HTTPClient& client)
+bool tf2_bot_detector::Platform::CanInstallUpdate(const BuildInfo& bi)
+{
+	if (!IsInstalled())
+		return false;
+
+	if (bi.m_MSIXBundleURL.empty())
+		return false;
+
+	return true;
+}
+
+std::future<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdate(
+	const BuildInfo& buildInfo, const HTTPClient& client)
 {
 	if (!IsInstalled())
 	{
-		DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Not installed");
-		return mh::make_ready_future(std::optional<Version>{});
+		constexpr const char ERROR_MSG[] = "Attempted to call " __FUNCTION__ "() when we aren't installed."
+			" This should never happen.";
+		LogError(MH_SOURCE_LOCATION_CURRENT(), ERROR_MSG);
+		throw std::logic_error(ERROR_MSG);
 	}
 
-	auto clientPtr = client.shared_from_this();
+	if (buildInfo.m_MSIXBundleURL.empty())
+	{
+		constexpr const char ERROR_MSG[] = "BuildInfo's msix bundle url is empty."
+			" This should never happen; CanInstallUpdate() should have returned false";
+		LogError(MH_SOURCE_LOCATION_CURRENT(), ERROR_MSG);
+		throw std::invalid_argument(ERROR_MSG);
+	}
 
-	return std::async([rc, clientPtr]() -> std::optional<Version>
-		{
-			auto result = clientPtr->GetString(mh::format("https://tf2bd-util.pazer.us/AppInstaller/LatestVersion.txt?type={:v}", rc));
-			auto version = Version::Parse(result.c_str());
-			if (version > VERSION)
-				return version;
-
-			return std::nullopt;
-		});
-}
-
-void tf2_bot_detector::Platform::BeginPlatformUpdate(ReleaseChannel rc, const HTTPClient& client)
-{
 	using namespace winrt::Windows::ApplicationModel;
 	using namespace winrt::Windows::Foundation;
 	using namespace winrt::Windows::Foundation::Collections;
@@ -88,11 +96,14 @@ void tf2_bot_detector::Platform::BeginPlatformUpdate(ReleaseChannel rc, const HT
 
 	if (appInstallerFound)
 	{
-		Shell::OpenURL(mh::format(
-			"ms-appinstaller:?source=https://tf2bd-util.pazer.us/AppInstaller/{:v}.msixbundle", rc));
+		Shell::OpenURL(mh::format("ms-appinstaller:?source={}", buildInfo.m_MSIXBundleURL));
+		return mh::make_ready_future<InstallUpdate::Result>(InstallUpdate::StartedNoFeedback{});
 	}
 	else
 	{
-
+		return mh::make_ready_future<InstallUpdate::Result>(InstallUpdate::NeedsUpdateTool
+			{
+				.m_UpdateToolArgs = mh::format("--msix-bundle-url {}", std::quoted(buildInfo.m_MSIXBundleURL)),
+			});
 	}
 }

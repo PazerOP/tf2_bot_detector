@@ -94,12 +94,32 @@ namespace tf2_bot_detector
 #define NOINLINE
 #endif
 
+	namespace detail::log_h
+	{
+		template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
+		NOINLINE inline void LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const std::string_view& fmtStr, const TArgs&... args)
+		{
+			ILogManager::GetInstance().Log(mh::try_format(fmtStr, args...), color, severity, visibility);
+		}
+		template<typename... TArgs>
+		NOINLINE inline void LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args)
+		{
+			using namespace std::string_view_literals;
+			if (!fmtStr.empty())
+				LogImpl(color, severity, visibility, "{}: {}"sv, location, mh::try_format(fmtStr, args...));
+			else
+				LogImpl(color, severity, visibility, "{}"sv, location);
+		}
+	}
+
 #undef LOG_DEFINITION_HELPER
 #define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	NOINLINE inline void name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) \
+	inline void name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
-		ILogManager::GetInstance().Log(mh::format(fmtStr, args...), color, (severity), (visibility)); \
+		detail::log_h::LogImpl(color, (severity), (visibility), fmtStr, args...); \
 	} \
 	inline void name(const LogMessageColor& color, std::string msg) \
 	{ \
@@ -118,10 +138,7 @@ namespace tf2_bot_detector
 	template<typename... TArgs> \
 	NOINLINE inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
-		if (fmtStr.empty()) \
-			name(color, "{}: {}", location, mh::format(fmtStr, args...)); \
-		else \
-			name(color, "{}", location); \
+		detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...); \
 	} \
 	template<typename... TArgs> \
 	inline void name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
@@ -152,7 +169,7 @@ namespace tf2_bot_detector
 	attr void name(const mh::source_location& location, const std::exception& e, \
 		const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
-		name(location, e, mh::format(fmtStr, args...)); \
+		name(location, e, mh::try_format(fmtStr, args...)); \
 	}
 
 	LOG_DEFINITION_HELPER(DebugLogException, );
@@ -169,6 +186,6 @@ namespace tf2_bot_detector
 	[[noreturn]] void LogFatalError(const mh::source_location& location,
 			const std::string_view& fmtStr, const TArgs&... args)
 	{
-		LogFatalError(location, mh::format(fmtStr, args...));
+		LogFatalError(location, mh::try_format(fmtStr, args...));
 	}
 }

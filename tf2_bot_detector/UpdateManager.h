@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Platform/Platform.h"
 #include "ReleaseChannel.h"
 #include "Version.h"
 
@@ -11,24 +12,43 @@ namespace tf2_bot_detector
 {
 	class Settings;
 
+	struct BuildInfo
+	{
+		ReleaseChannel m_ReleaseChannel{};
+		Version m_Version{};
+
+		std::string m_GitHubURL;
+		std::string m_MSIXBundleURL;
+
+		struct BuildVariant
+		{
+			Platform::OS m_OS{};
+			Platform::Arch m_Arch{};
+			std::string m_DownloadURL;
+		};
+
+		std::vector<BuildVariant> m_Updater;
+		std::vector<BuildVariant> m_Portable;
+	};
+}
+
+namespace tf2_bot_detector
+{
 	class IAvailableUpdate
 	{
 	public:
+		IAvailableUpdate(BuildInfo&& bi) : m_State(std::move(bi)) {}
 		virtual ~IAvailableUpdate() = default;
-
-		virtual ReleaseChannel GetReleaseChannel() const = 0;
-		virtual Version GetVersion() const = 0;
 
 		virtual bool CanSelfUpdate() const = 0;
 		virtual void BeginSelfUpdate() const = 0;
+
+		BuildInfo m_State;
 	};
 
 	enum class UpdateStatus
 	{
 		Unknown = 0,
-
-		InternalError_UpdateCheckNull,
-		InternalError_UnknownVariantState,
 
 		UpdateCheckDisabled,
 		InternetAccessDisabled,
@@ -39,6 +59,9 @@ namespace tf2_bot_detector
 		CheckFailed,
 		UpToDate,
 		UpdateAvailable,
+
+		UpdateToolDownloading,
+		UpdateToolDownloadingFailed,
 
 		Updating,
 
@@ -56,16 +79,15 @@ namespace tf2_bot_detector
 		virtual void QueueUpdateCheck() = 0;
 
 		virtual void Update() = 0;
-		virtual UpdateStatus GetUpdateStatus() const = 0;
 
+		virtual UpdateStatus GetUpdateStatus() const = 0;
+		virtual std::string GetErrorString() const = 0;
 		virtual const IAvailableUpdate* GetAvailableUpdate() const = 0;
 	};
 }
 
 MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::UpdateStatus)
 	MH_ENUM_REFLECT_VALUE(Unknown)
-
-	MH_ENUM_REFLECT_VALUE(InternalError_UpdateCheckNull)
 
 	MH_ENUM_REFLECT_VALUE(UpdateCheckDisabled)
 	MH_ENUM_REFLECT_VALUE(InternetAccessDisabled)

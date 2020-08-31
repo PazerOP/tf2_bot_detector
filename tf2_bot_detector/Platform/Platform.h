@@ -4,14 +4,18 @@
 #include "SteamID.h"
 #include "Version.h"
 
+#include <mh/reflection/enum.hpp>
+
 #include <filesystem>
 #include <future>
 #include <optional>
 #include <string>
+#include <variant>
 
 namespace tf2_bot_detector
 {
 	class HTTPClient;
+	struct BuildInfo;
 
 	inline namespace Platform
 	{
@@ -22,12 +26,40 @@ namespace tf2_bot_detector
 		std::filesystem::path GetAppDataDir();
 		std::filesystem::path GetRealAppDataDir();
 
-		/// <summary>
-		/// Is there an update available via a platform-specific update mechanism?
-		/// msix(bundle) on Windows, APT on linux
-		/// </summary>
-		std::future<std::optional<Version>> CheckForPlatformUpdate(ReleaseChannel rc, const HTTPClient& client);
-		void BeginPlatformUpdate(ReleaseChannel rc, const HTTPClient& client);
+		enum class OS
+		{
+			Windows,
+			Linux,
+		};
+		OS GetOS();
+
+		enum class Arch
+		{
+			x86,
+			x64,
+		};
+		Arch GetArch();
+
+		namespace InstallUpdate
+		{
+			struct Success {};
+
+			// We think we've started the update, but there's no way to determine if it succeeded or not.
+			struct StartedNoFeedback {};
+
+			struct NeedsUpdateTool
+			{
+				std::string m_UpdateToolArgs;
+			};
+
+			using Result = std::variant<
+				Success,
+				StartedNoFeedback,
+				NeedsUpdateTool>;
+		};
+
+		bool CanInstallUpdate(const BuildInfo& bi);
+		std::future<InstallUpdate::Result> BeginInstallUpdate(const BuildInfo& bi, const HTTPClient& client);
 		bool IsInstalled(); // As opposed to portable
 
 		namespace Processes
@@ -50,3 +82,13 @@ namespace tf2_bot_detector
 		}
 	}
 }
+
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Platform::OS)
+	MH_ENUM_REFLECT_VALUE(Windows)
+	MH_ENUM_REFLECT_VALUE(Linux)
+MH_ENUM_REFLECT_END()
+
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Platform::Arch)
+	MH_ENUM_REFLECT_VALUE(x86)
+	MH_ENUM_REFLECT_VALUE(x64)
+MH_ENUM_REFLECT_END()

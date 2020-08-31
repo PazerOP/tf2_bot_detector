@@ -25,6 +25,7 @@
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
+using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 
 namespace
@@ -221,7 +222,7 @@ void LogManager::ReplaceSecrets(std::string& msg) const
 	void tf2_bot_detector::logExFn(const mh::source_location& location, const std::exception& e, \
 		const std::string_view& msg) \
 	{ \
-		logFn(location, msg.empty() ? "{1}: {2}" : "{0}: {1}: {2}", msg, typeid(e).name(), e.what()); \
+		logFn(location, msg.empty() ? "{1}: {2}"sv : "{0}: {1}: {2}"sv, msg, typeid(e).name(), e.what()); \
 	}
 
 LOG_EXCEPTION_IMPL(LogException, LogError);
