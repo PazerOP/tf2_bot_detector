@@ -178,17 +178,16 @@ jobs:
     needs: setup_version
     runs-on: ${{ matrix.os }}
     strategy:
-      # fail-fast: false
       matrix:
         os: [windows-latest]
         triplet: [x86-windows-static, x64-windows-static]
         build_type: [Debug, Release]
         include:
           - os: windows-latest
-            triplet: x86-windows
+            triplet: x86-windows-static
             tf2bd_arch: x86
           - os: windows-latest
-            triplet: x64-windows
+            triplet: x64-windows-static
             tf2bd_arch: x64
 
     steps:
