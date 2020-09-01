@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.17)
-cmake_policy(SET CMP0091 NEW) # Enable [CMAKE_]MSVC_RUNTIME_LIBRARY
-project(tf2_bot_detector_updater)
+
+include(../cmake/init-preproject.cmake)
+	project(tf2_bot_detector_updater)
+include(../cmake/init-postproject.cmake)
 
 add_executable(tf2_bot_detector_updater
 	"main.cpp"
