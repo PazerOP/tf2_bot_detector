@@ -99,12 +99,8 @@ jobs:
         path: |
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
-    - uses: lukka/run-vcpkg@v3.3
-      with:
-        vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
-        setupOnly: true
-        doNotCache: true
 
+    - uses: seanmiddleditch/gha-setup-ninja@v2
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
       with:
@@ -240,12 +236,8 @@ jobs:
         path: |
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
-    - uses: lukka/run-vcpkg@v3.3
-      with:
-        vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
-        setupOnly: true
-        doNotCache: true
 
+    - uses: seanmiddleditch/gha-setup-ninja@v2
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
       with:
