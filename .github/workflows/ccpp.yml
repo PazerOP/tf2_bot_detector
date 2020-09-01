@@ -138,6 +138,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: "smartscreen_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        if-no-files-found: error
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
@@ -169,6 +170,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        if-no-files-found: error
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/**.pdb"
 
 
@@ -272,6 +274,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: "updater_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        if-no-files-found: error
         path: |
           ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll
           ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe
@@ -280,6 +283,7 @@ jobs:
       if: startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
+        if-no-files-found: error
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/**.pdb"
 
@@ -355,6 +359,7 @@ jobs:
     - name: Upload msix package
       uses: actions/upload-artifact@v2
       with:
+        if-no-files-found: error
         name: ${{ env.TF2BD_MSIX_FILENAME }}
         path: "msix/${{ env.TF2BD_MSIX_FILENAME }}"
 
@@ -410,5 +415,6 @@ jobs:
     - name: Upload bundle (github actions artifact)
       uses: actions/upload-artifact@v2
       with:
+        if-no-files-found: error
         name: ${{ env.TF2BD_MSIXBUNDLE_NAME }}
         path: "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}"
