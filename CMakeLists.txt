@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.17.2)
 cmake_policy(SET CMP0091 NEW) # Enable [CMAKE_]MSVC_RUNTIME_LIBRARY
 project(tf2_bot_detector VERSION 1.1.0)
 
+include(ExternalProject)
+
 message("TF2BD CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
 # We use this as the build number.
@@ -24,6 +26,13 @@ endif()
 set_property(GLOBAL PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE true)
 
 if (MSVC)
+	message("CMAKE_VS_PLATFORM_NAME = ${CMAKE_VS_PLATFORM_NAME}")
+	message("CMAKE_VS_PLATFORM_NAME_DEFAULT = ${CMAKE_VS_PLATFORM_NAME_DEFAULT}")
+	message("CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
+	message("CMAKE_GENERATOR_PLATFORM = ${CMAKE_GENERATOR_PLATFORM}")
+	message("VCPKG_TARGET_TRIPLET = ${VCPKG_TARGET_TRIPLET}")
+
+	# Enable inlining of functions marked "inline" even in debug builds
 	string(REPLACE "/Ob0" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Ob1")
 
@@ -47,7 +56,7 @@ add_subdirectory(submodules/SourceRCON)
 add_subdirectory(submodules/imgui_desktop)
 add_subdirectory(submodules/mh_stuff)
 add_subdirectory(tf2_bot_detector_common)
-add_subdirectory(tf2_bot_detector_updater)
+# add_subdirectory(tf2_bot_detector_updater)
 add_subdirectory(tf2_bot_detector)
 
 set(ENABLE_EXAMPLES off CACHE BOOL "Build examples" FORCE)
@@ -72,3 +81,12 @@ install(DIRECTORY staging/ staging/ DESTINATION "/" FILES_MATCHING
 	PATTERN "staging/logs" EXCLUDE
 )
 install(TARGETS tf2_bot_detector DESTINATION /)
+
+ExternalProject_Add(tf2_bot_detector_updater
+	SOURCE_DIR "${PROJECT_SOURCE_DIR}/tf2_bot_detector_updater"
+	BINARY_DIR "${PROJECT_BINARY_DIR}/tf2_bot_detector_updater"
+	INSTALL_COMMAND ""
+	STEP_TARGETS build
+	# CONFIGURE_COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DVCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}-static -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} "${CMAKE_SOURCE_DIR}/tf2_bot_detector_updater"
+	CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DVCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}-static -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+)

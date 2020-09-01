@@ -28,7 +28,7 @@ int tf2_bot_detector::Updater::Update_MSIX() try
 	std::cerr << "Attempting to install via API..." << std::endl;
 
 	const auto mainBundleURL = mh::format(L"https://tf2bd-util.pazer.us/AppInstaller/{:v}.msixbundle",
-		s_CmdLineArgs.m_ReleaseChannel);
+		mh::enum_fmt(s_CmdLineArgs.m_ReleaseChannel));
 
 	std::wcerr << "Main bundle URL: " << mainBundleURL;
 	const Uri uri = mainBundleURL;
