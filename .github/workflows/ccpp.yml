@@ -261,7 +261,7 @@ jobs:
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
           -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} \
-          ../
+          ../tf2_bot_detector_updater/
         cmake --build . --config ${{ matrix.build_type }}
 
     - name: Sign artifacts
