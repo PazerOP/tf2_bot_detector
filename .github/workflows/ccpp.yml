@@ -105,18 +105,6 @@ jobs:
         setupOnly: true
         doNotCache: true
 
-
-    # - name: run-vcpkg
-    #   uses: lukka/run-vcpkg@v3.2
-    #   env:
-    #     VCPKG_JSON_FILE: '${{ github.workspace }}/vcpkg.json'
-    #     VCPKG_FEATURE_FLAGS: -manifests
-    #   with:
-    #     vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
-    #     vcpkgArguments: 'fmt --dry-run'
-    #     vcpkgTriplet: ${{ matrix.triplet }}
-    #     appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}-${{ github.workflow }}-${{ github.job_id }}
-
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
       with:
@@ -185,7 +173,7 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        name: "tf2-bot-detector-symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         if-no-files-found: error
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/**.pdb"
 
@@ -258,17 +246,6 @@ jobs:
         setupOnly: true
         doNotCache: true
 
-    # - name: run-vcpkg
-    #   uses: lukka/run-vcpkg@v3.2
-    #   env:
-    #     VCPKG_JSON_FILE: '${{ github.workspace }}/vcpkg.json'
-    #     VCPKG_FEATURE_FLAGS: -manifests
-    #   with:
-    #     vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
-    #     vcpkgArguments: 'fmt --dry-run'
-    #     vcpkgTriplet: ${{ matrix.triplet }}
-    #     appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}-${{ github.workflow }}-${{ github.job_id }}
-
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
       with:
@@ -315,7 +292,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
-        name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        name: "updater-symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/**.pdb"
 
 
