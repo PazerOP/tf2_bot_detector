@@ -181,7 +181,7 @@ jobs:
       # fail-fast: false
       matrix:
         os: [windows-latest]
-        triplet: [x86-windows, x64-windows]
+        triplet: [x86-windows-static, x64-windows-static]
         build_type: [Debug, Release]
         include:
           - os: windows-latest
