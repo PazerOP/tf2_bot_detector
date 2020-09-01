@@ -99,7 +99,7 @@ jobs:
         vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
         vcpkgArguments: 'fmt --dry-run'
         vcpkgTriplet: ${{ matrix.triplet }}
-        appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}
+        appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}-${{ github.workflow }}-${{ github.job_id }}
 
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
@@ -174,7 +174,7 @@ jobs:
 
 
 
-  build_updater:
+  updater:
     needs: setup_version
     runs-on: ${{ matrix.os }}
     strategy:
@@ -240,7 +240,7 @@ jobs:
         vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
         vcpkgArguments: 'fmt --dry-run'
         vcpkgTriplet: ${{ matrix.triplet }}
-        appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}
+        appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}-${{ github.workflow }}-${{ github.job_id }}
 
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
