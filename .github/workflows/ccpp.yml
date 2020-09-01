@@ -114,15 +114,7 @@ jobs:
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
-        cmake -G Ninja \
-          -DTF2BD_IS_CI_COMPILE=ON \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
-          -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
-          -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} \
-          ../
+        cmake -G Ninja -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} ../
         cmake --build . --config ${{ matrix.build_type }}
 
     - name: Sign artifacts
@@ -251,15 +243,7 @@ jobs:
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
-        cmake -G Ninja \
-          -DTF2BD_IS_CI_COMPILE=ON \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
-          -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
-          -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} \
-          ../tf2_bot_detector_updater/
+        cmake -G Ninja -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} ../
         cmake --build . --config ${{ matrix.build_type }}
 
     - name: Sign artifacts
