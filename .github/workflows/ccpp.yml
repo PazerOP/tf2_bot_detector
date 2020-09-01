@@ -99,6 +99,12 @@ jobs:
         path: |
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
+    - uses: lukka/run-vcpkg@v3.3
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
+        setupOnly: true
+        doNotCache: true
+
 
     # - name: run-vcpkg
     #   uses: lukka/run-vcpkg@v3.2
@@ -246,6 +252,11 @@ jobs:
         path: |
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
+    - uses: lukka/run-vcpkg@v3.3
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
+        setupOnly: true
+        doNotCache: true
 
     # - name: run-vcpkg
     #   uses: lukka/run-vcpkg@v3.2
