@@ -108,7 +108,7 @@ jobs:
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
-      shell: bash
+      # shell: bash
       env:
         VCPKG_FEATURE_FLAGS: manifests
       run: |
