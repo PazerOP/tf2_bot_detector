@@ -196,9 +196,6 @@ jobs:
       uses: nick-invision/persist-action-data@v1
       with:
         retrieve_variables: TF2BD_VERSION
-    - name: Determine artifact behavior
-      if: matrix.discord_integration == true
-      run: echo "::set-env name=TF2BD_ENABLE_ARTIFACT_UPLOAD::1"
 
     - name: Config cross-platform paths
       id: tf2bd_paths
@@ -221,7 +218,6 @@ jobs:
         echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
         echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
         echo "matrix.build_type = ${{ matrix.build_type }}"
-        echo "env.TF2BD_ENABLE_ARTIFACT_UPLOAD = ${{ env.TF2BD_ENABLE_ARTIFACT_UPLOAD }}"
         echo "env.TF2BD_VERSION = ${{ env.TF2BD_VERSION }}"
         echo "steps.tf2bd_paths.outputs.workspace = ${{ steps.tf2bd_paths.outputs.workspace }}"
         echo "steps.tf2bd_paths.outputs.build_dir = ${{ steps.tf2bd_paths.outputs.build_dir }}"
@@ -276,7 +272,6 @@ jobs:
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: tf2_bot_detector_updater"
-      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD
       uses: actions/upload-artifact@v2
       with:
         name: "updater_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
@@ -285,7 +280,7 @@ jobs:
           ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe
 
     - name: "Artifacts: symbols"
-      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
+      if: startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
         name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
