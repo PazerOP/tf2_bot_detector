@@ -134,15 +134,6 @@ jobs:
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
-    - name: "Artifacts: tf2_bot_detector_updater"
-      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD
-      uses: actions/upload-artifact@v2
-      with:
-        name: "updater_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
-        path: |
-          ${{ steps.tf2bd_paths.outputs.build_dir }}/tf2_bot_detector_updater/*.dll
-          ${{ steps.tf2bd_paths.outputs.build_dir }}/tf2_bot_detector_updater/*.exe
-
     - name: "Artifacts: Fresh, signed exe"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
@@ -173,6 +164,125 @@ jobs:
         name: "tf2-bot-detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         if-no-files-found: error
         path: ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
+
+    - name: "Artifacts: symbols"
+      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
+      uses: actions/upload-artifact@v2
+      with:
+        name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        path: "${{ steps.tf2bd_paths.outputs.build_dir }}/**.pdb"
+
+
+
+  build_updater:
+    needs: setup_version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # fail-fast: false
+      matrix:
+        os: [windows-latest]
+        triplet: [x86-windows, x64-windows]
+        build_type: [Debug, Release]
+        include:
+          - os: windows-latest
+            triplet: x86-windows
+            tf2bd_arch: x86
+          - os: windows-latest
+            triplet: x64-windows
+            tf2bd_arch: x64
+
+    steps:
+    - name: Retrieve TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        retrieve_variables: TF2BD_VERSION
+    - name: Determine artifact behavior
+      if: matrix.discord_integration == true
+      run: echo "::set-env name=TF2BD_ENABLE_ARTIFACT_UPLOAD::1"
+
+    - name: Config cross-platform paths
+      id: tf2bd_paths
+      shell: bash
+      run: |
+        tf2bd_workspace=`realpath "${{ github.workspace }}"`
+        echo "::set-output name=workspace::$tf2bd_workspace"
+        echo "::set-output name=build_dir::$tf2bd_workspace/tf2bd_cmake_build_dir/"
+
+    - name: Debug
+      run: |
+        echo "github.event = ${{ github.event }}"
+        echo "github.event_name = ${{ github.event_name }}"
+        echo "github.sha = ${{ github.sha }}"
+        echo "github.ref = ${{ github.ref }}"
+        echo "github.run_id = ${{ github.run_id }}"
+        echo "github.run_number = ${{ github.run_number }}"
+        echo "matrix.os = ${{ matrix.os }}"
+        echo "matrix.triplet = ${{ matrix.triplet }}"
+        echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
+        echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
+        echo "matrix.build_type = ${{ matrix.build_type }}"
+        echo "env.TF2BD_ENABLE_ARTIFACT_UPLOAD = ${{ env.TF2BD_ENABLE_ARTIFACT_UPLOAD }}"
+        echo "env.TF2BD_VERSION = ${{ env.TF2BD_VERSION }}"
+        echo "steps.tf2bd_paths.outputs.workspace = ${{ steps.tf2bd_paths.outputs.workspace }}"
+        echo "steps.tf2bd_paths.outputs.build_dir = ${{ steps.tf2bd_paths.outputs.build_dir }}"
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: run-vcpkg
+      uses: lukka/run-vcpkg@v3.2
+      env:
+        VCPKG_JSON_FILE: '${{ github.workspace }}/vcpkg.json'
+        VCPKG_FEATURE_FLAGS: -manifests
+      with:
+        vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
+        vcpkgArguments: 'fmt --dry-run'
+        vcpkgTriplet: ${{ matrix.triplet }}
+        appendedCacheKey: ${{ hashFiles(env.VCPKG_JSON_FILE) }}
+
+    - name: Configure build tools
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.tf2bd_arch }}
+
+    - name: CMake
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      shell: bash
+      env:
+        VCPKG_FEATURE_FLAGS: manifests
+      run: |
+        mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
+        cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
+        cmake -G Ninja \
+          -DTF2BD_IS_CI_COMPILE=ON \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
+          -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
+          -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} \
+          ../tf2_bot_detector_updater/
+        cmake --build . --config ${{ matrix.build_type }}
+
+    - name: Sign artifacts
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      uses: PazerOP/code-sign-action@v3
+      with:
+        folder: '${{ steps.tf2bd_paths.outputs.build_dir }}'
+        recursive: true
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+    - name: "Artifacts: tf2_bot_detector_updater"
+      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD
+      uses: actions/upload-artifact@v2
+      with:
+        name: "updater_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        path: |
+          ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll
+          ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe
 
     - name: "Artifacts: symbols"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
