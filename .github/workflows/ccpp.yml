@@ -255,6 +255,9 @@ jobs:
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cmake -G Ninja \
           -DTF2BD_IS_CI_COMPILE=ON \
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
+          -DVCPKG_CRT_LINKAGE=static \
+          -DVCPKG_LIBRARY_LINKAGE=static \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
