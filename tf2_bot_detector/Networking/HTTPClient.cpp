@@ -14,6 +14,7 @@ std::string HTTPClient::GetString(const URL& url) const
 {
 	httplib::SSLClient client(url.m_Host, url.m_Port);
 	client.set_follow_location(true);
+	client.set_read_timeout(10);
 
 	httplib::Headers headers =
 	{
