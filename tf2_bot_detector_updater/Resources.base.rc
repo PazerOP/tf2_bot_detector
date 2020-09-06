@@ -15,7 +15,7 @@ BEGIN
 		VALUE "FileVersion",      "${CMAKE_PROJECT_VERSION}"
 		VALUE "ProductName",      "TF2 Bot Detector Updater"
 		VALUE "ProductVersion",	  "${CMAKE_PROJECT_VERSION}"
-        END
+		END
 	END
 	BLOCK "VarFileInfo"
 	BEGIN
