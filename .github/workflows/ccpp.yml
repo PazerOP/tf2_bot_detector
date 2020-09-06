@@ -356,6 +356,7 @@ jobs:
           | tee msix/package_staging/AppxManifest.xml
 
     - name: Create msix package
+      shell: cmd
       run: |
         cd msix
         makeappx.exe pack /d package_staging /p ${{ env.TF2BD_MSIX_FILENAME }}
@@ -411,6 +412,7 @@ jobs:
       run: echo "::set-env name=TF2BD_MSIXBUNDLE_NAME::tf2-bot-detector_windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msixbundle"
 
     - name: Create bundle
+      shell: cmd
       run: |
         cd msix
         makeappx bundle /d bundle_staging /bv ${{ env.TF2BD_VERSION }} /p ${{ env.TF2BD_MSIXBUNDLE_NAME }}
