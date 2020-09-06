@@ -284,36 +284,6 @@ void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable
 		LogException(MH_SOURCE_LOCATION_CURRENT(), exception);
 		throw exception;
 	}
-
-#if 0
-	STARTUPINFOW startupInfo{};
-	startupInfo.cb = sizeof(startupInfo);
-	PROCESS_INFORMATION processInfo{};
-
-	const auto result = CreateProcessW(
-		nullptr, //mh::format(L"{}", executable).c_str(),
-		cmdLine.data(),
-		nullptr,
-		nullptr,
-		FALSE,
-		0,
-		nullptr,
-		nullptr,
-		&startupInfo,
-		&processInfo);
-
-	CloseHandle(processInfo.hThread);
-	CloseHandle(processInfo.hProcess);
-
-	if (result == 0)
-	{
-		const auto err = GetLastError();
-		auto exception = GetLastErrorException(E_FAIL, err,
-			mh::format("CreateProcessW() returned {}", MH_SOURCE_LOCATION_CURRENT(), result));
-		LogException(MH_SOURCE_LOCATION_CURRENT(), exception);
-		throw exception;
-	}
-#endif
 }
 
 int tf2_bot_detector::Processes::GetCurrentProcessID()

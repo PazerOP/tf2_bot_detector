@@ -1,5 +1,5 @@
-#include "Common.h"
 #include "Update_MSIX.h"
+#include "Common.h"
 
 #include <mh/source_location.hpp>
 #include <mh/text/format.hpp>

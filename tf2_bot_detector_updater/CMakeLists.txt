@@ -5,13 +5,19 @@ include(../cmake/init-preproject.cmake)
 include(../cmake/init-postproject.cmake)
 
 add_executable(tf2_bot_detector_updater
-	"main.cpp"
+	"Platform/Platform.h"
 	"Common.h"
+	"main.cpp"
+	"Update_Portable.cpp"
+	"Update_Portable.h"
 )
+
+target_include_directories(tf2_bot_detector_updater PRIVATE .)
 
 if (WIN32)
 	configure_file(Resources.base.rc Resources.rc)
 	target_sources(tf2_bot_detector_updater PRIVATE
+		"Platform/Windows/Platform_Windows.cpp"
 		"Resources.rc"
 		"Update_MSIX.cpp"
 		"Update_MSIX.h"

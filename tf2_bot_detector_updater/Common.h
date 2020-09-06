@@ -4,6 +4,7 @@
 
 #include <mh/reflection/enum.hpp>
 
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -20,13 +21,18 @@ namespace tf2_bot_detector::Updater
 		// MSI -- maybe one day...
 #endif
 
-		//Portable,
+		Portable,
 	};
 
 	struct CmdLineArgs
 	{
+		bool m_PauseOnError = true;
+
 		UpdateType m_UpdateType = UpdateType::Unknown;
 		ReleaseChannel m_ReleaseChannel = ReleaseChannel::None;
+
+		std::filesystem::path m_SourcePath;
+		std::filesystem::path m_DestPath;
 	};
 
 	extern CmdLineArgs s_CmdLineArgs;
@@ -34,6 +40,7 @@ namespace tf2_bot_detector::Updater
 
 MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Updater::UpdateType)
 	MH_ENUM_REFLECT_VALUE(Unknown)
+	MH_ENUM_REFLECT_VALUE(Portable)
 
 #ifdef _WIN32
 	MH_ENUM_REFLECT_VALUE(MSIX)

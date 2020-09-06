@@ -601,15 +601,14 @@ namespace
 
 				Platform::Processes::Launch(updaterPath,
 					{
-						"--portable-new-version-path", newVersionPath.string(),
-						"--portable-extraction-path", extractionPath.string(),
+						"--update-type", "Portable",
+						"--source-path", newVersionPath.string(),
+						"--dest-path", extractionPath.string(),
 						"--wait-pid", std::to_string(pid),
-					}, true);
+					});
 
 				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "Exiting now for portable-mode update...");
 				std::exit(1);
-				__debugbreak();
-				throw "TODO";
 			});
 	}
 

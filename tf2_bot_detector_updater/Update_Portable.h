@@ -2,5 +2,5 @@
 
 namespace tf2_bot_detector::Updater
 {
-	[[nodiscard]] int Update_MSIX();
+	[[nodiscard]] int Update_Portable();
 }
