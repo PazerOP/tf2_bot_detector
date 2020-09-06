@@ -17,8 +17,3 @@ add_subdirectory("submodules/cppcoro")
 
 option(TF2BD_ENABLE_DISCORD_INTEGRATION "Enable discord integration" on)
 option(TF2BD_ENABLE_TESTS "Enable test compilation" off)
-
-# TODO: Find a way to do this locally
-if(MSVC)
-	target_compile_options(tf2_bot_detector PRIVATE /WX)
-endif()

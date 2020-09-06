@@ -58,4 +58,9 @@ if (MSVC)
 	else()
 		set(TF2BD_RESOURCE_FILEFLAGS "VS_FF_DEBUG")
 	endif()
+
+	# TODO: Find a way to do this locally
+	if(MSVC)
+		add_compile_options(/WX)
+	endif()
 endif()
