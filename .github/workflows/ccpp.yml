@@ -145,8 +145,9 @@ jobs:
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
-      if: matrix.build_type == 'Release' && env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
+      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       run: |
+        echo "Copying build artifacts to staging..."
         cp -v ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
         echo "Performing smartscreen workaround..."
@@ -156,6 +157,9 @@ jobs:
         echo "Hash of cached exe: "
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
 
+    - name: "Artifacts: staging -> tf2bd-util nightly archive"
+      if: matrix.build_type.name == 'Release' && env.TF2BD_ENABLE_ARTIFACT_UPLOAD
+      run: |
         echo "Uploading artifact to tf2bd-util..."
         cd "${{ steps.tf2bd_paths.outputs.workspace }}/staging/"
         7z a -so data.zip * | curl -T - "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=MainToolPortable&os=windows&arch=${{ matrix.tf2bd_arch }}"
