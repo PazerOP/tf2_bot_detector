@@ -145,7 +145,7 @@ jobs:
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
-      if: matrix.build_type == "Release" && env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
+      if: matrix.build_type == 'Release' && env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       run: |
         cp -v ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
@@ -277,7 +277,7 @@ jobs:
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: tf2_bot_detector_updater -> tf2bd-util nightly archive"
-      if: matrix.build_type == "Release"
+      if: matrix.build_type == 'Release'
       run: |
         echo "Uploading artifact to tf2bd-util..."
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
@@ -423,7 +423,7 @@ jobs:
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: msix bundle -> tf2bd-util nightly archive"
-      if: matrix.build_type.name == "Release"
+      if: matrix.build_type.name == 'Release'
       run: |
         echo "Uploading artifact to tf2bd-util..."
         curl -T "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}" "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=MainToolMSIXBundle&os=windows&arch=AnyCPU"
