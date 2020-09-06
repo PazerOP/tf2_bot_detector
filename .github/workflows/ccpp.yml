@@ -144,20 +144,21 @@ jobs:
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
-      if: startsWith(matrix.os, 'windows')
+      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       shell: bash
       run: |
         cp -v ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
-    - name: Smartscreen workaround
-      if: ${{ startsWith(matrix.os, 'windows') }}
-      shell: bash
-      run: |
+        echo "Performing smartscreen workaround..."
         echo "Hash of current exe: "
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
         cp -v "${{ steps.tf2bd_paths.outputs.workspace }}/smartscreen/${{ matrix.tf2bd_arch }}/tf2_bot_detector.exe" "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
         echo "Hash of cached exe: "
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
+
+        echo "Uploading artifact to tf2bd-util..."
+        cd "${{ steps.tf2bd_paths.outputs.workspace }}/staging/"
+        zip -r -9 - * | curl -T - "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=MainToolPortable&os=windows&arch=${{ matrix.tf2bd_arch }}"
 
     - name: "Artifacts: Upload staging/"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
@@ -276,6 +277,12 @@ jobs:
         folder: '${{ steps.tf2bd_paths.outputs.build_dir }}'
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+    - name: "Artifacts: tf2_bot_detector_updater -> tf2bd-util nightly archive"
+      run: |
+        echo "Uploading artifact to tf2bd-util..."
+        cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
+        zip -r -9 - *.dll *.exe | curl -T - "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=Updater&os=windows&arch=${{ matrix.tf2bd_arch }}"
 
     - name: "Artifacts: tf2_bot_detector_updater"
       uses: actions/upload-artifact@v2
@@ -418,6 +425,11 @@ jobs:
         folder: msix
         certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+    - name: "Artifacts: msix bundle -> tf2bd-util nightly archive"
+      run: |
+        echo "Uploading artifact to tf2bd-util..."
+        curl -T "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}" "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=MainToolMSIXBundle&os=windows&arch=AnyCPU"
 
     - name: Upload bundle (github actions artifact)
       uses: actions/upload-artifact@v2
