@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string_view>
 
+#include "Update_Portable.h"
 #ifdef _WIN32
 #include "Update_MSIX.h"
 #endif
@@ -143,8 +144,11 @@ CmdLineArgs tf2_bot_detector::Updater::s_CmdLineArgs;
 	case UpdateType::MSIX:
 		return Update_MSIX();
 #endif
+	case UpdateType::Portable:
+		return Update_Portable();
+
 	default:
-		std::cerr << "Unhandled UpdateType(" << int(s_CmdLineArgs.m_UpdateType) << ')' << std::endl;
+		std::cerr << mh::format("Unhandled UpdateType {}", s_CmdLineArgs.m_UpdateType) << std::endl;
 		return 1;
 	}
 }
