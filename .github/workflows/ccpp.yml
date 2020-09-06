@@ -8,6 +8,10 @@ on:
       - '*.md'
       - '*.appinstaller_template'
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   setup_version:
     runs-on: windows-latest
@@ -16,7 +20,6 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Extract TF2BD_VERSION
-      shell: bash
       run: |
         mkdir build_dir
         cd build_dir
@@ -61,7 +64,6 @@ jobs:
 
     - name: Config cross-platform paths
       id: tf2bd_paths
-      shell: bash
       run: |
         tf2bd_workspace=`realpath "${{ github.workspace }}"`
         echo "::set-output name=workspace::$tf2bd_workspace"
@@ -109,7 +111,6 @@ jobs:
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
-      shell: bash
       env:
         VCPKG_FEATURE_FLAGS: manifests
         RUNVCPKG_VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
@@ -144,8 +145,7 @@ jobs:
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
-      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
-      shell: bash
+      if: matrix.build_type == "Release" && env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       run: |
         cp -v ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
@@ -202,7 +202,6 @@ jobs:
 
     - name: Config cross-platform paths
       id: tf2bd_paths
-      shell: bash
       run: |
         tf2bd_workspace=`realpath "${{ github.workspace }}"`
         echo "::set-output name=workspace::$tf2bd_workspace"
@@ -249,7 +248,6 @@ jobs:
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
-      shell: bash
       env:
         VCPKG_FEATURE_FLAGS: manifests
         RUNVCPKG_VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
@@ -279,6 +277,7 @@ jobs:
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: tf2_bot_detector_updater -> tf2bd-util nightly archive"
+      if: matrix.build_type == "Release"
       run: |
         echo "Uploading artifact to tf2bd-util..."
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
@@ -344,11 +343,9 @@ jobs:
         path: msix/package_staging/app
 
     - name: Mark as non-portable
-      shell: bash
       run: touch msix/package_staging/app/cfg/.non_portable
 
     - name: Find and replace data in package config
-      shell: bash
       run: |
         cat msix/package_staging/AppxManifest.xml \
           | sed 's/TF2BD_PROCESSOR_ARCH_REPLACE_ME/${{ matrix.tf2bd_arch }}/g' \
@@ -411,7 +408,6 @@ jobs:
         path: msix/bundle_staging
 
     - name: Config msixbundle name
-      shell: bash
       run: echo "::set-env name=TF2BD_MSIXBUNDLE_NAME::tf2-bot-detector_windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msixbundle"
 
     - name: Create bundle
@@ -427,6 +423,7 @@ jobs:
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: msix bundle -> tf2bd-util nightly archive"
+      if: matrix.build_type.name == "Release"
       run: |
         echo "Uploading artifact to tf2bd-util..."
         curl -T "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}" "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=MainToolMSIXBundle&os=windows&arch=AnyCPU"
