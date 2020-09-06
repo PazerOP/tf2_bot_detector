@@ -14,6 +14,7 @@
 #include <thread>
 
 #include <Windows.h>
+#include <shellapi.h>
 #include "WindowsHelpers.h"
 #include <comutil.h>
 #include <Wbemidl.h>
@@ -257,15 +258,34 @@ void tf2_bot_detector::Processes::RequireTF2NotRunning()
 	}
 }
 
-void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable, const std::vector<std::string>& args)
+void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable,
+	const std::vector<std::string>& args, bool elevated)
 {
 	std::wstring cmdLine;
 
-	cmdLine << executable << L' ';
+	//cmdLine << executable << L' ';
 
 	for (const auto& arg : args)
 		cmdLine << std::quoted(mh::change_encoding<wchar_t>(arg)) << L' ';
 
+	const auto result = ShellExecuteW(
+		NULL,
+		elevated ? L"runas" : L"open",
+		executable.c_str(),
+		cmdLine.c_str(),
+		nullptr,
+		SW_SHOWDEFAULT);
+
+	if (reinterpret_cast<intptr_t>(result) <= 32)
+	{
+		auto exception = std::runtime_error(
+			mh::format("ShellExecuteW returned {}", reinterpret_cast<intptr_t>(result)));
+
+		LogException(MH_SOURCE_LOCATION_CURRENT(), exception);
+		throw exception;
+	}
+
+#if 0
 	STARTUPINFOW startupInfo{};
 	startupInfo.cb = sizeof(startupInfo);
 	PROCESS_INFORMATION processInfo{};
@@ -293,6 +313,7 @@ void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable
 		LogException(MH_SOURCE_LOCATION_CURRENT(), exception);
 		throw exception;
 	}
+#endif
 }
 
 int tf2_bot_detector::Processes::GetCurrentProcessID()

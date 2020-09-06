@@ -10,7 +10,9 @@ add_executable(tf2_bot_detector_updater
 )
 
 if (WIN32)
+	configure_file(Resources.base.rc Resources.rc)
 	target_sources(tf2_bot_detector_updater PRIVATE
+		"Resources.rc"
 		"Update_MSIX.cpp"
 		"Update_MSIX.h"
 	)

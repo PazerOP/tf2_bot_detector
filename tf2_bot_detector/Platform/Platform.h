@@ -62,6 +62,8 @@ namespace tf2_bot_detector
 		std::future<InstallUpdate::Result> BeginInstallUpdate(const BuildInfo& bi, const HTTPClient& client);
 		bool IsInstalled(); // As opposed to portable
 
+		bool NeedsElevationToWrite(const std::filesystem::path& path, bool recursive = false);
+
 		namespace Processes
 		{
 			bool IsTF2Running();
@@ -69,7 +71,8 @@ namespace tf2_bot_detector
 			bool IsSteamRunning();
 			void RequireTF2NotRunning();
 
-			void Launch(const std::filesystem::path& executable, const std::vector<std::string>& args = {});
+			void Launch(const std::filesystem::path& executable, const std::vector<std::string>& args = {},
+				bool elevated = false);
 			int GetCurrentProcessID();
 		}
 
