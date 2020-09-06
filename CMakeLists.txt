@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
 include(cmake/init-preproject.cmake)
-	project(tf2_bot_detector VERSION 1.1.0)
+	project(tf2_bot_detector)
 include(cmake/init-postproject.cmake)
 
 add_subdirectory(submodules/ValveFileVDF)

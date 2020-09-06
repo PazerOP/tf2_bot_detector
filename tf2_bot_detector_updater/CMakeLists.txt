@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
 include(../cmake/init-preproject.cmake)
-	project(tf2_bot_detector_updater VERSION 1.0.0)
+	project(tf2_bot_detector_updater)
 include(../cmake/init-postproject.cmake)
 
 add_executable(tf2_bot_detector_updater

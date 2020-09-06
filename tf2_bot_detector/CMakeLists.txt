@@ -156,11 +156,6 @@ target_precompile_headers(tf2_bot_detector
 )
 
 if(WIN32)
-	if ((CMAKE_BUILD_TYPE MATCHES "Release"))
-		set(TF2BD_RESOURCE_FILEFLAGS "0")
-	else()
-		set(TF2BD_RESOURCE_FILEFLAGS "VS_FF_DEBUG")
-	endif()
 	configure_file(Resources.base.rc Resources.rc)
 
 	target_sources(tf2_bot_detector PRIVATE

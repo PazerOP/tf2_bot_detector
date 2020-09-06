@@ -21,8 +21,8 @@ jobs:
         mkdir build_dir
         cd build_dir
         cmake ../ || true     # we know this will fail, we just need version info from CMakeCache.txt
-        TF2BD_VERSION=`cat CMakeCache.txt | grep CMAKE_PROJECT_VERSION: | cut -d "=" -f2`
-        echo "::set-env name=TF2BD_VERSION::$TF2BD_VERSION.${{ github.run_number }}"
+        TF2BD_VERSION_NOBUILD=`cat CMakeCache.txt | grep TF2BD_VERSION_NOBUILD: | cut -d "=" -f2`
+        echo "::set-env name=TF2BD_VERSION::$TF2BD_VERSION_NOBUILD.${{ github.run_number }}"
 
     - name: Store TF2BD_VERSION
       uses: nick-invision/persist-action-data@v1
@@ -118,12 +118,13 @@ jobs:
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cmake -G Ninja \
           -DTF2BD_IS_CI_COMPILE=ON \
+          --warn-uninitialized \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
-          -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} \
+          -DTF2BD_VERSION_BUILD=${{ github.run_number }} \
           ../
         cmake --build . --config ${{ matrix.build_type }}
 
@@ -256,6 +257,7 @@ jobs:
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cmake -G Ninja \
+          --warn-uninitialized \
           -DTF2BD_IS_CI_COMPILE=ON \
           -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
           -DVCPKG_CRT_LINKAGE=static \
@@ -265,7 +267,7 @@ jobs:
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
-          -DCMAKE_PROJECT_VERSION_TWEAK=${{ github.run_number }} \
+          -DTF2BD_VERSION_BUILD=${{ github.run_number }} \
           ../tf2_bot_detector_updater/
         cmake --build . --config ${{ matrix.build_type }}
 
