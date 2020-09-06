@@ -2,6 +2,7 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
+#include <mh/text/codecvt.hpp>
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -254,4 +255,47 @@ void tf2_bot_detector::Processes::RequireTF2NotRunning()
 
 		std::exit(1);
 	}
+}
+
+void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable, const std::vector<std::string>& args)
+{
+	std::wstring cmdLine;
+
+	cmdLine << executable << L' ';
+
+	for (const auto& arg : args)
+		cmdLine << std::quoted(mh::change_encoding<wchar_t>(arg)) << L' ';
+
+	STARTUPINFOW startupInfo{};
+	startupInfo.cb = sizeof(startupInfo);
+	PROCESS_INFORMATION processInfo{};
+
+	const auto result = CreateProcessW(
+		nullptr, //mh::format(L"{}", executable).c_str(),
+		cmdLine.data(),
+		nullptr,
+		nullptr,
+		FALSE,
+		0,
+		nullptr,
+		nullptr,
+		&startupInfo,
+		&processInfo);
+
+	CloseHandle(processInfo.hThread);
+	CloseHandle(processInfo.hProcess);
+
+	if (result == 0)
+	{
+		const auto err = GetLastError();
+		auto exception = GetLastErrorException(E_FAIL, err,
+			mh::format("CreateProcessW() returned {}", MH_SOURCE_LOCATION_CURRENT(), result));
+		LogException(MH_SOURCE_LOCATION_CURRENT(), exception);
+		throw exception;
+	}
+}
+
+int tf2_bot_detector::Processes::GetCurrentProcessID()
+{
+	return ::GetCurrentProcessId();
 }

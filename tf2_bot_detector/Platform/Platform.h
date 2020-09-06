@@ -68,6 +68,9 @@ namespace tf2_bot_detector
 			std::shared_future<std::vector<std::string>> GetTF2CommandLineArgsAsync();
 			bool IsSteamRunning();
 			void RequireTF2NotRunning();
+
+			void Launch(const std::filesystem::path& executable, const std::vector<std::string>& args = {});
+			int GetCurrentProcessID();
 		}
 
 		namespace Shell

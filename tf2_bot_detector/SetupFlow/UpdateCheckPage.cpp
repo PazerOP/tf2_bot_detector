@@ -123,7 +123,7 @@ namespace
 		case UpdateStatus::UpdateAvailable:
 		{
 			ImGui::TextFmt({ 0, 1, 1, 1 }, "Update available: v{} {:v} (current version v{})",
-				update->m_State.m_Version, mh::enum_fmt(update->m_State.m_ReleaseChannel), VERSION);
+				update->m_BuildInfo.m_Version, mh::enum_fmt(update->m_BuildInfo.m_ReleaseChannel), VERSION);
 
 			ImGui::NewLine();
 
@@ -142,10 +142,10 @@ namespace
 
 			ImGui::SameLine();
 
-			ImGui::EnabledSwitch(!update->m_State.m_GitHubURL.empty(), [&]
+			ImGui::EnabledSwitch(!update->m_BuildInfo.m_GitHubURL.empty(), [&]
 				{
 					if (ImGui::Button("View on GitHub"))
-						Shell::OpenURL(update->m_State.m_GitHubURL);
+						Shell::OpenURL(update->m_BuildInfo.m_GitHubURL);
 
 				}, "Unable to determine GitHub URL");
 

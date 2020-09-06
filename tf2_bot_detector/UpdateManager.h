@@ -37,13 +37,13 @@ namespace tf2_bot_detector
 	class IAvailableUpdate
 	{
 	public:
-		IAvailableUpdate(BuildInfo&& bi) : m_State(std::move(bi)) {}
+		IAvailableUpdate(BuildInfo&& bi) : m_BuildInfo(std::move(bi)) {}
 		virtual ~IAvailableUpdate() = default;
 
 		virtual bool CanSelfUpdate() const = 0;
 		virtual void BeginSelfUpdate() const = 0;
 
-		BuildInfo m_State;
+		BuildInfo m_BuildInfo;
 	};
 
 	enum class UpdateStatus

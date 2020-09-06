@@ -8,14 +8,18 @@
 #include "Log.h"
 #include "ReleaseChannel.h"
 
+#include <libzippp/libzippp.h>
 #include <mh/algorithm/multi_compare.hpp>
 #include <mh/future.hpp>
+#include <mh/raii/scope_exit.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/types/disable_copy_move.hpp>
+#include <mh/utility.hpp>
 #include <mh/variant.hpp>
 #include <nlohmann/json.hpp>
 
 #include <compare>
+#include <fstream>
 #include <variant>
 
 using namespace std::string_view_literals;
@@ -84,13 +88,20 @@ namespace
 {
 	class UpdateManager final : public IUpdateManager
 	{
+		struct UpdateToolResult;
+
 		struct AvailableUpdate final : IAvailableUpdate
 		{
-			AvailableUpdate(UpdateManager& parent, BuildInfo&& buildInfo);
+			AvailableUpdate(const HTTPClient& client, UpdateManager& parent, BuildInfo&& buildInfo);
 
 			bool CanSelfUpdate() const override;
 			void BeginSelfUpdate() const override;
+			std::future<UpdateManager::UpdateToolResult> RunPortableUpdate() const;
 
+			const BuildInfo::BuildVariant* m_Updater = nullptr;
+			const BuildInfo::BuildVariant* m_Portable = nullptr;
+
+			std::shared_ptr<const HTTPClient> m_HTTPClient;
 			UpdateManager& m_Parent;
 		};
 
@@ -225,8 +236,17 @@ namespace
 		{
 			try
 			{
-				if (mh::is_future_ready(*future))
-					m_UpdateCheckState.emplace<AvailableUpdate>(*this, future->get());
+				auto client = m_Settings.GetHTTPClient();
+				if (client)
+				{
+					if (mh::is_future_ready(*future))
+						m_UpdateCheckState.emplace<AvailableUpdate>(*client, *this, future->get());
+				}
+				else
+				{
+					LogError(MH_SOURCE_LOCATION_CURRENT(), "HTTPClient unavailable, cancelling update");
+					m_UpdateCheckState.emplace<0>();
+				}
 			}
 			catch (const std::exception& e)
 			{
@@ -274,6 +294,7 @@ namespace
 
 			default:
 				LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown InstallUpdate::Result index {}", result.index());
+				[[fallthrough]];
 			case mh::variant_type_index_v<InstallUpdate::Result, InstallUpdate::StartedNoFeedback>:
 				return UpdateStatus::Updating;
 			case mh::variant_type_index_v<InstallUpdate::Result, InstallUpdate::NeedsUpdateTool>:
@@ -314,7 +335,7 @@ namespace
 		case mh::variant_type_index_v<UpdateCheckState_t, AvailableUpdate>:
 		{
 			auto& update = std::get<AvailableUpdate>(m_UpdateCheckState);
-			return update.m_State.m_Version > VERSION ? UpdateStatus::UpdateAvailable : UpdateStatus::UpToDate;
+			return update.m_BuildInfo.m_Version > VERSION ? UpdateStatus::UpdateAvailable : UpdateStatus::UpToDate;
 		}
 		}
 
@@ -367,26 +388,60 @@ namespace
 		return false;
 	}
 
-	UpdateManager::AvailableUpdate::AvailableUpdate(UpdateManager& parent, BuildInfo&& buildInfo) :
+	static const BuildInfo::BuildVariant* FindNativeVariant(const std::vector<BuildInfo::BuildVariant>& variants)
+	{
+		const auto os = Platform::GetOS();
+		const auto arch = Platform::GetArch();
+
+		for (const auto& variant : variants)
+		{
+			if (variant.m_OS != os)
+				continue;
+			if (variant.m_Arch != arch)
+				continue;
+
+			return &variant;
+		}
+
+		return nullptr;
+	}
+
+	UpdateManager::AvailableUpdate::AvailableUpdate(const HTTPClient& client, UpdateManager& parent, BuildInfo&& buildInfo) :
 		IAvailableUpdate(std::move(buildInfo)),
+		m_HTTPClient(client.shared_from_this()),
 		m_Parent(parent)
 	{
+		m_Updater = FindNativeVariant(m_BuildInfo.m_Updater);
+		m_Portable = FindNativeVariant(m_BuildInfo.m_Portable);
 	}
 
 	bool UpdateManager::AvailableUpdate::CanSelfUpdate() const
 	{
-		if (!m_Parent.m_Settings.GetHTTPClient())
-			return false;
-
 		if (Platform::IsInstalled())
-			return Platform::CanInstallUpdate(m_State);
-
-		// If we're portable, we just need to pass some arguments
-		static const bool s_WarnOnce = []
 		{
-			LogWarning(MH_SOURCE_LOCATION_CURRENT(), "TODO: portable self-update not yet implemented");
-			return false;
-		}();
+			// Installed
+			return Platform::CanInstallUpdate(m_BuildInfo);
+		}
+		else
+		{
+			// Portable mode
+			if (!m_Updater)
+			{
+				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Updater not found for build {}, os {}, platform {}.",
+					m_BuildInfo.m_Version, mh::enum_fmt(Platform::GetOS()), mh::enum_fmt(Platform::GetArch()));
+				return false;
+			}
+
+			if (!m_Portable)
+			{
+				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Portable build not found for v{}, os {}, platform {}.",
+					m_BuildInfo.m_Version, mh::enum_fmt(Platform::GetOS()), mh::enum_fmt(Platform::GetArch()));
+				return false;
+			}
+
+			// We should be good to go
+			return true;
+		}
 
 		return false;
 	}
@@ -406,7 +461,156 @@ namespace
 			std::terminate();
 		}
 
-		m_Parent.m_State = Platform::BeginInstallUpdate(m_State, *client);
+		if (Platform::IsInstalled())
+		{
+			if (Platform::CanInstallUpdate(m_BuildInfo))
+			{
+				Log(MH_SOURCE_LOCATION_CURRENT(), "Platform reports being installed and able to install update");
+				m_Parent.m_State = Platform::BeginInstallUpdate(m_BuildInfo, *client);
+			}
+			else
+			{
+				LogError(MH_SOURCE_LOCATION_CURRENT(), "Platform reports being installed but cannot install update");
+			}
+		}
+		else
+		{
+			Log(MH_SOURCE_LOCATION_CURRENT(), "Platform reports *not* being installed. Running portable update.");
+			m_Parent.m_State = RunPortableUpdate();
+		}
+	}
+
+	static void ExtractArchive(const libzippp::ZipArchive& archive, const std::filesystem::path& directory)
+	{
+		try
+		{
+			std::filesystem::create_directories(directory);
+		}
+		catch (...)
+		{
+			std::throw_with_nested(std::runtime_error(mh::format("{}: Failed to create directory(s) for {}",
+				MH_SOURCE_LOCATION_CURRENT(), directory)));
+		}
+
+		try
+		{
+			for (const auto& entry : archive.getEntries())
+			{
+				const std::filesystem::path path = directory / entry.getName();
+				if (!entry.isFile())
+					continue;
+
+				std::filesystem::create_directories(mh::copy(path).remove_filename());
+
+				std::ofstream file(path, std::ios::binary);
+				file.exceptions(std::ios::badbit | std::ios::failbit);
+
+				const auto result = entry.readContent(file);
+				if (result != LIBZIPPP_OK)
+				{
+					throw std::runtime_error(mh::format("{}: entry.readContent() returned {}",
+						MH_SOURCE_LOCATION_CURRENT(), result));
+				}
+			}
+		}
+		catch (...)
+		{
+			std::throw_with_nested(std::runtime_error(mh::format("{}: Failed to extract archive entries",
+				MH_SOURCE_LOCATION_CURRENT())));
+		}
+	}
+
+	static void SaveFile(const std::filesystem::path& path, const void* dataBegin, const void* dataEnd)
+	{
+		std::filesystem::create_directories(mh::copy(path).remove_filename());
+
+		std::ofstream file(path, std::ios::binary | std::ios::trunc);
+		file.exceptions(std::ios::badbit | std::ios::failbit);
+		file.write(reinterpret_cast<const char*>(dataBegin),
+			static_cast<const std::byte*>(dataEnd) - static_cast<const std::byte*>(dataBegin));
+	}
+
+	static void DownloadAndExtractZip(const HTTPClient& client, const URL& url,
+		const std::filesystem::path& extractDir)
+	{
+		Log(MH_SOURCE_LOCATION_CURRENT(), "Downloading {}...", url);
+		const auto data = client.GetString(url);
+
+		// Need to save to a file due to a libzippp bug in ZipArchive::fromBuffer
+		const auto tempZipPath = mh::copy(extractDir).replace_extension(".zip");
+		Log(MH_SOURCE_LOCATION_CURRENT(), "Saving zip to {}...", tempZipPath);
+
+		mh::scope_exit scopeExit([&]
+			{
+				Log(MH_SOURCE_LOCATION_CURRENT(), "Deleting {}...", tempZipPath);
+				std::filesystem::remove(tempZipPath);
+			});
+
+		SaveFile(tempZipPath, data.data(), data.data() + data.size());
+
+		{
+			using namespace libzippp;
+			Log(MH_SOURCE_LOCATION_CURRENT(), "Extracting {} to {}...", tempZipPath, extractDir);
+			ZipArchive archive(tempZipPath.string());
+			archive.open();
+			ExtractArchive(archive, extractDir);
+		}
+	}
+
+	std::future<UpdateManager::UpdateToolResult>
+		UpdateManager::AvailableUpdate::RunPortableUpdate() const
+	{
+		if (!m_Updater)
+			throw std::logic_error("Updater was null, we should never get here");
+		if (!m_Portable)
+			throw std::logic_error("Portable was null, we should never get here");
+
+		auto updaterVariant = *m_Updater;
+		auto toolVariant = *m_Portable;
+		auto client = m_HTTPClient;
+		return std::async([updaterVariant, toolVariant, client]() -> UpdateManager::UpdateToolResult
+			{
+				const auto tempDirRoot =
+					std::filesystem::temp_directory_path() / "TF2 Bot Detector" / "Portable Updates";
+				const auto tempDirUpdater = tempDirRoot / mh::format("updater_{}",
+					std::chrono::high_resolution_clock::now().time_since_epoch().count());
+				const auto tempDirTool = tempDirRoot / mh::format("tool_{}",
+					std::chrono::high_resolution_clock::now().time_since_epoch().count());
+
+				DownloadAndExtractZip(*client, updaterVariant.m_DownloadURL, tempDirUpdater);
+				DownloadAndExtractZip(*client, toolVariant.m_DownloadURL, tempDirTool);
+
+				// FIXME linux
+				const auto updaterPath = tempDirUpdater / "tf2_bot_detector_updater.exe";
+				const auto newVersionPath = tempDirTool;
+				const auto extractionPath = Platform::GetCurrentExeDir();
+				const auto pid = Platform::Processes::GetCurrentProcessID();
+
+				// Run updater
+				Log(MH_SOURCE_LOCATION_CURRENT(),
+					"Launching updater..."
+					"\n\tUpdater Path: {}"
+					"\n\tNew version path: {}"
+					"\n\tExtraction path: {}"
+					"\n\tPID: {}",
+					updaterPath,
+					newVersionPath,
+					extractionPath,
+					pid
+					);
+
+				Platform::Processes::Launch(updaterPath,
+					{
+						"--portable-new-version-path", newVersionPath.string(),
+						"--portable-extraction-path", extractionPath.string(),
+						"--wait-pid", std::to_string(pid),
+					});
+
+				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "Exiting now for portable-mode update...");
+				std::exit(1);
+				__debugbreak();
+				throw "TODO";
+			});
 	}
 
 	UpdateManager::BaseExceptionData::BaseExceptionData(const std::type_info& type, std::string message,

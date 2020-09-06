@@ -10,7 +10,7 @@
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
-std::string HTTPClient::GetString(const URL& url) const
+std::string HTTPClient::GetString(const URL& url) const try
 {
 	httplib::SSLClient client(url.m_Host, url.m_Port);
 	client.set_follow_location(true);
@@ -29,4 +29,9 @@ std::string HTTPClient::GetString(const URL& url) const
 		throw http_error(response->status);
 
 	return response->body;
+}
+catch (const std::exception& e)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT(), e, "{}", url);
+	throw;
 }

@@ -136,7 +136,7 @@ namespace tf2_bot_detector
 	} \
 	\
 	template<typename... TArgs> \
-	NOINLINE inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...); \
 	} \
