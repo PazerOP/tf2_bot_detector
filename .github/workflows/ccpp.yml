@@ -158,7 +158,7 @@ jobs:
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
 
     - name: "Artifacts: staging -> tf2bd-util nightly archive"
-      if: matrix.build_type.name == 'Release' && env.TF2BD_ENABLE_ARTIFACT_UPLOAD
+      if: matrix.build_type == 'Release' && env.TF2BD_ENABLE_ARTIFACT_UPLOAD
       run: |
         echo "Uploading artifact to tf2bd-util..."
         cd "${{ steps.tf2bd_paths.outputs.workspace }}/staging/"
