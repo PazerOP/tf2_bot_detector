@@ -118,7 +118,6 @@ jobs:
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cmake -G Ninja \
           -DTF2BD_IS_CI_COMPILE=ON \
-          --warn-uninitialized \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
@@ -257,7 +256,6 @@ jobs:
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cmake -G Ninja \
-          --warn-uninitialized \
           -DTF2BD_IS_CI_COMPILE=ON \
           -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
           -DVCPKG_CRT_LINKAGE=static \
