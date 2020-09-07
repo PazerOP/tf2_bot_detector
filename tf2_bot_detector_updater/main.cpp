@@ -43,7 +43,10 @@ CmdLineArgs tf2_bot_detector::Updater::s_CmdLineArgs;
 		if (s_CmdLineArgs.m_ReleaseChannel == ReleaseChannel::None)
 		{
 			std::cerr << mh::format("Release channel not specified. Use --release-channel <{:v}|{:v}|{:v}>",
-				ReleaseChannel::Public, ReleaseChannel::Preview, ReleaseChannel::Nightly) << std::endl;
+				mh::enum_fmt(ReleaseChannel::Public),
+				mh::enum_fmt(ReleaseChannel::Preview),
+				mh::enum_fmt(ReleaseChannel::Nightly))
+				<< std::endl;
 			return 1;
 		}
 	}
@@ -148,7 +151,7 @@ CmdLineArgs tf2_bot_detector::Updater::s_CmdLineArgs;
 		return Update_Portable();
 
 	default:
-		std::cerr << mh::format("Unhandled UpdateType {}", s_CmdLineArgs.m_UpdateType) << std::endl;
+		std::cerr << mh::format("Unhandled UpdateType {}", mh::enum_fmt(s_CmdLineArgs.m_UpdateType)) << std::endl;
 		return 1;
 	}
 }
