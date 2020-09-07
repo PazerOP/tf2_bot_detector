@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.17)
 
+option(TF2BD_ENABLE_DISCORD_INTEGRATION "Enable discord integration" on)
+option(TF2BD_ENABLE_TESTS "Enable test compilation" off)
+
 include(cmake/init-preproject.cmake)
 	project(tf2_bot_detector)
 include(cmake/init-postproject.cmake)
@@ -14,6 +17,3 @@ add_subdirectory(tf2_bot_detector)
 
 set(ENABLE_EXAMPLES off CACHE BOOL "Build examples" FORCE)
 add_subdirectory("submodules/cppcoro")
-
-option(TF2BD_ENABLE_DISCORD_INTEGRATION "Enable discord integration" on)
-option(TF2BD_ENABLE_TESTS "Enable test compilation" off)

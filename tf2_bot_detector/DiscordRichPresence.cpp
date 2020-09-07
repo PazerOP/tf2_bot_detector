@@ -77,22 +77,28 @@ static constexpr LogMessageColor DISCORD_LOG_COLOR{ 117 / 255.0f, 136 / 255.0f, 
 
 static bool s_DiscordDebugLogEnabled = true;
 
-static void DiscordDebugLog(const std::string_view& msg)
+template<typename... TArgs>
+static auto DiscordDebugLog(const std::string_view& fmtStr, const TArgs&... args) ->
+	decltype(mh::format(fmtStr, args...), void())
 {
 	if (!s_DiscordDebugLogEnabled)
 		return;
 
-	DebugLog(DISCORD_LOG_COLOR, "DRP: {}", msg);
+	DebugLog(DISCORD_LOG_COLOR, "DRP: {}", mh::format(fmtStr, args...));
 }
-static void DiscordDebugLog(const mh::source_location& location, const std::string_view& msg = {})
+
+template<typename... TArgs>
+static auto DiscordDebugLog(const mh::source_location& location,
+	const std::string_view& fmtStr = {}, const TArgs&... args) ->
+	decltype(mh::format(fmtStr, args...), void())
 {
 	if (!s_DiscordDebugLogEnabled)
 		return;
 
-	if (msg.empty())
+	if (fmtStr.empty())
 		DebugLog(DISCORD_LOG_COLOR, location);
 	else
-		DebugLog(DISCORD_LOG_COLOR, location, "DRP: {}", msg);
+		DebugLog(DISCORD_LOG_COLOR, location, "DRP: {}", mh::format(fmtStr, args...));
 }
 
 namespace
@@ -105,94 +111,65 @@ namespace
 	};
 }
 
-#undef OS_CASE
-#define OS_CASE(v) case v : return os << #v
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, discord::Result result)
-{
-	using Result = discord::Result;
+MH_ENUM_REFLECT_BEGIN(discord::Result)
+	MH_ENUM_REFLECT_VALUE(Ok)
+	MH_ENUM_REFLECT_VALUE(ServiceUnavailable)
+	MH_ENUM_REFLECT_VALUE(InvalidVersion)
+	MH_ENUM_REFLECT_VALUE(LockFailed)
+	MH_ENUM_REFLECT_VALUE(InternalError)
+	MH_ENUM_REFLECT_VALUE(InvalidPayload)
+	MH_ENUM_REFLECT_VALUE(InvalidCommand)
+	MH_ENUM_REFLECT_VALUE(InvalidPermissions)
+	MH_ENUM_REFLECT_VALUE(NotFetched)
+	MH_ENUM_REFLECT_VALUE(NotFound)
+	MH_ENUM_REFLECT_VALUE(Conflict)
+	MH_ENUM_REFLECT_VALUE(InvalidSecret)
+	MH_ENUM_REFLECT_VALUE(InvalidJoinSecret)
+	MH_ENUM_REFLECT_VALUE(NoEligibleActivity)
+	MH_ENUM_REFLECT_VALUE(InvalidInvite)
+	MH_ENUM_REFLECT_VALUE(NotAuthenticated)
+	MH_ENUM_REFLECT_VALUE(InvalidAccessToken)
+	MH_ENUM_REFLECT_VALUE(ApplicationMismatch)
+	MH_ENUM_REFLECT_VALUE(InvalidDataUrl)
+	MH_ENUM_REFLECT_VALUE(InvalidBase64)
+	MH_ENUM_REFLECT_VALUE(NotFiltered)
+	MH_ENUM_REFLECT_VALUE(LobbyFull)
+	MH_ENUM_REFLECT_VALUE(InvalidLobbySecret)
+	MH_ENUM_REFLECT_VALUE(InvalidFilename)
+	MH_ENUM_REFLECT_VALUE(InvalidFileSize)
+	MH_ENUM_REFLECT_VALUE(InvalidEntitlement)
+	MH_ENUM_REFLECT_VALUE(NotInstalled)
+	MH_ENUM_REFLECT_VALUE(NotRunning)
+	MH_ENUM_REFLECT_VALUE(InsufficientBuffer)
+	MH_ENUM_REFLECT_VALUE(PurchaseCanceled)
+	MH_ENUM_REFLECT_VALUE(InvalidGuild)
+	MH_ENUM_REFLECT_VALUE(InvalidEvent)
+	MH_ENUM_REFLECT_VALUE(InvalidChannel)
+	MH_ENUM_REFLECT_VALUE(InvalidOrigin)
+	MH_ENUM_REFLECT_VALUE(RateLimited)
+	MH_ENUM_REFLECT_VALUE(OAuth2Error)
+	MH_ENUM_REFLECT_VALUE(SelectChannelTimeout)
+	MH_ENUM_REFLECT_VALUE(GetGuildTimeout)
+	MH_ENUM_REFLECT_VALUE(SelectVoiceForceRequired)
+	MH_ENUM_REFLECT_VALUE(CaptureShortcutAlreadyListening)
+	MH_ENUM_REFLECT_VALUE(UnauthorizedForAchievement)
+	MH_ENUM_REFLECT_VALUE(InvalidGiftCode)
+	MH_ENUM_REFLECT_VALUE(PurchaseError)
+	MH_ENUM_REFLECT_VALUE(TransactionAborted)
+MH_ENUM_REFLECT_END()
 
-	switch (result)
-	{
-		OS_CASE(Result::Ok);
-		OS_CASE(Result::ServiceUnavailable);
-		OS_CASE(Result::InvalidVersion);
-		OS_CASE(Result::LockFailed);
-		OS_CASE(Result::InternalError);
-		OS_CASE(Result::InvalidPayload);
-		OS_CASE(Result::InvalidCommand);
-		OS_CASE(Result::InvalidPermissions);
-		OS_CASE(Result::NotFetched);
-		OS_CASE(Result::NotFound);
-		OS_CASE(Result::Conflict);
-		OS_CASE(Result::InvalidSecret);
-		OS_CASE(Result::InvalidJoinSecret);
-		OS_CASE(Result::NoEligibleActivity);
-		OS_CASE(Result::InvalidInvite);
-		OS_CASE(Result::NotAuthenticated);
-		OS_CASE(Result::InvalidAccessToken);
-		OS_CASE(Result::ApplicationMismatch);
-		OS_CASE(Result::InvalidDataUrl);
-		OS_CASE(Result::InvalidBase64);
-		OS_CASE(Result::NotFiltered);
-		OS_CASE(Result::LobbyFull);
-		OS_CASE(Result::InvalidLobbySecret);
-		OS_CASE(Result::InvalidFilename);
-		OS_CASE(Result::InvalidFileSize);
-		OS_CASE(Result::InvalidEntitlement);
-		OS_CASE(Result::NotInstalled);
-		OS_CASE(Result::NotRunning);
-		OS_CASE(Result::InsufficientBuffer);
-		OS_CASE(Result::PurchaseCanceled);
-		OS_CASE(Result::InvalidGuild);
-		OS_CASE(Result::InvalidEvent);
-		OS_CASE(Result::InvalidChannel);
-		OS_CASE(Result::InvalidOrigin);
-		OS_CASE(Result::RateLimited);
-		OS_CASE(Result::OAuth2Error);
-		OS_CASE(Result::SelectChannelTimeout);
-		OS_CASE(Result::GetGuildTimeout);
-		OS_CASE(Result::SelectVoiceForceRequired);
-		OS_CASE(Result::CaptureShortcutAlreadyListening);
-		OS_CASE(Result::UnauthorizedForAchievement);
-		OS_CASE(Result::InvalidGiftCode);
-		OS_CASE(Result::PurchaseError);
-		OS_CASE(Result::TransactionAborted);
+MH_ENUM_REFLECT_BEGIN(discord::ActivityType)
+	MH_ENUM_REFLECT_VALUE(Playing)
+	MH_ENUM_REFLECT_VALUE(Streaming)
+	MH_ENUM_REFLECT_VALUE(Listening)
+	MH_ENUM_REFLECT_VALUE(Watching)
+MH_ENUM_REFLECT_END()
 
-	default:
-		return os << "Result(" << +std::underlying_type_t<Result>(result) << ')';
-	}
-}
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, discord::ActivityType type)
-{
-	using ActivityType = discord::ActivityType;
-	switch (type)
-	{
-		OS_CASE(ActivityType::Playing);
-		OS_CASE(ActivityType::Streaming);
-		OS_CASE(ActivityType::Listening);
-		OS_CASE(ActivityType::Watching);
-
-	default:
-		return os << "ActivityType(" << +std::underlying_type_t<ActivityType>(type) << ')';
-	}
-}
-
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, ConnectionState cs)
-{
-	switch (cs)
-	{
-		OS_CASE(ConnectionState::Disconnected);
-		OS_CASE(ConnectionState::Local);
-		OS_CASE(ConnectionState::Nonlocal);
-
-	default:
-		return os << "ConnectionState(" << +std::underlying_type_t<ConnectionState>(cs) << ')';
-	}
-}
-#undef OS_CASE
+MH_ENUM_REFLECT_BEGIN(ConnectionState)
+	MH_ENUM_REFLECT_VALUE(Disconnected)
+	MH_ENUM_REFLECT_VALUE(Local)
+	MH_ENUM_REFLECT_VALUE(Nonlocal)
+MH_ENUM_REFLECT_END()
 
 static std::strong_ordering strcmp3(const char* lhs, const char* rhs)
 {
@@ -406,7 +383,7 @@ namespace
 
 			bool OnChange(const ConnectionState& newValue) const override
 			{
-				DiscordDebugLog("ConnectionState "s << get() << " -> " << newValue);
+				DiscordDebugLog(mh::format("ConnectionState {} -> {}", mh::enum_fmt(get()), mh::enum_fmt(newValue)));
 				return true;
 			}
 
@@ -886,14 +863,14 @@ void DiscordState::Update()
 		if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_NoRequireDiscord, &core);
 			result != discord::Result::Ok)
 		{
-			LogError("Failed to initialize Discord Game SDK: "s << result);
+			LogError("Failed to initialize Discord Game SDK: {}", mh::enum_fmt(result));
 		}
 		else
 		{
 			m_Core.reset(core);
 
 			if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
-				LogError("Failed to register discord integration as steam appid 440: "s << result);
+				LogError("Failed to register discord integration as steam appid 440: {}", mh::enum_fmt(result));
 		}
 	}
 
@@ -915,12 +892,12 @@ void DiscordState::Update()
 						{
 							if (result == discord::Result::Ok)
 							{
-								DiscordDebugLog("Updated discord activity state: "s << nextActivity);
+								DiscordDebugLog("Updated discord activity state: {}", nextActivity);
 							}
 							else
 							{
 								LogWarning(MH_SOURCE_LOCATION_CURRENT(),
-									"Failed to update discord activity state: "s << result);
+									"Failed to update discord activity state: {}", mh::enum_fmt(result));
 							}
 						});
 
@@ -939,7 +916,7 @@ void DiscordState::Update()
 		// Run discord callbacks
 		if (auto result = m_Core->RunCallbacks(); result != discord::Result::Ok)
 		{
-			auto errMsg = mh::format("Failed to run discord callbacks: {}", result);
+			auto errMsg = mh::format("Failed to run discord callbacks: {}", mh::enum_fmt(result));
 			switch (result)
 			{
 			case discord::Result::NotRunning:
