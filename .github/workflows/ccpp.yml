@@ -97,11 +97,10 @@ jobs:
       env:
         VCPKG_ROOT: '${{ github.workspace }}/submodules/vcpkg'
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-2
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-3
         path: |
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
-          ${{ env.VCPKG_ROOT }}/downloads/tools
 
     - uses: seanmiddleditch/gha-setup-ninja@v2
     - name: Configure build tools
@@ -238,11 +237,10 @@ jobs:
       env:
         VCPKG_ROOT: '${{ github.workspace }}/submodules/vcpkg'
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-2
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-3
         path: |
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
-          ${{ env.VCPKG_ROOT }}/downloads/tools
 
     - uses: seanmiddleditch/gha-setup-ninja@v2
     - name: Configure build tools
