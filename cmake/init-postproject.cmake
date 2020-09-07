@@ -1,3 +1,10 @@
+include_guard(GLOBAL)
+
+message("CMAKE_CURRENT_LIST_DIR = ${CMAKE_CURRENT_LIST_DIR}")
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
+
+include(warning_level)
+
 message("TF2BD CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
 if ("${TF2BD_VERSION_BUILD}" STREQUAL "")
@@ -60,7 +67,15 @@ if (MSVC)
 	endif()
 
 	# TODO: Find a way to do this locally
-	if(MSVC)
-		add_compile_options(/WX)
-	endif()
+	add_compile_options(
+		/WX
+		/experimental:external   # enable /external command line switches, see https://devblogs.microsoft.com/cppblog/broken-warnings-theory/
+		/external:W1             # Warning level 1 on external headers
+		/external:anglebrackets  # Consider anything with #include <something> to be "external"
+
+		# /w34061 # enumerator 'identifier' in a switch of enum 'enumeration' is not explicitly handled by a case label
+		/w34062 # enumerator 'identifier' in a switch of enum 'enumeration' is not handled
+		/w44103 # 'filename' : alignment changed after including header, may be due to missing #pragma pack(pop)
+		        # Windows headers trigger this
+	)
 endif()

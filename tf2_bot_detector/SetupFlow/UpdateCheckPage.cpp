@@ -165,10 +165,17 @@ namespace
 			ImGui::TextFmt({ 0, 1, 0, 1 }, "Update succeeded. Restart TF2 Bot Detector to apply.");
 			break;
 
-		default:
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown UpdateStatus {}", mh::enum_fmt(updateStatus));
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unexpected({})", mh::enum_fmt(updateStatus));
+		case UpdateStatus::UpdateToolDownloading:
+			ImGui::TextFmt("Downloading updater...");
 			break;
+		case UpdateStatus::UpdateToolDownloadingFailed:
+			ImGui::TextFmt({ 1, 0, 0, 1 }, "Failed to download update tool.");
+			break;
+
+		//default:
+		//	LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown UpdateStatus {}", mh::enum_fmt(updateStatus));
+		//	ImGui::TextFmt({ 1, 0, 0, 1 }, "Unexpected({})", mh::enum_fmt(updateStatus));
+		//	break;
 		}
 
 		if (continueButtonMode == ContinueButtonMode::ContinueWithoutUpdating &&

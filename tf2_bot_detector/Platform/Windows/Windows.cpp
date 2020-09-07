@@ -16,7 +16,7 @@ using namespace std::string_view_literals;
 std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
 {
 	WCHAR path[32768];
-	const auto length = GetModuleFileNameW(nullptr, path, std::size(path));
+	const auto length = GetModuleFileNameW(nullptr, path, (DWORD)std::size(path));
 
 	const auto error = GetLastError();
 	if (error != ERROR_SUCCESS)
@@ -33,7 +33,7 @@ namespace tf2_bot_detector
 	static std::wstring GetCurrentPackageFamilyName()
 	{
 		WCHAR name[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1];
-		UINT32 nameLength = std::size(name);
+		UINT32 nameLength = UINT32(std::size(name));
 		const auto errc = ::GetCurrentPackageFamilyName(&nameLength, name);
 
 		switch (errc)
@@ -52,7 +52,7 @@ namespace tf2_bot_detector
 	static std::filesystem::path GetCurrentPackagePath()
 	{
 		WCHAR path[32768];
-		UINT32 pathLength = std::size(path);
+		UINT32 pathLength = UINT32(std::size(path));
 		const auto errc = ::GetCurrentPackagePath(&pathLength, path);
 
 		switch (errc)

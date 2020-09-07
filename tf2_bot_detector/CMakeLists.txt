@@ -166,7 +166,8 @@ if(WIN32)
 		"Resources.rc"
 		"Platform/Windows/Windows.cpp"
 		"Platform/Windows/PlatformInstall.cpp"
-	 "Platform/Windows/Platform.cpp")
+		"Platform/Windows/Platform.cpp"
+	)
 endif()
 
 if (TF2BD_ENABLE_DISCORD_INTEGRATION)

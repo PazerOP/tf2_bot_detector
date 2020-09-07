@@ -98,6 +98,9 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::UpdateStatus)
 	MH_ENUM_REFLECT_VALUE(UpToDate)
 	MH_ENUM_REFLECT_VALUE(UpdateAvailable)
 
+	MH_ENUM_REFLECT_VALUE(UpdateToolDownloading)
+	MH_ENUM_REFLECT_VALUE(UpdateToolDownloadingFailed)
+
 	MH_ENUM_REFLECT_VALUE(Updating)
 
 	MH_ENUM_REFLECT_VALUE(UpdateFailed)

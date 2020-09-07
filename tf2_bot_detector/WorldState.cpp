@@ -782,6 +782,8 @@ void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 		case UserMessageType::VotePass:
 			m_IsVoteInProgress = false;
 			break;
+		default:
+			break;
 		}
 
 		break;
@@ -821,6 +823,9 @@ void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 		break;
 	}
 #endif
+
+	default:
+		break;
 	}
 }
 

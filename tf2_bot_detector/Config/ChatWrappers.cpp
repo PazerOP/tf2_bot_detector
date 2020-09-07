@@ -379,9 +379,11 @@ static constexpr std::string_view GetChatCategoryKey(ChatCategory cat, bool isEn
 		case ChatCategory::AllDead:   return "[english]TF_Chat_AllDead"sv;
 		case ChatCategory::Team:      return "[english]TF_Chat_Team"sv;
 		case ChatCategory::TeamDead:  return "[english]TF_Chat_Team_Dead"sv;
-		case ChatCategory::Spec:   return "[english]TF_Chat_AllSpec"sv;
+		case ChatCategory::Spec:      return "[english]TF_Chat_AllSpec"sv;
 		case ChatCategory::SpecTeam:  return "[english]TF_Chat_Spec"sv;
 		case ChatCategory::Coach:     return "[english]TF_Chat_Coach"sv;
+
+		case ChatCategory::COUNT:     break;
 		}
 	}
 	else
@@ -392,13 +394,15 @@ static constexpr std::string_view GetChatCategoryKey(ChatCategory cat, bool isEn
 		case ChatCategory::AllDead:   return "TF_Chat_AllDead"sv;
 		case ChatCategory::Team:      return "TF_Chat_Team"sv;
 		case ChatCategory::TeamDead:  return "TF_Chat_Team_Dead"sv;
-		case ChatCategory::Spec:   return "TF_Chat_AllSpec"sv;
+		case ChatCategory::Spec:      return "TF_Chat_AllSpec"sv;
 		case ChatCategory::SpecTeam:  return "TF_Chat_Spec"sv;
 		case ChatCategory::Coach:     return "TF_Chat_Coach"sv;
+
+		case ChatCategory::COUNT:     break;
 		}
 	}
 
-	LogError(std::string(__FUNCTION__ ": Unknown key for ") << cat << " with isEnglish = " << isEnglish);
+	LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown key for {} with isEnglish = {}", mh::enum_fmt(cat), isEnglish);
 	return "TF_Chat_UNKNOWN"sv;
 }
 
@@ -632,7 +636,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 	std::filesystem::create_directories(outputDir);
 
 	if (progress)
-		progress->m_MaxValue = std::size(LANGUAGES) * 5;
+		progress->m_MaxValue = unsigned(std::size(LANGUAGES) * 5);
 
 	const auto IncrementProgress = [&]
 	{

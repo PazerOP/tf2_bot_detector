@@ -806,6 +806,8 @@ void MainWindow::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 
 		break;
 	}
+
+	default: break;
 	}
 }
 

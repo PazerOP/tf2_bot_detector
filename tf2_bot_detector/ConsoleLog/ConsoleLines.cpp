@@ -7,6 +7,7 @@
 #include "Log.h"
 #include "WorldState.h"
 
+#include <mh/algorithm/multi_compare.hpp>
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
@@ -651,18 +652,15 @@ std::shared_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const std::string_vie
 bool SVCUserMessageLine::IsSpecial(UserMessageType type)
 {
 #ifdef _DEBUG
-	switch (type)
-	{
-	case UserMessageType::CallVoteFailed:
-	case UserMessageType::VoteFailed:
-	case UserMessageType::VotePass:
-	case UserMessageType::VoteSetup:
-	case UserMessageType::VoteStart:
-		return true;
-	}
-#endif
-
+	return mh::any_eq(type,
+		UserMessageType::CallVoteFailed,
+		UserMessageType::VoteFailed,
+		UserMessageType::VotePass,
+		UserMessageType::VoteSetup,
+		UserMessageType::VoteStart);
+#else
 	return false;
+#endif
 }
 
 bool SVCUserMessageLine::ShouldPrint() const

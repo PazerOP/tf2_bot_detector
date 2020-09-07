@@ -182,6 +182,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 			{
 			case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG;
 			case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG;
+			case TeamShareResult::Neither:        break;
 			}
 
 			switch (player.GetTeam())

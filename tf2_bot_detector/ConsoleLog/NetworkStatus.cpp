@@ -71,6 +71,7 @@ void SplitPacketLine::Print(const PrintArgs& args) const
 	case SocketType::SystemLink:   socketType = "lnk"; break;
 	case SocketType::LAN:          socketType = "lan"; break;
 
+	case SocketType::COUNT:
 	default:
 		throw std::runtime_error("Invalid SocketType");
 	}

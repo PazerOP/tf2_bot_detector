@@ -110,22 +110,25 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 {
 	using namespace tf2_bot_detector;
 
-	char c;
+	const char* c;
 	switch (id.Type)
 	{
-	case SteamAccountType::Individual:     c = 'U'; break;
-	case SteamAccountType::Multiseat:      c = 'M'; break;
-	case SteamAccountType::GameServer:     c = 'G'; break;
-	case SteamAccountType::AnonGameServer: c = 'A'; break;
-	case SteamAccountType::Pending:        c = 'P'; break;
-	case SteamAccountType::ContentServer:  c = 'C'; break;
-	case SteamAccountType::Clan:           c = 'g'; break;
-	case SteamAccountType::AnonUser:       c = 'a'; break;
-	case SteamAccountType::Chat:           c = 'c'; break;
+	case SteamAccountType::P2PSuperSeeder: c = "P2PSuperSeeder"; break;
+
+	case SteamAccountType::Individual:     c = "U"; break;
+	case SteamAccountType::Multiseat:      c = "M"; break;
+	case SteamAccountType::GameServer:     c = "G"; break;
+	case SteamAccountType::AnonGameServer: c = "A"; break;
+	case SteamAccountType::Pending:        c = "P"; break;
+	case SteamAccountType::ContentServer:  c = "C"; break;
+	case SteamAccountType::Clan:           c = "g"; break;
+	case SteamAccountType::AnonUser:       c = "a"; break;
+	case SteamAccountType::Chat:           c = "c"; break;
 
 	default:
 		assert(!"Invalid value when serializing SteamID");
-	case SteamAccountType::Invalid:        c = 'I'; break;
+		[[fallthrough]];
+	case SteamAccountType::Invalid:        c = "I"; break;
 	}
 
 	return os << '[' << c << ':' << static_cast<int>(id.Universe) << ':' << id.ID << ']';

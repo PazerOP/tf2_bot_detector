@@ -35,7 +35,7 @@ static winrt::Windows::ApplicationModel::Package GetAppPackage()
 
 				return package;
 			}
-			catch (const winrt::hresult_error& e)
+			catch (const winrt::hresult_error&)
 			{
 				//DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Unable to confirm we are an installed package: {}", ToMB(e.message()));
 				return nullptr;

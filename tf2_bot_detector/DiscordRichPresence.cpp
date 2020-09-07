@@ -561,6 +561,9 @@ discord::Activity DiscordGameState::ConstructActivity() const
 			assets.SetSmallImage("leaderboard_class_spy");
 			assets.SetSmallText("Spy");
 			break;
+
+		case TFClassType::Undefined:
+			break;
 		}
 	}
 
@@ -817,6 +820,9 @@ void DiscordState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& line)
 		m_GameState.OnServerIPUpdate(umsgLine.GetAddress());
 		break;
 	}
+
+	default:
+		break;
 	}
 }
 
