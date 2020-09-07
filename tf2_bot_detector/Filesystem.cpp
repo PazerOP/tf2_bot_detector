@@ -130,32 +130,31 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 	return std::move(retVal);
 }
 
-std::string Filesystem::ReadFile(std::filesystem::path path) const
+std::string Filesystem::ReadFile(std::filesystem::path path) const try
 {
 	path = ResolvePath(path, PathUsage::Read);
 	if (path.empty())
 		return {};
 
-	std::ifstream file(path, std::ios::binary);
-	if (!file.good())
-		throw std::runtime_error(mh::format("{}: Failed to open file {}", __FUNCTION__, path));
+	std::ifstream file;
+	file.exceptions(std::ios::badbit | std::ios::failbit);
+	file.open(path, std::ios::binary);
 
 	file.seekg(0, std::ios::end);
-	if (!file.good())
-		throw std::runtime_error(mh::format("{}: Failed to seek to end of {}", __FUNCTION__, path));
 
 	const auto length = file.tellg();
 	file.seekg(0, std::ios::beg);
-	if (!file.good())
-		throw std::runtime_error(mh::format("{}: Failed to seek to beginning of {}", __FUNCTION__, path));
 
 	std::string retVal;
-	retVal.resize(length);
+	retVal.resize(size_t(length));
 	file.read(retVal.data(), length);
-	if (!file.good())
-		throw std::runtime_error(mh::format("{}: Failed to read file {}", __FUNCTION__, path));
 
 	return retVal;
+}
+catch (const std::exception& e)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Filename: {}", path);
+	throw;
 }
 
 void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const void* end) const
