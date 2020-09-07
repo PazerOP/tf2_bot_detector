@@ -166,8 +166,8 @@ namespace
 			break;
 
 		default:
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown UpdateStatus {}", updateStatus);
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unexpected({})", updateStatus);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown UpdateStatus {}", mh::enum_fmt(updateStatus));
+			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unexpected({})", mh::enum_fmt(updateStatus));
 			break;
 		}
 

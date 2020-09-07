@@ -206,23 +206,12 @@ namespace tf2_bot_detector
 	void from_json(const nlohmann::json& j, PlayerAttribute& d);
 }
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::PlayerAttribute type)
-{
-	using tf2_bot_detector::PlayerAttribute;
-
-	switch (type)
-	{
-	case PlayerAttribute::Cheater:     return os << "Cheater";
-	case PlayerAttribute::Exploiter:   return os << "Exploiter";
-	case PlayerAttribute::Racist:      return os << "Racist";
-	case PlayerAttribute::Suspicious:  return os << "Suspicious";
-
-	default:
-		assert(!"Unknown PlayerAttribute");
-		return os << "<UNKNOWN>";
-	}
-}
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::PlayerAttribute)
+	MH_ENUM_REFLECT_VALUE(Cheater)
+	MH_ENUM_REFLECT_VALUE(Exploiter)
+	MH_ENUM_REFLECT_VALUE(Racist)
+	MH_ENUM_REFLECT_VALUE(Suspicious)
+MH_ENUM_REFLECT_END()
 
 template<typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,

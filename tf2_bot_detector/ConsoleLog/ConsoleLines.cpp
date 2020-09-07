@@ -673,7 +673,7 @@ bool SVCUserMessageLine::ShouldPrint() const
 void SVCUserMessageLine::Print(const PrintArgs& args) const
 {
 	if (IsSpecial(m_MsgType))
-		ImGui::TextFmt({ 0, 1, 1, 1 }, "{}", m_MsgType);
+		ImGui::TextFmt({ 0, 1, 1, 1 }, "{}", mh::enum_fmt(m_MsgType));
 	else
 		ImGui::TextFmt("Msg from {}: svc_UserMessage: type {}, bytes {}", m_Address, int(m_MsgType), m_MsgBytes);
 }

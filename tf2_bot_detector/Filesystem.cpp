@@ -126,7 +126,7 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 		}
 	});
 
-	DebugLog("ResolvePath({}, {}) -> {}", path, usage, retVal);
+	DebugLog("ResolvePath({}, {}) -> {}", path, mh::enum_fmt(usage), retVal);
 	return std::move(retVal);
 }
 

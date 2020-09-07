@@ -17,7 +17,8 @@
 namespace ImGui
 {
 	template<typename... TArgs>
-	inline void TextFmt(const std::string_view& fmtStr, const TArgs&... args)
+	inline auto TextFmt(const std::string_view& fmtStr, const TArgs&... args) ->
+		decltype(mh::format(fmtStr, args...), void())
 	{
 		if constexpr (sizeof...(TArgs) > 0)
 			return TextFmt(mh::fmtstr<3073>(fmtStr, args...));
@@ -25,7 +26,8 @@ namespace ImGui
 			return TextUnformatted(fmtStr.data(), fmtStr.data() + fmtStr.size());
 	}
 	template<typename... TArgs>
-	inline void TextFmt(const ImVec4& color, const std::string_view& fmtStr, const TArgs&... args)
+	inline auto TextFmt(const ImVec4& color, const std::string_view& fmtStr, const TArgs&... args) ->
+		decltype(TextFmt(fmtStr, args...))
 	{
 		ImGuiDesktop::TextColor scope(color);
 		TextFmt(fmtStr, args...);

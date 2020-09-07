@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cppcoro/generator.hpp>
+#include <mh/reflection/enum.hpp>
 
 #include <cstddef>
 #include <filesystem>
@@ -64,22 +65,7 @@ namespace tf2_bot_detector
 	};
 }
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::PathUsage usage)
-{
-	using namespace tf2_bot_detector;
-
-#undef OS_CASE
-#define OS_CASE(x) case x : return os << #x
-
-	switch (usage)
-	{
-		OS_CASE(PathUsage::Read);
-		OS_CASE(PathUsage::Write);
-
-	default:
-		return os << "PathUsage(" << +std::underlying_type_t<PathUsage>(usage) << ')';
-	}
-
-#undef OS_CASE
-}
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::PathUsage)
+	MH_ENUM_REFLECT_VALUE(Read)
+	MH_ENUM_REFLECT_VALUE(Write)
+MH_ENUM_REFLECT_END()

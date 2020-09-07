@@ -97,14 +97,16 @@ namespace tf2_bot_detector
 	namespace detail::log_h
 	{
 		template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
-		NOINLINE inline void LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
-			const std::string_view& fmtStr, const TArgs&... args)
+		NOINLINE inline auto LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const std::string_view& fmtStr, const TArgs&... args) ->
+			decltype(mh::try_format(fmtStr, args...), void())
 		{
 			ILogManager::GetInstance().Log(mh::try_format(fmtStr, args...), color, severity, visibility);
 		}
 		template<typename... TArgs>
-		NOINLINE inline void LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
-			const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args)
+		NOINLINE inline auto LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) ->
+			decltype(mh::try_format(fmtStr, args...), void())
 		{
 			using namespace std::string_view_literals;
 			if (!fmtStr.empty())
@@ -117,7 +119,8 @@ namespace tf2_bot_detector
 #undef LOG_DEFINITION_HELPER
 #define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	inline void name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) -> \
+		decltype(detail::log_h::LogImpl(color, (severity), (visibility), fmtStr, args...)) \
 	{ \
 		detail::log_h::LogImpl(color, (severity), (visibility), fmtStr, args...); \
 	} \
@@ -126,7 +129,8 @@ namespace tf2_bot_detector
 		ILogManager::GetInstance().Log(std::move(msg), color, (severity), (visibility)); \
 	} \
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	inline void name(const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const std::string_view& fmtStr, const TArgs&... args) -> \
+		decltype(name((defaultColor), fmtStr, args...)) \
 	{ \
 		name((defaultColor), fmtStr, args...); \
 	} \
@@ -136,12 +140,14 @@ namespace tf2_bot_detector
 	} \
 	\
 	template<typename... TArgs> \
-	inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) -> \
+		decltype(detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...)) \
 	{ \
 		detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...); \
 	} \
 	template<typename... TArgs> \
-	inline void name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) -> \
+		decltype(name((defaultColor), location, fmtStr, args...)) \
 	{ \
 		name((defaultColor), location, fmtStr, args...); \
 	} \
