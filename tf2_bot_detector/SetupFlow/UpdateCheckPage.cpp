@@ -7,6 +7,7 @@
 #include "UpdateManager.h"
 
 #include <mh/algorithm/multi_compare.hpp>
+#include <mh/raii/scope_exit.hpp>
 
 using namespace tf2_bot_detector;
 
@@ -26,7 +27,7 @@ namespace
 		bool WantsContinueButton() const override { return false; }
 
 	private:
-		UpdateStatus m_LastUpdateStatus = UpdateStatus::Unknown;
+		mh::status_reader<UpdateStatus> m_StatusReader;
 		bool m_HasChangedReleaseChannel = false;
 		bool m_HasCheckedForUpdate = false;
 		bool m_UpdateButtonPressed = false;
@@ -48,7 +49,11 @@ namespace
 	{
 		m_HasCheckedForUpdate = true;
 
-		const UpdateStatus updateStatus = m_LastUpdateStatus = ds.m_UpdateManager->GetUpdateStatus();
+		if (!m_StatusReader.has_value())
+			m_StatusReader = ds.m_UpdateManager->GetUpdateStatus();
+
+		const auto updateStatus = m_StatusReader.get();
+
 		const IAvailableUpdate* update = ds.m_UpdateManager->GetAvailableUpdate();
 
 		ImGui::TextFmt("Update Check");
@@ -74,53 +79,69 @@ namespace
 
 		} continueButtonMode = ContinueButtonMode::None;
 
-		switch (updateStatus)
+		// Early out
+		switch (updateStatus.m_Status)
 		{
-		case UpdateStatus::Unknown:
-			ImGui::TextFmt({ 1, 1, 0, 1 }, "Unknown");
-			continueButtonMode = ContinueButtonMode::ContinueWithoutUpdating;
-			break;
-
 		case UpdateStatus::UpdateCheckDisabled:
 		{
-			ImGui::TextFmt("Automatic update checks disabled by user");
 			if (!m_HasChangedReleaseChannel)
 				return OnDrawResult::EndDrawing;
 
-			ImGui::NewLine();
-			continueButtonMode = ContinueButtonMode::Continue;
 			break;
 		}
+
 		case UpdateStatus::InternetAccessDisabled:
-			ImGui::TextFmt("Internet connectivity disabled by user");
 			return OnDrawResult::EndDrawing;
 
-		case UpdateStatus::CheckQueued:
-			ImGui::TextFmt("Update check queued...");
-			break;
-		case UpdateStatus::Checking:
-			ImGui::TextFmt("Checking for updates...");
-			break;
-
-		case UpdateStatus::CheckFailed:
-			ImGui::TextFmt({ 1, 1, 0, 1 }, "Update check failed");
-			continueButtonMode = ContinueButtonMode::ContinueWithoutUpdating;
-			ImGui::NewLine();
-			break;
-		case UpdateStatus::UpToDate:
-		{
-			ImGui::TextFmt({ 0, 1, 0, 1 }, "Up to date (v{} {:v})", VERSION,
-				mh::enum_fmt(ds.m_Settings->m_ReleaseChannel.value_or(ReleaseChannel::Public)));
-
-			if (!m_HasChangedReleaseChannel)
-				return OnDrawResult::EndDrawing;
-
-			ImGui::NewLine();
-			continueButtonMode = ContinueButtonMode::Continue;
-
+		default:
 			break;
 		}
+
+		// Message color
+		ImVec4 msgColor = { 1, 0, 1, 1 };
+		switch (updateStatus.m_Status)
+		{
+			// Red
+		case UpdateStatus::StateSwitchFailure:
+		case UpdateStatus::CheckFailed:
+		case UpdateStatus::UpdateToolDownloadFailed:
+		case UpdateStatus::DownloadFailed:
+		case UpdateStatus::UpdateFailed:
+			msgColor = { 1, 0, 0, 1 };
+			break;
+
+			// Green
+		case UpdateStatus::UpToDate:
+		case UpdateStatus::UpdateSuccess:
+			msgColor = { 0, 1, 0, 1 };
+			break;
+
+			// Cyan
 		case UpdateStatus::UpdateAvailable:
+			msgColor = { 0, 1, 1, 1 };
+			break;
+
+			// Yellow
+		case UpdateStatus::Unknown:
+		case UpdateStatus::UpdateCheckDisabled:
+		case UpdateStatus::InternetAccessDisabled:
+			msgColor = { 1, 1, 0, 1 };
+			break;
+
+			// White
+		case UpdateStatus::CheckQueued:
+		case UpdateStatus::Checking:
+		case UpdateStatus::UpdateToolRequired:
+		case UpdateStatus::UpdateToolDownloading:
+		case UpdateStatus::UpdateToolDownloadSuccess:
+		case UpdateStatus::Downloading:
+		case UpdateStatus::DownloadSuccess:
+		case UpdateStatus::Updating:
+			msgColor = { 1, 1, 1, 1 };
+			break;
+		}
+
+		if (updateStatus.m_Status == UpdateStatus::UpdateAvailable)
 		{
 			ImGui::TextFmt({ 0, 1, 1, 1 }, "Update available: v{} {:v} (current version v{})",
 				update->m_BuildInfo.m_Version, mh::enum_fmt(update->m_BuildInfo.m_ReleaseChannel), VERSION);
@@ -150,49 +171,73 @@ namespace
 				}, "Unable to determine GitHub URL");
 
 			ImGui::SameLine();
-			continueButtonMode = ContinueButtonMode::ContinueWithoutUpdating;
+		}
+		else if (updateStatus.m_Status == UpdateStatus::Unknown)
+		{
+			ImGui::TextFmt(msgColor, "UNKNOWN UPDATE STATUS: {}", std::quoted(updateStatus.m_Message));
+		}
+		else
+		{
+			assert(!updateStatus.m_Message.empty());
+			ImGui::TextFmt(msgColor, updateStatus.m_Message);
+		}
+
+#if 0
+		switch (updateStatus.m_Status)
+		{
+		case UpdateStatus::UpToDate:
+		{
+			ImGui::TextFmt({ 0, 1, 0, 1 }, "Up to date (v{} {:v})", VERSION,
+				mh::enum_fmt(ds.m_Settings->m_ReleaseChannel.value_or(ReleaseChannel::Public)));
+
+			if (!m_HasChangedReleaseChannel)
+				return OnDrawResult::EndDrawing;
+
+			ImGui::NewLine();
+			continueButtonMode = ContinueButtonMode::Continue;
+
+			break;
+		}
+		}
+#endif
+
+		// Continue button mode
+		switch (updateStatus.m_Status)
+		{
+		case UpdateStatus::Unknown:
+		case UpdateStatus::CheckFailed:
+		case UpdateStatus::StateSwitchFailure:
+		case UpdateStatus::UpdateAvailable:
+		{
+			if (ImGui::Button("Continue without updating >"))
+				return OnDrawResult::EndDrawing;
+
 			break;
 		}
 
-		case UpdateStatus::Updating:
-			ImGui::TextFmt("Updating...");
-			break;
-
-		case UpdateStatus::UpdateFailed:
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Update failed");
-			break;
+		case UpdateStatus::UpToDate:
+		case UpdateStatus::UpdateCheckDisabled:
+		case UpdateStatus::InternetAccessDisabled:
 		case UpdateStatus::UpdateSuccess:
-			ImGui::TextFmt({ 0, 1, 0, 1 }, "Update succeeded. Restart TF2 Bot Detector to apply.");
-			break;
-
-		case UpdateStatus::Downloading:
-			ImGui::TextFmt("Downloading update...");
-			break;
+		case UpdateStatus::UpdateToolDownloadFailed:
 		case UpdateStatus::DownloadFailed:
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Failed to download update.");
-			break;
-		case UpdateStatus::DownloadSuccess:
-			ImGui::TextFmt("Update download complete.");
-			break;
+		case UpdateStatus::UpdateFailed:
+		{
+			if (ImGui::Button("Continue >"))
+				return OnDrawResult::EndDrawing;
 
+			break;
+		}
+
+		case UpdateStatus::CheckQueued:
+		case UpdateStatus::Checking:
 		case UpdateStatus::UpdateToolRequired:
 		case UpdateStatus::UpdateToolDownloading:
-			ImGui::TextFmt("Downloading updater...");
+		case UpdateStatus::UpdateToolDownloadSuccess:
+		case UpdateStatus::Downloading:
+		case UpdateStatus::DownloadSuccess:
+		case UpdateStatus::Updating:
 			break;
-		case UpdateStatus::UpdateToolDownloadingFailed:
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Failed to download update tool.");
-			break;
-		}
-
-		if (continueButtonMode == ContinueButtonMode::ContinueWithoutUpdating &&
-			ImGui::Button("Continue without updating >"))
-		{
-			return OnDrawResult::EndDrawing;
-		}
-		if (continueButtonMode == ContinueButtonMode::Continue &&
-			ImGui::Button("Continue >"))
-		{
-			return OnDrawResult::EndDrawing;
 		}
 
 		return OnDrawResult::ContinueDrawing;
@@ -209,9 +254,13 @@ namespace
 		if (!m_HasCheckedForUpdate)
 			return false;
 
-		return mh::none_eq(m_LastUpdateStatus
+		return mh::none_eq(m_StatusReader.get().m_Status
 			, UpdateStatus::CheckQueued
 			, UpdateStatus::Checking
+			, UpdateStatus::UpdateToolRequired
+			, UpdateStatus::UpdateToolDownloading
+			, UpdateStatus::Downloading
+			, UpdateStatus::DownloadSuccess
 			, UpdateStatus::Updating
 			);
 	}

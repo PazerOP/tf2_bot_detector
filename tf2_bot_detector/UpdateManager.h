@@ -4,6 +4,7 @@
 #include "ReleaseChannel.h"
 #include "Version.h"
 
+#include <mh/error/status.hpp>
 #include <mh/reflection/enum.hpp>
 
 #include <memory>
@@ -50,6 +51,8 @@ namespace tf2_bot_detector
 	{
 		Unknown = 0,
 
+		StateSwitchFailure,
+
 		UpdateCheckDisabled,
 		InternetAccessDisabled,
 
@@ -62,7 +65,8 @@ namespace tf2_bot_detector
 
 		UpdateToolRequired,
 		UpdateToolDownloading,
-		UpdateToolDownloadingFailed,
+		UpdateToolDownloadFailed,
+		UpdateToolDownloadSuccess,
 
 		Downloading,
 		DownloadFailed,
@@ -84,14 +88,15 @@ namespace tf2_bot_detector
 
 		virtual void Update() = 0;
 
-		virtual UpdateStatus GetUpdateStatus() const = 0;
-		virtual std::string GetErrorString() const = 0;
+		virtual mh::status_reader<UpdateStatus> GetUpdateStatus() const = 0;
 		virtual const IAvailableUpdate* GetAvailableUpdate() const = 0;
 	};
 }
 
 MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::UpdateStatus)
 	MH_ENUM_REFLECT_VALUE(Unknown)
+
+	MH_ENUM_REFLECT_VALUE(StateSwitchFailure)
 
 	MH_ENUM_REFLECT_VALUE(UpdateCheckDisabled)
 	MH_ENUM_REFLECT_VALUE(InternetAccessDisabled)
@@ -104,7 +109,8 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::UpdateStatus)
 
 	MH_ENUM_REFLECT_VALUE(UpdateToolRequired)
 	MH_ENUM_REFLECT_VALUE(UpdateToolDownloading)
-	MH_ENUM_REFLECT_VALUE(UpdateToolDownloadingFailed)
+	MH_ENUM_REFLECT_VALUE(UpdateToolDownloadFailed)
+	MH_ENUM_REFLECT_VALUE(UpdateToolDownloadSuccess)
 
 	MH_ENUM_REFLECT_VALUE(Downloading)
 	MH_ENUM_REFLECT_VALUE(DownloadFailed)

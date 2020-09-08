@@ -108,8 +108,7 @@ namespace
 		UpdateManager(const Settings& settings);
 
 		void Update() override;
-		UpdateStatus GetUpdateStatus() const override;
-		std::string GetErrorString() const override;
+		mh::status_reader<UpdateStatus> GetUpdateStatus() const override { return m_State.GetUpdateStatus(); }
 		const AvailableUpdate* GetAvailableUpdate() const override;
 
 		void QueueUpdateCheck() override { m_IsUpdateQueued = true; }
@@ -148,37 +147,84 @@ namespace
 		{
 			bool m_Success{};
 		};
-		struct UpdateToolExceptionData : BaseExceptionData
-		{
-			using BaseExceptionData::BaseExceptionData;
-		};
-
-		using UpdateCheckState_t = std::variant<std::future<BuildInfo>, AvailableUpdate, ExceptionData<BuildInfo>>;
-		UpdateCheckState_t m_UpdateCheckState;
 
 		using State_t = std::variant<
 			std::monostate,
 
 			std::future<DownloadedBuild>,
 			DownloadedBuild,
-			ExceptionData<DownloadedBuild>,
 
 			std::future<InstallUpdate::Result>,
 			InstallUpdate::Result,
-			ExceptionData<InstallUpdate::Result>,
 
 			std::future<DownloadedUpdateTool>,
 			DownloadedUpdateTool,
-			ExceptionData<DownloadedUpdateTool>,
 
 			std::future<UpdateToolResult>,
-			UpdateToolResult,
-			ExceptionData<UpdateToolResult>
+			UpdateToolResult
 		>;
-		State_t m_State;
+		using UpdateCheckState_t = std::variant<std::future<BuildInfo>, AvailableUpdate>;
 
-		template<typename TFutureResult> bool UpdateFutureState();
-		template<typename... TFutureResults> bool UpdateFutureStates();
+		struct StateManager
+		{
+			const State_t& GetVariant() const { return m_Variant; }
+			UpdateCheckState_t& GetUpdateCheckVariant() { return m_UpdateCheckVariant; }
+			const UpdateCheckState_t& GetUpdateCheckVariant() const { return m_UpdateCheckVariant; }
+
+			template<typename T, typename... TArgs>
+			void Emplace(const mh::source_location& location, UpdateStatus status, std::string msg, TArgs&&... args)
+			{
+				SetUpdateStatus(location, status, std::move(msg));
+				m_Variant.emplace<T>(std::forward<TArgs>(args)...);
+			}
+
+			void Clear(const mh::source_location& location, UpdateStatus status, std::string msg)
+			{
+				Emplace<std::monostate>(location, status, std::move(msg));
+			}
+			void ClearUpdateCheck(const mh::source_location& location, UpdateStatus status, std::string msg)
+			{
+				SetUpdateStatus(location, status, std::move(msg));
+				m_UpdateCheckVariant.emplace<0>();
+			}
+
+			template<typename T>
+			void Set(const mh::source_location& location, UpdateStatus status, std::string msg, T&& value)
+			{
+				SetUpdateStatus(location, status, std::move(msg));
+				m_Variant = std::forward<T>(value);
+			}
+
+			template<typename T>
+			void SetUpdateCheck(const mh::source_location& location, UpdateStatus status, std::string msg, T&& value)
+			{
+				SetUpdateStatus(location, status, std::move(msg));
+				m_UpdateCheckVariant.emplace<T>(std::forward<T>(value));
+			}
+
+			void SetUpdateStatus(const mh::source_location& location, UpdateStatus status,
+				const std::string_view& msg);
+			mh::status_reader<UpdateStatus> GetUpdateStatus() const { return m_UpdateStatus; }
+
+			template<typename TFutureResult> bool Update(const mh::source_location& location,
+				UpdateStatus success, const std::string_view& successMsg,
+				UpdateStatus failure, const std::string_view& failureMsg)
+			{
+				return UpdateVariant<TFutureResult>(m_Variant, location,
+					success, successMsg, failure, failureMsg);
+			}
+
+		private:
+			template<typename TFutureResult, typename TVariant>
+			bool UpdateVariant(TVariant& variant, const mh::source_location& location,
+				UpdateStatus success, const std::string_view& successMsg,
+				UpdateStatus failure, const std::string_view& failureMsg);
+
+			UpdateCheckState_t m_UpdateCheckVariant;
+			State_t m_Variant;
+			mh::status_source<UpdateStatus> m_UpdateStatus;
+
+		} m_State;
 
 		bool CanReplaceUpdateCheckState() const;
 
@@ -201,32 +247,33 @@ namespace
 	{
 	}
 
-	template<typename TFutureResult>
-	bool UpdateManager::UpdateFutureState()
+	template<typename TFutureResult, typename TVariant>
+	bool UpdateManager::StateManager::UpdateVariant(TVariant& variant, const mh::source_location& location,
+		UpdateStatus success, const std::string_view& successMsg,
+		UpdateStatus failure, const std::string_view& failureMsg)
 	{
-		if (auto future = std::get_if<std::future<TFutureResult>>(&m_State))
+		if (auto future = std::get_if<std::future<TFutureResult>>(&variant))
 		{
 			try
 			{
 				if (mh::is_future_ready(*future))
-					m_State.emplace<TFutureResult>(future->get());
+				{
+					auto value = future->get();
+					SetUpdateStatus(MH_SOURCE_LOCATION_CURRENT(), success, std::string(successMsg));
+					variant.emplace<TFutureResult>(std::move(value));
+				}
 			}
 			catch (const std::exception& e)
 			{
 				LogException(MH_SOURCE_LOCATION_CURRENT(), e, __FUNCSIG__);
-				m_State.emplace<ExceptionData<TFutureResult>>(typeid(e), e.what(), std::current_exception());
+				Clear(MH_SOURCE_LOCATION_CURRENT(), failure,
+					mh::format("{}:\n\t- {}\n\t- {}", failureMsg, typeid(e).name(), e.what()));
 			}
 
 			return true;
 		}
 
 		return false;
-	}
-
-	template<typename... TFutureResults>
-	bool UpdateManager::UpdateFutureStates()
-	{
-		return (... || UpdateFutureState<TFutureResults>());
 	}
 
 	void UpdateManager::Update()
@@ -238,25 +285,27 @@ namespace
 			if (client && (releaseChannel != ReleaseChannel::None))
 			{
 				auto sharedClient = client->shared_from_this();
-				m_UpdateCheckState = std::async([sharedClient, releaseChannel]() -> BuildInfo
-					{
-						const mh::fmtstr<256> url(
-							"https://tf2bd-util.pazer.us/AppInstaller/LatestVersion.json?type={:v}",
-							mh::enum_fmt(releaseChannel));
 
-						DebugLog("HTTP GET {}", url);
-						auto response = sharedClient->GetString(url.view());
+				m_State.SetUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Checking, "Checking for updates...",
+					std::async([sharedClient, releaseChannel]() -> BuildInfo
+						{
+							const mh::fmtstr<256> url(
+								"https://tf2bd-util.pazer.us/AppInstaller/LatestVersion.json?type={:v}",
+								mh::enum_fmt(releaseChannel));
 
-						auto json = nlohmann::json::parse(response);
+							DebugLog("HTTP GET {}", url);
+							auto response = sharedClient->GetString(url.view());
 
-						return json.get<BuildInfo>();
-					});
+							auto json = nlohmann::json::parse(response);
+
+							return json.get<BuildInfo>();
+						}));
 
 				m_IsUpdateQueued = false;
 			}
 		}
 
-		if (auto future = std::get_if<std::future<BuildInfo>>(&m_UpdateCheckState))
+		if (auto future = std::get_if<std::future<BuildInfo>>(&m_State.GetUpdateCheckVariant()))
 		{
 			try
 			{
@@ -264,38 +313,59 @@ namespace
 				if (client)
 				{
 					if (mh::is_future_ready(*future))
-						m_UpdateCheckState.emplace<AvailableUpdate>(*client, *this, future->get());
+					{
+						AvailableUpdate update(*client, *this, future->get());
+
+						if (update.m_BuildInfo.m_Version <= VERSION)
+						{
+							m_State.SetUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpToDate,
+								mh::format("Up to date (v{} {:v})", VERSION, mh::enum_fmt(
+									m_Settings.m_ReleaseChannel.value_or(ReleaseChannel::Public))),
+								std::move(update));
+						}
+						else
+						{
+							m_State.SetUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateAvailable,
+								mh::format("Update available (v{} {:v})", update.m_BuildInfo.m_Version, mh::enum_fmt(
+									m_Settings.m_ReleaseChannel.value_or(ReleaseChannel::Public))),
+								std::move(update));
+						}
+					}
 				}
 				else
 				{
-					LogError(MH_SOURCE_LOCATION_CURRENT(), "HTTPClient unavailable, cancelling update");
-					m_UpdateCheckState.emplace<0>();
+					m_State.ClearUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::CheckFailed,
+						"Update check failed: HTTPClient unavailable");
 				}
 			}
 			catch (const std::exception& e)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e, __FUNCSIG__);
-				m_UpdateCheckState.emplace<ExceptionData<BuildInfo>>(typeid(e), e.what(), std::current_exception());
+				m_State.ClearUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::CheckFailed,
+					mh::format("Update check failed:\n\t- {}\n\t- {}", typeid(e).name(), e.what()));
 			}
 		}
 
-		if (auto downloadedBuild = std::get_if<DownloadedBuild>(&m_State))
+		if (auto downloadedBuild = std::get_if<DownloadedBuild>(&m_State.GetVariant()))
 		{
 			[&]
 			{
 				auto client = m_Settings.GetHTTPClient();
 				if (!client)
 				{
-					LogError(MH_SOURCE_LOCATION_CURRENT(), "HTTPClient unavailable");
+					m_State.Clear(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateFailed,
+						"Unable to begin downloading update tool: HTTPClient unavailable");
 					return;
 				}
 
-				m_State = DownloadUpdateTool(*client, downloadedBuild->m_UpdaterVariant,
-					mh::format("--update-type Portable --source-path {} --dest-path {}",
-						downloadedBuild->m_ExtractedLocation, Platform::GetCurrentExeDir()));
+				m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateToolDownloading,
+					"New version downloaded. Downloading update tool...",
+
+					DownloadUpdateTool(*client, downloadedBuild->m_UpdaterVariant,
+						mh::format("--update-type Portable --source-path {} --dest-path {}",
+							downloadedBuild->m_ExtractedLocation, Platform::GetCurrentExeDir())));
 			}();
 		}
-		else if (auto installUpdateResult = std::get_if<InstallUpdate::Result>(&m_State))
+		else if (auto installUpdateResult = std::get_if<InstallUpdate::Result>(&m_State.GetVariant()))
 		{
 			[&]
 			{
@@ -306,34 +376,58 @@ namespace
 				auto availableUpdate = GetAvailableUpdate();
 				if (!availableUpdate)
 				{
-					LogError(MH_SOURCE_LOCATION_CURRENT(), "availableUpdate was nullptr");
+					m_State.Clear(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateFailed,
+						"Unable to begin downloading update tool: availableUpdate was nullptr");
 					return;
 				}
 
 				if (!availableUpdate->m_Updater)
 				{
-					LogError(MH_SOURCE_LOCATION_CURRENT(), "availableUpdate->m_Updater was nullptr");
+					m_State.Clear(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateFailed,
+						"Unable to begin downloading update tool: availableUpdate->m_Updater was nullptr");
 					return;
 				}
 
 				auto client = m_Settings.GetHTTPClient();
 				if (!client)
 				{
-					LogError(MH_SOURCE_LOCATION_CURRENT(), "HTTPClient unavailable");
+					m_State.Clear(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateFailed,
+						"Unable to begin downloading update tool: HTTPClient unavailable");
 					return;
 				}
 
-				m_State = DownloadUpdateTool(*client, *availableUpdate->m_Updater, needsUpdateTool->m_UpdateToolArgs);
+				m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateToolDownloading,
+					"Platform app updater unavailable. Downloading update tool...",
+
+					DownloadUpdateTool(*client, *availableUpdate->m_Updater, needsUpdateTool->m_UpdateToolArgs));
 			}();
 		}
-		else if (auto downloadedUpdateTool = std::get_if<DownloadedUpdateTool>(&m_State))
+		else if (auto downloadedUpdateTool = std::get_if<DownloadedUpdateTool>(&m_State.GetVariant()))
 		{
-			m_State = RunUpdateTool(downloadedUpdateTool->m_Path, downloadedUpdateTool->m_Arguments);
+			m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Updating,
+				"Running update tool...",
+
+				RunUpdateTool(downloadedUpdateTool->m_Path, downloadedUpdateTool->m_Arguments));
 		}
 
-		UpdateFutureStates<DownloadedBuild, InstallUpdate::Result, DownloadedUpdateTool, UpdateToolResult>();
+		m_State.Update<DownloadedBuild>(MH_SOURCE_LOCATION_CURRENT(),
+			UpdateStatus::DownloadSuccess, "Finished downloading new version.",
+			UpdateStatus::DownloadFailed, "Failed to download new version.");
+
+		m_State.Update<InstallUpdate::Result>(MH_SOURCE_LOCATION_CURRENT(),
+			UpdateStatus::UpdateSuccess, "Finished running platform update.",
+			UpdateStatus::UpdateFailed, "Failed to run platform update.");
+
+		m_State.Update<DownloadedUpdateTool>(MH_SOURCE_LOCATION_CURRENT(),
+			UpdateStatus::UpdateToolDownloadSuccess, "Finished downloading update tool.",
+			UpdateStatus::UpdateToolDownloadFailed, "Failed to download update tool.");
+
+		m_State.Update<UpdateToolResult>(MH_SOURCE_LOCATION_CURRENT(),
+			UpdateStatus::UpdateSuccess, "Update complete.",
+			UpdateStatus::UpdateFailed, "Update failed.");
 	}
 
+#if 0
 	UpdateStatus UpdateManager::GetUpdateStatus() const
 	{
 		if (m_IsUpdateQueued)
@@ -427,31 +521,11 @@ namespace
 			m_UpdateCheckState.index(), m_State.index());
 		return UpdateStatus::Unknown;
 	}
-
-	std::string UpdateManager::GetErrorString() const
-	{
-		return std::visit([](const auto& value) -> std::string
-			{
-				using type_t = std::decay_t<decltype(value)>;
-				if constexpr (std::is_base_of_v<BaseExceptionData, type_t>)
-				{
-					const BaseExceptionData& d = value;
-					return mh::format("{}: {}"sv, d.m_Type.name(), d.m_Message);
-				}
-				else
-				{
-					return {};
-				}
-
-			}, m_State);
-	}
+#endif
 
 	auto UpdateManager::GetAvailableUpdate() const -> const AvailableUpdate*
 	{
-		if (GetUpdateStatus() == UpdateStatus::UpdateAvailable)
-			return std::get_if<AvailableUpdate>(&m_UpdateCheckState);
-
-		return nullptr;
+		return std::get_if<AvailableUpdate>(&m_State.GetUpdateCheckVariant());
 	}
 
 	/// <summary>
@@ -459,7 +533,7 @@ namespace
 	/// </summary>
 	bool UpdateManager::CanReplaceUpdateCheckState() const
 	{
-		const auto* future = std::get_if<std::future<BuildInfo>>(&m_UpdateCheckState);
+		const auto* future = std::get_if<std::future<BuildInfo>>(&m_State.GetUpdateCheckVariant());
 		if (!future)
 			return true; // some other value in the variant
 
@@ -683,20 +757,27 @@ namespace
 		{
 			if (Platform::CanInstallUpdate(m_BuildInfo))
 			{
-				Log(MH_SOURCE_LOCATION_CURRENT(), "Platform reports being installed and able to install update");
-				m_Parent.m_State = Platform::BeginInstallUpdate(m_BuildInfo, *client);
+				m_Parent.m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Updating,
+					"Platform reports that TF2 Bot Detector is already installed, and it can be updated. Running platform updater...",
+
+					Platform::BeginInstallUpdate(m_BuildInfo, *client));
+
 				return true;
 			}
 			else
 			{
-				LogError(MH_SOURCE_LOCATION_CURRENT(), "Platform reports being installed but cannot install update");
+				m_Parent.m_State.Clear(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateFailed,
+					"Platform reports that TF2 Bot Detector is installed, but it is unable to install updates.");
 				return false;
 			}
 		}
 		else
 		{
-			Log(MH_SOURCE_LOCATION_CURRENT(), "Platform reports *not* being installed. Running portable update.");
-			m_Parent.m_State = DownloadBuild(*client, *m_Portable, *m_Updater);
+			m_Parent.m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Downloading,
+				"Platform reports that TF2 Bot Detector is not installed. Updating in-place (portable mode)",
+
+				DownloadBuild(*client, *m_Portable, *m_Updater));
+
 			return true;
 		}
 	}
@@ -705,6 +786,13 @@ namespace
 		const std::exception_ptr& exception) :
 		m_Type(type), m_Message(std::move(message)), m_Exception(exception)
 	{
+	}
+
+	void UpdateManager::StateManager::SetUpdateStatus(
+		const mh::source_location& location, UpdateStatus status, const std::string_view& msg)
+	{
+		if (m_UpdateStatus.set(status, msg))
+			DebugLog(location, "{}: {}", mh::enum_fmt(status), msg);
 	}
 }
 
