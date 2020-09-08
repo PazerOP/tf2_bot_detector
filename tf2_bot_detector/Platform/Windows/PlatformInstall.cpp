@@ -83,6 +83,7 @@ std::future<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdat
 	using winrt::Windows::ApplicationModel::Package;
 	using winrt::Windows::Foundation::Uri;
 	using winrt::Windows::System::Launcher;
+	using winrt::Windows::System::LauncherOptions;
 
 	const auto bundleUri = buildInfo.m_MSIXBundleURL;
 
@@ -91,7 +92,14 @@ std::future<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdat
 			const Uri uri = mh::format(L"ms-appinstaller:?source={}", ToWC(bundleUri));
 
 			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Attempting to LaunchUriAsync for {}", ToMB(uri.ToString()));
-			auto result = Launcher::LaunchUriAsync(uri);
+			LauncherOptions options;
+
+			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Existing value of DisplayApplicationPicker: {}",
+				options.DisplayApplicationPicker());
+			options.DisplayApplicationPicker(false);
+			options.TargetApplicationPackageFamilyName(L"Microsoft.DesktopAppInstaller_8wekyb3d8bbwe");
+
+			auto result = Launcher::LaunchUriAsync(uri, options);
 
 			if (result.get())
 			{
