@@ -40,8 +40,8 @@ namespace tf2_bot_detector
 		IAvailableUpdate(BuildInfo&& bi) : m_BuildInfo(std::move(bi)) {}
 		virtual ~IAvailableUpdate() = default;
 
-		virtual bool CanSelfUpdate() const = 0;
-		virtual void BeginSelfUpdate() const = 0;
+		[[nodiscard]] virtual bool CanSelfUpdate() const = 0;
+		virtual bool BeginSelfUpdate() const = 0;
 
 		BuildInfo m_BuildInfo;
 	};
@@ -60,11 +60,15 @@ namespace tf2_bot_detector
 		UpToDate,
 		UpdateAvailable,
 
+		UpdateToolRequired,
 		UpdateToolDownloading,
 		UpdateToolDownloadingFailed,
 
-		Updating,
+		Downloading,
+		DownloadFailed,
+		DownloadSuccess,
 
+		Updating,
 		UpdateFailed,
 		UpdateSuccess,
 	};
@@ -98,11 +102,15 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::UpdateStatus)
 	MH_ENUM_REFLECT_VALUE(UpToDate)
 	MH_ENUM_REFLECT_VALUE(UpdateAvailable)
 
+	MH_ENUM_REFLECT_VALUE(UpdateToolRequired)
 	MH_ENUM_REFLECT_VALUE(UpdateToolDownloading)
 	MH_ENUM_REFLECT_VALUE(UpdateToolDownloadingFailed)
 
-	MH_ENUM_REFLECT_VALUE(Updating)
+	MH_ENUM_REFLECT_VALUE(Downloading)
+	MH_ENUM_REFLECT_VALUE(DownloadFailed)
+	MH_ENUM_REFLECT_VALUE(DownloadSuccess)
 
+	MH_ENUM_REFLECT_VALUE(Updating)
 	MH_ENUM_REFLECT_VALUE(UpdateFailed)
 	MH_ENUM_REFLECT_VALUE(UpdateSuccess)
 MH_ENUM_REFLECT_END()

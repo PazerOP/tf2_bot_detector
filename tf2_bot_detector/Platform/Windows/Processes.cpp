@@ -261,18 +261,24 @@ void tf2_bot_detector::Processes::RequireTF2NotRunning()
 void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable,
 	const std::vector<std::string>& args, bool elevated)
 {
-	std::wstring cmdLine;
-
-	//cmdLine << executable << L' ';
+	std::string cmdLine;
 
 	for (const auto& arg : args)
-		cmdLine << std::quoted(mh::change_encoding<wchar_t>(arg)) << L' ';
+		cmdLine << std::quoted(arg) << ' ';
+
+	return Launch(executable, cmdLine, elevated);
+}
+
+void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable,
+	const std::string_view& args, bool elevated)
+{
+	const auto cmdLineWide = mh::change_encoding<wchar_t>(args);
 
 	const auto result = ShellExecuteW(
 		NULL,
 		elevated ? L"runas" : L"open",
 		executable.c_str(),
-		cmdLine.c_str(),
+		cmdLineWide.c_str(),
 		nullptr,
 		SW_SHOWDEFAULT);
 

@@ -73,6 +73,8 @@ namespace tf2_bot_detector
 
 			void Launch(const std::filesystem::path& executable, const std::vector<std::string>& args = {},
 				bool elevated = false);
+			void Launch(const std::filesystem::path& executable, const std::string_view& args = {},
+					bool elevated = false);
 			int GetCurrentProcessID();
 		}
 
