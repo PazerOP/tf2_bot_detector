@@ -3,14 +3,12 @@
 
 #include <Windows.h>
 
-using namespace tf2_bot_detector;
-
-Platform::OS Platform::GetOS()
+tf2_bot_detector::Platform::OS tf2_bot_detector::Platform::GetOS()
 {
 	return OS::Windows;
 }
 
-Platform::Arch Platform::GetArch()
+tf2_bot_detector::Platform::Arch tf2_bot_detector::Platform::GetArch()
 {
 	static const Platform::Arch s_Arch = []
 	{
@@ -32,4 +30,9 @@ Platform::Arch Platform::GetArch()
 	}();
 
 	return s_Arch;
+}
+
+bool tf2_bot_detector::Platform::IsDebuggerAttached()
+{
+	return ::IsDebuggerPresent();
 }

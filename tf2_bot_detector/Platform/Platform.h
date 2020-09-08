@@ -26,6 +26,8 @@ namespace tf2_bot_detector
 		std::filesystem::path GetAppDataDir();
 		std::filesystem::path GetRealAppDataDir();
 
+		bool IsDebuggerAttached();
+
 		enum class OS
 		{
 			Windows,
