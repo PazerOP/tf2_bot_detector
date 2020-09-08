@@ -29,9 +29,8 @@ namespace tf2_bot_detector::Updater
 		bool m_PauseOnError = true;
 
 		UpdateType m_UpdateType = UpdateType::Unknown;
-		ReleaseChannel m_ReleaseChannel = ReleaseChannel::None;
 
-		std::filesystem::path m_SourcePath;
+		std::string m_SourcePath;
 		std::filesystem::path m_DestPath;
 	};
 

@@ -104,7 +104,7 @@ std::future<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdat
 				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "LaunchUriAsync returned false, requesting update tool");
 				return InstallUpdate::NeedsUpdateTool
 				{
-					.m_UpdateToolArgs = mh::format("--msix-bundle-url {}", std::quoted(bundleUri)),
+					.m_UpdateToolArgs = mh::format("--update-type MSIX --source-path {}", std::quoted(bundleUri)),
 				};
 			}
 		});

@@ -21,6 +21,12 @@ CmdLineArgs tf2_bot_detector::Updater::s_CmdLineArgs;
 
 [[nodiscard]] static int ValidateParameters()
 {
+	const auto SourcePathEmpty = []
+	{
+		std::cerr << "Source path not specified. Use --source-path <directory>" << std::endl;
+		return 1;
+	};
+
 	if (s_CmdLineArgs.m_UpdateType == UpdateType::Unknown)
 	{
 		std::cerr << "Update type not specified. Use --update-type <type> with one of the following values:\n"
@@ -38,31 +44,22 @@ CmdLineArgs tf2_bot_detector::Updater::s_CmdLineArgs;
 		return 1;
 	}
 
-	if (mh::any_eq(s_CmdLineArgs.m_UpdateType, UpdateType::MSIX))
-	{
-		if (s_CmdLineArgs.m_ReleaseChannel == ReleaseChannel::None)
-		{
-			std::cerr << mh::format("Release channel not specified. Use --release-channel <{:v}|{:v}|{:v}>",
-				mh::enum_fmt(ReleaseChannel::Public),
-				mh::enum_fmt(ReleaseChannel::Preview),
-				mh::enum_fmt(ReleaseChannel::Nightly))
-				<< std::endl;
-			return 1;
-		}
-	}
-
 	if (s_CmdLineArgs.m_UpdateType == UpdateType::Portable)
 	{
 		if (s_CmdLineArgs.m_SourcePath.empty())
 		{
-			std::cerr << "Source path not specified. Use --source-path <directory>" << std::endl;
-			return 1;
+			return SourcePathEmpty();
 		}
 		if (s_CmdLineArgs.m_DestPath.empty())
 		{
 			std::cerr << "Destination path not specified. Use --dest-path <directory>" << std::endl;
 			return 1;
 		}
+	}
+	else if (s_CmdLineArgs.m_UpdateType == UpdateType::MSIX)
+	{
+		if (s_CmdLineArgs.m_SourcePath.empty())
+			return SourcePathEmpty();
 	}
 
 	return 0;
@@ -83,16 +80,6 @@ CmdLineArgs tf2_bot_detector::Updater::s_CmdLineArgs;
 			}
 
 			s_CmdLineArgs.m_UpdateType = mh::enum_type<UpdateType>::find_value(argv[i + 1]);
-		}
-		else if (arg == "--release-channel")
-		{
-			if (!hasNextArg)
-			{
-				std::cerr << "Missing argument for " << std::quoted(arg) << std::endl;
-				return 1;
-			}
-
-			s_CmdLineArgs.m_ReleaseChannel = mh::enum_type<ReleaseChannel>::find_value(argv[i + 1]);
 		}
 		else if (arg == "--source-path")
 		{
