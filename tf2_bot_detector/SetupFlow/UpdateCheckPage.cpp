@@ -30,6 +30,7 @@ namespace
 		mh::status_reader<UpdateStatus> m_StatusReader;
 		bool m_HasChangedReleaseChannel = false;
 		bool m_UpdateButtonPressed = false;
+		bool m_DrawnOnce = false;
 	};
 
 	auto UpdateCheckPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
@@ -49,7 +50,12 @@ namespace
 		case UpdateStatus::UpdateToolDownloading:
 		case UpdateStatus::Downloading:
 		case UpdateStatus::Updating:
-			return ValidateSettingsResult::TriggerOpen;
+		{
+			if (m_DrawnOnce)
+				return ValidateSettingsResult::Success;
+			else
+				return ValidateSettingsResult::TriggerOpen;
+		}
 
 		case UpdateStatus::DownloadFailed:
 		case UpdateStatus::DownloadSuccess:
@@ -77,6 +83,9 @@ namespace
 			LogWarning(MH_SOURCE_LOCATION_CURRENT(), "status reader empty!");
 			return OnDrawResult::EndDrawing;
 		}
+
+		m_DrawnOnce = true;
+
 		const auto updateStatus = m_StatusReader.get();
 
 		const IAvailableUpdate* update = ds.m_UpdateManager->GetAvailableUpdate();
