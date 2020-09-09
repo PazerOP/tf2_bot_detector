@@ -76,9 +76,9 @@ auto BasicSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	return any ? OnDrawResult::ContinueDrawing : OnDrawResult::EndDrawing;
 }
 
-void BasicSettingsPage::Init(const Settings& settings)
+void BasicSettingsPage::Init(const InitState& is)
 {
-	m_Settings = settings;
+	m_Settings = is.m_Settings;
 }
 
 bool BasicSettingsPage::CanCommit() const

@@ -92,7 +92,10 @@ bool SetupFlow::OnDraw(Settings& settings, const ISetupFlowPage::DrawState& ds)
 		if (m_ActivePage != lastPage)
 		{
 			assert(page->ValidateSettings(settings) == ISetupFlowPage::ValidateSettingsResult::TriggerOpen);
-			page->Init(settings);
+
+			ISetupFlowPage::InitState is(settings);
+			is.m_UpdateManager = ds.m_UpdateManager;
+			page->Init(is);
 		}
 
 		auto drawResult = page->OnDraw(ds);

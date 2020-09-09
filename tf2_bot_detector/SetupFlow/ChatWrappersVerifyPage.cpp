@@ -83,10 +83,10 @@ auto ChatWrappersVerifyPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	return OnDrawResult::ContinueDrawing;
 }
 
-void ChatWrappersVerifyPage::Init(const Settings& settings)
+void ChatWrappersVerifyPage::Init(const InitState& is)
 {
 	m_Validation = {};
-	m_ExpectedToken = ChatWrappersGeneratorPage::GetChatWrapperStringToken(settings.m_Unsaved.m_ChatMsgWrappersToken);
+	m_ExpectedToken = ChatWrappersGeneratorPage::GetChatWrapperStringToken(is.m_Settings.m_Unsaved.m_ChatMsgWrappersToken);
 }
 
 bool ChatWrappersVerifyPage::CanCommit() const

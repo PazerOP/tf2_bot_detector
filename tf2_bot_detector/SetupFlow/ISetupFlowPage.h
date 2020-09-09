@@ -38,10 +38,16 @@ namespace tf2_bot_detector
 			IUpdateManager* m_UpdateManager = nullptr;
 			Settings* m_Settings = nullptr;
 		};
-
 		[[nodiscard]] virtual OnDrawResult OnDraw(const DrawState& ds) = 0;
 
-		virtual void Init(const Settings& settings) = 0;
+		struct InitState
+		{
+			explicit InitState(const Settings& settings) : m_Settings(settings) {}
+
+			const Settings& m_Settings;
+			IUpdateManager* m_UpdateManager = nullptr;
+		};
+		virtual void Init(const InitState& is) = 0;
 		virtual bool CanCommit() const = 0;
 		virtual void Commit(Settings& settings) = 0;
 		virtual bool WantsSetupText() const { return true; }

@@ -62,10 +62,10 @@ auto NetworkSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	return OnDrawResult::ContinueDrawing;
 }
 
-void NetworkSettingsPage::Init(const Settings& settings)
+void NetworkSettingsPage::Init(const InitState& is)
 {
-	m_Settings.m_AllowInternetUsage = settings.m_AllowInternetUsage.value_or(true);
-	m_Settings.m_ReleaseChannel = settings.m_ReleaseChannel;
+	m_Settings.m_AllowInternetUsage = is.m_Settings.m_AllowInternetUsage.value_or(true);
+	m_Settings.m_ReleaseChannel = is.m_Settings.m_ReleaseChannel;
 	if (!m_Settings.m_ReleaseChannel.has_value())
 		m_Settings.m_ReleaseChannel = ReleaseChannel::Public;
 }

@@ -18,7 +18,7 @@ namespace
 	public:
 		ValidateSettingsResult ValidateSettings(const Settings& settings) const override;
 		OnDrawResult OnDraw(const DrawState& ds) override;
-		void Init(const Settings& settings) override;
+		void Init(const InitState& is) override;
 
 		bool CanCommit() const override;
 		void Commit(Settings& settings);
@@ -29,29 +29,54 @@ namespace
 	private:
 		mh::status_reader<UpdateStatus> m_StatusReader;
 		bool m_HasChangedReleaseChannel = false;
-		bool m_HasCheckedForUpdate = false;
 		bool m_UpdateButtonPressed = false;
 	};
 
 	auto UpdateCheckPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 	{
-		if (m_HasCheckedForUpdate)
-			return ValidateSettingsResult::Success;
 		if (!settings.GetHTTPClient())
 			return ValidateSettingsResult::Success;
-		if (settings.m_ReleaseChannel.value_or(ReleaseChannel::None) == ReleaseChannel::None)
-			return ValidateSettingsResult::Success;
 
-		return ValidateSettingsResult::TriggerOpen;
+		const auto status = m_StatusReader.get();
+
+		switch (status.m_Status)
+		{
+		case UpdateStatus::Unknown:
+		case UpdateStatus::CheckQueued:
+		case UpdateStatus::Checking:
+		case UpdateStatus::UpdateAvailable:
+		case UpdateStatus::UpdateToolRequired:
+		case UpdateStatus::UpdateToolDownloading:
+		case UpdateStatus::Downloading:
+		case UpdateStatus::Updating:
+			return ValidateSettingsResult::TriggerOpen;
+
+		case UpdateStatus::DownloadFailed:
+		case UpdateStatus::DownloadSuccess:
+		case UpdateStatus::UpdateFailed:
+		case UpdateStatus::UpdateSuccess:
+		case UpdateStatus::UpdateCheckDisabled:
+		case UpdateStatus::StateSwitchFailure:
+		case UpdateStatus::InternetAccessDisabled:
+		case UpdateStatus::UpdateToolDownloadSuccess:
+		case UpdateStatus::UpdateToolDownloadFailed:
+		case UpdateStatus::CheckFailed:
+		case UpdateStatus::UpToDate:
+			return ValidateSettingsResult::Success;
+		}
+
+		assert(!"Should never get here...");
+		return ValidateSettingsResult::Success;
 	}
 
 	auto UpdateCheckPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	{
-		m_HasCheckedForUpdate = true;
-
 		if (!m_StatusReader.has_value())
-			m_StatusReader = ds.m_UpdateManager->GetUpdateStatus();
-
+		{
+			assert(false);
+			LogWarning(MH_SOURCE_LOCATION_CURRENT(), "status reader empty!");
+			return OnDrawResult::EndDrawing;
+		}
 		const auto updateStatus = m_StatusReader.get();
 
 		const IAvailableUpdate* update = ds.m_UpdateManager->GetAvailableUpdate();
@@ -62,9 +87,14 @@ namespace
 
 		ImGui::NewLine();
 
-		if (auto rc = ds.m_Settings->m_ReleaseChannel; Combo("##SetupFlow_UpdateCheckingMode", rc))
+		if (auto rc = ds.m_Settings->m_ReleaseChannel; Combo("##SetupFlow_UpdateCheckingMode", rc) && rc.has_value())
 		{
+			DebugLog(MH_SOURCE_LOCATION_CURRENT(),
+				"Update check mode changed to {}, queueing update check and saving settings...",
+				mh::enum_fmt(rc.value()));
+
 			ds.m_Settings->m_ReleaseChannel = rc;
+			ds.m_Settings->SaveFile();
 			ds.m_UpdateManager->QueueUpdateCheck();
 			m_HasChangedReleaseChannel = true;
 		}
@@ -85,12 +115,17 @@ namespace
 		case UpdateStatus::UpdateCheckDisabled:
 		{
 			if (!m_HasChangedReleaseChannel)
+			{
+				DebugLog(MH_SOURCE_LOCATION_CURRENT(),
+					"Update check disabled, and release channel unchanged. Continuing...");
 				return OnDrawResult::EndDrawing;
+			}
 
 			break;
 		}
 
 		case UpdateStatus::InternetAccessDisabled:
+			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Internet access disabled. Continuing...");
 			return OnDrawResult::EndDrawing;
 
 		default:
@@ -240,20 +275,25 @@ namespace
 			break;
 		}
 
+		// Continue automatically if we haven't changed any settings and we've determined we're up to date
+		if (updateStatus.m_Status == UpdateStatus::UpToDate && !m_HasChangedReleaseChannel)
+			return OnDrawResult::EndDrawing;
+
 		return OnDrawResult::ContinueDrawing;
 	}
 
-	void UpdateCheckPage::Init(const Settings& settings)
+	void UpdateCheckPage::Init(const InitState& is)
 	{
+		assert(is.m_UpdateManager);
+		if (is.m_UpdateManager && !m_StatusReader.has_value())
+			m_StatusReader = is.m_UpdateManager->GetUpdateStatus();
+
 		m_HasChangedReleaseChannel = false;
 		m_UpdateButtonPressed = false;
 	}
 
 	bool UpdateCheckPage::CanCommit() const
 	{
-		if (!m_HasCheckedForUpdate)
-			return false;
-
 		return mh::none_eq(m_StatusReader.get().m_Status
 			, UpdateStatus::CheckQueued
 			, UpdateStatus::Checking

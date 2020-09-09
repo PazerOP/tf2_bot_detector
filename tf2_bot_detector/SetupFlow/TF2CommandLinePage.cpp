@@ -361,7 +361,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 	return OnDrawResult::ContinueDrawing;
 }
 
-void TF2CommandLinePage::Init(const Settings& settings)
+void TF2CommandLinePage::Init(const InitState& is)
 {
 	m_Data = {};
 	m_Data.m_RandomRCONPassword = GenerateRandomRCONPassword();

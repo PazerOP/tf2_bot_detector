@@ -87,9 +87,9 @@ static std::optional<ChatWrappers> TryLoadChatWrappers(const std::filesystem::pa
 	return json.at("wrappers").get<ChatWrappers>();
 }
 
-void ChatWrappersGeneratorPage::Init(const Settings& settings)
+void ChatWrappersGeneratorPage::Init(const InitState& is)
 {
-	const auto tfDir = settings.GetTFDir();
+	const auto tfDir = is.m_Settings.GetTFDir();
 
 	m_WasInitiallyClosed = !Processes::IsTF2Running();
 	if (!m_WasInitiallyClosed)
