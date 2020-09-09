@@ -697,7 +697,7 @@ namespace
 					});
 
 				m_Parent.m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Updating,
-					"Platform reports that TF2 Bot Detector is already installed, and it can be updated. Running platform updater...",
+					"Installing platform update...",
 					std::move(future));
 
 				return true;
@@ -716,7 +716,7 @@ namespace
 
 			auto downloadBuildFuture = DownloadBuild(*client, portable, updater);
 			m_Parent.m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Downloading,
-				"Platform reports that TF2 Bot Detector is not installed. Updating in-place (portable mode)",
+				"Downloading new build...",
 				std::move(downloadBuildFuture));
 
 			return true;
