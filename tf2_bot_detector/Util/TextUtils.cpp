@@ -1,9 +1,10 @@
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING 1
-#define _SILENCE_CXX20_CODECVT_FACETS_DEPRECATION_WARNING 1
+//#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING 1
+//#define _SILENCE_CXX20_CODECVT_FACETS_DEPRECATION_WARNING 1
 
 #include "TextUtils.h"
 #include "Log.h"
 
+#include <mh/text/codecvt.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -14,9 +15,7 @@ using namespace std::string_literals;
 
 std::u16string tf2_bot_detector::ToU16(const std::u8string_view& input)
 {
-	std::wstring_convert<std::codecvt<char16_t, char, std::mbstate_t>, char16_t> converter;
-	return converter.from_bytes(reinterpret_cast<const char*>(input.data()),
-		reinterpret_cast<const char*>(input.data()) + input.size());
+	return mh::change_encoding<char16_t>(input);
 }
 
 std::u16string tf2_bot_detector::ToU16(const char* input, const char* input_end)
@@ -44,8 +43,7 @@ std::u8string tf2_bot_detector::ToU8(const std::string_view& input)
 
 std::u8string tf2_bot_detector::ToU8(const std::u16string_view& input)
 {
-	std::wstring_convert<std::codecvt<char16_t, char, std::mbstate_t>, char16_t> converter;
-	return ToU8(converter.to_bytes(input.data(), input.data() + input.size()));
+	return mh::change_encoding<char8_t>(input);
 }
 
 std::u8string tf2_bot_detector::ToU8(const std::wstring_view& input)
@@ -70,8 +68,7 @@ std::string tf2_bot_detector::ToMB(const std::wstring_view& input)
 
 std::wstring tf2_bot_detector::ToWC(const std::string_view& input)
 {
-	std::wstring_convert<std::codecvt<wchar_t,char, std::mbstate_t>> converter;
-	return converter.from_bytes(input.data(), input.data() + input.size());
+	return mh::change_encoding<wchar_t>(input);
 }
 
 std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filename)

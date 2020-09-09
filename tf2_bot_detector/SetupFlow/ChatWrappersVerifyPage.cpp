@@ -12,9 +12,12 @@
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
-bool ChatWrappersVerifyPage::ValidateSettings(const Settings& settings) const
+auto ChatWrappersVerifyPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 {
-	return m_Validation.valid();
+	if (!m_Validation.valid())
+		return ValidateSettingsResult::TriggerOpen;
+
+	return ValidateSettingsResult::Success;
 }
 
 auto ChatWrappersVerifyPage::OnDraw(const DrawState& ds) -> OnDrawResult

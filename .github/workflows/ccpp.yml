@@ -6,46 +6,68 @@ on:
       - 'schemas/**.json'
       - 'staging/cfg/**.json'
       - '*.md'
+      - '*.appinstaller_template'
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  ci:
+  setup_version:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Extract TF2BD_VERSION
+      run: |
+        mkdir build_dir
+        cd build_dir
+        cmake ../ || true     # we know this will fail, we just need version info from CMakeCache.txt
+        TF2BD_VERSION_NOBUILD=`cat CMakeCache.txt | grep TF2BD_VERSION_NOBUILD: | cut -d "=" -f2`
+        echo "::set-env name=TF2BD_VERSION::$TF2BD_VERSION_NOBUILD.${{ github.run_number }}"
+
+    - name: Store TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        data: ${{ env.TF2BD_VERSION }}
+        variable: TF2BD_VERSION
+
+    - name: Set TF2BD version link on tf2bd-util
+      run: |
+        curl -X POST "https://tf2bd-util.pazer.us/NightlyArchive/SetData/GitHubRunID?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&runid=${{ github.run_id }}" -d ""
+
+
+
+  build:
+    needs: setup_version
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      # fail-fast: false
       matrix:
         os: [windows-latest]
         triplet: [x86-windows, x64-windows]
         discord_integration: [true, false]
+        build_type: [Debug, Release]
         include:
           - os: windows-latest
             triplet: x86-windows
             tf2bd_arch: x86
-            build_arch: Win32
           - os: windows-latest
             triplet: x64-windows
             tf2bd_arch: x64
-            build_arch: x64
 
     steps:
-    - uses: olegtarasov/get-tag@v2 # GIT_TAG_NAME
-    - uses: benjlevesque/short-sha@v1.1
-      id: short_sha
-
-    - name: Config artifact name (tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      run: echo "::set-env name=TF2BD_VERSION::${{ env.GIT_TAG_NAME }}"
-
-    - name: Config artifact name (SHA)
-      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-      run: echo "::set-env name=TF2BD_VERSION::${{ steps.short_sha.outputs.sha }}"
-
+    - name: Retrieve TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        retrieve_variables: TF2BD_VERSION
     - name: Determine artifact behavior
       if: matrix.discord_integration == true
       run: echo "::set-env name=TF2BD_ENABLE_ARTIFACT_UPLOAD::1"
 
     - name: Config cross-platform paths
       id: tf2bd_paths
-      shell: bash
       run: |
         tf2bd_workspace=`realpath "${{ github.workspace }}"`
         echo "::set-output name=workspace::$tf2bd_workspace"
@@ -53,15 +75,19 @@ jobs:
 
     - name: Debug
       run: |
+        echo "github.event = ${{ github.event }}"
         echo "github.event_name = ${{ github.event_name }}"
         echo "github.sha = ${{ github.sha }}"
         echo "github.ref = ${{ github.ref }}"
+        echo "github.run_id = ${{ github.run_id }}"
+        echo "github.run_number = ${{ github.run_number }}"
         echo "matrix.os = ${{ matrix.os }}"
         echo "matrix.triplet = ${{ matrix.triplet }}"
         echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
         echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
-        echo "matrix.build_arch = ${{ matrix.build_arch }}"
+        echo "matrix.build_type = ${{ matrix.build_type }}"
         echo "env.TF2BD_ENABLE_ARTIFACT_UPLOAD = ${{ env.TF2BD_ENABLE_ARTIFACT_UPLOAD }}"
+        echo "env.TF2BD_VERSION = ${{ env.TF2BD_VERSION }}"
         echo "steps.tf2bd_paths.outputs.workspace = ${{ steps.tf2bd_paths.outputs.workspace }}"
         echo "steps.tf2bd_paths.outputs.build_dir = ${{ steps.tf2bd_paths.outputs.build_dir }}"
 
@@ -70,24 +96,40 @@ jobs:
       with:
         submodules: recursive
 
-    - name: run-vcpkg
-      uses: lukka/run-vcpkg@v3.2
+    - name: cache-vcpkg
+      uses: actions/cache@v2
       env:
-        VCPKG_RESPONSE_FILE: '${{ github.workspace }}/vcpkg_packages.txt'
+        VCPKG_ROOT: '${{ github.workspace }}/submodules/vcpkg'
       with:
-        vcpkgDirectory: '${{ github.workspace }}/submodules/vcpkg'
-        vcpkgArguments: '@${{ env.VCPKG_RESPONSE_FILE }}'
-        vcpkgTriplet: ${{ matrix.triplet }}
-        appendedCacheKey: ${{ hashFiles(env.VCPKG_RESPONSE_FILE) }}
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-3
+        path: |
+          ${{ env.VCPKG_ROOT }}/archives
+          ${{ env.VCPKG_ROOT }}/vcpkg.exe
+
+    - uses: seanmiddleditch/gha-setup-ninja@v2
+    - name: Configure build tools
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.tf2bd_arch }}
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
-      shell: bash
+      env:
+        VCPKG_FEATURE_FLAGS: manifests
+        RUNVCPKG_VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
-        cmake -A${{ matrix.build_arch }} -DTF2BD_IS_CI_COMPILE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} ../
-        cmake --build . --config Release
+        cmake -G Ninja \
+          -DTF2BD_IS_CI_COMPILE=ON \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
+          -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
+          -DTF2BD_VERSION_BUILD=${{ github.run_number }} \
+          ../
+        cmake --build . --config ${{ matrix.build_type }}
 
     - name: Sign artifacts
       if: ${{ startsWith(matrix.os, 'windows') }}
@@ -101,30 +143,35 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "smartscreen_${{ matrix.triplet }}"
+        name: "smartscreen_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        if-no-files-found: error
         path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe"
 
     - name: "Artifacts: Prepare staging/"
-      if: startsWith(matrix.os, 'windows')
-      shell: bash
+      if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       run: |
+        echo "Copying build artifacts to staging..."
         cp -v ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
-    - name: Smartscreen workaround
-      if: ${{ startsWith(matrix.os, 'windows') }}
-      shell: bash
-      run: |
+        echo "Performing smartscreen workaround..."
         echo "Hash of current exe: "
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
         cp -v "${{ steps.tf2bd_paths.outputs.workspace }}/smartscreen/${{ matrix.tf2bd_arch }}/tf2_bot_detector.exe" "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
         echo "Hash of cached exe: "
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
 
+    - name: "Artifacts: staging -> tf2bd-util nightly archive"
+      if: matrix.build_type == 'Release' && env.TF2BD_ENABLE_ARTIFACT_UPLOAD
+      run: |
+        echo "Uploading artifact to tf2bd-util..."
+        cd "${{ steps.tf2bd_paths.outputs.workspace }}/staging/"
+        7z a -so data.zip * | curl -T - "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=MainToolPortable&os=windows&arch=${{ matrix.tf2bd_arch }}"
+
     - name: "Artifacts: Upload staging/"
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2_bot_detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
+        name: "tf2-bot-detector_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
         if-no-files-found: error
         path: ${{ steps.tf2bd_paths.outputs.workspace }}/staging/
 
@@ -132,5 +179,266 @@ jobs:
       if: env.TF2BD_ENABLE_ARTIFACT_UPLOAD && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}"
-        path: "${{ steps.tf2bd_paths.outputs.build_dir }}/*.pdb"
+        name: "tf2-bot-detector-symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        if-no-files-found: error
+        path: "${{ steps.tf2bd_paths.outputs.build_dir }}/**.pdb"
+
+
+
+  updater:
+    needs: setup_version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+        triplet: [x86-windows-static, x64-windows-static]
+        build_type: [Debug, Release]
+        include:
+          - os: windows-latest
+            triplet: x86-windows-static
+            tf2bd_arch: x86
+          - os: windows-latest
+            triplet: x64-windows-static
+            tf2bd_arch: x64
+
+    steps:
+    - name: Retrieve TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        retrieve_variables: TF2BD_VERSION
+
+    - name: Config cross-platform paths
+      id: tf2bd_paths
+      run: |
+        tf2bd_workspace=`realpath "${{ github.workspace }}"`
+        echo "::set-output name=workspace::$tf2bd_workspace"
+        echo "::set-output name=build_dir::$tf2bd_workspace/tf2bd_cmake_build_dir/"
+
+    - name: Debug
+      run: |
+        echo "github.event = ${{ github.event }}"
+        echo "github.event_name = ${{ github.event_name }}"
+        echo "github.sha = ${{ github.sha }}"
+        echo "github.ref = ${{ github.ref }}"
+        echo "github.run_id = ${{ github.run_id }}"
+        echo "github.run_number = ${{ github.run_number }}"
+        echo "matrix.os = ${{ matrix.os }}"
+        echo "matrix.triplet = ${{ matrix.triplet }}"
+        echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
+        echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
+        echo "matrix.build_type = ${{ matrix.build_type }}"
+        echo "env.TF2BD_VERSION = ${{ env.TF2BD_VERSION }}"
+        echo "steps.tf2bd_paths.outputs.workspace = ${{ steps.tf2bd_paths.outputs.workspace }}"
+        echo "steps.tf2bd_paths.outputs.build_dir = ${{ steps.tf2bd_paths.outputs.build_dir }}"
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: cache-vcpkg
+      uses: actions/cache@v2
+      env:
+        VCPKG_ROOT: '${{ github.workspace }}/submodules/vcpkg'
+      with:
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-3
+        path: |
+          ${{ env.VCPKG_ROOT }}/archives
+          ${{ env.VCPKG_ROOT }}/vcpkg.exe
+
+    - uses: seanmiddleditch/gha-setup-ninja@v2
+    - name: Configure build tools
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.tf2bd_arch }}
+
+    - name: CMake
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      env:
+        VCPKG_FEATURE_FLAGS: manifests
+        RUNVCPKG_VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
+      run: |
+        mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
+        cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
+        cmake -G Ninja \
+          -DTF2BD_IS_CI_COMPILE=ON \
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
+          -DVCPKG_CRT_LINKAGE=static \
+          -DVCPKG_LIBRARY_LINKAGE=static \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
+          -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
+          -DTF2BD_VERSION_BUILD=${{ github.run_number }} \
+          ../tf2_bot_detector_updater/
+        cmake --build . --config ${{ matrix.build_type }}
+
+    - name: Sign artifacts
+      if: ${{ startsWith(matrix.os, 'windows') }}
+      uses: PazerOP/code-sign-action@v3
+      with:
+        folder: '${{ steps.tf2bd_paths.outputs.build_dir }}'
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+    - name: "Artifacts: tf2_bot_detector_updater -> tf2bd-util nightly archive"
+      if: matrix.build_type == 'Release'
+      run: |
+        echo "Uploading artifact to tf2bd-util..."
+        cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
+        7z a -so data.zip *.dll *.exe | curl -T - "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=Updater&os=windows&arch=${{ matrix.tf2bd_arch }}"
+
+    - name: "Artifacts: tf2_bot_detector_updater"
+      uses: actions/upload-artifact@v2
+      with:
+        name: "updater_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        if-no-files-found: error
+        path: |
+          ${{ steps.tf2bd_paths.outputs.build_dir }}/*.dll
+          ${{ steps.tf2bd_paths.outputs.build_dir }}/*.exe
+
+    - name: "Artifacts: symbols"
+      if: startsWith(matrix.os, 'windows')
+      uses: actions/upload-artifact@v2
+      with:
+        if-no-files-found: error
+        name: "updater-symbols_${{ matrix.triplet }}_${{ env.TF2BD_VERSION }}_${{ matrix.build_type }}"
+        path: "${{ steps.tf2bd_paths.outputs.build_dir }}/**.pdb"
+
+
+
+  msix:
+    runs-on: windows-latest
+    needs: build
+    strategy:
+      # fail-fast: false
+      matrix:
+        tf2bd_arch: [x86, x64]
+        build_type:
+          - name: Debug
+            suffix: -debug
+            appid_suffix: Debug
+          - name: Release
+
+    steps:
+    - name: Retrieve TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        retrieve_variables: TF2BD_VERSION
+
+    - name: Debug
+      run: |
+        echo "matrix.tf2bd_arch = ${{ matrix.tf2bd_arch }}"
+        echo "matrix.build_type.name = ${{ matrix.build_type.name }}"
+        echo "matrix.build_type.suffix = ${{ matrix.build_type.suffix }}"
+
+    - name: Config msix filename
+      run: echo "::set-env name=TF2BD_MSIX_FILENAME::tf2-bot-detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
+
+    - name: Configure PATH for windows sdk
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: "tf2-bot-detector_${{ matrix.tf2bd_arch }}-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}"
+        path: msix/package_staging/app
+
+    - name: Mark as non-portable
+      run: touch msix/package_staging/app/cfg/.non_portable
+
+    - name: Find and replace data in package config
+      run: |
+        cat msix/package_staging/AppxManifest.xml \
+          | sed 's/TF2BD_PROCESSOR_ARCH_REPLACE_ME/${{ matrix.tf2bd_arch }}/g' \
+          | sed 's/TF2BD_VERSION_REPLACE_ME/${{ env.TF2BD_VERSION }}/g' \
+          | sed 's/TF2BD_PACKAGE_IDENTITY_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
+          | sed 's/TF2BD_APPLICATION_IDENTITY_SUFFIX_REPLACE_ME/${{ matrix.build_type.appid_suffix }}/g' \
+          | sed 's/TF2BD_DISPLAYNAME_SUFFIX_REPLACE_ME/${{ matrix.build_type.suffix }}/g' \
+          | tee msix/package_staging/AppxManifest.xml
+
+    - name: Create msix package
+      shell: cmd
+      run: |
+        cd msix
+        makeappx.exe pack /d package_staging /p ${{ env.TF2BD_MSIX_FILENAME }}
+
+    - name: Sign msix package
+      uses: PazerOP/code-sign-action@v3
+      with:
+        folder: msix
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+    - name: Upload msix package
+      uses: actions/upload-artifact@v2
+      with:
+        if-no-files-found: error
+        name: ${{ env.TF2BD_MSIX_FILENAME }}
+        path: "msix/${{ env.TF2BD_MSIX_FILENAME }}"
+
+
+
+  msixbundle:
+    runs-on: windows-latest
+    needs: msix
+    strategy:
+      # fail-fast: false
+      matrix:
+        build_type:
+          - name: Debug
+            suffix: -debug
+          - name: Release
+
+    steps:
+    - name: Retrieve TF2BD_VERSION
+      uses: nick-invision/persist-action-data@v1
+      with:
+        retrieve_variables: TF2BD_VERSION
+
+    - name: Configure PATH for windows sdk
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Download msix (x86)
+      uses: actions/download-artifact@v2
+      with:
+        name: "tf2-bot-detector_x86-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
+        path: msix/bundle_staging
+    - name: Download msix (x64)
+      uses: actions/download-artifact@v2
+      with:
+        name: "tf2-bot-detector_x64-windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msix"
+        path: msix/bundle_staging
+
+    - name: Config msixbundle name
+      run: echo "::set-env name=TF2BD_MSIXBUNDLE_NAME::tf2-bot-detector_windows_${{ env.TF2BD_VERSION }}_${{ matrix.build_type.name }}.msixbundle"
+
+    - name: Create bundle
+      shell: cmd
+      run: |
+        cd msix
+        makeappx bundle /d bundle_staging /bv ${{ env.TF2BD_VERSION }} /p ${{ env.TF2BD_MSIXBUNDLE_NAME }}
+
+    - name: Sign bundle
+      uses: PazerOP/code-sign-action@v3
+      with:
+        folder: msix
+        certificate: '${{ secrets.CERTIFICATE_PFX_BASE64 }}'
+        password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
+
+    - name: "Artifacts: msix bundle -> tf2bd-util nightly archive"
+      if: matrix.build_type.name == 'Release'
+      run: |
+        echo "Uploading artifact to tf2bd-util..."
+        curl -T "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}" "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=MainToolMSIXBundle&os=windows&arch=AnyCPU"
+
+    - name: Upload bundle (github actions artifact)
+      uses: actions/upload-artifact@v2
+      with:
+        if-no-files-found: error
+        name: ${{ env.TF2BD_MSIXBUNDLE_NAME }}
+        path: "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}"

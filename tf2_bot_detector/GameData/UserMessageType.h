@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ostream>
+#include <mh/reflection/enum.hpp>
 
 namespace tf2_bot_detector
 {
@@ -93,100 +93,88 @@ namespace tf2_bot_detector
 	};
 }
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::UserMessageType type)
-{
-	using tf2_bot_detector::UserMessageType;
-#undef OS_CASE
-#define OS_CASE(v) case v : return os << #v
-	switch (type)
-	{
-		OS_CASE(UserMessageType::Geiger);
-		OS_CASE(UserMessageType::Train);
-		OS_CASE(UserMessageType::HudText);
-		OS_CASE(UserMessageType::SayText);
-		OS_CASE(UserMessageType::SayText2);
-		OS_CASE(UserMessageType::TextMsg);
-		OS_CASE(UserMessageType::ResetHUD);
-		OS_CASE(UserMessageType::GameTitle);
-		OS_CASE(UserMessageType::ItemPickup);
-		OS_CASE(UserMessageType::ShowMenu);
-		OS_CASE(UserMessageType::Shake);
-		OS_CASE(UserMessageType::Fade);
-		OS_CASE(UserMessageType::VGUIMenu);
-		OS_CASE(UserMessageType::Rumble);
-		OS_CASE(UserMessageType::CloseCaption);
-		OS_CASE(UserMessageType::SendAudio);
-		OS_CASE(UserMessageType::VoiceMask);
-		OS_CASE(UserMessageType::RequestState);
-		OS_CASE(UserMessageType::Damage);
-		OS_CASE(UserMessageType::HintText);
-		OS_CASE(UserMessageType::KeyHintText);
-		OS_CASE(UserMessageType::HudMsg);
-		OS_CASE(UserMessageType::AmmoDenied);
-		OS_CASE(UserMessageType::AchievementEvent);
-		OS_CASE(UserMessageType::UpdateRadar);
-		OS_CASE(UserMessageType::VoiceSubtitle);
-		OS_CASE(UserMessageType::HudNotify);
-		OS_CASE(UserMessageType::HudNotifyCustom);
-		OS_CASE(UserMessageType::PlayerStatsUpdate);
-		OS_CASE(UserMessageType::MapStatsUpdate);
-		OS_CASE(UserMessageType::PlayerIgnited);
-		OS_CASE(UserMessageType::PlayerIgnitedInv);
-		OS_CASE(UserMessageType::HudArenaNotify);
-		OS_CASE(UserMessageType::UpdateAchievement);
-		OS_CASE(UserMessageType::TrainingMsg);
-		OS_CASE(UserMessageType::TrainingObjective);
-		OS_CASE(UserMessageType::DamageDodged);
-		OS_CASE(UserMessageType::PlayerJarated);
-		OS_CASE(UserMessageType::PlayerExtinguished);
-		OS_CASE(UserMessageType::PlayerJaratedFade);
-		OS_CASE(UserMessageType::PlayerShieldBlocked);
-		OS_CASE(UserMessageType::BreakModel);
-		OS_CASE(UserMessageType::CheapBreakModel);
-		OS_CASE(UserMessageType::BreakModel_Pumpkin);
-		OS_CASE(UserMessageType::BreakModelRocketDud);
-		OS_CASE(UserMessageType::CallVoteFailed);
-		OS_CASE(UserMessageType::VoteStart);
-		OS_CASE(UserMessageType::VotePass);
-		OS_CASE(UserMessageType::VoteFailed);
-		OS_CASE(UserMessageType::VoteSetup);
-		OS_CASE(UserMessageType::PlayerBonusPoints);
-		OS_CASE(UserMessageType::RDTeamPointsChanged);
-		OS_CASE(UserMessageType::SpawnFlyingBird);
-		OS_CASE(UserMessageType::PlayerGodRayEffect);
-		OS_CASE(UserMessageType::PlayerTeleportHomeEffect);
-		OS_CASE(UserMessageType::MVMStatsReset);
-		OS_CASE(UserMessageType::MVMPlayerEvent);
-		OS_CASE(UserMessageType::MVMResetPlayerStats);
-		OS_CASE(UserMessageType::MVMWaveFailed);
-		OS_CASE(UserMessageType::MVMAnnouncement);
-		OS_CASE(UserMessageType::MVMPlayerUpgradedEvent);
-		OS_CASE(UserMessageType::MVMVictory);
-		OS_CASE(UserMessageType::MVMWaveChange);
-		OS_CASE(UserMessageType::MVMLocalPlayerUpgradesClear);
-		OS_CASE(UserMessageType::MVMLocalPlayerUpgradesValue);
-		OS_CASE(UserMessageType::MVMLocalPlayerWaveSpendingStats);
-		OS_CASE(UserMessageType::MVMLocalPlayerWaveSpendingValue);
-		OS_CASE(UserMessageType::MVMLocalPlayerUpgradeSpending);
-		OS_CASE(UserMessageType::MVMServerKickTimeUpdate);
-		OS_CASE(UserMessageType::PlayerLoadoutUpdated);
-		OS_CASE(UserMessageType::PlayerTauntSoundLoopStart);
-		OS_CASE(UserMessageType::PlayerTauntSoundLoopEnd);
-		OS_CASE(UserMessageType::ForcePlayerViewAngles);
-		OS_CASE(UserMessageType::BonusDucks);
-		OS_CASE(UserMessageType::EOTLDuckEvent);
-		OS_CASE(UserMessageType::PlayerPickupWeapon);
-		OS_CASE(UserMessageType::QuestObjectiveCompleted);
-		OS_CASE(UserMessageType::SPHapWeapEvent);
-		OS_CASE(UserMessageType::HapDmg);
-		OS_CASE(UserMessageType::HapPunch);
-		OS_CASE(UserMessageType::HapSetDrag);
-		OS_CASE(UserMessageType::HapSetConst);
-		OS_CASE(UserMessageType::HapMeleeContact);
-
-	default:
-		return os << "UserMessageType(" << +std::underlying_type_t<UserMessageType>(type) << ')';
-	}
-#undef OS_CASE
-}
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::UserMessageType)
+	MH_ENUM_REFLECT_VALUE(Geiger)
+	MH_ENUM_REFLECT_VALUE(Train)
+	MH_ENUM_REFLECT_VALUE(HudText)
+	MH_ENUM_REFLECT_VALUE(SayText)
+	MH_ENUM_REFLECT_VALUE(SayText2)
+	MH_ENUM_REFLECT_VALUE(TextMsg)
+	MH_ENUM_REFLECT_VALUE(ResetHUD)
+	MH_ENUM_REFLECT_VALUE(GameTitle)
+	MH_ENUM_REFLECT_VALUE(ItemPickup)
+	MH_ENUM_REFLECT_VALUE(ShowMenu)
+	MH_ENUM_REFLECT_VALUE(Shake)
+	MH_ENUM_REFLECT_VALUE(Fade)
+	MH_ENUM_REFLECT_VALUE(VGUIMenu)
+	MH_ENUM_REFLECT_VALUE(Rumble)
+	MH_ENUM_REFLECT_VALUE(CloseCaption)
+	MH_ENUM_REFLECT_VALUE(SendAudio)
+	MH_ENUM_REFLECT_VALUE(VoiceMask)
+	MH_ENUM_REFLECT_VALUE(RequestState)
+	MH_ENUM_REFLECT_VALUE(Damage)
+	MH_ENUM_REFLECT_VALUE(HintText)
+	MH_ENUM_REFLECT_VALUE(KeyHintText)
+	MH_ENUM_REFLECT_VALUE(HudMsg)
+	MH_ENUM_REFLECT_VALUE(AmmoDenied)
+	MH_ENUM_REFLECT_VALUE(AchievementEvent)
+	MH_ENUM_REFLECT_VALUE(UpdateRadar)
+	MH_ENUM_REFLECT_VALUE(VoiceSubtitle)
+	MH_ENUM_REFLECT_VALUE(HudNotify)
+	MH_ENUM_REFLECT_VALUE(HudNotifyCustom)
+	MH_ENUM_REFLECT_VALUE(PlayerStatsUpdate)
+	MH_ENUM_REFLECT_VALUE(MapStatsUpdate)
+	MH_ENUM_REFLECT_VALUE(PlayerIgnited)
+	MH_ENUM_REFLECT_VALUE(PlayerIgnitedInv)
+	MH_ENUM_REFLECT_VALUE(HudArenaNotify)
+	MH_ENUM_REFLECT_VALUE(UpdateAchievement)
+	MH_ENUM_REFLECT_VALUE(TrainingMsg)
+	MH_ENUM_REFLECT_VALUE(TrainingObjective)
+	MH_ENUM_REFLECT_VALUE(DamageDodged)
+	MH_ENUM_REFLECT_VALUE(PlayerJarated)
+	MH_ENUM_REFLECT_VALUE(PlayerExtinguished)
+	MH_ENUM_REFLECT_VALUE(PlayerJaratedFade)
+	MH_ENUM_REFLECT_VALUE(PlayerShieldBlocked)
+	MH_ENUM_REFLECT_VALUE(BreakModel)
+	MH_ENUM_REFLECT_VALUE(CheapBreakModel)
+	MH_ENUM_REFLECT_VALUE(BreakModel_Pumpkin)
+	MH_ENUM_REFLECT_VALUE(BreakModelRocketDud)
+	MH_ENUM_REFLECT_VALUE(CallVoteFailed)
+	MH_ENUM_REFLECT_VALUE(VoteStart)
+	MH_ENUM_REFLECT_VALUE(VotePass)
+	MH_ENUM_REFLECT_VALUE(VoteFailed)
+	MH_ENUM_REFLECT_VALUE(VoteSetup)
+	MH_ENUM_REFLECT_VALUE(PlayerBonusPoints)
+	MH_ENUM_REFLECT_VALUE(RDTeamPointsChanged)
+	MH_ENUM_REFLECT_VALUE(SpawnFlyingBird)
+	MH_ENUM_REFLECT_VALUE(PlayerGodRayEffect)
+	MH_ENUM_REFLECT_VALUE(PlayerTeleportHomeEffect)
+	MH_ENUM_REFLECT_VALUE(MVMStatsReset)
+	MH_ENUM_REFLECT_VALUE(MVMPlayerEvent)
+	MH_ENUM_REFLECT_VALUE(MVMResetPlayerStats)
+	MH_ENUM_REFLECT_VALUE(MVMWaveFailed)
+	MH_ENUM_REFLECT_VALUE(MVMAnnouncement)
+	MH_ENUM_REFLECT_VALUE(MVMPlayerUpgradedEvent)
+	MH_ENUM_REFLECT_VALUE(MVMVictory)
+	MH_ENUM_REFLECT_VALUE(MVMWaveChange)
+	MH_ENUM_REFLECT_VALUE(MVMLocalPlayerUpgradesClear)
+	MH_ENUM_REFLECT_VALUE(MVMLocalPlayerUpgradesValue)
+	MH_ENUM_REFLECT_VALUE(MVMLocalPlayerWaveSpendingStats)
+	MH_ENUM_REFLECT_VALUE(MVMLocalPlayerWaveSpendingValue)
+	MH_ENUM_REFLECT_VALUE(MVMLocalPlayerUpgradeSpending)
+	MH_ENUM_REFLECT_VALUE(MVMServerKickTimeUpdate)
+	MH_ENUM_REFLECT_VALUE(PlayerLoadoutUpdated)
+	MH_ENUM_REFLECT_VALUE(PlayerTauntSoundLoopStart)
+	MH_ENUM_REFLECT_VALUE(PlayerTauntSoundLoopEnd)
+	MH_ENUM_REFLECT_VALUE(ForcePlayerViewAngles)
+	MH_ENUM_REFLECT_VALUE(BonusDucks)
+	MH_ENUM_REFLECT_VALUE(EOTLDuckEvent)
+	MH_ENUM_REFLECT_VALUE(PlayerPickupWeapon)
+	MH_ENUM_REFLECT_VALUE(QuestObjectiveCompleted)
+	MH_ENUM_REFLECT_VALUE(SPHapWeapEvent)
+	MH_ENUM_REFLECT_VALUE(HapDmg)
+	MH_ENUM_REFLECT_VALUE(HapPunch)
+	MH_ENUM_REFLECT_VALUE(HapSetDrag)
+	MH_ENUM_REFLECT_VALUE(HapSetConst)
+	MH_ENUM_REFLECT_VALUE(HapMeleeContact)
+MH_ENUM_REFLECT_END()

@@ -1,7 +1,9 @@
 #include "ConfigHelpers.h"
 #include "Networking/HTTPHelpers.h"
+#include "Platform/Platform.h"
 #include "Util/JSONUtils.h"
 #include "Util/RegexUtils.h"
+#include "Filesystem.h"
 #include "Log.h"
 #include "Version.h"
 
@@ -9,7 +11,6 @@
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
-#include <fstream>
 #include <regex>
 
 using namespace std::string_literals;
@@ -20,29 +21,32 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 {
 	ConfigFilePaths retVal;
 
-	const std::filesystem::path cfg("cfg");
-	if (std::filesystem::is_directory(cfg))
+	if (auto path = mh::format("cfg/{}.official.json", basename); IFilesystem::Get().Exists(path))
+		retVal.m_Official = path;
+	if (auto path = mh::format("cfg/{}.json", basename); IFilesystem::Get().Exists(path))
+		retVal.m_User = path;
+
+	if (const auto cfg = IFilesystem::Get().GetMutableDataDir() / std::filesystem::path("cfg");
+		std::filesystem::is_directory(cfg))
 	{
 		try
 		{
-			const std::regex s_PlayerListRegex(std::string(basename) << R"regex(\.(.*\.)?json)regex", std::regex::optimize);
+			const std::regex filenameRegex(mh::format("{}{}", basename, R"regex(\.(?!official).*\.json)regex"),
+				std::regex::optimize | std::regex::icase);
 
 			for (const auto& file : std::filesystem::directory_iterator(cfg,
 				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
 			{
 				const auto path = file.path();
 				const auto filename = path.filename().string();
-				if (mh::case_insensitive_compare(filename, std::string(basename) << ".json"sv))
-					retVal.m_User = cfg / filename;
-				else if (mh::case_insensitive_compare(filename, std::string(basename) << ".official.json"sv))
-					retVal.m_Official = cfg / filename;
-				else if (std::regex_match(filename.begin(), filename.end(), s_PlayerListRegex))
+				if (std::regex_match(filename.begin(), filename.end(), filenameRegex))
 					retVal.m_Others.push_back(cfg / filename);
 			}
 		}
 		catch (const std::filesystem::filesystem_error& e)
 		{
-			LogError(std::string(__FUNCTION__ ": Exception when loading playerlist.*.json files from ./cfg/: ") << e.what());
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+				"Failed to gather names matching {}.*.json in {}", basename, cfg);
 		}
 	}
 
@@ -51,15 +55,7 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 
 static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann::json& json)
 {
-	auto jsonString = json.dump(1, '\t', true);
-
-	std::ofstream file(filename, std::ios::binary);
-	if (!file.good())
-		throw std::runtime_error("Failed to open file for writing");
-
-	file << jsonString << '\n';
-	if (!file.good())
-		throw std::runtime_error("Failed to write json to file");
+	IFilesystem::Get().WriteFile(filename, json.dump(1, '\t', true) << '\n');
 }
 
 static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, const nlohmann::json& json)
@@ -73,20 +69,20 @@ static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, cons
 	return schema;
 }
 
-static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann::json& existingJson,
+static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& existingJson,
 	SharedConfigFileBase& config, const HTTPClient& client)
 {
 	auto fileInfoJson = existingJson.find("file_info");
 	if (fileInfoJson == existingJson.end())
 	{
-		DebugLog("Skipping auto-update of "s << filename << ": file_info object missing");
+		DebugLog("Skipping auto-update of {}: file_info object missing", filename);
 		return false;
 	}
 
 	const ConfigFileInfo info(*fileInfoJson);
 	if (info.m_UpdateURL.empty())
 	{
-		DebugLog("Skipping auto-update of "s << filename << ": update_url was empty");
+		DebugLog("Skipping auto-update of {}: update_url was empty", filename);
 		return false;
 	}
 
@@ -97,8 +93,8 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to auto-update "s << filename << ": failed to parse new json from "
-			<< info.m_UpdateURL << ": " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to auto-update {}: failed to parse new json from {}", filename, info.m_UpdateURL);
 		return false;
 	}
 
@@ -108,8 +104,8 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to auto-update "s << filename << " from " << info.m_UpdateURL
-			<< ": new json failed schema validation: " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to auto-update {} from {}: new json failed schema validation", filename, info.m_UpdateURL);
 		return false;
 	}
 
@@ -121,8 +117,8 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Failed to auto-update "s << filename << " from " << info.m_UpdateURL
-			<< ": failed to parse file info from new json: " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to auto-update {} from {}: failed to parse file info from new json", filename, info.m_UpdateURL);
 		return false;
 	}
 
@@ -135,8 +131,8 @@ static bool TryAutoUpdate(const std::filesystem::path& filename, const nlohmann:
 	}
 	catch (const std::exception& e)
 	{
-		LogError("Skipping auto-update of "s << filename << ": failed to deserialize response from "
-			<< info.m_UpdateURL << ": " << e.what());
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to auto-update {}: failed to deserialize response from {}", filename, info.m_UpdateURL);
 		return false;
 	}
 
@@ -210,22 +206,26 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 
 	nlohmann::json json;
 	{
-		std::ifstream file(filename);
-		if (!file.good())
-		{
-			DebugLog("Failed to open {}", filename);
-			return false;
-		}
-
 		Log("Loading {}...", filename);
 
+		std::string file;
 		try
 		{
-			file >> json;
+			file = IFilesystem::Get().ReadFile(filename);
 		}
 		catch (const std::exception& e)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when parsing JSON from {}", filename);
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load {}", filename);
+			return false;
+		}
+
+		try
+		{
+			json = nlohmann::json::parse(file);
+		}
+		catch (const std::exception& e)
+		{
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to parse JSON from {}", filename);
 			return false;
 		}
 	}

@@ -1,11 +1,14 @@
 #include "Log.h"
 #include "Util/PathUtils.h"
+#include "Filesystem.h"
 
 #include <imgui.h>
 #include <mh/compiler.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
+#include <SDL2/SDL_messagebox.h>
 
 #include <deque>
 #include <filesystem>
@@ -22,6 +25,7 @@
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
+using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 
 namespace
@@ -32,6 +36,8 @@ namespace
 		LogManager();
 		LogManager(const LogManager&) = delete;
 		LogManager& operator=(const LogManager&) = delete;
+
+		void Init();
 
 		void Log(std::string msg, const LogMessageColor& color, LogSeverity severity,
 			LogVisibility visibility = LogVisibility::Default, time_point_t timestamp = clock_t::now()) override;
@@ -72,7 +78,18 @@ namespace
 
 	static LogManager& GetLogState()
 	{
-		static LogManager s_LogState;
+		// We need this song and dance because this initialization might be reentrant
+		// (filesystem might print log messages)
+		bool isFirstInit = false;
+		static LogManager s_LogState = [&]()
+		{
+			isFirstInit = true;
+			return LogManager{};
+		}();
+
+		if (isFirstInit)
+			s_LogState.Init();
+
 		return s_LogState;
 	}
 }
@@ -88,23 +105,30 @@ static constexpr LogMessageColor COLOR_ERROR = { 1, 0.25, 0, 1 };
 
 LogManager::LogManager()
 {
+}
+
+void LogManager::Init()
+{
+	::DebugLog(MH_SOURCE_LOCATION_CURRENT());
+	std::lock_guard lock(m_LogMutex);
+
 	const auto t = ToTM(clock_t::now());
-	const auto timestampStr = mh::format("{}", std::put_time(&t, "%Y-%m-%d_%H-%M-%S"));
+	const mh::fmtstr<128> timestampStr("{}", std::put_time(&t, "%Y-%m-%d_%H-%M-%S"));
 
 	// Pick file name
 	{
-		std::filesystem::path logPath = "logs";
+		std::filesystem::path logPath = IFilesystem::Get().ResolvePath("logs", PathUsage::Write);
 
 		std::error_code ec;
 		std::filesystem::create_directories(logPath, ec);
 		if (ec)
 		{
-			this->Log(mh::format("Failed to create directory {}. Log output will go to stdout.", logPath),
-				COLOR_WARNING, LogSeverity::Warning);
+			::LogWarning("Failed to create one or more directory in the path {}. Log output will go to stdout.",
+				logPath);
 		}
 		else
 		{
-			m_FileName = logPath / mh::format("{}.log", timestampStr);
+			m_FileName = logPath / mh::fmtstr<128>("{}.log", timestampStr).view();
 		}
 	}
 
@@ -113,10 +137,7 @@ LogManager::LogManager()
 	{
 		m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
 		if (!m_File.good())
-		{
-			this->Log(mh::format("Failed to open log file {}. Log output will go to stdout only.", m_FileName),
-				COLOR_WARNING, LogSeverity::Warning);
-		}
+			::LogWarning("Failed to open log file {}. Log output will go to stdout only.", m_FileName);
 	}
 
 	{
@@ -125,20 +146,15 @@ LogManager::LogManager()
 		std::filesystem::create_directories(logDir, ec);
 		if (ec)
 		{
-			this->Log(
-				mh::format("Failed to create one or more directory in the path {}. Console output will not be logged.", logDir),
-				COLOR_WARNING, LogSeverity::Warning);
+			::LogWarning("Failed to create one or more directory in the path {}. Console output will not be logged.",
+				logDir);
 		}
 		else
 		{
-			auto logPath = logDir / mh::format("console_{}.log", timestampStr);
+			auto logPath = logDir / mh::fmtstr<128>("console_{}.log", timestampStr).view();
 			m_ConsoleLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
 			if (!m_ConsoleLogFile.good())
-			{
-				this->Log(
-					mh::format("Failed to open console log file {}. Console output will not be logged.", logPath),
-					COLOR_WARNING, LogSeverity::Warning);
-			}
+				::LogWarning("Failed to open console log file {}. Console output will not be logged.", logPath);
 		}
 	}
 }
@@ -202,10 +218,51 @@ void LogManager::ReplaceSecrets(std::string& msg) const
 	}
 }
 
-void tf2_bot_detector::LogException(const mh::source_location& location, const std::exception& e,
+#define LOG_EXCEPTION_IMPL(logExFn, logFn) \
+	void tf2_bot_detector::logExFn(const mh::source_location& location, const std::exception& e, \
+		const std::string_view& msg) \
+	{ \
+		logFn(location, msg.empty() ? "{1}: {2}"sv : "{0}: {1}: {2}"sv, msg, typeid(e).name(), e.what()); \
+	}
+
+LOG_EXCEPTION_IMPL(LogException, LogError);
+LOG_EXCEPTION_IMPL(DebugLogException, DebugLogWarning);
+
+void tf2_bot_detector::LogFatalError(const mh::source_location& location, const std::string_view& msg)
+{
+	LogError(location, msg);
+
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal error",
+		mh::format(
+R"({}
+
+Error source filename: {}:{}
+Error source function: {})"
+		, msg, location.file_name(), location.line(), location.function_name()
+		).c_str(), nullptr);
+
+	std::exit(1);
+}
+
+void tf2_bot_detector::LogFatalException(const mh::source_location& location, const std::exception& e,
 	const std::string_view& msg)
 {
-	LogError(location, msg.empty() ? "{1}: {2}" : "{0}: {1}: {2}", msg, typeid(e).name(), e.what());
+	LogException(location, e, msg);
+
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal error",
+		mh::format(
+R"({}
+
+Exception type: {}
+Exception message: {}
+
+Exception source filename: {}:{}
+Exception source function: {})"
+			, msg, typeid(e).name(), e.what(),
+			location.file_name(), location.line(), location.function_name()
+		).c_str(), nullptr);
+
+	std::exit(1);
 }
 
 void LogManager::Log(std::string msg, const LogMessageColor & color,

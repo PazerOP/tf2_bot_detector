@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Networking/HTTPClient.h"
 #include "ChatWrappers.h"
 #include "Clock.h"
-#include "Networking/HTTPClient.h"
+#include "ReleaseChannel.h"
 #include "SteamID.h"
 
 #include <nlohmann/json_fwd.hpp>
@@ -18,17 +19,8 @@ namespace srcon
 
 namespace tf2_bot_detector
 {
-	enum class ProgramUpdateCheckMode
-	{
-		Unknown = -1,
-
-		Releases,
-		Previews,
-		Disabled,
-	};
-
-	void to_json(nlohmann::json& j, const ProgramUpdateCheckMode& d);
-	void from_json(const nlohmann::json& j, ProgramUpdateCheckMode& d);
+	void to_json(nlohmann::json& j, const ReleaseChannel& d);
+	void from_json(const nlohmann::json& j, ReleaseChannel& d);
 
 	struct AutoDetectedSettings
 	{
@@ -64,7 +56,7 @@ namespace tf2_bot_detector
 
 		bool m_LazyLoadAPIData = true;
 
-		ProgramUpdateCheckMode m_ProgramUpdateCheckMode = ProgramUpdateCheckMode::Unknown;
+		std::optional<ReleaseChannel> m_ReleaseChannel;
 
 		constexpr auto GetAutoVotekickDelay() const { return std::chrono::duration<float>(m_AutoVotekickDelay); }
 
@@ -139,24 +131,4 @@ namespace tf2_bot_detector
 	private:
 		mutable std::shared_ptr<HTTPClient> m_HTTPClient;
 	};
-}
-
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::ProgramUpdateCheckMode val)
-{
-	using ProgramUpdateCheckMode = tf2_bot_detector::ProgramUpdateCheckMode;
-
-#undef OS_CASE
-#define OS_CASE(v) case v : return os << #v
-	switch (val)
-	{
-		OS_CASE(ProgramUpdateCheckMode::Disabled);
-		OS_CASE(ProgramUpdateCheckMode::Previews);
-		OS_CASE(ProgramUpdateCheckMode::Releases);
-		OS_CASE(ProgramUpdateCheckMode::Unknown);
-
-	default:
-		return os << "ProgramUpdateCheckMode(" << +std::underlying_type_t<ProgramUpdateCheckMode>(val) << ')';
-	}
-#undef OS_CASE
 }

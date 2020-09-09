@@ -79,14 +79,14 @@ void TF2CommandLinePage::Data::TryUpdateCmdlineArgs()
 	}
 }
 
-bool TF2CommandLinePage::ValidateSettings(const Settings& settings) const
+auto TF2CommandLinePage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 {
 	if (!Processes::IsTF2Running())
-		return false;
+		return ValidateSettingsResult::TriggerOpen;
 	if (!m_Data.m_CommandLineArgs->IsPopulated())
-		return false;
+		return ValidateSettingsResult::TriggerOpen;
 
-	return true;
+	return ValidateSettingsResult::Success;
 }
 
 auto TF2CommandLinePage::TF2CommandLine::Parse(const std::string_view& cmdLine) -> TF2CommandLine

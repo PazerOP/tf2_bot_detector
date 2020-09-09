@@ -1,11 +1,13 @@
 #include "Settings.h"
+#include "Networking/NetworkHelpers.h"
 #include "Util/JSONUtils.h"
 #include "Util/PathUtils.h"
+#include "Filesystem.h"
 #include "IPlayer.h"
 #include "Log.h"
 #include "PlayerListJSON.h"
 #include "Platform/Platform.h"
-#include "Networking/NetworkHelpers.h"
+#include "ReleaseChannel.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -22,7 +24,10 @@ using namespace tf2_bot_detector;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-static const std::filesystem::path s_SettingsPath("cfg/settings.json");
+static std::filesystem::path GetSettingsPath(PathUsage usage)
+{
+	return IFilesystem::Get().ResolvePath("cfg/settings.json", usage);
+}
 
 namespace tf2_bot_detector
 {
@@ -137,37 +142,32 @@ void GeneralSettings::SetSteamAPIKey(std::string key)
 	m_SteamAPIKey = std::move(key);
 }
 
-void tf2_bot_detector::to_json(nlohmann::json& j, const ProgramUpdateCheckMode& d)
+void tf2_bot_detector::to_json(nlohmann::json& j, const ReleaseChannel& d)
 {
 	switch (d)
 	{
-	case ProgramUpdateCheckMode::Unknown:   j = nullptr; return;
-	case ProgramUpdateCheckMode::Releases:  j = "releases"; return;
-	case ProgramUpdateCheckMode::Previews:  j = "previews"; return;
-	case ProgramUpdateCheckMode::Disabled:  j = "disabled"; return;
-
-	default:
-		throw std::invalid_argument("Unknown ProgramUpdateCheckMode "s << +std::underlying_type_t<ProgramUpdateCheckMode>(d));
+	case ReleaseChannel::None:      j = "disabled"; return;
+	case ReleaseChannel::Public:    j = "public"; return;
+	case ReleaseChannel::Preview:   j = "preview"; return;
+	case ReleaseChannel::Nightly:   j = "nightly"; return;
 	}
+
+	throw std::invalid_argument(mh::format("Unexpected value {}", mh::enum_fmt(d)));
 }
 
-void tf2_bot_detector::from_json(const nlohmann::json& j, ProgramUpdateCheckMode& d)
+void tf2_bot_detector::from_json(const nlohmann::json& j, ReleaseChannel& d)
 {
-	if (j.is_null())
-	{
-		d = ProgramUpdateCheckMode::Unknown;
-		return;
-	}
-
-	auto value = j.get<std::string_view>();
-	if (value == "releases"sv)
-		d = ProgramUpdateCheckMode::Releases;
-	else if (value == "previews"sv)
-		d = ProgramUpdateCheckMode::Previews;
-	else if (value == "disabled"sv)
-		d = ProgramUpdateCheckMode::Disabled;
+	auto value = mh::tolower(j.get<std::string_view>());
+	if (value == "releases"sv || value == "public"sv)
+		d = ReleaseChannel::Public;
+	else if (value == "previews"sv || value == "preview"sv)
+		d = ReleaseChannel::Preview;
+	else if (value == "nightly"sv)
+		d = ReleaseChannel::Nightly;
+	else if (value == "disabled"sv || value == "none"sv)
+		d = ReleaseChannel::None;
 	else
-		throw std::invalid_argument("Unknown ProgramUpdateCheckMode "s << std::quoted(value));
+		throw std::invalid_argument(mh::format("Unknown ReleaseChannel {}", std::quoted(value)));
 }
 
 Settings::Settings()
@@ -181,10 +181,11 @@ void Settings::LoadFile()
 {
 	nlohmann::json json;
 	{
-		std::ifstream file(s_SettingsPath);
+		const auto settingsPath = GetSettingsPath(PathUsage::Read);
+		std::ifstream file(settingsPath);
 		if (!file.good())
 		{
-			LogError(std::string(__FUNCTION__ ": Failed to open ") << s_SettingsPath);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open {}", settingsPath);
 		}
 		else
 		{
@@ -194,14 +195,19 @@ void Settings::LoadFile()
 			}
 			catch (const nlohmann::json::exception& e)
 			{
-				auto backupPath = std::filesystem::path(s_SettingsPath).replace_filename("settings.backup.json");
-				LogError(std::string(__FUNCTION__) << ": Failed to parse JSON from " << s_SettingsPath << ": " << e.what()
-					<< ". Writing backup to ");
+				const auto backupPath = std::filesystem::path(settingsPath).replace_filename("settings.backup.json");
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+					"Failed to parse JSON from {}. Writing backup to {}...", settingsPath, backupPath);
 
-				std::error_code ec;
-				std::filesystem::copy_file(s_SettingsPath, backupPath, ec);
-				if (!ec)
-					LogError(std::string(__FUNCTION__) << ": Failed to make backup of settings.json to " << backupPath);
+				try
+				{
+					std::filesystem::copy_file(settingsPath, backupPath);
+				}
+				catch (const std::exception& e)
+				{
+					LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+						"Failed to make backup of settings.json to {}", backupPath);
+				}
 			}
 		}
 	}
@@ -214,7 +220,7 @@ void Settings::LoadFile()
 		try_get_to_defaulted(*found, m_SleepWhenUnfocused, "sleep_when_unfocused");
 		try_get_to_defaulted(*found, m_AutoTempMute, "auto_temp_mute", DEFAULTS.m_AutoTempMute);
 		try_get_to_defaulted(*found, m_AllowInternetUsage, "allow_internet_usage");
-		try_get_to_defaulted(*found, m_ProgramUpdateCheckMode, "program_update_check_mode", DEFAULTS.m_ProgramUpdateCheckMode);
+		try_get_to_defaulted(*found, m_ReleaseChannel, "program_update_check_mode");
 		try_get_to_defaulted(*found, m_AutoLaunchTF2, "auto_launch_tf2", DEFAULTS.m_AutoLaunchTF2);
 		try_get_to_defaulted(*found, m_AutoChatWarnings, "auto_chat_warnings", DEFAULTS.m_AutoChatWarnings);
 		try_get_to_defaulted(*found, m_AutoChatWarningsConnecting, "auto_chat_warnings_connecting", DEFAULTS.m_AutoChatWarningsConnecting);
@@ -258,7 +264,7 @@ bool Settings::SaveFile() const try
 			{
 				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
 				{ "auto_temp_mute", m_AutoTempMute },
-				{ "program_update_check_mode", m_ProgramUpdateCheckMode },
+				{ "program_update_check_mode", m_ReleaseChannel },
 				{ "steam_api_key", GetSteamAPIKey() },
 				{ "auto_launch_tf2", m_AutoLaunchTF2 },
 				{ "auto_chat_warnings", m_AutoChatWarnings },
@@ -285,18 +291,19 @@ bool Settings::SaveFile() const try
 	// Make sure we successfully serialize BEFORE we destroy our file
 	auto jsonString = json.dump(1, '\t', true);
 	{
-		std::filesystem::create_directories(std::filesystem::path(s_SettingsPath).remove_filename());
-		std::ofstream file(s_SettingsPath, std::ios::binary);
+		const auto settingsPath = GetSettingsPath(PathUsage::Write);
+		std::filesystem::create_directories(std::filesystem::path(settingsPath).remove_filename());
+		std::ofstream file(settingsPath, std::ios::binary);
 		if (!file.good())
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open settings file for writing: {}", s_SettingsPath);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open settings file for writing: {}", settingsPath);
 			return false;
 		}
 
 		file << jsonString << '\n';
 		if (!file.good())
 		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to write settings to {}", s_SettingsPath);
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to write settings to {}", settingsPath);
 			return false;
 		}
 	}

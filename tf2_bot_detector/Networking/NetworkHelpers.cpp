@@ -1,3 +1,5 @@
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #include "NetworkHelpers.h"
 #include "Log.h"
 

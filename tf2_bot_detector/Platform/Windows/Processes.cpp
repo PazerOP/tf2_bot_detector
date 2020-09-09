@@ -2,6 +2,7 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
+#include <mh/text/codecvt.hpp>
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -13,6 +14,7 @@
 #include <thread>
 
 #include <Windows.h>
+#include <shellapi.h>
 #include "WindowsHelpers.h"
 #include <comutil.h>
 #include <Wbemidl.h>
@@ -254,4 +256,43 @@ void tf2_bot_detector::Processes::RequireTF2NotRunning()
 
 		std::exit(1);
 	}
+}
+
+void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable,
+	const std::vector<std::string>& args, bool elevated)
+{
+	std::string cmdLine;
+
+	for (const auto& arg : args)
+		cmdLine << std::quoted(arg) << ' ';
+
+	return Launch(executable, cmdLine, elevated);
+}
+
+void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable,
+	const std::string_view& args, bool elevated)
+{
+	const auto cmdLineWide = mh::change_encoding<wchar_t>(args);
+
+	const auto result = ShellExecuteW(
+		NULL,
+		elevated ? L"runas" : L"open",
+		executable.c_str(),
+		cmdLineWide.c_str(),
+		nullptr,
+		SW_SHOWDEFAULT);
+
+	if (reinterpret_cast<intptr_t>(result) <= 32)
+	{
+		auto exception = std::runtime_error(
+			mh::format("ShellExecuteW returned {}", reinterpret_cast<intptr_t>(result)));
+
+		LogException(MH_SOURCE_LOCATION_CURRENT(), exception);
+		throw exception;
+	}
+}
+
+int tf2_bot_detector::Processes::GetCurrentProcessID()
+{
+	return ::GetCurrentProcessId();
 }

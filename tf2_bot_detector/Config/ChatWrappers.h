@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mh/reflection/enum.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <array>
@@ -121,22 +122,12 @@ namespace tf2_bot_detector
 		ChatWrappersProgress* progress = nullptr);
 }
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::ChatCategory cat)
-{
-	using tf2_bot_detector::ChatCategory;
-	switch (cat)
-	{
-	case ChatCategory::All:       return os << "ChatCategory::All";
-	case ChatCategory::AllDead:   return os << "ChatCategory::AllDead";
-	case ChatCategory::Team:      return os << "ChatCategory::Team";
-	case ChatCategory::TeamDead:  return os << "ChatCategory::TeamDead";
-	case ChatCategory::Spec:      return os << "ChatCategory::Spec";
-	case ChatCategory::SpecTeam:  return os << "ChatCategory::SpecTeam";
-	case ChatCategory::Coach:     return os << "ChatCategory::Coach";
-
-	default:
-		assert(!"Unknown ChatCategory");
-		return os << "ChatCategory(" << +std::underlying_type_t<ChatCategory>(cat) << ')';
-	}
-}
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::ChatCategory)
+	MH_ENUM_REFLECT_VALUE(All)
+	MH_ENUM_REFLECT_VALUE(AllDead)
+	MH_ENUM_REFLECT_VALUE(Team)
+	MH_ENUM_REFLECT_VALUE(TeamDead)
+	MH_ENUM_REFLECT_VALUE(Spec)
+	MH_ENUM_REFLECT_VALUE(SpecTeam)
+	MH_ENUM_REFLECT_VALUE(Coach)
+MH_ENUM_REFLECT_END()

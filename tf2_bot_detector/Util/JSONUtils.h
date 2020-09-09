@@ -7,6 +7,27 @@
 #include <optional>
 #include <string_view>
 
+namespace std
+{
+	template<typename T>
+	void to_json(nlohmann::json& j, const optional<T>& d)
+	{
+		if (d.has_value())
+			j = *d;
+		else
+			j = nullptr;
+	}
+
+	template<typename T>
+	void from_json(const nlohmann::json& j, optional<T>& d)
+	{
+		if (j.is_null())
+			d.reset();
+		else
+			j.get_to<T>(d.emplace());
+	}
+}
+
 namespace tf2_bot_detector
 {
 	namespace detail
@@ -63,7 +84,7 @@ namespace tf2_bot_detector
 		}
 		catch (const std::exception& e)
 		{
-			LogError(std::string(__FUNCTION__) << ": Exception when getting " << name << ": " << e.what());
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when getting {}", std::quoted(name));
 		}
 
 		defaultValFunc(value);
@@ -147,7 +168,7 @@ namespace tf2_bot_detector
 		}
 		catch (const std::exception& e)
 		{
-			LogError(std::string(__FUNCTION__) << ": Exception when getting " << name << ": " << e.what());
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when getting {}", std::quoted(name));
 		}
 
 		value.reset();

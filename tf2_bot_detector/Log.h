@@ -94,19 +94,43 @@ namespace tf2_bot_detector
 #define NOINLINE
 #endif
 
+	namespace detail::log_h
+	{
+		template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
+		NOINLINE inline auto LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const std::string_view& fmtStr, const TArgs&... args) ->
+			decltype(mh::try_format(fmtStr, args...), void())
+		{
+			ILogManager::GetInstance().Log(mh::try_format(fmtStr, args...), color, severity, visibility);
+		}
+		template<typename... TArgs>
+		NOINLINE inline auto LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) ->
+			decltype(mh::try_format(fmtStr, args...), void())
+		{
+			using namespace std::string_view_literals;
+			if (!fmtStr.empty())
+				LogImpl(color, severity, visibility, "{}: {}"sv, location, mh::try_format(fmtStr, args...));
+			else
+				LogImpl(color, severity, visibility, "{}"sv, location);
+		}
+	}
+
 #undef LOG_DEFINITION_HELPER
 #define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	inline void name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) -> \
+		decltype(detail::log_h::LogImpl(color, (severity), (visibility), fmtStr, args...)) \
 	{ \
-		ILogManager::GetInstance().Log(mh::format(fmtStr, args...), color, (severity), (visibility)); \
+		detail::log_h::LogImpl(color, (severity), (visibility), fmtStr, args...); \
 	} \
 	inline void name(const LogMessageColor& color, std::string msg) \
 	{ \
 		ILogManager::GetInstance().Log(std::move(msg), color, (severity), (visibility)); \
 	} \
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	inline void name(const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const std::string_view& fmtStr, const TArgs&... args) -> \
+		decltype(name((defaultColor), fmtStr, args...)) \
 	{ \
 		name((defaultColor), fmtStr, args...); \
 	} \
@@ -116,16 +140,14 @@ namespace tf2_bot_detector
 	} \
 	\
 	template<typename... TArgs> \
-	inline void name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) -> \
+		decltype(detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...)) \
 	{ \
-		std::string msg = mh::format("{}@{}:{}()", location.file_name(), location.line(), location.function_name()); \
-		if (!fmtStr.empty()) \
-			msg += ": " + mh::format(fmtStr, args...); \
-		\
-		name(color, std::move(msg)); \
+		detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...); \
 	} \
 	template<typename... TArgs> \
-	inline void name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
+	inline auto name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) -> \
+		decltype(name((defaultColor), location, fmtStr, args...)) \
 	{ \
 		name((defaultColor), location, fmtStr, args...); \
 	} \
@@ -145,15 +167,31 @@ namespace tf2_bot_detector
 	LOG_DEFINITION_HELPER(LogError, LogColors::ERROR, LogSeverity::Error, LogVisibility::Default);
 
 #undef LOG_DEFINITION_HELPER
+
+#define LOG_DEFINITION_HELPER(name, attr) \
+	attr void name(const mh::source_location& location, const std::exception& e, const std::string_view& msg = {}); \
+	\
+	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
+	attr void name(const mh::source_location& location, const std::exception& e, \
+		const std::string_view& fmtStr, const TArgs&... args) \
+	{ \
+		name(location, e, mh::try_format(fmtStr, args...)); \
+	}
+
+	LOG_DEFINITION_HELPER(DebugLogException, );
+	LOG_DEFINITION_HELPER(LogException, );
+	LOG_DEFINITION_HELPER(LogFatalException, [[noreturn]]);
+
+#undef LOG_DEFINITION_HELPER
+
 #undef NOINLINE
 #pragma pop_macro("NOINLINE")
 
-	void LogException(const mh::source_location& location, const std::exception& e, const std::string_view& msg = {});
-
+	[[noreturn]] void LogFatalError(const mh::source_location& location, const std::string_view& msg);
 	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
-	void LogException(const mh::source_location& location, const std::exception& e,
-		const std::string_view& fmtStr, const TArgs&... args)
+	[[noreturn]] void LogFatalError(const mh::source_location& location,
+			const std::string_view& fmtStr, const TArgs&... args)
 	{
-		LogException(location, e, mh::format(fmtStr, args...));
+		LogFatalError(location, mh::try_format(fmtStr, args...));
 	}
 }

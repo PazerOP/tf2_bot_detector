@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ReleaseChannel.h"
+
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
@@ -15,7 +17,8 @@
 namespace ImGui
 {
 	template<typename... TArgs>
-	inline void TextFmt(const std::string_view& fmtStr, const TArgs&... args)
+	inline auto TextFmt(const std::string_view& fmtStr, const TArgs&... args) ->
+		decltype(mh::format(fmtStr, args...), void())
 	{
 		if constexpr (sizeof...(TArgs) > 0)
 			return TextFmt(mh::fmtstr<3073>(fmtStr, args...));
@@ -23,7 +26,8 @@ namespace ImGui
 			return TextUnformatted(fmtStr.data(), fmtStr.data() + fmtStr.size());
 	}
 	template<typename... TArgs>
-	inline void TextFmt(const ImVec4& color, const std::string_view& fmtStr, const TArgs&... args)
+	inline auto TextFmt(const ImVec4& color, const std::string_view& fmtStr, const TArgs&... args) ->
+		decltype(TextFmt(fmtStr, args...))
 	{
 		ImGuiDesktop::TextColor scope(color);
 		TextFmt(fmtStr, args...);
@@ -185,7 +189,6 @@ namespace ImGui
 
 namespace tf2_bot_detector
 {
-	enum class ProgramUpdateCheckMode;
 	class SteamID;
 
 	bool InputTextSteamIDOverride(const char* label_id, SteamID& steamID, bool requireValid = true);
@@ -194,7 +197,7 @@ namespace tf2_bot_detector
 	bool InputTextSteamDirOverride(const std::string_view& label_id, std::filesystem::path& path, bool requireValid = false);
 	bool InputTextLocalIPOverride(const std::string_view& label_id, std::string& ip, bool requireValid = false);
 	bool InputTextSteamAPIKey(const char* label_id, std::string& key, bool requireValid = false);
-	bool Combo(const char* label_id, ProgramUpdateCheckMode& mode);
+	bool Combo(const char* label_id, std::optional<ReleaseChannel>& mode);
 	bool AutoLaunchTF2Checkbox(bool& value);
 }
 

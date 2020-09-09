@@ -152,7 +152,7 @@ namespace tf2_bot_detector
 			if (!paths.m_Official.empty())
 				m_OfficialList = LoadConfigFileAsync<T>(paths.m_Official, !IsOfficial(), *m_Settings);
 			else
-				m_OfficialList = {};
+				m_OfficialList = mh::make_ready_future<T>();
 
 			m_ThirdPartyLists = std::async([this, paths]
 				{
@@ -184,10 +184,10 @@ namespace tf2_bot_detector
 
 			if (defaultMutableList && defaultMutableList != localList)
 			{
-				const auto filename = mh::format("cfg/{}.official.json", GetBaseFileName());
+				const std::filesystem::path filename = mh::format("cfg/{}.official.json", GetBaseFileName());
 
 				if (!IsOfficial())
-					throw std::runtime_error("Attempted to save non-official data to "s << std::quoted(filename));
+					throw std::runtime_error("Attempted to save non-official data to "s << filename);
 
 				defaultMutableList->SaveFile(filename);
 			}

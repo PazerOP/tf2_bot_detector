@@ -182,6 +182,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 			{
 			case TeamShareResult::SameTeams:      return m_Settings.m_Theme.m_Colors.m_ScoreboardFriendlyTeamBG;
 			case TeamShareResult::OppositeTeams:  return m_Settings.m_Theme.m_Colors.m_ScoreboardEnemyTeamBG;
+			case TeamShareResult::Neither:        break;
 			}
 
 			switch (player.GetTeam())
@@ -439,12 +440,13 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		{
 			for (int i = 0; i < (int)PlayerAttribute::COUNT; i++)
 			{
-				const bool existingMarked = modLogic.HasPlayerAttributes(player, PlayerAttribute(i));
+				const auto attr = PlayerAttribute(i);
+				const bool existingMarked = modLogic.HasPlayerAttributes(player, attr);
 
-				if (ImGui::MenuItem(mh::fmtstr<512>("{}", PlayerAttribute(i)).c_str(), nullptr, existingMarked))
+				if (ImGui::MenuItem(mh::fmtstr<512>("{}", mh::enum_fmt(attr)).c_str(), nullptr, existingMarked))
 				{
-					if (modLogic.SetPlayerAttribute(player, PlayerAttribute(i), !existingMarked))
-						Log("Manually marked {}{} {}", player, (existingMarked ? " NOT" : ""), PlayerAttribute(i));
+					if (modLogic.SetPlayerAttribute(player, attr, !existingMarked))
+						Log("Manually marked {}{} {}", player, (existingMarked ? " NOT" : ""), mh::enum_fmt(attr));
 				}
 			}
 

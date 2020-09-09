@@ -1,0 +1,100 @@
+{
+	"configurations": [
+		{
+			"name": "x64-Debug",
+			"generator": "Ninja",
+			"configurationType": "Debug",
+			"inheritEnvironments": [ "msvc_x64_x64" ],
+			"buildRoot": "${projectDir}\\..\\out\\build_updater\\${name}",
+			"installRoot": "${projectDir}\\..\\out\\install_updater\\${name}",
+			"cmakeCommandArgs": "",
+			"buildCommandArgs": "",
+			"ctestCommandArgs": "",
+			"variables": [
+				{
+					"name": "TF2BD_ENABLE_TESTS",
+					"value": "True",
+					"type": "BOOL"
+				},
+				{
+					"name": "VCPKG_TARGET_TRIPLET",
+					"value": "x64-windows-static",
+					"type": "STRING"
+				}
+			],
+			"cmakeToolchain": "../submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
+		},
+		{
+			"name": "x64-Release",
+			"generator": "Ninja",
+			"configurationType": "Release",
+			"buildRoot": "${projectDir}\\..\\out\\build_updater\\${name}",
+			"installRoot": "${projectDir}\\..\\out\\install_updater\\${name}",
+			"cmakeCommandArgs": "",
+			"buildCommandArgs": "",
+			"ctestCommandArgs": "",
+			"inheritEnvironments": [ "msvc_x64_x64" ],
+			"variables": [
+				{
+					"name": "TF2BD_ENABLE_TESTS",
+					"value": "True",
+					"type": "BOOL"
+				},
+				{
+					"name": "VCPKG_TARGET_TRIPLET",
+					"value": "x64-windows-static",
+					"type": "STRING"
+				}
+			],
+			"cmakeToolchain": "../submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
+		},
+		{
+			"name": "x86-Release",
+			"generator": "Ninja",
+			"configurationType": "Release",
+			"buildRoot": "${projectDir}\\..\\out\\build_updater\\${name}",
+			"installRoot": "${projectDir}\\..\\out\\install_updater\\${name}",
+			"cmakeCommandArgs": "",
+			"buildCommandArgs": "",
+			"ctestCommandArgs": "",
+			"inheritEnvironments": [ "msvc_x86_x64" ],
+			"variables": [
+				{
+					"name": "TF2BD_ENABLE_TESTS",
+					"value": "True",
+					"type": "BOOL"
+				},
+				{
+					"name": "VCPKG_TARGET_TRIPLET",
+					"value": "x86-windows-static",
+					"type": "STRING"
+				}
+			],
+			"cmakeToolchain": "../submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
+		},
+		{
+			"name": "x86-Debug",
+			"generator": "Ninja",
+			"configurationType": "Debug",
+			"buildRoot": "${projectDir}\\..\\out\\build_updater\\${name}",
+			"installRoot": "${projectDir}\\..\\out\\install_updater\\${name}",
+			"cmakeCommandArgs": "",
+			"buildCommandArgs": "",
+			"ctestCommandArgs": "",
+			"inheritEnvironments": [ "msvc_x86_x64" ],
+			"variables": [
+				{
+					"name": "TF2BD_ENABLE_TESTS",
+					"value": "True",
+					"type": "BOOL"
+				},
+				{
+					"name": "VCPKG_TARGET_TRIPLET",
+					"value": "x86-windows-static",
+					"type": "STRING"
+				}
+			],
+			"cmakeToolchain": "../submodules/vcpkg/scripts/buildsystems/vcpkg.cmake"
+		}
+	]
+}

@@ -21,16 +21,6 @@ using namespace std::string_literals;
 using namespace tf2_bot_detector;
 using namespace tf2_bot_detector::GithubAPI;
 
-static std::optional<Version> ParseSemVer(const char* version)
-{
-	Version v{};
-	auto parsed = sscanf_s(version, "%i.%i.%i.%i", &v.m_Major, &v.m_Minor, &v.m_Patch, &v.m_Preview);
-	if (parsed < 2)
-		return std::nullopt;
-
-	return v;
-}
-
 namespace
 {
 	struct InternalRelease : NewVersionResult::Release
@@ -59,7 +49,7 @@ static cppcoro::generator<InternalRelease> GetAllReleases(const HTTPClient& clie
 		retVal.m_URL = releases.at("html_url");
 
 		std::string versionTag = releases.at("tag_name");
-		if (auto version = ParseSemVer(versionTag.c_str()))
+		if (auto version = Version::Parse(versionTag.c_str()))
 			retVal.m_Version = *version;
 		else
 		{
@@ -88,7 +78,7 @@ static NewVersionResult GetLatestVersion(const HTTPClient& client)
 				break;
 			}
 
-			if (release.m_Version.m_Preview != 0)
+			if (release.m_IsPrerelease)
 				retVal.m_Preview = release;
 			else
 				retVal.m_Stable = release;

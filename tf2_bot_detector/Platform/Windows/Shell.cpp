@@ -70,9 +70,15 @@ std::filesystem::path tf2_bot_detector::Shell::BrowseForFolderDialog()
 	}
 }
 
+void tf2_bot_detector::Shell::ExploreTo(const std::filesystem::path& path)
+{
+	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "{}", path);
+	ShellExecuteW(nullptr, L"explore", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+
 void tf2_bot_detector::Shell::OpenURL(const char* url)
 {
-	DebugLog("Shell opening "s << std::quoted(url));
+	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "{}", std::quoted(url));
 	ShellExecuteA(NULL, "open", url, nullptr, nullptr, SW_SHOWNORMAL);
 }
 

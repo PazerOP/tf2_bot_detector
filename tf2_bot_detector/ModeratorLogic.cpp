@@ -15,12 +15,7 @@
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
 
-#include <codecvt>
-#include <cuchar>
-#include <fstream>
 #include <iomanip>
-#include <locale>
-#include <random>
 #include <regex>
 #include <unordered_set>
 
@@ -173,12 +168,12 @@ void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& play
 	for (PlayerAttribute attribute : rule.m_Actions.m_Mark)
 	{
 		if (SetPlayerAttribute(player, attribute))
-			Log("Marked {} with {} due to rule match with {}", player, attribute, std::quoted(rule.m_Description));
+			Log("Marked {} with {:v} due to rule match with {}", player, mh::enum_fmt(attribute), std::quoted(rule.m_Description));
 	}
 	for (PlayerAttribute attribute : rule.m_Actions.m_Unmark)
 	{
 		if (SetPlayerAttribute(player, attribute, false))
-			Log("Unmarked {} with {} due to rule match with {}", player, attribute, std::quoted(rule.m_Description));
+			Log("Unmarked {} with {:v} due to rule match with {}", player, mh::enum_fmt(attribute), std::quoted(rule.m_Description));
 	}
 }
 
