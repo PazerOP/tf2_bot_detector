@@ -260,6 +260,9 @@ namespace
 		m_Settings(settings),
 		m_IsInstalled(Platform::IsInstalled())
 	{
+		assert(m_IsUpdateQueued);
+		m_State.SetUpdateStatus(MH_SOURCE_LOCATION_CURRENT(),
+			UpdateStatus::CheckQueued, "Initializing update check...");
 	}
 
 	template<typename TFutureResult, typename TVariant>
@@ -297,29 +300,41 @@ namespace
 	{
 		if (m_IsUpdateQueued && CanReplaceUpdateCheckState())
 		{
-			auto client = m_Settings.GetHTTPClient();
-			const auto releaseChannel = m_Settings.m_ReleaseChannel.value_or(ReleaseChannel::None);
-			if (client && (releaseChannel != ReleaseChannel::None))
+			if (auto client = m_Settings.GetHTTPClient())
 			{
-				auto sharedClient = client->shared_from_this();
+				const auto releaseChannel = m_Settings.m_ReleaseChannel.value_or(ReleaseChannel::None);
+				if (releaseChannel != ReleaseChannel::None)
+				{
+					auto sharedClient = client->shared_from_this();
 
-				m_State.SetUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Checking, "Checking for updates...",
-					std::async([sharedClient, releaseChannel]() -> BuildInfo
-						{
-							const mh::fmtstr<256> url(
-								"https://tf2bd-util.pazer.us/AppInstaller/LatestVersion.json?type={:v}",
-								mh::enum_fmt(releaseChannel));
+					m_State.SetUpdateCheck(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Checking, "Checking for updates...",
+						std::async([sharedClient, releaseChannel]() -> BuildInfo
+							{
+								const mh::fmtstr<256> url(
+									"https://tf2bd-util.pazer.us/AppInstaller/LatestVersion.json?type={:v}",
+									mh::enum_fmt(releaseChannel));
 
-							DebugLog("HTTP GET {}", url);
-							auto response = sharedClient->GetString(url.view());
+								DebugLog("HTTP GET {}", url);
+								auto response = sharedClient->GetString(url.view());
 
-							auto json = nlohmann::json::parse(response);
+								auto json = nlohmann::json::parse(response);
 
-							return json.get<BuildInfo>();
-						}));
-
-				m_IsUpdateQueued = false;
+								return json.get<BuildInfo>();
+							}));
+				}
+				else
+				{
+					m_State.Emplace<std::monostate>(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateCheckDisabled,
+						"Update checks disabled by the user.");
+				}
 			}
+			else
+			{
+				m_State.Emplace<std::monostate>(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::InternetAccessDisabled,
+					"Update check skipped because internet connectivity was disabled by the user.");
+			}
+
+			m_IsUpdateQueued = false;
 		}
 
 		if (auto future = std::get_if<std::future<BuildInfo>>(&m_State.GetUpdateCheckVariant()))
