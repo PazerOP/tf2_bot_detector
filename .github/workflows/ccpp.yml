@@ -35,7 +35,7 @@ jobs:
 
     - name: Set TF2BD version link on tf2bd-util
       run: |
-        curl -X POST "https://tf2bd-util.pazer.us/NightlyArchive/SetData/GitHubRunID?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&runid=${{ github.run_id }}"
+        curl -X POST "https://tf2bd-util.pazer.us/NightlyArchive/SetData/GitHubRunID?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&runid=${{ github.run_id }}" -d ""
 
 
 
