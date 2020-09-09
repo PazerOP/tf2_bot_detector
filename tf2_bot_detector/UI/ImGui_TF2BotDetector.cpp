@@ -525,7 +525,7 @@ bool tf2_bot_detector::Combo(const char* label_id, std::optional<ReleaseChannel>
 {
 	const char* friendlyText = "<UNKNOWN>";
 	static constexpr char FRIENDLY_TEXT_DISABLED[] = "Disable automatic update checks";
-	static constexpr char FRIENDLY_TEXT_NIGHTLY[] = "Notify about new every builds (unstable)";
+	static constexpr char FRIENDLY_TEXT_NIGHTLY[] = "Notify about every new builds (unstable)";
 	static constexpr char FRIENDLY_TEXT_PREVIEW[] = "Notify about new preview releases";
 	static constexpr char FRIENDLY_TEXT_STABLE[] = "Notify about new stable releases";
 
