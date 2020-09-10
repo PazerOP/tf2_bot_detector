@@ -30,7 +30,7 @@
     <br />
     -->
     <br />
-    <a href="https://tf2bd-util.pazer.us/Redirect/AppInstaller?source=https://tf2bd-util.pazer.us/AppInstaller/Nightly.appinstaller">Install</a>
+    <a href="https://tf2bd-util.pazer.us/Redirect/AppInstaller?source=https://tf2bd-util.pazer.us/AppInstaller/Public.msixbundle">Install</a>
     ·
     <a href="https://github.com/PazerOP/tf2_bot_detector/issues">Report a Bug</a>
     ·
@@ -187,7 +187,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [discord-link]: https://discord.gg/W8ZSh3Z
 [mscr-link]: https://aka.ms/vs/16/release/vc_redist.x64.exe
 [mscr86-link]: https://aka.ms/vs/16/release/vc_redist.x86.exe
-[msix-install-link]: https://tf2bd-util.pazer.us/Redirect/AppInstaller?source=https://tf2bd-util.pazer.us/AppInstaller/Nightly.appinstaller
+[msix-install-link]: https://tf2bd-util.pazer.us/Redirect/AppInstaller?source=https://tf2bd-util.pazer.us/AppInstaller/Public.msixbundle
 [zip-image]: https://i.imgur.com/ZeCuUul.png
 [github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
 [wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists
