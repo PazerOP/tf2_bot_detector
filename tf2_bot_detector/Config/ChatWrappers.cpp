@@ -258,6 +258,8 @@ static bool GetChatCategory(const std::string* src, std::string_view* name, Chat
 
 static void GetChatMsgFormats(const std::string_view& debugInfo, const std::string_view& translations, ChatFormatStrings& strings)
 {
+	assert(!translations.empty());
+
 	const char* begin = translations.data();
 	const char* end = begin + translations.size();
 	std::error_code ec;
@@ -279,13 +281,26 @@ static void GetChatMsgFormats(const std::string_view& debugInfo, const std::stri
 			if (!GetChatCategory(&attrib.first, &chatType, &cat, &isEnglish))
 				continue;
 
+			if (attrib.second.empty())
+			{
+				LogWarning(MH_SOURCE_LOCATION_CURRENT(), "{}: Empty value read for {} ({})",
+					std::quoted(debugInfo), std::quoted(attrib.first), mh::enum_fmt(cat));
+			}
+
 			(isEnglish ? strings.m_English : strings.m_Localized)[(int)cat] = attrib.second;
 		}
 	}
 }
 
-static void ApplyChatWrappers(ChatCategory cat, std::string& translation, const ChatWrappers& wrappers)
+static void ApplyChatWrappers(const std::string_view& debugInfo, ChatCategory cat,
+	std::string& translation, const ChatWrappers& wrappers)
 {
+	if (translation.empty())
+	{
+		LogWarning(MH_SOURCE_LOCATION_CURRENT(), "{}: Translation empty for {}", debugInfo, mh::enum_fmt(cat));
+		return;
+	}
+
 	static const std::basic_regex s_Regex(R"regex(([\x01-\x05]?)(.*)%s1(.*)%s2(.*))regex",
 		std::regex::optimize | std::regex::icase);
 
@@ -616,32 +631,41 @@ size_t ChatFmtStrLengths::Type::GetMaxWrapperLength() const
 }
 
 ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path& tfdir,
-	ChatWrappersProgress* progress)
+	mh::status_reader<ChatWrappersProgress>* progressReader)
 {
+	mh::status_source<ChatWrappersProgress> progressSource;
+	if (progressReader)
+		*progressReader = progressSource;
+
+	ChatWrappersProgress progress;
+
 	assert(!tfdir.empty());
 
 	if (auto path = tfdir / "custom" / "tf2_bot_detector"; std::filesystem::exists(path))
 	{
-		Log("Deleting "s << path);
+		DebugLog("Deleting {}", path);
 		std::filesystem::remove_all(path);
 	}
 
 	if (auto path = tfdir / "custom" / TF2BD_CHAT_WRAPPERS_DIR; std::filesystem::exists(path))
 	{
-		Log("Deleting "s << path);
-		std::filesystem::remove_all(path);
+		DebugLog("Deleting {}", path);
+		std::error_code ec;
+		std::filesystem::remove_all(path, ec);
+		if (ec)
+			LogWarning("Failed to delete {}: {}: {}", path, ec.value(), ec.message());
 	}
 
 	const auto outputDir = tfdir / "custom" / TF2BD_CHAT_WRAPPERS_DIR / "resource";
 	std::filesystem::create_directories(outputDir);
 
-	if (progress)
-		progress->m_MaxValue = unsigned(std::size(LANGUAGES) * 5);
+	progress.m_MaxValue = unsigned(std::size(LANGUAGES) * 5);
+	progressSource.set(progress);
 
 	const auto IncrementProgress = [&]
 	{
-		if (progress)
-			++progress->m_Value;
+		++progress.m_Value;
+		progressSource.set(progress);
 	};
 
 	ChatFormatStrings translations[std::size(LANGUAGES)];
@@ -696,7 +720,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 
 			for (size_t i = 0; i < translationsSet.m_Localized.size(); i++)
 			{
-				ApplyChatWrappers(ChatCategory(i), translationsSet.m_Localized[i], wrappers);
+				ApplyChatWrappers(lang, ChatCategory(i), translationsSet.m_Localized[i], wrappers);
 				const auto key = GetChatCategoryKey(ChatCategory(i), false);
 				tokens->attribs[std::string(key)] = translationsSet.m_Localized[i];
 			}
@@ -705,7 +729,7 @@ ChatWrappers tf2_bot_detector::RandomizeChatWrappers(const std::filesystem::path
 				if (translationsSet.m_English[i].empty())
 					continue;
 
-				ApplyChatWrappers(ChatCategory(i), translationsSet.m_English[i], wrappers);
+				ApplyChatWrappers(lang, ChatCategory(i), translationsSet.m_English[i], wrappers);
 				const auto key = GetChatCategoryKey(ChatCategory(i), true);
 				tokens->attribs[std::string(key)] = translationsSet.m_English[i];
 			}

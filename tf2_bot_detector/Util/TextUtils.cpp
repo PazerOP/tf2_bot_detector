@@ -15,6 +15,7 @@ using namespace std::string_literals;
 
 std::u16string tf2_bot_detector::ToU16(const std::u8string_view& input)
 {
+	const char* dataTest = reinterpret_cast<const char*>(input.data());
 	return mh::change_encoding<char16_t>(input);
 }
 
@@ -28,17 +29,20 @@ std::u16string tf2_bot_detector::ToU16(const char* input, const char* input_end)
 
 std::u16string tf2_bot_detector::ToU16(const std::string_view& input)
 {
-	return ToU16(std::u8string_view(reinterpret_cast<const char8_t*>(input.data()), input.size()));
+	return mh::change_encoding<char16_t>(input);
+	//return ToU16(std::u8string_view(reinterpret_cast<const char8_t*>(input.data()), input.size()));
 }
 
 std::u16string tf2_bot_detector::ToU16(const std::wstring_view& input)
 {
-	return std::u16string(std::u16string_view(reinterpret_cast<const char16_t*>(input.data()), input.size()));
+	return mh::change_encoding<char16_t>(input);
+	//return std::u16string(std::u16string_view(reinterpret_cast<const char16_t*>(input.data()), input.size()));
 }
 
 std::u8string tf2_bot_detector::ToU8(const std::string_view& input)
 {
-	return std::u8string(std::u8string_view(reinterpret_cast<const char8_t*>(input.data()), input.size()));
+	return mh::change_encoding<char8_t>(input);
+	//return std::u8string(std::u8string_view(reinterpret_cast<const char8_t*>(input.data()), input.size()));
 }
 
 std::u8string tf2_bot_detector::ToU8(const std::u16string_view& input)
@@ -48,22 +52,26 @@ std::u8string tf2_bot_detector::ToU8(const std::u16string_view& input)
 
 std::u8string tf2_bot_detector::ToU8(const std::wstring_view& input)
 {
-	return ToU8(std::u16string_view(reinterpret_cast<const char16_t*>(input.data()), input.size()));
+	return mh::change_encoding<char8_t>(input);
+	//return ToU8(std::u16string_view(reinterpret_cast<const char16_t*>(input.data()), input.size()));
 }
 
 std::string tf2_bot_detector::ToMB(const std::u8string_view& input)
 {
-	return std::string(std::string_view(reinterpret_cast<const char*>(input.data()), input.size()));
+	return mh::change_encoding<char>(input);
+	//return std::string(std::string_view(reinterpret_cast<const char*>(input.data()), input.size()));
 }
 
 std::string tf2_bot_detector::ToMB(const std::u16string_view& input)
 {
-	return ToMB(ToU8(input));
+	return mh::change_encoding<char>(input);
+	//return ToMB(ToU8(input));
 }
 
 std::string tf2_bot_detector::ToMB(const std::wstring_view& input)
 {
-	return ToMB(ToU16(input));
+	return mh::change_encoding<char>(input);
+	//return ToMB(ToU16(input));
 }
 
 std::wstring tf2_bot_detector::ToWC(const std::string_view& input)
@@ -77,26 +85,21 @@ std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filen
 
 	std::u16string wideFileData;
 	{
-		std::ifstream file(filename, std::ios::binary);
-		if (!file.good())
-			return {};
+		std::ifstream file;
+		file.exceptions(std::ios::badbit | std::ios::failbit);
+		file.open(filename, std::ios::binary);
 
 		file.seekg(0, std::ios::end);
-		if (!file.good())
-			return {};
 
-		const auto length = static_cast<size_t>(file.tellg());
+		// Length, minus BOM
+		const auto length = static_cast<size_t>(file.tellg()) - sizeof(char16_t);
 
 		// Skip BOM
 		file.seekg(2, std::ios::beg);
-		if (!file.good())
-			return {};
 
-		wideFileData.resize(length / 2 - 1);
+		wideFileData.resize(length / sizeof(char16_t));
 
 		file.read(reinterpret_cast<char*>(wideFileData.data()), length);
-		if (file.bad())
-			return {};
 	}
 
 	return wideFileData;
@@ -104,7 +107,9 @@ std::u16string tf2_bot_detector::ReadWideFile(const std::filesystem::path& filen
 
 void tf2_bot_detector::WriteWideFile(const std::filesystem::path& filename, const std::u16string_view& text)
 {
-	std::ofstream file(filename, std::ios::binary);
+	std::ofstream file;
+	file.exceptions(std::ios::badbit | std::ios::failbit);
+	file.open(filename, std::ios::binary);
 	file << '\xFF' << '\xFE'; // BOM - UTF16LE
 
 	file.write(reinterpret_cast<const char*>(text.data()), text.size() * sizeof(text[0]));

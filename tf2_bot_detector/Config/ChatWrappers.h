@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mh/error/status.hpp>
 #include <mh/reflection/enum.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -115,11 +116,13 @@ namespace tf2_bot_detector
 
 	struct ChatWrappersProgress
 	{
-		std::atomic<uint32_t> m_Value{};
-		std::atomic<uint32_t> m_MaxValue{};
+		auto operator<=>(const ChatWrappersProgress&) const = default;
+
+		uint32_t m_Value{};
+		uint32_t m_MaxValue{};
 	};
 	ChatWrappers RandomizeChatWrappers(const std::filesystem::path& tfdir,
-		ChatWrappersProgress* progress = nullptr);
+		mh::status_reader<ChatWrappersProgress>* progress = nullptr);
 }
 
 MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::ChatCategory)

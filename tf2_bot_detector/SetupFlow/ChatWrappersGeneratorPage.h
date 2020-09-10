@@ -3,6 +3,8 @@
 #include "Config/ChatWrappers.h"
 #include "ISetupFlowPage.h"
 
+#include <mh/error/status.hpp>
+
 #include <future>
 #include <optional>
 
@@ -25,7 +27,7 @@ namespace tf2_bot_detector
 		static constexpr char VERIFY_CFG_FILE_NAME[] = "__tf2bd_chat_wrappers_verify.cfg";
 
 	private:
-		std::shared_ptr<ChatWrappersProgress> m_Progress;
+		mh::status_reader<ChatWrappersProgress> m_Progress;
 
 		std::future<ChatWrappers> m_ChatWrappersGenerated;
 		bool m_WasInitiallyClosed = true;

@@ -49,11 +49,11 @@ auto ChatWrappersGeneratorPage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 		ImGui::NewLine();
 
-		float progress = 0;
-		if (m_Progress && m_Progress->m_MaxValue > 0)
-			progress = m_Progress->m_Value / float(m_Progress->m_MaxValue);
+		float progressFloat = 0;
+		if (const auto progressObj = m_Progress.get(); progressObj->m_MaxValue > 0)
+			progressFloat = progressObj->m_Value / float(progressObj->m_MaxValue);
 
-		ImGui::ProgressBar(progress);
+		ImGui::ProgressBar(progressFloat);
 
 		if (mh::is_future_ready(m_ChatWrappersGenerated))
 			return OnDrawResult::EndDrawing;
@@ -114,8 +114,7 @@ void ChatWrappersGeneratorPage::Init(const InitState& is)
 		}
 
 		DebugLog("Regenerating chat wrappers...");
-		auto progress = m_Progress = std::make_shared<ChatWrappersProgress>();
-		m_ChatWrappersGenerated = std::async([tfDir, progress] { return RandomizeChatWrappers(tfDir, progress.get()); });
+		m_ChatWrappersGenerated = std::async([this, tfDir] { return RandomizeChatWrappers(tfDir, &m_Progress); });
 	}
 }
 
