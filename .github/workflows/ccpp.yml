@@ -37,6 +37,15 @@ jobs:
       run: |
         curl -X POST "https://tf2bd-util.pazer.us/NightlyArchive/SetData/GitHubRunID?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&runid=${{ github.run_id }}" -d ""
 
+    - name: Debug
+      run: |
+        echo "github.event = ${{ toJson(github.event) }}"
+        echo "github.event_name = ${{ github.event_name }}"
+        echo "github.sha = ${{ github.sha }}"
+        echo "github.ref = ${{ github.ref }}"
+        echo "github.run_id = ${{ github.run_id }}"
+        echo "github.run_number = ${{ github.run_number }}"
+
 
 
   build:
@@ -75,12 +84,6 @@ jobs:
 
     - name: Debug
       run: |
-        echo "github.event = ${{ github.event }}"
-        echo "github.event_name = ${{ github.event_name }}"
-        echo "github.sha = ${{ github.sha }}"
-        echo "github.ref = ${{ github.ref }}"
-        echo "github.run_id = ${{ github.run_id }}"
-        echo "github.run_number = ${{ github.run_number }}"
         echo "matrix.os = ${{ matrix.os }}"
         echo "matrix.triplet = ${{ matrix.triplet }}"
         echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
@@ -161,7 +164,7 @@ jobs:
         sha1sum "${{ steps.tf2bd_paths.outputs.workspace }}/staging/tf2_bot_detector.exe"
 
     - name: "Artifacts: staging -> tf2bd-util nightly archive"
-      if: matrix.build_type == 'Release' && env.TF2BD_ENABLE_ARTIFACT_UPLOAD
+      if: matrix.build_type == 'Release' && env.TF2BD_ENABLE_ARTIFACT_UPLOAD && github.ref == 'refs/heads/master'
       run: |
         echo "Uploading artifact to tf2bd-util..."
         cd "${{ steps.tf2bd_paths.outputs.workspace }}/staging/"
@@ -216,12 +219,6 @@ jobs:
 
     - name: Debug
       run: |
-        echo "github.event = ${{ github.event }}"
-        echo "github.event_name = ${{ github.event_name }}"
-        echo "github.sha = ${{ github.sha }}"
-        echo "github.ref = ${{ github.ref }}"
-        echo "github.run_id = ${{ github.run_id }}"
-        echo "github.run_number = ${{ github.run_number }}"
         echo "matrix.os = ${{ matrix.os }}"
         echo "matrix.triplet = ${{ matrix.triplet }}"
         echo "matrix.discord_integration = ${{ matrix.discord_integration }}"
@@ -283,7 +280,7 @@ jobs:
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: tf2_bot_detector_updater -> tf2bd-util nightly archive"
-      if: matrix.build_type == 'Release'
+      if: matrix.build_type == 'Release' && github.ref == 'refs/heads/master'
       run: |
         echo "Uploading artifact to tf2bd-util..."
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
@@ -431,7 +428,7 @@ jobs:
         password: '${{ secrets.CERTIFICATE_PFX_PASSWORD }}'
 
     - name: "Artifacts: msix bundle -> tf2bd-util nightly archive"
-      if: matrix.build_type.name == 'Release'
+      if: matrix.build_type.name == 'Release' && github.ref == 'refs/heads/master'
       run: |
         echo "Uploading artifact to tf2bd-util..."
         curl -T "msix/${{ env.TF2BD_MSIXBUNDLE_NAME }}" "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ env.TF2BD_VERSION }}&artifactType=MainToolMSIXBundle&os=windows&arch=AnyCPU"
