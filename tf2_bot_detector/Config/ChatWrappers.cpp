@@ -231,21 +231,21 @@ static bool GetChatCategory(const std::string* src, std::string_view* name, Chat
 	if (!category)
 		category = &localCategory;
 
-	if (*name == "Team")
+	if (*name == "Team"sv)
 		*category = ChatCategory::Team;
-	else if (*name == "Team_Dead")
+	else if (*name == "Team_Dead"sv)
 		*category = ChatCategory::TeamDead;
-	else if (*name == "Spec")
+	else if (*name == "Spec"sv)
 		*category = ChatCategory::SpecTeam;
-	else if (*name == "AllSpec")
+	else if (*name == "AllSpec"sv)
 		*category = ChatCategory::Spec;
-	else if (*name == "All")
+	else if (*name == "All"sv)
 		*category = ChatCategory::All;
-	else if (*name == "AllDead")
+	else if (*name == "AllDead"sv)
 		*category = ChatCategory::AllDead;
-	else if (*name == "Coach")
+	else if (*name == "Coach"sv)
 		*category = ChatCategory::Coach;
-	else if (*name == "Team_Loc" || *name == "Party")
+	else if (*name == "Team_Loc"sv || *name == "Party"sv || *name == "Disabled"sv || *name == "Unavailable"sv)
 		return false;
 	else
 	{
