@@ -9,8 +9,10 @@
 
 #include <mh/math/interpolation.hpp>
 #include <mh/text/fmtstr.hpp>
+#include <mh/text/string_insertion.hpp>
 
 using namespace std::chrono_literals;
+using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
 void MainWindow::OnDrawScoreboard()
@@ -692,6 +694,6 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 	if (playerAttribs)
 	{
 		ImGui::NewLine();
-		ImGui::TextFmt("Player {} marked in playerlist(s):{}", player, playerAttribs);
+		ImGui::TextFmt("Player {} marked in playerlist(s):{}", player, ""s << playerAttribs);
 	}
 }
