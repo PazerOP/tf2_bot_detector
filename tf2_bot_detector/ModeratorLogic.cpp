@@ -555,7 +555,7 @@ void ModeratorLogic::ProcessPlayerActions()
 				if (player.GetActiveTime() > m_Settings->GetAutoVotekickDelay())
 					connectedFriendlyPlayers++;
 
-				if (isCheater)
+				if (!!isCheater)
 					friendlyCheaters.push_back({ player, isCheater });
 			}
 
@@ -714,15 +714,15 @@ bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason, 
 	const auto userID = player.GetUserID();
 	if (!userID)
 	{
-		Log("Wanted to kick "s << player << ", but could not find userid");
+		Log("Wanted to kick {}, but could not find userid", player);
 		return false;
 	}
 
 	if (m_ActionManager->QueueAction<KickAction>(userID.value(), reason))
 	{
-		std::string logMsg = "InitiateVotekick on "s << player << ": " << reason;
+		std::string logMsg = mh::format("InitiateVotekick on {}: {:v}", player, mh::enum_fmt(reason));
 		if (marks)
-			logMsg << ", in playerlist(s)" << *marks;
+			mh::format_to_container(logMsg, ", in playerlist(s){}", *marks);
 
 		Log(std::move(logMsg));
 	}

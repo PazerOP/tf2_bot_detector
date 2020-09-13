@@ -9,10 +9,8 @@
 
 #include <mh/math/interpolation.hpp>
 #include <mh/text/fmtstr.hpp>
-#include <mh/text/string_insertion.hpp>
 
 using namespace std::chrono_literals;
-using namespace std::string_literals;
 using namespace tf2_bot_detector;
 
 void MainWindow::OnDrawScoreboard()
@@ -443,7 +441,7 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 			for (int i = 0; i < (int)PlayerAttribute::COUNT; i++)
 			{
 				const auto attr = PlayerAttribute(i);
-				const bool existingMarked = modLogic.HasPlayerAttributes(player, attr);
+				const bool existingMarked = (bool)modLogic.HasPlayerAttributes(player, attr);
 
 				if (ImGui::MenuItem(mh::fmtstr<512>("{}", mh::enum_fmt(attr)).c_str(), nullptr, existingMarked))
 				{
@@ -694,6 +692,6 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 	if (playerAttribs)
 	{
 		ImGui::NewLine();
-		ImGui::TextFmt("Player {} marked in playerlist(s):{}", player, ""s << playerAttribs);
+		ImGui::TextFmt("Player {} marked in playerlist(s):{}", player, playerAttribs);
 	}
 }

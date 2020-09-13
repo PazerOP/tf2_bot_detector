@@ -140,7 +140,9 @@ namespace tf2_bot_detector
 
 		bool Has(const PlayerAttributesList& attr) const;
 
-		operator bool() const { return !m_Marks.empty(); }
+		bool empty() const { return m_Marks.empty(); }
+		explicit operator bool() const { return !empty(); }
+		bool operator!() const { return empty(); }
 
 		auto begin() { return m_Marks.begin(); }
 		auto end() { return m_Marks.end(); }
@@ -213,40 +215,58 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::PlayerAttribute)
 	MH_ENUM_REFLECT_VALUE(Suspicious)
 MH_ENUM_REFLECT_END()
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
-	const tf2_bot_detector::PlayerAttributesList& list)
+template<typename CharT>
+struct mh::formatter<tf2_bot_detector::PlayerAttributesList, CharT>
 {
-	bool printed = false;
-	for (size_t i = 0; i < list.size(); i++)
+	constexpr auto parse(basic_format_parse_context<CharT>& ctx) const noexcept { return ctx.begin(); }
+
+	template<typename FormatContext>
+	auto format(const tf2_bot_detector::PlayerAttributesList& list, FormatContext& ctx)
 	{
-		const auto thisAttr = tf2_bot_detector::PlayerAttribute(i);
-		if (!list.HasAttribute(thisAttr))
-			continue;
+		bool printed = false;
+		auto it = ctx.out();
+		for (size_t i = 0; i < list.size(); i++)
+		{
+			const auto thisAttr = tf2_bot_detector::PlayerAttribute(i);
+			if (!list.HasAttribute(thisAttr))
+				continue;
 
-		if (printed)
-			os << ", ";
+			if (printed)
+				it = format_to(it, MH_FMT_STRING(", "));
 
-		os << thisAttr;
-		printed = true;
+			it = format_to(it, MH_FMT_STRING("{}"), thisAttr);
+			printed = true;
+		}
+
+		return it;
 	}
+};
 
-	return os;
-}
-
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
-	const tf2_bot_detector::PlayerMarks::Mark& mark)
+template<typename CharT>
+struct mh::formatter<tf2_bot_detector::PlayerMarks::Mark, CharT>
 {
-	return os << std::quoted(mark.m_FileName) << " (" << mark.m_Attributes << ')';
-}
+	constexpr auto parse(basic_format_parse_context<CharT>& ctx) const noexcept { return ctx.begin(); }
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
-	const tf2_bot_detector::PlayerMarks& marks)
+	template<typename FormatContext>
+	auto format(const tf2_bot_detector::PlayerMarks::Mark& mark, FormatContext& ctx)
+	{
+		return format_to(ctx.out(), MH_FMT_STRING("{} ({})"), std::quoted(mark.m_FileName), mark.m_Attributes);
+	}
+};
+
+template<typename CharT>
+struct mh::formatter<tf2_bot_detector::PlayerMarks, CharT>
 {
-	for (auto& mark : marks.m_Marks)
-		os << "\n\t - " << mark;
+	constexpr auto parse(basic_format_parse_context<CharT>& ctx) const noexcept { return ctx.begin(); }
 
-	return os;
-}
+	template<typename FormatContext>
+	auto format(const tf2_bot_detector::PlayerMarks& marks, FormatContext& ctx) const
+	{
+		auto it = ctx.out();
+
+		for (auto& mark : marks)
+			it = format_to(it, MH_FMT_STRING("\n\t - {}"), mark);
+
+		return it;
+	}
+};

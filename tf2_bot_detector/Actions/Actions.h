@@ -3,6 +3,8 @@
 #include "Clock.h"
 #include "ICommandSource.h"
 
+#include <mh/reflection/enum.hpp>
+
 #include <cassert>
 #include <cstdint>
 #include <iosfwd>
@@ -105,19 +107,9 @@ namespace tf2_bot_detector
 #endif
 }
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, tf2_bot_detector::KickReason reason)
-{
-	using tf2_bot_detector::KickReason;
-	switch (reason)
-	{
-	case KickReason::Cheating: return os << "KickReason::Cheating";
-	case KickReason::Idle: return os << "KickReason::Idle";
-	case KickReason::Other: return os << "KickReason::Other";
-	case KickReason::Scamming: return os << "KickReason::Scamming";
-
-	default:
-		assert(!"Unknown KickReason");
-		return os << "KickReason(" << std::underlying_type_t<KickReason>(reason) << ')';
-	}
-}
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::KickReason)
+	MH_ENUM_REFLECT_VALUE(Cheating)
+	MH_ENUM_REFLECT_VALUE(Idle)
+	MH_ENUM_REFLECT_VALUE(Other)
+	MH_ENUM_REFLECT_VALUE(Scamming)
+MH_ENUM_REFLECT_END()
