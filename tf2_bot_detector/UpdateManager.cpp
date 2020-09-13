@@ -246,6 +246,8 @@ namespace
 		inline static const std::filesystem::path DOWNLOAD_DIR_ROOT =
 			std::filesystem::temp_directory_path() / "TF2 Bot Detector" / "Portable Updates";
 
+		void CleanupOldUpdates() const;
+
 		static std::future<std::optional<DownloadedBuild>> DownloadBuild(const HTTPClient& client,
 			BuildInfo::BuildVariant tool, BuildInfo::BuildVariant updater);
 		static std::future<std::optional<DownloadedUpdateTool>> DownloadUpdateTool(const HTTPClient& client,
@@ -260,6 +262,8 @@ namespace
 		m_Settings(settings),
 		m_IsInstalled(Platform::IsInstalled())
 	{
+		CleanupOldUpdates();
+
 		assert(m_IsUpdateQueued);
 		m_State.SetUpdateStatus(MH_SOURCE_LOCATION_CURRENT(),
 			UpdateStatus::CheckQueued, "Initializing update check...");
@@ -566,6 +570,28 @@ namespace
 			ZipArchive archive(tempZipPath.string());
 			archive.open();
 			ExtractArchive(archive, extractDir);
+		}
+	}
+
+	void UpdateManager::CleanupOldUpdates() const
+	{
+		DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Cleaning up old downloaded updates from {}...", DOWNLOAD_DIR_ROOT);
+
+		std::error_code ec;
+		auto deletedCount = std::filesystem::remove_all(DOWNLOAD_DIR_ROOT, ec);
+
+		if (ec)
+		{
+			DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Failed to delete old downloaded updates from {}: ({}) {}",
+				DOWNLOAD_DIR_ROOT, ec.value(), ec.message());
+		}
+		else if (deletedCount == 0)
+		{
+			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Nothing to delete from {}.", DOWNLOAD_DIR_ROOT);
+		}
+		else
+		{
+			Log(MH_SOURCE_LOCATION_CURRENT(), "Deleted {} items from {}.", deletedCount, DOWNLOAD_DIR_ROOT);
 		}
 	}
 
