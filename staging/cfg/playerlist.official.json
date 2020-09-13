@@ -3585,6 +3585,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "irc.myg0t.gg:6667#myg0t",
+				"time": 1599983812
+			},
+			"steamid": "[U:1:1104295468]"
+		},
+		{
+			"attributes": [
 				"cheater",
 				"racist"
 			],
