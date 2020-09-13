@@ -25,7 +25,7 @@ namespace
 			if (m_ValidationState == ValidationState::ValidationSuccess)
 				return OnDrawResult::EndDrawing;
 
-			ImGui::TextFmt(m_ValidationMessage);
+			ImGui::TextFmt({ 1, 1, 0, 1 }, m_ValidationMessage);
 			ImGui::NewLine();
 
 			if (!Platform::IsInstalled())
