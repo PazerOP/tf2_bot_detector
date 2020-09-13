@@ -96,6 +96,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"SetupFlow/ISetupFlowPage.h"
 	"SetupFlow/NetworkSettingsPage.h"
 	"SetupFlow/NetworkSettingsPage.cpp"
+	"SetupFlow/PermissionsCheckPage.cpp"
 	"SetupFlow/SetupFlow.cpp"
 	"SetupFlow/SetupFlow.h"
 	"SetupFlow/TF2CommandLinePage.h"

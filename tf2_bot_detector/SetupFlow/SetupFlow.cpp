@@ -23,10 +23,12 @@ using namespace tf2_bot_detector;
 namespace tf2_bot_detector
 {
 	std::unique_ptr<ISetupFlowPage> CreateUpdateCheckPage();
+	std::unique_ptr<ISetupFlowPage> CreatePermissionsCheckPage();
 }
 
 SetupFlow::SetupFlow()
 {
+	m_Pages.push_back(CreatePermissionsCheckPage());
 	m_Pages.push_back(std::make_unique<BasicSettingsPage>());
 	m_Pages.push_back(std::make_unique<NetworkSettingsPage>());
 	m_Pages.push_back(CreateUpdateCheckPage());
