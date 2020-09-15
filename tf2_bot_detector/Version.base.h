@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <optional>
 #include <ostream>
-#include <string_view>
 
 namespace tf2_bot_detector
 {
@@ -26,7 +25,9 @@ namespace tf2_bot_detector
 
 		static std::optional<Version> Parse(const char* str);
 
-		auto operator<=>(const Version&) const = default;
+		constexpr auto operator<=>(const Version&) const = default;
+
+		constexpr bool IsCustomBuild() const { return m_Build == 65535; }
 
 		value_type m_Major{};
 		value_type m_Minor{};
@@ -48,5 +49,12 @@ namespace tf2_bot_detector
 template<typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::Version& v)
 {
-	return os << v.m_Major << '.' << v.m_Minor << '.' << v.m_Patch << '.' << v.m_Build;
+	os << v.m_Major << '.' << v.m_Minor << '.' << v.m_Patch;
+
+	if (v.IsCustomBuild())
+		os << " (Custom Build)";
+	else
+		os << '.' << v.m_Build;
+
+	return os;
 }
