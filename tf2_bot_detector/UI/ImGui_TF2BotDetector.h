@@ -5,6 +5,7 @@
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
+#include <mh/raii/scope_exit.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/types/disable_copy_move.hpp>
 #include <misc/cpp/imgui_stdlib.h>
@@ -66,18 +67,12 @@ namespace ImGui
 
 	namespace detail
 	{
-		struct [[nodiscard]] PopupScope final : mh::disable_copy_move
-		{
-			constexpr explicit PopupScope(bool enabled) : m_Enabled(enabled) {}
-			~PopupScope() { if (m_Enabled) { ImGui::EndPopup(); } }
-			constexpr operator bool() const { return m_Enabled; }
-			bool m_Enabled;
-		};
+		using PopupScope = decltype(mh::scope_exit(ImGui::EndPopup));
 	}
 
 	inline detail::PopupScope BeginPopupContextItemScope(const char* str_id = nullptr, ImGuiMouseButton mouse_button = 1)
 	{
-		return detail::PopupScope(BeginPopupContextItem(str_id, mouse_button));
+		return detail::PopupScope(ImGui::EndPopup, BeginPopupContextItem(str_id, mouse_button));
 	}
 
 	inline void PlotLines(const char* label, float(*values_getter)(const void* data, int idx), const void* data, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2(0, 0))
