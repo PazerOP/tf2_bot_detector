@@ -611,7 +611,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			if (bans->m_GameBanCount > 0)
 				ImGui::TextFmt(banColor, "     Game Bans : {}", bans->m_GameBanCount);
 			if (bans->m_VACBanCount || bans->m_GameBanCount)
-				ImGui::TextFmt(banColor, "Time Since Last Ban: {}", HumanDuration(bans->m_TimeSinceLastBan));
+				ImGui::TextFmt(banColor, "      Last Ban : {} ago", HumanDuration(bans->m_TimeSinceLastBan));
 		}
 
 		if (bans->m_EconomyBan != PlayerEconomyBan::None)
