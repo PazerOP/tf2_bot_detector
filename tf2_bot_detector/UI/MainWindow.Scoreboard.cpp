@@ -504,6 +504,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 	const ImVec4 COLOR_RED = { 1, 0, 0, 1 };
 	const ImVec4 COLOR_YELLOW = { 1, 1, 0, 1 };
 	const ImVec4 COLOR_GREEN = { 0, 1, 0, 1 };
+	const ImVec4 COLOR_UNAVAILABLE = { 1, 1, 1, 0.5 };
 
 	///////////////////
 	// Draw the text //
@@ -515,8 +516,12 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		using namespace SteamAPI;
 		ImGui::TextFmt("    Steam Name : \"{}\"", summary->m_Nickname);
 
-		if (!summary->m_RealName.empty())
-			ImGui::TextFmt("     Real Name : \"{}\"", summary->m_RealName);
+		ImGui::TextFmt("     Real Name : ");
+		ImGui::SameLineNoPad();
+		if (summary->m_RealName.empty())
+			ImGui::TextFmt(COLOR_UNAVAILABLE, "Not set");
+		else
+			ImGui::TextFmt("\"{}\"", summary->m_RealName);
 
 		if (auto vanity = summary->GetVanityURL(); !vanity.empty())
 			ImGui::TextFmt("    Vanity URL : \"{}\"", vanity);
@@ -671,6 +676,10 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 						// them. So even if you can see other owned games, if you make your playtime private...
 						// suddenly you don't own TF2 anymore, and it disappears from the owned games list.
 						ImGui::TextFmt(COLOR_PRIVATE, "Private");
+					}
+					else if (err == SteamAPI::ErrorCode::EmptyAPIKey)
+					{
+						ImGui::TextFmt({ 1, 1, 1, 0.5 }, "Enter Steam API key in Settings");
 					}
 					else
 					{
