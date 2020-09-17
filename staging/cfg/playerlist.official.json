@@ -5004,6 +5004,36 @@
 				"time": 1598427560
 			},
 			"steamid": "[U:1:1124033160]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "irc.myg0t.gg:6667#myg0t",
+				"time": 1600325737
+			},
+			"steamid": "[U:1:1131135579]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "irc.myg0t.gg:6667#myg0t",
+				"time": 1600325049
+			},
+			"steamid": "[U:1:1131139232]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "irc.myg0t.gg:6667#myg0t",
+				"time": 1600323820
+			},
+			"steamid": "[U:1:1131212589]"
 		}
 	]
 }
