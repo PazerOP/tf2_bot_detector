@@ -9,6 +9,7 @@
 
 #include <mh/math/interpolation.hpp>
 #include <mh/text/fmtstr.hpp>
+#include <mh/text/formatters/error_code.hpp>
 
 using namespace std::chrono_literals;
 using namespace tf2_bot_detector;
@@ -500,6 +501,10 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		ImGui::Indent(pos.y - ImGui::GetStyle().FramePadding.x);
 	}
 
+	const ImVec4 COLOR_RED = { 1, 0, 0, 1 };
+	const ImVec4 COLOR_YELLOW = { 1, 1, 0, 1 };
+	const ImVec4 COLOR_GREEN = { 0, 1, 0, 1 };
+
 	///////////////////
 	// Draw the text //
 	///////////////////
@@ -531,7 +536,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			ImGui::TextFmt({ 0.4f, 0.4f, 0.4f, 1 }, "Offline");
 			break;
 		case PersonaState::Online:
-			ImGui::TextFmt({ 0, 1, 0, 1 }, "Online");
+			ImGui::TextFmt(COLOR_GREEN, "Online");
 			break;
 		case PersonaState::Busy:
 			ImGui::TextFmt({ 1, 135 / 255.0f, 135 / 255.0f, 1 }, "Busy");
@@ -549,7 +554,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			ImGui::TextFmt({ 0, 1, 0.5f, 1 }, "Looking to Play");
 			break;
 		default:
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unknown ({})", int(summary->m_Status));
+			ImGui::TextFmt(COLOR_RED, "Unknown ({})", int(summary->m_Status));
 			break;
 		}
 
@@ -558,7 +563,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		switch (summary->m_Visibility)
 		{
 		case CommunityVisibilityState::Public:
-			ImGui::TextFmt({ 0, 1, 0, 1 }, "Public");
+			ImGui::TextFmt(COLOR_GREEN, "Public");
 			break;
 		case CommunityVisibilityState::FriendsOnly:
 			ImGui::TextFmt(COLOR_PRIVATE, "Friends Only");
@@ -567,7 +572,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			ImGui::TextFmt(COLOR_PRIVATE, "Private");
 			break;
 		default:
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unknown ({})", int(summary->m_Visibility));
+			ImGui::TextFmt(COLOR_RED, "Unknown ({})", int(summary->m_Visibility));
 			break;
 		}
 
@@ -576,7 +581,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			ImGui::SameLineNoPad();
 			ImGui::TextFmt(", ");
 			ImGui::SameLineNoPad();
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Not Configured");
+			ImGui::TextFmt(COLOR_RED, "Not Configured");
 		}
 
 #if 0 // decreed as useless information by overlord czechball
@@ -600,12 +605,12 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		{
 			ImGui::TextFmt("SteamCommunity : ");
 			ImGui::SameLineNoPad();
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Banned");
+			ImGui::TextFmt(COLOR_RED, "Banned");
 		}
 
 		{
 			const ImVec4 banColor = (bans->m_TimeSinceLastBan >= (24h * 365 * 7)) ?
-				ImVec4(1, 1, 0, 1) : ImVec4(1, 0, 0, 1);
+				COLOR_YELLOW : COLOR_RED;
 			if (bans->m_VACBanCount > 0)
 				ImGui::TextFmt(banColor, "      VAC Bans : {}", bans->m_VACBanCount);
 			if (bans->m_GameBanCount > 0)
@@ -620,15 +625,15 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 			switch (bans->m_EconomyBan)
 			{
 			case PlayerEconomyBan::Probation:
-				ImGui::TextFmt({ 1, 1, 0, 1 }, "Banned (Probation)");
+				ImGui::TextFmt(COLOR_YELLOW, "Banned (Probation)");
 				break;
 			case PlayerEconomyBan::Banned:
-				ImGui::TextFmt({ 1, 0, 0, 1 }, "Banned");
+				ImGui::TextFmt(COLOR_RED, "Banned");
 				break;
 
 			default:
 			case PlayerEconomyBan::Unknown:
-				ImGui::TextFmt({ 1, 0, 0, 1 }, "Unknown");
+				ImGui::TextFmt(COLOR_RED, "Unknown");
 				break;
 			}
 		}
@@ -649,30 +654,34 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 		ImGui::TextFmt("Loading player bans...");
 	}
 
-	if (const auto playtime = player.GetTF2Playtime())
+	// Playtime
 	{
 		ImGui::TextFmt("  TF2 Playtime : ");
 		ImGui::SameLineNoPad();
-		if (playtime->IsError())
-		{
-			// The reason for the GameNotOwned check is that the API hides free games if you haven't played them.
-			// So even if you can see other owned games, if you make your playtime private... suddenly you don't
-			// own TF2 anymore, and it disappears from the owned games list.
-			if (playtime->GetError().value() == int(SteamAPI::ErrorCode::InfoPrivate) ||
-				playtime->GetError().value() == int(SteamAPI::ErrorCode::GameNotOwned))
-				ImGui::TextFmt(COLOR_PRIVATE, "Private");
-			else
-				ImGui::TextFmt({ 1, 0, 0, 1 }, playtime->GetError().message());
-		}
-		else
-		{
-			const auto hours = std::chrono::duration_cast<std::chrono::hours>(*playtime->GetValue());
-			ImGui::TextFmt("{} hours", hours.count());
-		}
-	}
-	else
-	{
-		ImGui::TextFmt("Loading player TF2 game time...");
+		player.GetTF2Playtime()
+			.or_else([&](std::error_condition err)
+				{
+					if (err == std::errc::operation_in_progress)
+					{
+						ImGui::TextFmt("Loading...");
+					}
+					else if (err == SteamAPI::ErrorCode::InfoPrivate || err == SteamAPI::ErrorCode::GameNotOwned)
+					{
+						// The reason for the GameNotOwned check is that the API hides free games if you haven't played
+						// them. So even if you can see other owned games, if you make your playtime private...
+						// suddenly you don't own TF2 anymore, and it disappears from the owned games list.
+						ImGui::TextFmt(COLOR_PRIVATE, "Private");
+					}
+					else
+					{
+						ImGui::TextFmt({ 1, 0, 0, 1 }, "Error: {}", err);
+					}
+				})
+			.map([&](duration_t playtime)
+				{
+					const auto hours = std::chrono::duration_cast<std::chrono::hours>(playtime);
+					ImGui::TextFmt("{} hours", hours.count());
+				});
 	}
 
 	ImGui::NewLine();

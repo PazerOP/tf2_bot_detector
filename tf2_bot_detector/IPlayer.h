@@ -4,6 +4,8 @@
 #include "SteamID.h"
 #include "TFConstants.h"
 
+#include <tl/expected.hpp>
+
 #include <any>
 #include <cstdint>
 #include <optional>
@@ -21,7 +23,6 @@ namespace tf2_bot_detector
 	{
 		struct PlayerSummary;
 		struct PlayerBans;
-		struct TF2PlaytimeResult;
 	}
 
 	struct PlayerScores
@@ -51,7 +52,7 @@ namespace tf2_bot_detector
 		virtual SteamID GetSteamID() const = 0;
 		virtual const SteamAPI::PlayerSummary* GetPlayerSummary() const = 0;
 		virtual const SteamAPI::PlayerBans* GetPlayerBans() const = 0;
-		virtual const SteamAPI::TF2PlaytimeResult* GetTF2Playtime() const = 0;
+		virtual tl::expected<duration_t, std::error_condition> GetTF2Playtime() const = 0;
 		virtual bool IsFriend() const = 0;
 		virtual std::optional<UserID_t> GetUserID() const = 0;
 

@@ -11,6 +11,7 @@
 #include "Util/RegexUtils.h"
 #include "Util/TextUtils.h"
 #include "BatchedAction.h"
+#include "GenericErrors.h"
 #include "IPlayer.h"
 #include "Log.h"
 #include "WorldEventListener.h"
@@ -48,7 +49,7 @@ namespace
 		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
 		const SteamAPI::PlayerSummary* GetPlayerSummary() const override;
 		const SteamAPI::PlayerBans* GetPlayerBans() const override;
-		const SteamAPI::TF2PlaytimeResult* GetTF2Playtime() const override;
+		tl::expected<duration_t, std::error_condition> GetTF2Playtime() const override;
 		bool IsFriend() const override;
 		duration_t GetActiveTime() const override;
 
@@ -79,8 +80,7 @@ namespace
 		time_point_t m_LastStatusUpdateTime{};
 		time_point_t m_LastPingUpdateTime{};
 
-		mutable bool m_TF2PlaytimeFetched = false;
-		mutable std::shared_future<SteamAPI::TF2PlaytimeResult> m_TF2Playtime;
+		mutable std::variant<std::shared_future<duration_t>, std::error_condition> m_TF2Playtime;
 	};
 
 	class WorldState final : public IWorldState, BaseConsoleLineListener
@@ -916,35 +916,43 @@ const SteamAPI::PlayerBans* Player::GetPlayerBans() const
 	return nullptr;
 }
 
-const SteamAPI::TF2PlaytimeResult* Player::GetTF2Playtime() const
+tl::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
 {
-	if (!m_TF2PlaytimeFetched)
+	if (auto future = std::get_if<std::shared_future<duration_t>>(&m_TF2Playtime))
 	{
-		if (!m_World->GetSettings().GetSteamAPIKey().empty())
+		if (!future->valid())
 		{
-			if (auto client = m_World->GetSettings().GetHTTPClient())
+			const auto& apikey = m_World->GetSettings().GetSteamAPIKey();
+			if (apikey.empty())
+				return tl::unexpected(SteamAPI::ErrorCode::EmptyAPIKey);
+
+			auto client = m_World->GetSettings().GetHTTPClient();
+			if (!client)
+				return tl::unexpected(ErrorCode::InternetConnectivityDisabled);
+
+			m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(apikey, GetSteamID(), *client);
+		}
+		else if (mh::is_future_ready(*future))
+		{
+			try
 			{
-				m_TF2PlaytimeFetched = true;
-				m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(
-					m_World->GetSettings().GetSteamAPIKey(), GetSteamID(), *client);
+				return future->get();
+			}
+			catch (const SteamAPI::SteamAPIError& e)
+			{
+				m_TF2Playtime = e.code();
+				return tl::unexpected(e.code());
+			}
+			catch (const std::exception& e)
+			{
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e);
 			}
 		}
+
+		return tl::unexpected(std::errc::operation_in_progress);
 	}
 
-	if (mh::is_future_ready(m_TF2Playtime))
-	{
-		try
-		{
-			return &m_TF2Playtime.get();
-		}
-		catch (const std::exception& e)
-		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to get TF2 playtime for {}", *this);
-			m_TF2Playtime = {};
-		}
-	}
-
-	return nullptr;
+	return tl::unexpected(std::get<std::error_condition>(m_TF2Playtime));
 }
 
 bool Player::IsFriend() const

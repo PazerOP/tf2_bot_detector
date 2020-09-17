@@ -147,7 +147,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"WorldEventListener.h"
 	"WorldState.cpp"
 	"WorldState.h"
- )
+   "GenericErrors.h" "GenericErrors.cpp")
 
 target_precompile_headers(tf2_bot_detector
 	PUBLIC
