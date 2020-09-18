@@ -160,6 +160,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 * [bgausden](https://github.com/bgausden)
 * [kajutzu](https://github.com/flohdieter)
 * [minecraftpro123](https://github.com/Claxtian)
+* [Space_Butterfly](https://github.com/spacebuterfly)
 <!--$5-->
 * [ClusterConsultant](https://github.com/ClusterConsultant)
 * [KTachibanaM](https://github.com/KTachibanaM)
