@@ -39,7 +39,7 @@ jobs:
 
     - name: Debug
       run: |
-        echo "github.event = ${{ toJson(github.event) }}"
+        # echo "github.event = ${{ toJson(github.event) }}"
         echo "github.event_name = ${{ github.event_name }}"
         echo "github.sha = ${{ github.sha }}"
         echo "github.ref = ${{ github.ref }}"
