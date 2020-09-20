@@ -1001,9 +1001,12 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 				return err;
 			}
 		}
+		else
+		{
+			return std::errc::operation_in_progress;
+		}
 	}
-
-	if (auto tex = std::get_if<std::shared_ptr<ITexture>>(&avatarData))
+	else if (auto tex = std::get_if<std::shared_ptr<ITexture>>(&avatarData))
 	{
 		return *tex;
 	}
@@ -1013,7 +1016,7 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 	}
 	else
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown variant index");
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected variant index {}", avatarData.index());
 		return ErrorCode::LogicError;
 	}
 }
