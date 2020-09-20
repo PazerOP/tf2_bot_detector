@@ -974,7 +974,9 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 
 			try
 			{
-				avatarData = m_TextureManager->CreateTexture(future->get());
+				auto tex = m_TextureManager->CreateTexture(future->get());
+				avatarData = tex;
+				return tex;
 			}
 			catch (const std::exception& e)
 			{
@@ -991,6 +993,7 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 			if (summary)
 			{
 				avatarData = summary->GetAvatarBitmap(m_Settings.GetHTTPClient());
+				return std::errc::operation_in_progress;
 			}
 			else
 			{
