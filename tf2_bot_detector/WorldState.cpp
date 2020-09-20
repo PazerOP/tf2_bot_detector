@@ -47,9 +47,9 @@ namespace
 		const PlayerScores& GetScores() const override { return m_Scores; }
 		uint16_t GetPing() const override { return m_Status.m_Ping; }
 		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
-		const tl::expected<SteamAPI::PlayerSummary, std::error_condition>& GetPlayerSummary() const override;
-		const tl::expected<SteamAPI::PlayerBans, std::error_condition>& GetPlayerBans() const override;
-		tl::expected<duration_t, std::error_condition> GetTF2Playtime() const override;
+		const mh::expected<SteamAPI::PlayerSummary, std::error_condition>& GetPlayerSummary() const override;
+		const mh::expected<SteamAPI::PlayerBans, std::error_condition>& GetPlayerBans() const override;
+		mh::expected<duration_t, std::error_condition> GetTF2Playtime() const override;
 		bool IsFriend() const override;
 		duration_t GetActiveTime() const override;
 
@@ -57,10 +57,8 @@ namespace
 		TFTeam m_Team{};
 
 		uint8_t m_ClientIndex{};
-		mutable tl::expected<SteamAPI::PlayerSummary, std::error_condition> m_PlayerSummary =
-			tl::unexpected(ErrorCode::LazyValueUninitialized);
-		mutable tl::expected<SteamAPI::PlayerBans, std::error_condition> m_PlayerSteamBans =
-			tl::unexpected(ErrorCode::LazyValueUninitialized);
+		mutable mh::expected<SteamAPI::PlayerSummary, std::error_condition> m_PlayerSummary = ErrorCode::LazyValueUninitialized;
+		mutable mh::expected<SteamAPI::PlayerBans, std::error_condition> m_PlayerSteamBans = ErrorCode::LazyValueUninitialized;
 
 		void SetStatus(PlayerStatus status, time_point_t timestamp);
 		const PlayerStatus& GetStatus() const { return m_Status; }
@@ -899,29 +897,29 @@ duration_t Player::GetConnectedTime() const
 	return result;
 }
 
-const tl::expected<SteamAPI::PlayerSummary, std::error_condition>& Player::GetPlayerSummary() const
+const mh::expected<SteamAPI::PlayerSummary, std::error_condition>& Player::GetPlayerSummary() const
 {
 	if (!m_PlayerSummary && m_PlayerSummary.error() == ErrorCode::LazyValueUninitialized)
 	{
-		m_PlayerSummary = { tl::unexpect, std::errc::operation_in_progress };
+		m_PlayerSummary = std::errc::operation_in_progress;
 		m_World->QueuePlayerSummaryUpdate(GetSteamID());
 	}
 
 	return m_PlayerSummary;
 }
 
-const tl::expected<SteamAPI::PlayerBans, std::error_condition>& Player::GetPlayerBans() const
+const mh::expected<SteamAPI::PlayerBans, std::error_condition>& Player::GetPlayerBans() const
 {
 	if (!m_PlayerSteamBans && m_PlayerSteamBans.error() == ErrorCode::LazyValueUninitialized)
 	{
-		m_PlayerSteamBans = { tl::unexpect, std::errc::operation_in_progress };
+		m_PlayerSteamBans = std::errc::operation_in_progress;
 		m_World->QueuePlayerBansUpdate(GetSteamID());
 	}
 
 	return m_PlayerSteamBans;
 }
 
-tl::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
+mh::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
 {
 	if (auto future = std::get_if<std::shared_future<duration_t>>(&m_TF2Playtime))
 	{
@@ -929,11 +927,11 @@ tl::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
 		{
 			const auto& apikey = m_World->GetSettings().GetSteamAPIKey();
 			if (apikey.empty())
-				return tl::unexpected(SteamAPI::ErrorCode::EmptyAPIKey);
+				return SteamAPI::ErrorCode::EmptyAPIKey;
 
 			auto client = m_World->GetSettings().GetHTTPClient();
 			if (!client)
-				return tl::unexpected(ErrorCode::InternetConnectivityDisabled);
+				return ErrorCode::InternetConnectivityDisabled;
 
 			m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(apikey, GetSteamID(), *client);
 		}
@@ -946,7 +944,7 @@ tl::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
 			catch (const SteamAPI::SteamAPIError& e)
 			{
 				m_TF2Playtime = e.code();
-				return tl::unexpected(e.code());
+				return e.code();
 			}
 			catch (const std::exception& e)
 			{
@@ -954,10 +952,10 @@ tl::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
 			}
 		}
 
-		return tl::unexpected(std::errc::operation_in_progress);
+		return std::errc::operation_in_progress;
 	}
 
-	return tl::unexpected(std::get<std::error_condition>(m_TF2Playtime));
+	return std::get<std::error_condition>(m_TF2Playtime);
 }
 
 bool Player::IsFriend() const
@@ -1027,10 +1025,7 @@ auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 		for (auto& entry : collection)
 		{
 			if (auto found = state->FindPlayer(entry))
-			{
-				static_cast<Player*>(found)->m_PlayerSummary =
-					{ tl::unexpect, std::make_error_condition(SteamAPI::ErrorCode::EmptyAPIKey) };
-			}
+				static_cast<Player*>(found)->m_PlayerSummary = SteamAPI::ErrorCode::EmptyAPIKey;
 		}
 		return {};
 	}
@@ -1064,10 +1059,7 @@ auto WorldState::PlayerBansUpdateAction::SendRequest(state_type& state,
 		for (auto& entry : collection)
 		{
 			if (auto found = state->FindPlayer(entry))
-			{
-				static_cast<Player*>(found)->m_PlayerSteamBans =
-					{ tl::unexpect, std::make_error_condition(SteamAPI::ErrorCode::EmptyAPIKey) };
-			}
+				static_cast<Player*>(found)->m_PlayerSteamBans = SteamAPI::ErrorCode::EmptyAPIKey;
 		}
 		return {};
 	}

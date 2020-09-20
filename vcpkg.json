@@ -14,7 +14,6 @@
 		},
 		"stb",
 		"nlohmann-json",
-		"catch2",
-		"tl-expected"
+		"catch2"
 	]
 }

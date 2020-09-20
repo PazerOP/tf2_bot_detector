@@ -943,10 +943,8 @@ time_point_t MainWindow::GetCurrentTimestampCompensated() const
 	return GetWorld().GetCurrentTime();
 }
 
-tl::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGetAvatarTexture(IPlayer& player)
+mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGetAvatarTexture(IPlayer& player)
 {
-	using ret_type = tl::expected<std::shared_ptr<ITexture>, std::error_condition>;
-
 	struct PlayerAvatarData
 	{
 		std::variant<
@@ -971,7 +969,7 @@ tl::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 
 				const auto err = ErrorCode::UnknownError;
 				avatarData = err;
-				return ret_type(tl::unexpect, err);
+				return err;
 			}
 
 			try
@@ -984,7 +982,7 @@ tl::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 
 				const auto err = ErrorCode::UnknownError;
 				avatarData = err;
-				return ret_type(tl::unexpect, err);
+				return err;
 			}
 		}
 		else if (!future->valid())
@@ -1000,7 +998,7 @@ tl::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 #ifdef _DEBUG
 				auto errText = mh::format("error: {}", err);
 #endif
-				return ret_type(tl::unexpect, err);
+				return err;
 			}
 		}
 	}
@@ -1011,12 +1009,12 @@ tl::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 	}
 	else if (auto err = std::get_if<std::error_condition>(&avatarData))
 	{
-		return ret_type(tl::unexpect, *err);
+		return *err;
 	}
 	else
 	{
 		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown variant index");
-		return ret_type(tl::unexpect, ErrorCode::LogicError);
+		return ErrorCode::LogicError;
 	}
 }
 
