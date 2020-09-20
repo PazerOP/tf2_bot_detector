@@ -9,6 +9,7 @@
 #include "Actions/ActionGenerators.h"
 #include "BaseTextures.h"
 #include "Filesystem.h"
+#include "GenericErrors.h"
 #include "Log.h"
 #include "IPlayer.h"
 #include "ReleaseChannel.h"
@@ -24,6 +25,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/case_insensitive_string.hpp>
+#include <mh/text/formatters/error_code.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
@@ -941,42 +943,85 @@ time_point_t MainWindow::GetCurrentTimestampCompensated() const
 	return GetWorld().GetCurrentTime();
 }
 
-std::shared_ptr<ITexture> MainWindow::TryGetAvatarTexture(IPlayer& player)
+mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGetAvatarTexture(IPlayer& player)
 {
 	struct PlayerAvatarData
 	{
-		std::shared_future<Bitmap> m_Bitmap;
-		std::shared_ptr<ITexture> m_Texture;
-		bool m_PrintedErrorMessage = false;
+		std::variant<
+			std::shared_future<Bitmap>,
+			std::shared_ptr<ITexture>,
+			std::error_condition> m_State;
 	};
 
-	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>();
+	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>().m_State;
 
-	if (mh::is_future_ready(avatarData.m_Bitmap))
+	if (auto future = std::get_if<std::shared_future<Bitmap>>(&avatarData))
 	{
-		try
+		if (mh::is_future_ready(*future))
 		{
-			avatarData.m_Texture = m_TextureManager->CreateTexture(avatarData.m_Bitmap.get());
-			avatarData.m_Bitmap = {};
-		}
-		catch (const std::exception& e)
-		{
-			if (!avatarData.m_PrintedErrorMessage)
+			try
 			{
-				LogWarning("Failed to create avatar texture from bitmap: "s << typeid(e).name() << ": " << e.what());
-				avatarData.m_PrintedErrorMessage = true;
+				future->get();
+			}
+			catch (const std::exception& e)
+			{
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load avatar bitmap");
+
+				const auto err = ErrorCode::UnknownError;
+				avatarData = err;
+				return err;
+			}
+
+			try
+			{
+				auto tex = m_TextureManager->CreateTexture(future->get());
+				avatarData = tex;
+				return tex;
+			}
+			catch (const std::exception& e)
+			{
+				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to create avatar texture from bitmap");
+
+				const auto err = ErrorCode::UnknownError;
+				avatarData = err;
+				return err;
 			}
 		}
+		else if (!future->valid())
+		{
+			const auto& summary = player.GetPlayerSummary();
+			if (summary)
+			{
+				avatarData = summary->GetAvatarBitmap(m_Settings.GetHTTPClient());
+				return std::errc::operation_in_progress;
+			}
+			else
+			{
+				auto err = summary.error();
+#ifdef _DEBUG
+				auto errText = mh::format("error: {}", err);
+#endif
+				return err;
+			}
+		}
+		else
+		{
+			return std::errc::operation_in_progress;
+		}
 	}
-	else if (avatarData.m_Texture)
-		return avatarData.m_Texture;
-	else if (!avatarData.m_Bitmap.valid())
+	else if (auto tex = std::get_if<std::shared_ptr<ITexture>>(&avatarData))
 	{
-		if (auto summary = player.GetPlayerSummary())
-			avatarData.m_Bitmap = summary->GetAvatarBitmap(m_Settings.GetHTTPClient());
+		return *tex;
 	}
-
-	return nullptr;
+	else if (auto err = std::get_if<std::error_condition>(&avatarData))
+	{
+		return *err;
+	}
+	else
+	{
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected variant index {}", avatarData.index());
+		return ErrorCode::LogicError;
+	}
 }
 
 MainWindow::PostSetupFlowState::PostSetupFlowState(MainWindow& window) :

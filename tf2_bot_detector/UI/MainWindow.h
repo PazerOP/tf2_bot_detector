@@ -20,6 +20,7 @@
 #include "TFConstants.h"
 
 #include <imgui_desktop/Window.h>
+#include <mh/error/expected.hpp>
 
 #include <optional>
 #include <vector>
@@ -101,7 +102,7 @@ namespace tf2_bot_detector
 		// Gets the current timestamp, but time progresses in real time even without new messages
 		time_point_t GetCurrentTimestampCompensated() const;
 
-		std::shared_ptr<ITexture> TryGetAvatarTexture(IPlayer& player);
+		mh::expected<std::shared_ptr<ITexture>, std::error_condition> TryGetAvatarTexture(IPlayer& player);
 		std::unique_ptr<ITextureManager> m_TextureManager;
 		std::unique_ptr<IBaseTextures> m_BaseTextures;
 

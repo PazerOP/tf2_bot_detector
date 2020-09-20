@@ -9,8 +9,12 @@
 
 #include <mh/math/interpolation.hpp>
 #include <mh/text/fmtstr.hpp>
+#include <mh/text/formatters/error_code.hpp>
+
+#include <string_view>
 
 using namespace std::chrono_literals;
+using namespace std::string_view_literals;
 using namespace tf2_bot_detector;
 
 void MainWindow::OnDrawScoreboard()
@@ -226,7 +230,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 
 		if (!playerName.empty())
 			ImGui::TextFmt(playerName);
-		else if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
+		else if (const auto& summary = player.GetPlayerSummary(); summary && !summary->m_Nickname.empty())
 			ImGui::TextFmt(summary->m_Nickname);
 		else
 			ImGui::TextFmt("<Unknown>");
@@ -473,6 +477,273 @@ void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareR
 	ImGui::EndTooltip();
 }
 
+static const ImVec4 COLOR_RED = { 1, 0, 0, 1 };
+static const ImVec4 COLOR_YELLOW = { 1, 1, 0, 1 };
+static const ImVec4 COLOR_GREEN = { 0, 1, 0, 1 };
+static const ImVec4 COLOR_UNAVAILABLE = { 1, 1, 1, 0.5 };
+static const ImVec4 COLOR_PRIVATE = COLOR_YELLOW;
+
+static void PrintPersonaState(SteamAPI::PersonaState state)
+{
+	using SteamAPI::PersonaState;
+	switch (state)
+	{
+	case PersonaState::Offline:
+		return ImGui::TextFmt({ 0.4f, 0.4f, 0.4f, 1 }, "Offline");
+	case PersonaState::Online:
+		return ImGui::TextFmt(COLOR_GREEN, "Online");
+	case PersonaState::Busy:
+		return ImGui::TextFmt({ 1, 135 / 255.0f, 135 / 255.0f, 1 }, "Busy");
+	case PersonaState::Away:
+		return ImGui::TextFmt({ 92 / 255.0f, 154 / 255.0f, 245 / 255.0f, 0.5f }, "Away");
+	case PersonaState::Snooze:
+		return ImGui::TextFmt({ 92 / 255.0f, 154 / 255.0f, 245 / 255.0f, 0.35f }, "Snooze");
+	case PersonaState::LookingToTrade:
+		return ImGui::TextFmt({ 0, 1, 1, 1 }, "Looking to Trade");
+	case PersonaState::LookingToPlay:
+		return ImGui::TextFmt({ 0, 1, 0.5f, 1 }, "Looking to Play");
+	}
+
+	ImGui::TextFmt(COLOR_RED, "Unknown ({})", int(state));
+}
+
+namespace ImGui
+{
+	struct Span
+	{
+		using fmtstr_type = mh::fmtstr<256>;
+		using string_type = std::string;
+
+		template<typename... TArgs>
+		Span(const ImVec4& color, const std::string_view& fmtStr, const TArgs&... args) :
+			m_Color(color), m_Value(fmtstr_type(fmtStr, args...))
+		{
+		}
+
+		template<typename... TArgs>
+		Span(const std::string_view& fmtStr, const TArgs&... args) :
+			m_Value(fmtstr_type(fmtStr, args...))
+		{
+		}
+
+		Span(const std::string_view& text) : m_Value(text) {}
+		Span(const char* text) : Span(std::string_view(text)) {}
+
+		std::string_view GetView() const
+		{
+			if (auto str = std::get_if<fmtstr_type>(&m_Value))
+				return *str;
+			else if (auto str = std::get_if<string_type>(&m_Value))
+				return *str;
+
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected variant index {}", m_Value.index());
+			return __FUNCTION__ ": UNEXPECTED VARIANT INDEX";
+		}
+
+		std::optional<ImVec4> m_Color;
+		std::variant<fmtstr_type, string_type> m_Value;
+	};
+
+	template<typename TIter>
+	void TextSpan(TIter begin, TIter end)
+	{
+		if (begin == end)
+			return;
+
+		if (begin->m_Color.has_value())
+			ImGui::TextFmt(*begin->m_Color, begin->GetView());
+		else
+			ImGui::TextFmt(begin->GetView());
+
+		++begin;
+
+		for (auto it = begin; it != end; ++it)
+		{
+			ImGui::SameLineNoPad();
+
+			if (it->m_Color.has_value())
+				ImGui::TextFmt(*it->m_Color, it->GetView());
+			else
+				ImGui::TextFmt(it->GetView());
+		}
+	}
+
+	void TextSpan(const std::initializer_list<Span>& spans) { return TextSpan(spans.begin(), spans.end()); }
+}
+
+static void EnterAPIKeyText()
+{
+	ImGui::TextFmt(COLOR_UNAVAILABLE, "Enter Steam API key in Settings");
+}
+
+static void PrintPlayerSummary(const IPlayer& player)
+{
+	player.GetPlayerSummary()
+		.or_else([&](std::error_condition err)
+			{
+				ImGui::TextFmt("Player Summary : ");
+				ImGui::SameLineNoPad();
+
+				if (err == std::errc::operation_in_progress)
+					ImGui::PacifierText();
+				else if (err == SteamAPI::ErrorCode::EmptyAPIKey)
+					EnterAPIKeyText();
+				else
+					ImGui::TextFmt(COLOR_RED, "{}", err);
+			})
+		.map([&](const SteamAPI::PlayerSummary& summary)
+			{
+				using namespace SteamAPI;
+				ImGui::TextFmt("    Steam Name : \"{}\"", summary.m_Nickname);
+
+				ImGui::TextFmt("     Real Name : ");
+				ImGui::SameLineNoPad();
+				if (summary.m_RealName.empty())
+					ImGui::TextFmt(COLOR_UNAVAILABLE, "Not set");
+				else
+					ImGui::TextFmt("\"{}\"", summary.m_RealName);
+
+				ImGui::TextFmt("    Vanity URL : ");
+				ImGui::SameLineNoPad();
+				if (auto vanity = summary.GetVanityURL(); !vanity.empty())
+					ImGui::TextFmt("\"{}\"", vanity);
+				else
+					ImGui::TextFmt(COLOR_UNAVAILABLE, "Not set");
+
+				ImGui::TextFmt("   Account Age : ");
+				ImGui::SameLineNoPad();
+				if (auto age = summary.GetAccountAge())
+					ImGui::TextFmt("{}", HumanDuration(*age));
+				else
+					ImGui::TextFmt(COLOR_PRIVATE, "Private");
+
+				ImGui::TextFmt("        Status : ");
+				ImGui::SameLineNoPad();
+				PrintPersonaState(summary.m_Status);
+
+				ImGui::TextFmt(" Profile State : ");
+				ImGui::SameLineNoPad();
+				switch (summary.m_Visibility)
+				{
+				case CommunityVisibilityState::Public:
+					ImGui::TextFmt(COLOR_GREEN, "Public");
+					break;
+				case CommunityVisibilityState::FriendsOnly:
+					ImGui::TextFmt(COLOR_PRIVATE, "Friends Only");
+					break;
+				case CommunityVisibilityState::Private:
+					ImGui::TextFmt(COLOR_PRIVATE, "Private");
+					break;
+				default:
+					ImGui::TextFmt(COLOR_RED, "Unknown ({})", int(summary.m_Visibility));
+					break;
+				}
+
+				if (!summary.m_ProfileConfigured)
+				{
+					ImGui::SameLineNoPad();
+					ImGui::TextFmt(", ");
+					ImGui::SameLineNoPad();
+					ImGui::TextFmt(COLOR_RED, "Not Configured");
+				}
+
+#if 0 // decreed as useless information by overlord czechball
+				ImGui::TextFmt("Comment Permissions: ");
+				ImGui::SameLineNoPad();
+				if (summary->m_CommentPermissions)
+					ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "You can comment");
+				else
+					ImGui::TextColoredUnformatted(COLOR_PRIVATE, "You cannot comment");
+#endif
+			});
+}
+
+static void PrintPlayerBans(const IPlayer& player)
+{
+	player.GetPlayerBans()
+		.or_else([&](std::error_condition err)
+			{
+				ImGui::TextFmt("   Player Bans : ");
+				ImGui::SameLineNoPad();
+
+				if (err == std::errc::operation_in_progress)
+					ImGui::PacifierText();
+				else if (err == SteamAPI::ErrorCode::EmptyAPIKey)
+					EnterAPIKeyText();
+				else
+					ImGui::TextFmt(COLOR_RED, "{}", err);
+			})
+		.map([&](const SteamAPI::PlayerBans& bans)
+			{
+				using namespace SteamAPI;
+				if (bans.m_CommunityBanned)
+					ImGui::TextSpan({ "SteamCommunity : ", { COLOR_RED, "Banned" } });
+
+				if (bans.m_EconomyBan != PlayerEconomyBan::None)
+				{
+					ImGui::TextFmt("  Trade Status :");
+					switch (bans.m_EconomyBan)
+					{
+					case PlayerEconomyBan::Probation:
+						ImGui::TextFmt(COLOR_YELLOW, "Banned (Probation)");
+						break;
+					case PlayerEconomyBan::Banned:
+						ImGui::TextFmt(COLOR_RED, "Banned");
+						break;
+
+					default:
+					case PlayerEconomyBan::Unknown:
+						ImGui::TextFmt(COLOR_RED, "Unknown");
+						break;
+					}
+				}
+
+				{
+					const ImVec4 banColor = (bans.m_TimeSinceLastBan >= (24h * 365 * 7)) ? COLOR_YELLOW : COLOR_RED;
+					if (bans.m_VACBanCount > 0)
+						ImGui::TextFmt(banColor, "      VAC Bans : {}", bans.m_VACBanCount);
+					if (bans.m_GameBanCount > 0)
+						ImGui::TextFmt(banColor, "     Game Bans : {}", bans.m_GameBanCount);
+					if (bans.m_VACBanCount || bans.m_GameBanCount)
+						ImGui::TextFmt(banColor, "      Last Ban : {} ago", HumanDuration(bans.m_TimeSinceLastBan));
+				}
+			});
+}
+
+static void PrintPlayerPlaytime(const IPlayer& player)
+{
+	ImGui::TextFmt("  TF2 Playtime : ");
+	ImGui::SameLineNoPad();
+	player.GetTF2Playtime()
+		.or_else([&](std::error_condition err)
+			{
+				if (err == std::errc::operation_in_progress)
+				{
+					ImGui::PacifierText();
+				}
+				else if (err == SteamAPI::ErrorCode::InfoPrivate || err == SteamAPI::ErrorCode::GameNotOwned)
+				{
+					// The reason for the GameNotOwned check is that the API hides free games if you haven't played
+					// them. So even if you can see other owned games, if you make your playtime private...
+					// suddenly you don't own TF2 anymore, and it disappears from the owned games list.
+					ImGui::TextFmt(COLOR_PRIVATE, "Private");
+				}
+				else if (err == SteamAPI::ErrorCode::EmptyAPIKey)
+				{
+					EnterAPIKeyText();
+				}
+				else
+				{
+					ImGui::TextFmt(COLOR_RED, "{}", err);
+				}
+			})
+		.map([&](duration_t playtime)
+			{
+				const auto hours = std::chrono::duration_cast<std::chrono::hours>(playtime);
+				ImGui::TextFmt("{} hours", hours.count());
+			});
+}
+
 void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult,
 	const PlayerMarks& playerAttribs)
 {
@@ -481,12 +752,16 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 	/////////////////////
 	// Draw the avatar //
 	/////////////////////
-	{
-		if (auto tex = TryGetAvatarTexture(player))
-			ImGui::Image((ImTextureID)(intptr_t)tex->GetHandle(), { 184, 184 });
-		else
-			ImGui::Dummy({ 184, 184 });
-	}
+	TryGetAvatarTexture(player)
+		.or_else([&](std::error_condition ec)
+			{
+				if (ec != SteamAPI::ErrorCode::EmptyAPIKey)
+					ImGui::Dummy({ 184, 184 });
+			})
+		.map([&](const std::shared_ptr<ITexture>& tex)
+			{
+				ImGui::Image((ImTextureID)(intptr_t)tex->GetHandle(), { 184, 184 });
+			});
 
 	////////////////////////////////
 	// Fix up the cursor position //
@@ -503,177 +778,16 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 	///////////////////
 	// Draw the text //
 	///////////////////
-	const ImVec4 COLOR_PRIVATE = { 1, 1, 0, 1 };
-	ImGui::TextFmt("  In-game Name : \"{}\"", player.GetNameUnsafe());
-	if (const SteamAPI::PlayerSummary* summary = player.GetPlayerSummary())
-	{
-		using namespace SteamAPI;
-		ImGui::TextFmt("    Steam Name : \"{}\"", summary->m_Nickname);
-
-		if (!summary->m_RealName.empty())
-			ImGui::TextFmt("     Real Name : \"{}\"", summary->m_RealName);
-
-		if (auto vanity = summary->GetVanityURL(); !vanity.empty())
-			ImGui::TextFmt("    Vanity URL : \"{}\"", vanity);
-
-		ImGui::TextFmt("   Account Age : ");
-		ImGui::SameLineNoPad();
-		if (auto age = summary->GetAccountAge())
-			ImGui::TextFmt("{}", HumanDuration(*age));
-		else
-			ImGui::TextFmt(COLOR_PRIVATE, "Private");
-
-		ImGui::TextFmt("        Status : ");
-		ImGui::SameLineNoPad();
-		switch (summary->m_Status)
-		{
-		case PersonaState::Offline:
-			ImGui::TextFmt({ 0.4f, 0.4f, 0.4f, 1 }, "Offline");
-			break;
-		case PersonaState::Online:
-			ImGui::TextFmt({ 0, 1, 0, 1 }, "Online");
-			break;
-		case PersonaState::Busy:
-			ImGui::TextFmt({ 1, 135 / 255.0f, 135 / 255.0f, 1 }, "Busy");
-			break;
-		case PersonaState::Away:
-			ImGui::TextFmt({ 92 / 255.0f, 154 / 255.0f, 245 / 255.0f, 0.5f }, "Away");
-			break;
-		case PersonaState::Snooze:
-			ImGui::TextFmt({ 92 / 255.0f, 154 / 255.0f, 245 / 255.0f, 0.35f }, "Snooze");
-			break;
-		case PersonaState::LookingToTrade:
-			ImGui::TextFmt({ 0, 1, 1, 1 }, "Looking to Trade");
-			break;
-		case PersonaState::LookingToPlay:
-			ImGui::TextFmt({ 0, 1, 0.5f, 1 }, "Looking to Play");
-			break;
-		default:
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unknown ({})", int(summary->m_Status));
-			break;
-		}
-
-		ImGui::TextFmt(" Profile State : ");
-		ImGui::SameLineNoPad();
-		switch (summary->m_Visibility)
-		{
-		case CommunityVisibilityState::Public:
-			ImGui::TextFmt({ 0, 1, 0, 1 }, "Public");
-			break;
-		case CommunityVisibilityState::FriendsOnly:
-			ImGui::TextFmt(COLOR_PRIVATE, "Friends Only");
-			break;
-		case CommunityVisibilityState::Private:
-			ImGui::TextFmt(COLOR_PRIVATE, "Private");
-			break;
-		default:
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Unknown ({})", int(summary->m_Visibility));
-			break;
-		}
-
-		if (!summary->m_ProfileConfigured)
-		{
-			ImGui::SameLineNoPad();
-			ImGui::TextFmt(", ");
-			ImGui::SameLineNoPad();
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Not Configured");
-		}
-
-#if 0 // decreed as useless information by overlord czechball
-		ImGui::TextFmt("Comment Permissions: ");
-		ImGui::SameLineNoPad();
-		if (summary->m_CommentPermissions)
-			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "You can comment");
-		else
-			ImGui::TextColoredUnformatted(COLOR_PRIVATE, "You cannot comment");
-#endif
-	}
+	ImGui::TextFmt("  In-game Name : ");
+	ImGui::SameLineNoPad();
+	if (auto name = player.GetNameUnsafe(); !name.empty())
+		ImGui::TextFmt("\"{}\"", name);
 	else
-	{
-		ImGui::TextFmt("Loading player summary...");
-	}
+		ImGui::TextFmt(COLOR_UNAVAILABLE, "Unknown");
 
-	if (const SteamAPI::PlayerBans* bans = player.GetPlayerBans())
-	{
-		using namespace SteamAPI;
-		if (bans->m_CommunityBanned)
-		{
-			ImGui::TextFmt("SteamCommunity : ");
-			ImGui::SameLineNoPad();
-			ImGui::TextFmt({ 1, 0, 0, 1 }, "Banned");
-		}
-
-		{
-			const ImVec4 banColor = (bans->m_TimeSinceLastBan >= (24h * 365 * 7)) ?
-				ImVec4(1, 1, 0, 1) : ImVec4(1, 0, 0, 1);
-			if (bans->m_VACBanCount > 0)
-				ImGui::TextFmt(banColor, "      VAC Bans : {}", bans->m_VACBanCount);
-			if (bans->m_GameBanCount > 0)
-				ImGui::TextFmt(banColor, "     Game Bans : {}", bans->m_GameBanCount);
-			if (bans->m_VACBanCount || bans->m_GameBanCount)
-				ImGui::TextFmt(banColor, "      Last Ban : {} ago", HumanDuration(bans->m_TimeSinceLastBan));
-		}
-
-		if (bans->m_EconomyBan != PlayerEconomyBan::None)
-		{
-			ImGui::TextFmt("  Trade Status :");
-			switch (bans->m_EconomyBan)
-			{
-			case PlayerEconomyBan::Probation:
-				ImGui::TextFmt({ 1, 1, 0, 1 }, "Banned (Probation)");
-				break;
-			case PlayerEconomyBan::Banned:
-				ImGui::TextFmt({ 1, 0, 0, 1 }, "Banned");
-				break;
-
-			default:
-			case PlayerEconomyBan::Unknown:
-				ImGui::TextFmt({ 1, 0, 0, 1 }, "Unknown");
-				break;
-			}
-		}
-
-
-#if 0 // Don't show useless normal information like "hey this person isn't banned
-		if (bans->m_VACBanCount < 1 &&
-			bans->m_GameBanCount < 1 &&
-			!bans->m_CommunityBanned &&
-			bans->m_EconomyBan == PlayerEconomyBan::None)
-		{
-			ImGui::TextColoredUnformatted({ 0, 1, 0, 1 }, "No Steam Bans");
-		}
-#endif
-	}
-	else
-	{
-		ImGui::TextFmt("Loading player bans...");
-	}
-
-	if (const auto playtime = player.GetTF2Playtime())
-	{
-		ImGui::TextFmt("  TF2 Playtime : ");
-		ImGui::SameLineNoPad();
-		if (playtime->IsError())
-		{
-			// The reason for the GameNotOwned check is that the API hides free games if you haven't played them.
-			// So even if you can see other owned games, if you make your playtime private... suddenly you don't
-			// own TF2 anymore, and it disappears from the owned games list.
-			if (playtime->GetError().value() == int(SteamAPI::ErrorCode::InfoPrivate) ||
-				playtime->GetError().value() == int(SteamAPI::ErrorCode::GameNotOwned))
-				ImGui::TextFmt(COLOR_PRIVATE, "Private");
-			else
-				ImGui::TextFmt({ 1, 0, 0, 1 }, playtime->GetError().message());
-		}
-		else
-		{
-			const auto hours = std::chrono::duration_cast<std::chrono::hours>(*playtime->GetValue());
-			ImGui::TextFmt("{} hours", hours.count());
-		}
-	}
-	else
-	{
-		ImGui::TextFmt("Loading player TF2 game time...");
-	}
+	PrintPlayerSummary(player);
+	PrintPlayerBans(player);
+	PrintPlayerPlaytime(player);
 
 	ImGui::NewLine();
 

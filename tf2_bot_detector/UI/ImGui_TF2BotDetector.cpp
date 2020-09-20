@@ -601,6 +601,5 @@ void ImGui::Value(const char* prefix, double v, const char* float_format)
 
 void ImGui::PacifierText()
 {
-	// TODO
-	ImGui::TextFmt("..."sv);
+	ImGui::TextFmt("Loading..."sv);
 }

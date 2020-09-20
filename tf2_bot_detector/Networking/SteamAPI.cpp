@@ -237,27 +237,21 @@ std::shared_future<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlaye
 	const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
-		return {};
+		return mh::make_ready_future<std::vector<PlayerBans>>();
 
 	if (apikey.empty())
-	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
-		return {};
-	}
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::EmptyAPIKey);
 
 	if (steamIDs.size() > 100)
-	{
-		LogError(std::string(__FUNCTION__) << "Attempted to fetch " << steamIDs.size()
-			<< " steamIDs at once (max 100)");
-	}
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Attempted to fetch {} steamIDs at once (max 100)", steamIDs.size());
 
-	std::string url = "https://api.steampowered.com/ISteamUser/GetPlayerBans/v0001/?key="s
-		<< apikey << "&steamids=";
+	std::string url = mh::format(
+		MH_FMT_STRING("https://api.steampowered.com/ISteamUser/GetPlayerBans/v0001/?key={}&steamids="), apikey);
 
 	for (size_t i = 0; i < std::min<size_t>(steamIDs.size(), 100); i++)
 	{
 		if (i != 0)
-			url << ',';
+			url += ',';
 
 		url << steamIDs[i].ID64;
 	}
@@ -266,40 +260,55 @@ std::shared_future<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlaye
 
 	return std::async([data]
 		{
-			auto json = nlohmann::json::parse(data.get().m_Response);
+			std::string response;
+			try
+			{
+				response = data.get().m_Response;
+			}
+			catch (const std::exception&)
+			{
+				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GenericHttpError);
+			}
+
+			nlohmann::json json;
+			try
+			{
+				json = nlohmann::json::parse(response);
+			}
+			catch (const std::exception&)
+			{
+				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::JSONParseError);
+			}
+
 			return json.at("players").get<std::vector<PlayerBans>>();
 		});
 }
 
-std::future<TF2PlaytimeResult> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
+std::future<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 	const std::string_view& apikey, const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Invalid SteamID "s << steamID.ID64);
-		return {};
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::InvalidSteamID,
+			mh::format(MH_FMT_STRING("Invalid SteamID {}"), steamID));
 	}
 
 	if (apikey.empty())
-	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
-		return {};
-	}
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::EmptyAPIKey);
 
-	auto url = mh::format("https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&input_json=%7B%22appids_filter%22%3A%5B440%5D,%22include_played_free_games%22%3Atrue,%22steamid%22%3A{}%7D", apikey, steamID.ID64);
+	auto url = mh::format(MH_FMT_STRING("https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&input_json=%7B%22appids_filter%22%3A%5B440%5D,%22include_played_free_games%22%3Atrue,%22steamid%22%3A{}%7D"), apikey, steamID.ID64);
 
 	auto data = SteamAPIGET(client, url);
-	return std::async([data, steamID]() -> TF2PlaytimeResult
+	return std::async([data]() -> duration_t
 		{
 			std::string responseString;
 			try
 			{
 				responseString = data.get().m_Response;
 			}
-			catch (const std::exception& e)
+			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to get response string");
-				return std::make_error_condition(ErrorCode::GenericHttpError);
+				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GenericHttpError);
 			}
 
 			nlohmann::json json;
@@ -307,101 +316,77 @@ std::future<TF2PlaytimeResult> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 			{
 				json = nlohmann::json::parse(responseString);
 			}
-			catch (const std::exception& e)
+			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to parse response json");
-				return std::make_error_condition(ErrorCode::JSONParseError);
+				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::JSONParseError);
 			}
 
 			auto& response = json.at("response");
 			if (!response.contains("game_count"))
 			{
 				// response is empty (as opposed to games being empty and game_count = 0) if games list is private
-				return std::make_error_condition(ErrorCode::InfoPrivate);
+				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::InfoPrivate, "Games list is private");
 			}
 
 			auto& games = response.find("games");
 			if (games == response.end())
-				return std::make_error_condition(ErrorCode::GameNotOwned); // TF2 not on their owned games list
+				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GameNotOwned); // TF2 not on their owned games list
 
 			if (games->size() != 1)
 			{
-				if (games->size() != 0)
-					LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected games array size "s << games->size());
-
-				return std::make_error_condition(ErrorCode::UnexpectedDataFormat);
+				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::UnexpectedDataFormat,
+					mh::format(MH_FMT_STRING("Unexpected games array size {}"), games->size()));
 			}
 
 			auto& firstElem = games->at(0);
 			if (uint32_t appid = firstElem.at("appid"); appid != 440)
 			{
-				LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected appid "s << appid << " at response.games[0].appid");
-				return std::make_error_condition(ErrorCode::UnexpectedDataFormat);
+				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::UnexpectedDataFormat,
+					mh::format(MH_FMT_STRING("Unexpected appid {} at response.games[0].appid"), appid));
 			}
 
 			return std::chrono::minutes(firstElem.at("playtime_forever"));
 		});
 }
 
-TF2PlaytimeResult::TF2PlaytimeResult() :
-	TF2PlaytimeResult(std::make_error_condition(ErrorCode::EmptyState))
+namespace tf2_bot_detector::SteamAPI
 {
-}
-
-TF2PlaytimeResult::TF2PlaytimeResult(duration_t value) :
-	m_Value(value)
-{
-}
-
-TF2PlaytimeResult::TF2PlaytimeResult(std::error_condition e) :
-	m_Value(e)
-{
-}
-
-bool TF2PlaytimeResult::IsError() const
-{
-	return std::holds_alternative<std::error_condition>(m_Value);
-}
-
-std::optional<duration_t> TF2PlaytimeResult::GetValue() const
-{
-	if (auto val = std::get_if<duration_t>(&m_Value))
-		return *val;
-
-	return std::nullopt;
-}
-
-std::error_condition TF2PlaytimeResult::GetError() const
-{
-	if (auto val = std::get_if<std::error_condition>(&m_Value))
-		return *val;
-
-	return std::make_error_condition(ErrorCode::Success);
-}
-
-const ErrorCategoryType& tf2_bot_detector::SteamAPI::ErrorCategory()
-{
-	static const ErrorCategoryType s_Value;
-	return s_Value;
-}
-
-std::string ErrorCategoryType::message(int condition) const
-{
-	switch (ErrorCode(condition))
+	class ErrorCategoryType final : public std::error_category
 	{
-	case ErrorCode::Success:
-		return "Success";
-	case ErrorCode::EmptyState:
-		return "The state does not contain any value.";
-	case ErrorCode::InfoPrivate:
-		return "Your Steam account does not have permission to access this information.";
-	case ErrorCode::GameNotOwned:
-		return "The specified AppID is not owned by the specified account.";
-	case ErrorCode::UnexpectedDataFormat:
-		return "The response from the Steam API was formatted in an unexpected and unsupported way.";
+	public:
+		const char* name() const noexcept override { return "TF2 Bot Detector (SteamAPI)"; }
+		std::string message(int condition) const override
+		{
+			switch (ErrorCode(condition))
+			{
+			case ErrorCode::Success:
+				return "Success";
+			case ErrorCode::EmptyState:
+				return "The state does not contain any value.";
+			case ErrorCode::InfoPrivate:
+				return "Your Steam account does not have permission to access this information.";
+			case ErrorCode::GameNotOwned:
+				return "The specified AppID is not owned by the specified account.";
+			case ErrorCode::UnexpectedDataFormat:
+				return "The response from the Steam API was formatted in an unexpected or unsupported way.";
+			case ErrorCode::GenericHttpError:
+				return "There was an HTTP error encountered when getting the result.";
+			case ErrorCode::JSONParseError:
+				return "There was an error parsing the response JSON.";
+			case ErrorCode::InvalidSteamID:
+				return "The SteamID was not valid for the given request.";
+			case ErrorCode::EmptyAPIKey:
+				return "The provided Steam Web API key was an empty string.";
+			}
 
-	default:
-		return mh::format("Unknown SteamAPI error ({})", condition);
+			return mh::format("Unknown SteamAPI error ({})", condition);
+		}
+	};
+
+	static const ErrorCategoryType& ErrorCategory()
+	{
+		static const ErrorCategoryType s_Value;
+		return s_Value;
 	}
 }
 
@@ -415,7 +400,7 @@ std::future<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendLi
 {
 	if (!steamID.IsValid())
 	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Invalid SteamID "s << steamID.ID64);
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Invalid SteamID {}", steamID.ID64);
 		return {};
 	}
 
@@ -425,10 +410,12 @@ std::future<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendLi
 		return {};
 	}
 
-	auto url = mh::format("https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}", apikey, steamID.ID64);
+	auto url = mh::format(
+		MH_FMT_STRING("https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}"),
+		apikey, steamID.ID64);
 
 	auto data = SteamAPIGET(client, url);
-	return std::async([data, steamID]() -> std::unordered_set<SteamID>
+	return std::async([data]() -> std::unordered_set<SteamID>
 		{
 			const auto json = nlohmann::json::parse(data.get().m_Response);
 
@@ -442,4 +429,13 @@ std::future<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendLi
 
 			return retVal;
 		});
+}
+
+tf2_bot_detector::SteamAPI::SteamAPIError::SteamAPIError(const mh::source_location& location,
+	std::error_condition code, const std::string_view& detail) :
+	mh::error_condition_exception(code, mh::format(MH_FMT_STRING("{}: {}"), location, detail)),
+	m_SourceLocation(location)
+{
+	if (code != ErrorCode::InfoPrivate && code != ErrorCode::GameNotOwned)
+		LogException(m_SourceLocation, *this);
 }
