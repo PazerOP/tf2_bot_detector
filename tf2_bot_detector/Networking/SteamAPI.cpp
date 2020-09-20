@@ -436,5 +436,6 @@ tf2_bot_detector::SteamAPI::SteamAPIError::SteamAPIError(const mh::source_locati
 	mh::error_condition_exception(code, mh::format(MH_FMT_STRING("{}: {}"), location, detail)),
 	m_SourceLocation(location)
 {
-	LogException(m_SourceLocation, *this);
+	if (code != ErrorCode::InfoPrivate && code != ErrorCode::GameNotOwned)
+		LogException(m_SourceLocation, *this);
 }
