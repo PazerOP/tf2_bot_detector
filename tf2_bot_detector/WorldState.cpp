@@ -47,8 +47,8 @@ namespace
 		const PlayerScores& GetScores() const override { return m_Scores; }
 		uint16_t GetPing() const override { return m_Status.m_Ping; }
 		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
-		const SteamAPI::PlayerSummary* GetPlayerSummary() const override;
-		const SteamAPI::PlayerBans* GetPlayerBans() const override;
+		const tl::expected<SteamAPI::PlayerSummary, std::error_condition>& GetPlayerSummary() const override;
+		const tl::expected<SteamAPI::PlayerBans, std::error_condition>& GetPlayerBans() const override;
 		tl::expected<duration_t, std::error_condition> GetTF2Playtime() const override;
 		bool IsFriend() const override;
 		duration_t GetActiveTime() const override;
@@ -57,8 +57,10 @@ namespace
 		TFTeam m_Team{};
 
 		uint8_t m_ClientIndex{};
-		std::optional<SteamAPI::PlayerSummary> m_PlayerSummary;
-		std::optional<SteamAPI::PlayerBans> m_PlayerSteamBans;
+		mutable tl::expected<SteamAPI::PlayerSummary, std::error_condition> m_PlayerSummary =
+			tl::unexpected(ErrorCode::LazyValueUninitialized);
+		mutable tl::expected<SteamAPI::PlayerBans, std::error_condition> m_PlayerSteamBans =
+			tl::unexpected(ErrorCode::LazyValueUninitialized);
 
 		void SetStatus(PlayerStatus status, time_point_t timestamp);
 		const PlayerStatus& GetStatus() const { return m_Status; }
@@ -897,23 +899,26 @@ duration_t Player::GetConnectedTime() const
 	return result;
 }
 
-const SteamAPI::PlayerSummary* Player::GetPlayerSummary() const
+const tl::expected<SteamAPI::PlayerSummary, std::error_condition>& Player::GetPlayerSummary() const
 {
-	if (m_PlayerSummary)
-		return &*m_PlayerSummary;
+	if (!m_PlayerSummary && m_PlayerSummary.error() == ErrorCode::LazyValueUninitialized)
+	{
+		m_PlayerSummary = { tl::unexpect, std::errc::operation_in_progress };
+		m_World->QueuePlayerSummaryUpdate(GetSteamID());
+	}
 
-	// We'rd not loaded, so make sure we're queued to be loaded
-	m_World->QueuePlayerSummaryUpdate(GetSteamID());
-	return nullptr;
+	return m_PlayerSummary;
 }
 
-const SteamAPI::PlayerBans* Player::GetPlayerBans() const
+const tl::expected<SteamAPI::PlayerBans, std::error_condition>& Player::GetPlayerBans() const
 {
-	if (m_PlayerSteamBans)
-		return &*m_PlayerSteamBans;
+	if (!m_PlayerSteamBans && m_PlayerSteamBans.error() == ErrorCode::LazyValueUninitialized)
+	{
+		m_PlayerSteamBans = { tl::unexpect, std::errc::operation_in_progress };
+		m_World->QueuePlayerBansUpdate(GetSteamID());
+	}
 
-	m_World->QueuePlayerBansUpdate(GetSteamID());
-	return nullptr;
+	return m_PlayerSteamBans;
 }
 
 tl::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
@@ -1018,7 +1023,17 @@ auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 		return {};
 
 	if (state->GetSettings().GetSteamAPIKey().empty())
+	{
+		for (auto& entry : collection)
+		{
+			if (auto found = state->FindPlayer(entry))
+			{
+				static_cast<Player*>(found)->m_PlayerSummary =
+					{ tl::unexpect, std::make_error_condition(SteamAPI::ErrorCode::EmptyAPIKey) };
+			}
+		}
 		return {};
+	}
 
 	std::vector<SteamID> steamIDs = Take100(collection);
 
@@ -1029,7 +1044,7 @@ auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 void WorldState::PlayerSummaryUpdateAction::OnDataReady(WorldState*& state,
 	const response_type& response, queue_collection_type& collection)
 {
-	DebugLog("[SteamAPI] Received "s << response.size() << " player summaries");
+	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "[SteamAPI] Received {} player summaries", response.size());
 	for (const SteamAPI::PlayerSummary& entry : response)
 	{
 		state->FindOrCreatePlayer(entry.m_SteamID).m_PlayerSummary = entry;
@@ -1045,7 +1060,17 @@ auto WorldState::PlayerBansUpdateAction::SendRequest(state_type& state,
 		return {};
 
 	if (state->GetSettings().GetSteamAPIKey().empty())
+	{
+		for (auto& entry : collection)
+		{
+			if (auto found = state->FindPlayer(entry))
+			{
+				static_cast<Player*>(found)->m_PlayerSteamBans =
+					{ tl::unexpect, std::make_error_condition(SteamAPI::ErrorCode::EmptyAPIKey) };
+			}
+		}
 		return {};
+	}
 
 	std::vector<SteamID> steamIDs = Take100(collection);
 	return SteamAPI::GetPlayerBansAsync(

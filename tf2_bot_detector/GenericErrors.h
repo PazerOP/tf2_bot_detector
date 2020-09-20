@@ -9,6 +9,9 @@ namespace tf2_bot_detector
 		Success = 0,
 
 		InternetConnectivityDisabled,
+		LazyValueUninitialized,
+		UnknownError, // I SWORE I WOULD NEVER TYPE THESE WORDS
+		LogicError,
 	};
 }
 

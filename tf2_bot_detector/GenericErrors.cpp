@@ -16,6 +16,12 @@ namespace
 				return "Success";
 			case ErrorCode::InternetConnectivityDisabled:
 				return "Internet connectivity has been disabled by the user in Settings.";
+			case ErrorCode::LazyValueUninitialized:
+				return "A lazily-loaded value was uninitialized.";
+			case ErrorCode::UnknownError:
+				return "Unknown error.";
+			case ErrorCode::LogicError:
+				return "They were right all along! I *am* a bad programmer (logic error).";
 			}
 
 			return mh::format("Unknown error condition {}", condition);
