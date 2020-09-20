@@ -158,9 +158,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 * [Crazy Gunman](https://github.com/CrazyGunman2C4U)
 * [camp3r101](https://github.com/camp3r101)
 * [bgausden](https://github.com/bgausden)
-* [kajutzu](https://github.com/flohdieter)
-* [minecraftpro123](https://github.com/Claxtian)
-* [Space_Butterfly](https://github.com/spacebuterfly)
+* [Space Butterfly](https://github.com/spacebuterfly)
 <!--$5-->
 * [ClusterConsultant](https://github.com/ClusterConsultant)
 * [KTachibanaM](https://github.com/KTachibanaM)
