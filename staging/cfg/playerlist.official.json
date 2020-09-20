@@ -828,6 +828,16 @@
 			"attributes": [
 				"cheater"
 			],
+			"last_seen": {
+				"player_name": "cat-bot 2",
+				"time": 1600577642
+			},
+			"steamid": "[U:1:923722947]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
 			"steamid": "[U:1:948219720]"
 		},
 		{
@@ -1608,6 +1618,16 @@
 				"time": 1594429758
 			},
 			"steamid": "[U:1:1074018119]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "\u0e47",
+				"time": 1600576346
+			},
+			"steamid": "[U:1:1078637630]"
 		},
 		{
 			"attributes": [
@@ -4794,10 +4814,30 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "angelsirimin12\u200f",
+				"time": 1600577076
+			},
+			"steamid": "[U:1:1118399448]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "cat.jpg",
 				"time": 1596779000
 			},
 			"steamid": "[U:1:1118516260]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Grif\u200f",
+				"time": 1600577471
+			},
+			"steamid": "[U:1:1118523862]"
 		},
 		{
 			"attributes": [
@@ -4970,6 +5010,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "Big Gay",
+				"time": 1600576300
+			},
+			"steamid": "[U:1:1120756449]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "shasta bot",
 				"time": 1597546241
 			},
@@ -5024,6 +5074,16 @@
 				"time": 1598427560
 			},
 			"steamid": "[U:1:1124033160]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "camp3r\u200f",
+				"time": 1600577191
+			},
+			"steamid": "[U:1:1130439776]"
 		},
 		{
 			"attributes": [
