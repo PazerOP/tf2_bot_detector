@@ -9,45 +9,29 @@
 #include <mh/future.hpp>
 
 #include <Windows.h>
-#include <winrt/Windows.ApplicationModel.h>
-#include <winrt/Windows.Management.Deployment.h>
-#include <winrt/Windows.System.h>
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Foundation.Collections.h>
-
-#pragma comment(lib, "windowsapp")
+#include <appmodel.h>
 
 using namespace tf2_bot_detector;
 
-static winrt::Windows::ApplicationModel::Package GetAppPackage()
-{
-	static auto s_Package = std::invoke([]() -> winrt::Windows::ApplicationModel::Package
-		{
-			try
-			{
-				using namespace winrt::Windows::ApplicationModel;
-				auto package = Package::Current();
-				if (!package)
-				{
-					DebugLog(MH_SOURCE_LOCATION_CURRENT(), "We are not an installed package");
-					return nullptr;
-				}
-
-				return package;
-			}
-			catch (const winrt::hresult_error&)
-			{
-				//DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Unable to confirm we are an installed package: {}", ToMB(e.message()));
-				return nullptr;
-			}
-		});
-
-	return s_Package;
-}
-
 bool tf2_bot_detector::Platform::IsInstalled()
 {
-	return !!GetAppPackage();
+	PACKAGE_ID id{};
+	UINT32 bufSize = sizeof(id);
+	const auto result = GetCurrentPackageId(&bufSize, reinterpret_cast<BYTE*>(&id));
+
+	if (result == ERROR_SUCCESS)
+	{
+		return true;
+	}
+	else if (result == APPMODEL_ERROR_NO_PACKAGE)
+	{
+		return false;
+	}
+	else
+	{
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown error code returned by GetCurrentPackageId(): {}", result);
+		return false;
+	}
 }
 
 bool tf2_bot_detector::Platform::CanInstallUpdate(const BuildInfo& bi)
@@ -80,34 +64,10 @@ std::future<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdat
 		throw std::invalid_argument(ERROR_MSG);
 	}
 
-	using winrt::Windows::ApplicationModel::Package;
-	using winrt::Windows::Foundation::Uri;
-	using winrt::Windows::System::Launcher;
-	using winrt::Windows::System::LauncherOptions;
-
 	const auto bundleUri = buildInfo.m_MSIXBundleURL;
 
 	return std::async([bundleUri]() -> InstallUpdate::Result
 		{
-#if 0
-			const Uri uri = mh::format(L"ms-appinstaller:?source={}", ToWC(bundleUri));
-
-			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Attempting to LaunchUriAsync for {}", ToMB(uri.ToString()));
-			LauncherOptions options;
-
-			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Existing value of DisplayApplicationPicker: {}",
-				options.DisplayApplicationPicker());
-			options.DisplayApplicationPicker(false);
-			options.TargetApplicationPackageFamilyName(L"Microsoft.DesktopAppInstaller_8wekyb3d8bbwe");
-
-			auto result = Launcher::LaunchUriAsync(uri, options);
-
-			if (result.get())
-			{
-				return InstallUpdate::StartedNoFeedback{};
-			}
-			else
-#endif
 			{
 				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(),
 					"Microsoft has ensured that we can't have anything nice, requesting update tool");
