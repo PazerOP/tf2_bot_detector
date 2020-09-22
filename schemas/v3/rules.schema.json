@@ -49,6 +49,22 @@
 							"chatmsg_text_match": {
 								"$ref": "./shared.schema.json#/definitions/tfbd_text_match",
 								"description": "Match against chat messages sent by the player."
+							},
+							"avatar_match": {
+								"type": "array",
+								"description": "Array of Steam avatar match rules. If any of these match, avatar_match is considered a match.",
+								"items": {
+									"type": "object",
+									"description": "A Steam avatar match rule for a player.",
+									"additionalProperties": false,
+									"properties": {
+										"avatar_hash": {
+											"type": "string",
+											"description": "The SHA-1 hash of the user's Steam avatar.",
+											"pattern": "[0-9a-fA-F]{40}"
+										}
+									}
+								}
 							}
 						}
 					},

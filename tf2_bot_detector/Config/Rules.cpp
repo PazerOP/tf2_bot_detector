@@ -1,4 +1,5 @@
 #include "Rules.h"
+#include "Networking/SteamAPI.h"
 #include "Util/JSONUtils.h"
 #include "IPlayer.h"
 #include "Log.h"
@@ -7,6 +8,7 @@
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <mh/text/stringops.hpp>
 #include <nlohmann/json.hpp>
 
 #include <iomanip>
@@ -72,6 +74,11 @@ namespace tf2_bot_detector
 			j["username_text_match"] = *d.m_UsernameTextMatch;
 			count++;
 		}
+		if (d.m_AvatarMatches.size() > 0)
+		{
+			j["avatar_match"] = d.m_AvatarMatches;
+			count++;
+		}
 
 		if (count > 1)
 			j["mode"] = d.m_Mode;
@@ -125,6 +132,18 @@ namespace tf2_bot_detector
 			throw std::runtime_error("Unable to parse TextMatchMode from "s << std::quoted(str));
 	}
 
+	void to_json(nlohmann::json& j, const AvatarMatch& d)
+	{
+		j =
+		{
+			{ "avatar_hash", d.m_AvatarHash },
+		};
+	}
+	void from_json(const nlohmann::json& j, AvatarMatch& d)
+	{
+		d.m_AvatarHash = mh::tolower(j.at("avatar_hash").get<std::string_view>());
+	}
+
 	void from_json(const nlohmann::json& j, TextMatch& d)
 	{
 		d.m_Mode = j.at("mode");
@@ -141,6 +160,19 @@ namespace tf2_bot_detector
 			d.m_ChatMsgTextMatch.emplace(TextMatch(*found));
 		if (auto found = j.find("username_text_match"); found != j.end())
 			d.m_UsernameTextMatch.emplace(TextMatch(*found));
+		if (auto found = j.find("avatar_match"); found != j.end())
+		{
+			if (found->is_array())
+				found->get_to(d.m_AvatarMatches);
+			else if (found->is_object())
+				d.m_AvatarMatches = { AvatarMatch(*found) };
+			else
+			{
+				throw std::runtime_error(mh::format(
+					"{}: Expected avatar_match to be an array or object, instead it was a {}",
+					MH_SOURCE_LOCATION_CURRENT(), mh::enum_fmt(found->type())));
+			}
+		}
 	}
 
 	void from_json(const nlohmann::json& j, ModerationRule::Actions& d)
@@ -307,10 +339,9 @@ bool TextMatch::Match(const std::string_view& text) const
 
 		return false;
 	}
-
-	default:
-		throw std::runtime_error("Unknown TextMatchMode "s << +std::underlying_type_t<TextMatchMode>(m_Mode));
 	}
+
+	throw std::runtime_error(mh::format("{}: Unknown value {}", MH_SOURCE_LOCATION_CURRENT(), mh::enum_fmt(m_Mode)));
 }
 
 bool ModerationRule::Match(const IPlayer& player) const
@@ -318,9 +349,23 @@ bool ModerationRule::Match(const IPlayer& player) const
 	return Match(player, std::string_view{});
 }
 
+template<typename... TFuncs>
+static bool MatchRules(TriggerMatchMode mode, TFuncs&&... funcs)
+{
+	if (mode == TriggerMatchMode::MatchAll)
+		return (... && funcs());
+	else if (mode == TriggerMatchMode::MatchAny)
+		return (... || funcs());
+	else
+	{
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected mode {}", mh::enum_fmt(mode));
+		return false;
+	}
+}
+
 bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMsg) const
 {
-	const bool usernameMatch = [&]()
+	const auto usernameMatch = [&]()
 	{
 		if (!m_Triggers.m_UsernameTextMatch)
 			return false;
@@ -330,29 +375,35 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 			return false;
 
 		return m_Triggers.m_UsernameTextMatch->Match(name);
-	}();
-	if (m_Triggers.m_Mode == TriggerMatchMode::MatchAny && usernameMatch)
-		return true;
+	};
 
-	const bool chatMsgMatch = [&]()
+	const auto chatMsgMatch = [&]()
 	{
 		if (!m_Triggers.m_ChatMsgTextMatch || chatMsg.empty())
 			return false;
 
 		return m_Triggers.m_ChatMsgTextMatch->Match(chatMsg);
-	}();
-	if (m_Triggers.m_Mode == TriggerMatchMode::MatchAny && chatMsgMatch)
-		return true;
+	};
 
-	if (m_Triggers.m_Mode == TriggerMatchMode::MatchAll)
+	const auto avatarMatch = [&]()
 	{
-		if (m_Triggers.m_UsernameTextMatch && m_Triggers.m_ChatMsgTextMatch)
-			return usernameMatch && chatMsgMatch;
-		else if (m_Triggers.m_UsernameTextMatch)
-			return usernameMatch;
-		else if (m_Triggers.m_ChatMsgTextMatch)
-			return chatMsgMatch;
-	}
+		const auto& summary = player.GetPlayerSummary();
+		if (!summary)
+			return false;
 
-	return false;
+		for (const auto& m : m_Triggers.m_AvatarMatches)
+		{
+			if (m.Match(summary->m_AvatarHash))
+				return true;
+		}
+
+		return false;
+	};
+
+	return MatchRules(m_Triggers.m_Mode, usernameMatch, chatMsgMatch, avatarMatch);
+}
+
+bool AvatarMatch::Match(const std::string_view& avatarHash) const
+{
+	return m_AvatarHash == avatarHash;
 }

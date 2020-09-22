@@ -2,6 +2,7 @@
 #include "ConfigHelpers.h"
 
 #include <cppcoro/generator.hpp>
+#include <mh/reflection/enum.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <filesystem>
@@ -45,6 +46,16 @@ namespace tf2_bot_detector
 		bool Match(const std::string_view& text) const;
 	};
 
+	struct AvatarMatch
+	{
+		std::string m_AvatarHash;
+
+		bool Match(const std::string_view& avatarHash) const;
+	};
+
+	void to_json(nlohmann::json& j, const AvatarMatch& d);
+	void from_json(const nlohmann::json& j, AvatarMatch& d);
+
 	struct ModerationRule
 	{
 		std::string m_Description;
@@ -58,6 +69,7 @@ namespace tf2_bot_detector
 
 			std::optional<TextMatch> m_UsernameTextMatch;
 			std::optional<TextMatch> m_ChatMsgTextMatch;
+			std::vector<AvatarMatch> m_AvatarMatches;
 		} m_Triggers;
 
 		struct Actions
@@ -102,3 +114,17 @@ namespace tf2_bot_detector
 		} m_CFGGroup;
 	};
 }
+
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::TriggerMatchMode)
+	MH_ENUM_REFLECT_VALUE(MatchAll)
+	MH_ENUM_REFLECT_VALUE(MatchAny)
+MH_ENUM_REFLECT_END()
+
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::TextMatchMode)
+	MH_ENUM_REFLECT_VALUE(Equal)
+	MH_ENUM_REFLECT_VALUE(Contains)
+	MH_ENUM_REFLECT_VALUE(StartsWith)
+	MH_ENUM_REFLECT_VALUE(EndsWith)
+	MH_ENUM_REFLECT_VALUE(Regex)
+	MH_ENUM_REFLECT_VALUE(Word)
+MH_ENUM_REFLECT_END()

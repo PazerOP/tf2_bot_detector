@@ -2,6 +2,7 @@
 
 #include "Log.h"
 
+#include <mh/reflection/enum.hpp>
 #include <nlohmann/json.hpp>
 
 #include <optional>
@@ -175,3 +176,16 @@ namespace tf2_bot_detector
 		return false;
 	}
 }
+
+MH_ENUM_REFLECT_BEGIN(nlohmann::json::value_t)
+	MH_ENUM_REFLECT_VALUE(null)
+	MH_ENUM_REFLECT_VALUE(object)
+	MH_ENUM_REFLECT_VALUE(array)
+	MH_ENUM_REFLECT_VALUE(string)
+	MH_ENUM_REFLECT_VALUE(boolean)
+	MH_ENUM_REFLECT_VALUE(number_integer)
+	MH_ENUM_REFLECT_VALUE(number_unsigned)
+	MH_ENUM_REFLECT_VALUE(number_float)
+	MH_ENUM_REFLECT_VALUE(binary)
+	MH_ENUM_REFLECT_VALUE(discarded)
+MH_ENUM_REFLECT_END()
