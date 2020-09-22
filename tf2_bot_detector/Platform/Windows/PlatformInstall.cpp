@@ -9,29 +9,49 @@
 #include <mh/future.hpp>
 
 #include <Windows.h>
-#include <appmodel.h>
 
 using namespace tf2_bot_detector;
 
 bool tf2_bot_detector::Platform::IsInstalled()
 {
-	PACKAGE_ID id{};
-	UINT32 bufSize = sizeof(id);
-	const auto result = GetCurrentPackageId(&bufSize, reinterpret_cast<BYTE*>(&id));
+	static const bool s_IsInstalled = []() -> bool
+	{
+		using func_type = LONG(*)(UINT32* packageFullNameLength, PWSTR packageFullName);
+		constexpr const char FUNC_NAME[] = "GetCurrentPackageFullName";
+		constexpr const char MODULE_NAME[] = "Kernel32.dll";
 
-	if (result == ERROR_SUCCESS)
-	{
-		return true;
-	}
-	else if (result == APPMODEL_ERROR_NO_PACKAGE)
-	{
-		return false;
-	}
-	else
-	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown error code returned by GetCurrentPackageId(): {}", result);
-		return false;
-	}
+		HMODULE kernel32 = GetModuleHandleA(MODULE_NAME);
+		if (!kernel32)
+		{
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to get module handle for {}", MODULE_NAME);
+			return false;
+		}
+
+		const void* rawFnPtr = GetProcAddress(kernel32, FUNC_NAME);
+
+		if (!rawFnPtr)
+		{
+			DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Unable to find {} in {}", FUNC_NAME, MODULE_NAME);
+			return false;
+		}
+
+		const auto fnPtr = reinterpret_cast<func_type>(rawFnPtr);
+
+		UINT32 length = 0;
+		const LONG result = fnPtr(&length, nullptr);
+
+		if (result == ERROR_INSUFFICIENT_BUFFER)
+			return true;
+		else if (result == APPMODEL_ERROR_NO_PACKAGE)
+			return false;
+		else
+		{
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown error code returned by {}: {}", FUNC_NAME, result);
+			return false;
+		}
+	}();
+
+	return s_IsInstalled;
 }
 
 bool tf2_bot_detector::Platform::CanInstallUpdate(const BuildInfo& bi)
