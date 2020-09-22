@@ -37,6 +37,12 @@
 			},
 			"description": "[VAC] OneTrick",
 			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "76c03c7865876dd13dbe4b60aad86150b8fc6233"
+					}
+				],
+				"mode": "match_any",
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
@@ -88,6 +94,15 @@
 			},
 			"description": "Poohook",
 			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "fd5b5bae0eeb72930a58702472f2c8c7ace04dfa"
+					},
+					{
+						"avatar_hash": "a6ede29c46bea13b4ba947799815e7336d39cb77"
+					}
+				],
+				"mode": "match_any",
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
