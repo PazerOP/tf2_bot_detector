@@ -422,6 +422,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "PlaNKDaNK",
+				"time": 1600752621
+			},
+			"steamid": "[U:1:215627997]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"steamid": "[U:1:246188269]"
@@ -1177,6 +1187,16 @@
 				"time": 1597736112
 			},
 			"steamid": "[U:1:1033882866]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Miroslav",
+				"time": 1600750911
+			},
+			"steamid": "[U:1:1041044215]"
 		},
 		{
 			"attributes": [
@@ -5090,6 +5110,135 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "keyblademaster184",
+				"time": 1600752499
+			},
+			"steamid": "[U:1:1124228435]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Altopebsi \u2714",
+				"time": 1600751070
+			},
+			"steamid": "[U:1:1124934325]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"time": 1600750865
+			},
+			"steamid": "[U:1:1125045667]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "\u272a LoggingHacker",
+				"time": 1600753204
+			},
+			"steamid": "[U:1:1125206025]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "\u0440@S\u043f\u0438\u04379\u044f\u0419\u043a@",
+				"time": 1600753677
+			},
+			"steamid": "[U:1:1127632189]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "DarkLord",
+				"time": 1600755905
+			},
+			"steamid": "[U:1:1127657541]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "\u043e\u0431\u0438\u0442\u043e \u0441\u0430\u043c\u0430",
+				"time": 1600755239
+			},
+			"steamid": "[U:1:1127700916]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "eodykes",
+				"time": 1600750367
+			},
+			"steamid": "[U:1:1127734844]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "mrshootington",
+				"time": 1600756497
+			},
+			"steamid": "[U:1:1127765856]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "pendrop",
+				"time": 1600755237
+			},
+			"steamid": "[U:1:1127807149]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "theswagsnake",
+				"time": 1600753245
+			},
+			"steamid": "[U:1:1127844458]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Flamey \u2588 Scrap2Unusual\u2588",
+				"time": 1600756370
+			},
+			"steamid": "[U:1:1127854617]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Grandpa Soldier",
+				"time": 1600755805
+			},
+			"steamid": "[U:1:1128051430]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "camp3r\u200f",
 				"time": 1600577191
 			},
@@ -5124,6 +5273,26 @@
 				"time": 1600323820
 			},
 			"steamid": "[U:1:1131212589]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "GabenSexTraffickingBlackChildre",
+				"time": 1600755501
+			},
+			"steamid": "[U:1:1132374339]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "OneTrick",
+				"time": 1600752166
+			},
+			"steamid": "[U:1:1132388652]"
 		}
 	]
 }
