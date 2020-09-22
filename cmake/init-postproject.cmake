@@ -81,3 +81,15 @@ if (MSVC)
 		        # Windows headers trigger this
 	)
 endif()
+
+if (WIN32)
+	# Restrict ourselves to Windows 7 API where possible
+	add_compile_definitions(
+		NTDDI_VERSION=NTDDI_WIN7
+		WINVER=_WIN32_WINNT_WIN7
+		_WIN32_WINNT=_WIN32_WINNT_WIN7
+		_APPMODEL_H_ # Don't allow this header file to be included
+	)
+
+	add_compile_options("/FISdkddkver.h")
+endif()

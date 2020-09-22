@@ -8,7 +8,7 @@
 
 #define WIN32_LEAN_AND_MEAN 1
 #include <Windows.h>
-#include <appmodel.h>
+#include <minappmodel.h>
 #include <Shlobj.h>
 
 using namespace std::string_view_literals;
@@ -30,42 +30,47 @@ std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
 
 namespace tf2_bot_detector
 {
-	static std::wstring GetCurrentPackageFamilyName()
+	static const std::wstring& GetCurrentPackageFamilyName()
 	{
-		WCHAR name[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1];
-		UINT32 nameLength = UINT32(std::size(name));
-		const auto errc = ::GetCurrentPackageFamilyName(&nameLength, name);
-
-		switch (errc)
+		static const std::wstring s_CurrentPackageFamilyName = []() -> std::wstring
 		{
-		case ERROR_SUCCESS:
-			return std::wstring(name, nameLength > 0 ? (nameLength - 1) : 0);
-		case APPMODEL_ERROR_NO_PACKAGE:
-			return {};
-		case ERROR_INSUFFICIENT_BUFFER:
-			throw std::runtime_error(mh::format("{}: Buffer too small", __FUNCTION__));
-		default:
-			throw std::runtime_error(mh::format("{}: Unknown error {}", __FUNCTION__, errc));
-		}
-	}
+			WCHAR name[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1];
+			UINT32 nameLength = UINT32(std::size(name));
 
-	static std::filesystem::path GetCurrentPackagePath()
-	{
-		WCHAR path[32768];
-		UINT32 pathLength = UINT32(std::size(path));
-		const auto errc = ::GetCurrentPackagePath(&pathLength, path);
+			constexpr const char FUNC_NAME[] = "GetCurrentPackageFamilyName";
+			constexpr const char MODULE_NAME[] = "Kernel32.dll";
+			using func_type = LONG(*)(UINT32* packageFamilyNameLength, PWSTR packageFamilyName);
 
-		switch (errc)
-		{
-		case ERROR_SUCCESS:
-			return std::filesystem::path(path, path + (pathLength > 0 ? (pathLength - 1) : 0));
-		case APPMODEL_ERROR_NO_PACKAGE:
-			return "";// GetAppDataDir(); // We're not in a package
-		case ERROR_INSUFFICIENT_BUFFER:
-			throw std::runtime_error(mh::format("{}: Buffer too small", __FUNCTION__));
-		default:
-			throw std::runtime_error(mh::format("{}: Unknown error {}", __FUNCTION__, errc));
-		}
+			HMODULE kernel32 = GetModuleHandleA(MODULE_NAME);
+			if (!kernel32)
+			{
+				throw std::runtime_error(
+					mh::format("{}: Unable to get module handle for {}", MH_SOURCE_LOCATION_CURRENT(), MODULE_NAME));
+			}
+
+			const auto func = reinterpret_cast<func_type>(GetProcAddress(kernel32, FUNC_NAME));
+			if (!func)
+			{
+				throw std::runtime_error(
+					mh::format("{}: Unable to find function for {}", MH_SOURCE_LOCATION_CURRENT(), FUNC_NAME));
+			}
+
+			const auto errc = func(&nameLength, name);
+
+			switch (errc)
+			{
+			case ERROR_SUCCESS:
+				return std::wstring(name, nameLength > 0 ? (nameLength - 1) : 0);
+			case APPMODEL_ERROR_NO_PACKAGE:
+				return {};
+			case ERROR_INSUFFICIENT_BUFFER:
+				throw std::runtime_error(mh::format("{}: Buffer too small", __FUNCTION__));
+			default:
+				throw std::runtime_error(mh::format("{}: Unknown error {}", __FUNCTION__, errc));
+			}
+		}();
+
+		return s_CurrentPackageFamilyName;
 	}
 }
 
