@@ -16,6 +16,7 @@ namespace tf2_bot_detector
 		void Init(const InitState& is) override;
 		bool CanCommit() const override;
 		void Commit(Settings& settings) override;
+		SetupFlowPage GetPage() const override { return SetupFlowPage::NetworkSettings; }
 
 	private:
 		struct

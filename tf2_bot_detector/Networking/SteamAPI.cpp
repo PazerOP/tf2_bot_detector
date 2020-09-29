@@ -31,7 +31,7 @@ namespace
 	};
 
 	static mh::thread_pool<SteamAPITask> s_SteamAPIThreadPool(2);
-	static std::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, const URL& url)
+	static std::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, URL url)
 	{
 		auto clientPtr = client.shared_from_this();
 		return s_SteamAPIThreadPool.add_task([clientPtr, url]() -> SteamAPITask

@@ -15,6 +15,8 @@ namespace tf2_bot_detector
 		bool CanCommit() const override;
 		void Commit(Settings& settings);
 
+		SetupFlowPage GetPage() const override { return SetupFlowPage::BasicSettings; }
+
 	private:
 		AutoDetectedSettings m_Settings;
 	};

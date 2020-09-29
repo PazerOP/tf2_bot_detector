@@ -137,3 +137,11 @@ bool SetupFlow::OnDraw(Settings& settings, const ISetupFlowPage::DrawState& ds)
 
 	return drewPage || (m_ActivePage != INVALID_PAGE);
 }
+
+SetupFlowPage SetupFlow::GetCurrentPage() const
+{
+	if (m_ActivePage == INVALID_PAGE)
+		return SetupFlowPage::Invalid;
+
+	return m_Pages.at(m_ActivePage)->GetPage();
+}

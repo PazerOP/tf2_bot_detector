@@ -25,6 +25,7 @@ namespace
 
 		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
+		SetupFlowPage GetPage() const override { return SetupFlowPage::UpdateCheck; }
 
 	private:
 		mh::status_reader<UpdateStatus> m_StatusReader;
@@ -328,7 +329,7 @@ namespace
 namespace tf2_bot_detector
 {
 	std::unique_ptr<ISetupFlowPage> CreateUpdateCheckPage()
-	{
-		return std::make_unique<UpdateCheckPage>();
-	}
+{
+	return std::make_unique<UpdateCheckPage>();
+}
 }

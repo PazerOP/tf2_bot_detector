@@ -6,6 +6,19 @@ namespace tf2_bot_detector
 	class IUpdateManager;
 	class Settings;
 
+	enum class SetupFlowPage
+	{
+		Invalid = -1,
+
+		PermissionsCheck = 0,
+		BasicSettings,
+		NetworkSettings,
+		UpdateCheck,
+		ChatWrappersGenerate,
+		TF2CommandLine,
+		ChatWrappersVerify,
+	};
+
 	class ISetupFlowPage
 	{
 	public:
@@ -52,5 +65,7 @@ namespace tf2_bot_detector
 		virtual void Commit(Settings& settings) = 0;
 		virtual bool WantsSetupText() const { return true; }
 		virtual bool WantsContinueButton() const { return true; }
+
+		virtual SetupFlowPage GetPage() const = 0;
 	};
 }

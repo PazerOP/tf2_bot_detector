@@ -25,6 +25,7 @@ namespace tf2_bot_detector
 
 		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
+		SetupFlowPage GetPage() const override { return SetupFlowPage::TF2CommandLine; }
 
 	private:
 		static constexpr duration_t CL_UPDATE_INTERVAL = std::chrono::seconds(1);

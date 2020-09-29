@@ -23,6 +23,8 @@ namespace tf2_bot_detector
 		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
 
+		SetupFlowPage GetPage() const override { return SetupFlowPage::ChatWrappersGenerate; }
+
 		static std::string GetChatWrapperStringToken(uint32_t token);
 		static constexpr char VERIFY_CFG_FILE_NAME[] = "__tf2bd_chat_wrappers_verify.cfg";
 

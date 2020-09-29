@@ -674,7 +674,7 @@ void MainWindow::OnDrawMenuBar()
 #endif
 #endif
 
-	if (!isInSetupFlow)
+	if (!isInSetupFlow || m_SetupFlow.GetCurrentPage() == SetupFlowPage::TF2CommandLine)
 	{
 		if (ImGui::MenuItem("Settings"))
 			OpenSettingsPopup();

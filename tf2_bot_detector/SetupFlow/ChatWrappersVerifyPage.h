@@ -21,6 +21,8 @@ namespace tf2_bot_detector
 		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
 
+		SetupFlowPage GetPage() const override { return SetupFlowPage::ChatWrappersVerify; }
+
 	private:
 		std::string m_ExpectedToken;
 		std::shared_future<std::string> m_Validation;

@@ -20,6 +20,8 @@ namespace tf2_bot_detector
 
 		bool ShouldDraw() const { return m_ShouldDraw; }
 
+		SetupFlowPage GetCurrentPage() const;
+
 	private:
 		bool m_ShouldDraw = false;
 		std::vector<std::unique_ptr<ISetupFlowPage>> m_Pages;

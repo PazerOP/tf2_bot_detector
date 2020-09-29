@@ -50,6 +50,7 @@ namespace
 		void Commit(Settings&) override {}
 		bool WantsSetupText() const { return false; }
 		bool WantsContinueButton() const { return false; }
+		SetupFlowPage GetPage() const override { return SetupFlowPage::PermissionsCheck; }
 
 		enum class ValidationState
 		{
