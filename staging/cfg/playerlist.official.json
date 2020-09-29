@@ -1741,6 +1741,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "Wonderman",
+				"time": 1601111057
+			},
+			"steamid": "[U:1:1086764214]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -2151,6 +2161,16 @@
 				"cheater"
 			],
 			"steamid": "[U:1:1090682076]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "OneTrick",
+				"time": 1601109508
+			},
+			"steamid": "[U:1:1090687873]"
 		},
 		{
 			"attributes": [
@@ -5413,6 +5433,16 @@
 				"time": 1600800471
 			},
 			"steamid": "[U:1:1132425675]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)OneTrick",
+				"time": 1601110952
+			},
+			"steamid": "[U:1:1132467472]"
 		},
 		{
 			"attributes": [
