@@ -10,7 +10,6 @@
 
 #include <mh/text/format.hpp>
 #include <mh/future.hpp>
-#include <mh/text/string_insertion.hpp>
 
 #include <regex>
 
@@ -45,9 +44,9 @@ void ConsoleLogParser::Update()
 			std::error_code ec;
 			const auto filesize = std::filesystem::file_size(m_FileName, ec);
 			if (ec)
-				LogWarning("Failed to get size of "s << m_FileName << ": " << ec.message());
+				LogWarning("Failed to get size of {}: {}", m_FileName, ec);
 			else if (std::filesystem::resize_file(m_FileName, 0, ec); ec)
-				Log("Unable to truncate "s << m_FileName << ", current size is " << filesize);
+				Log("Unable to truncate {}, current size is {}", m_FileName, filesize);
 			else
 				Log("Truncated console log file");
 		}
@@ -58,7 +57,7 @@ void ConsoleLogParser::Update()
 		}
 
 		if (!m_File)
-			DebugLog("Failed to open "s << m_FileName);
+			DebugLog("Failed to open {}", m_FileName);
 	}
 
 	bool snapshotUpdated = false;
@@ -130,8 +129,7 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 			{
 				if (found > 512)
 				{
-					LogError("Searched more than 512 characters ("s << found
-						<< ") for the end of the chat msg string, something is terribly wrong!");
+					LogError("Searched more than 512 characters ({}) for the end of the chat msg string, something is terribly wrong!", found);
 				}
 
 				searchBuf = searchBuf.substr(0, found);
@@ -165,13 +163,13 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 				else
 				{
 					if (nameBegin == searchBuf.npos)
-						LogError("Failed to find name begin sequence in chat message of type "s << category);
+						LogError("Failed to find name begin sequence in chat message of type {}", mh::enum_fmt(category));
 					if (nameEnd == searchBuf.npos)
-						LogError("Failed to find name end sequence in chat message of type "s << category);
+						LogError("Failed to find name end sequence in chat message of type {}", mh::enum_fmt(category));
 					if (msgBegin == searchBuf.npos)
-						LogError("Failed to find message begin sequence in chat message of type "s << category);
+						LogError("Failed to find message begin sequence in chat message of type {}", mh::enum_fmt(category));
 					if (msgEnd == searchBuf.npos)
-						LogError("Failed to find message end sequence in chat message of type "s << category);
+						LogError("Failed to find message end sequence in chat message of type {}", mh::enum_fmt(category));
 				}
 
 				parseEnd += type.m_Full.m_Start.m_Narrow.size() + found + type.m_Full.m_End.m_Narrow.size();

@@ -13,10 +13,11 @@ namespace tf2_bot_detector
 		UnknownError, // I SWORE I WOULD NEVER TYPE THESE WORDS
 		LogicError,
 	};
+
+	std::error_condition make_error_condition(tf2_bot_detector::ErrorCode e);
 }
 
 namespace std
 {
 	template<> struct is_error_condition_enum<tf2_bot_detector::ErrorCode> : std::bool_constant<true> {};
-	std::error_condition make_error_condition(tf2_bot_detector::ErrorCode e);
 }

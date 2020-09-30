@@ -197,7 +197,7 @@ bool TF2CommandLinePage::RCONClientData::Update()
 			}
 			catch (const srcon::srcon_error& e)
 			{
-				DebugLog(std::string(__FUNCTION__) << "(): " << e.what());
+				DebugLog(MH_SOURCE_LOCATION_CURRENT(), e.what());
 
 				using srcon::srcon_errc;
 				switch (e.get_errc())
@@ -216,16 +216,16 @@ bool TF2CommandLinePage::RCONClientData::Update()
 					break;
 				default:
 					m_MessageColor = { 1, 1, 0, 1 };
-					m_Message = "Unexpected error: "s << e.what();
+					m_Message = mh::format("Unexpected error: {}", e.what());
 					break;
 				}
 				m_Future = {};
 			}
 			catch (const std::exception& e)
 			{
-				DebugLogWarning(std::string(__FUNCTION__) << "(): " << e.what());
+				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), e.what());
 				m_MessageColor = { 1, 0, 0, 1 };
-				m_Message = "RCON connection unsuccessful: "s << e.what();
+				m_Message = mh::format("RCON connection unsuccessful: {}", e.what());
 				m_Future = {};
 			}
 		}

@@ -122,6 +122,7 @@ namespace ImGui
 	template<typename TPrefix, typename TValue>
 	inline void Value(const TPrefix& prefix, const TValue& v)
 	{
+		using namespace std::string_view_literals;
 		ImGui::TextFmt("{}: {}"sv, prefix, v);
 	}
 

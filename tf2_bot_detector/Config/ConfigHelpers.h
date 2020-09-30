@@ -44,6 +44,14 @@ namespace tf2_bot_detector
 
 	void to_json(nlohmann::json& j, const ConfigSchemaInfo& d);
 	void from_json(const nlohmann::json& j, ConfigSchemaInfo& d);
+	template<typename CharT, typename Traits>
+	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const ConfigSchemaInfo& info)
+	{
+		return os << "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/"
+			<< info.m_Branch << "/schemas/v"
+			<< info.m_Version << '/'
+			<< info.m_Type << ".schema.json";
+	}
 
 	struct ConfigFileInfo
 	{
@@ -167,7 +175,7 @@ namespace tf2_bot_detector
 						}
 						catch (const std::exception& e)
 						{
-							LogError("Exception when loading "s << file << ": " << e.what());
+							LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when loading {}", file);
 						}
 					}
 
@@ -187,7 +195,7 @@ namespace tf2_bot_detector
 				const std::filesystem::path filename = mh::format("cfg/{}.official.json", GetBaseFileName());
 
 				if (!IsOfficial())
-					throw std::runtime_error("Attempted to save non-official data to "s << filename);
+					throw std::runtime_error(mh::format("Attempted to save non-official data to {}", filename));
 
 				defaultMutableList->SaveFile(filename);
 			}
@@ -244,13 +252,4 @@ namespace tf2_bot_detector
 		std::optional<T> m_UserList;
 		std::shared_future<collection_type> m_ThirdPartyLists;
 	};
-}
-
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::ConfigSchemaInfo& info)
-{
-	return os << "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/"
-		<< info.m_Branch << "/schemas/v"
-		<< info.m_Version << '/'
-		<< info.m_Type << ".schema.json";
 }

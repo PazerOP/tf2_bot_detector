@@ -152,7 +152,7 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const ConfigSchemaInfo& d)
 {
-	j = ""s << d;
+	j = mh::format("{}", d);
 }
 
 void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigSchemaInfo& d)

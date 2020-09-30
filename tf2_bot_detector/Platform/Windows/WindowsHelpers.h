@@ -1,7 +1,5 @@
 #pragma once
 
-#include <mh/text/string_insertion.hpp>
-
 #include <stdexcept>
 #include <string_view>
 
@@ -21,9 +19,9 @@ namespace tf2_bot_detector::Windows
 
 			std::string retVal;
 			if (!context.empty())
-				retVal << context << ": ";
+				retVal.append(context).append(": ");
 
-			retVal << GetLastErrorCode(errorCode).message();
+			retVal.append(GetLastErrorCode(errorCode).message());
 			return retVal;
 		}
 

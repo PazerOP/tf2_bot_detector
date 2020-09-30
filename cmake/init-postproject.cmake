@@ -48,8 +48,12 @@ if (MSVC)
 	string(REPLACE "/Ob0" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Ob1")
 
-	# Improve build performance when running without ninja
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+	add_compile_options(
+		/MP              # Improve build performance when running without ninja
+		/permissive-     # More closely follow c++ standard
+		/Zc:__cplusplus  # Correct __cplusplus macro
+		/await           # coroutine support
+	)
 
 	# Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
@@ -59,8 +63,6 @@ if (MSVC)
 	if (CMAKE_BUILD_TYPE MATCHES "Release")
 		add_link_options(/OPT:REF /OPT:ICF)
 	endif()
-
-	add_definitions(/await)
 
 	if ((CMAKE_BUILD_TYPE MATCHES "Release"))
 		set(TF2BD_RESOURCE_FILEFLAGS "0")

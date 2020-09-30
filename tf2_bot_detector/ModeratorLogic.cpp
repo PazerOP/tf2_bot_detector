@@ -125,37 +125,37 @@ namespace
 		PlayerListJSON m_PlayerList;
 		ModerationRules m_Rules;
 	};
+
+	template<typename CharT, typename Traits>
+	static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const ModeratorLogic::Cheater& cheater)
+	{
+		assert(cheater.m_Marks);
+		os << cheater.m_Player.get() << " (marked in ";
+
+		const auto markCount = cheater.m_Marks.m_Marks.size();
+		for (size_t i = 0; i < markCount; i++)
+		{
+			const auto& mark = cheater.m_Marks.m_Marks[i];
+
+			if (i != 0)
+				os << ", ";
+
+			if (i == (markCount - 1) && markCount > 1)
+				os << "and ";
+
+			os << std::quoted(mark.m_FileName);
+		}
+
+		os << ')';
+
+		return os;
+	}
 }
 
 std::unique_ptr<IModeratorLogic> IModeratorLogic::Create(IWorldState& world,
 	const Settings& settings, IRCONActionManager& actionManager)
 {
 	return std::make_unique<ModeratorLogic>(world, settings, actionManager);
-}
-
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const ModeratorLogic::Cheater& cheater)
-{
-	assert(cheater.m_Marks);
-	os << cheater.m_Player << " (marked in ";
-
-	const auto markCount = cheater.m_Marks.m_Marks.size();
-	for (size_t i = 0; i < markCount; i++)
-	{
-		const auto& mark = cheater.m_Marks.m_Marks[i];
-
-		if (i != 0)
-			os << ", ";
-
-		if (i == (markCount - 1) && markCount > 1)
-			os << "and ";
-
-		os << std::quoted(mark.m_FileName);
-	}
-
-	os << ')';
-
-	return os;
 }
 
 void ModeratorLogic::Update()
@@ -220,13 +220,13 @@ void ModeratorLogic::OnChatMsg(IWorldState& world, IPlayer& player, const std::s
 			if (botMsgDetected || std::regex_match(msg.begin(), msg.end(), s_ConnectingWarning))
 			{
 				botMsgDetected = true;
-				Log("Detected message from "s << player << " as another instance of TF2BD: "s << std::quoted(msg));
+				Log("Detected message from {} as another instance of TF2BD: {}", player, std::quoted(msg));
 				SetUserRunningTool(player, true);
 
 				if (player.GetUserID() < localPlayer->GetUserID())
 				{
 					assert(!IsBotLeader());
-					Log("Deferring all cheater warnings for a bit because we think "s << player << " is running TF2BD");
+					Log("Deferring all cheater warnings for a bit because we think {} is running TF2BD", player);
 					m_NextCheaterWarningTime = m_NextConnectingCheaterWarningTime =
 						world.GetCurrentTime() + CHEATER_WARNING_INTERVAL_NONLOCAL;
 				}
@@ -333,11 +333,10 @@ void ModeratorLogic::HandleEnemyCheaters(uint8_t enemyPlayerCount,
 
 void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& enemyCheaters)
 {
-	const auto now = clock_t::now();
+	const auto now = tfbd_clock_t::now();
 
 	// There are enough people on the other team to votekick the cheater(s)
-	std::string logMsg;
-	logMsg << "Telling the other team about " << enemyCheaters.size() << " cheater(s) named ";
+	std::string logMsg = mh::format("Telling the other team about {} cheater(s) named ", enemyCheaters.size());
 
 	const bool isBotLeader = IsBotLeader();
 	bool needsWarning = false;
@@ -347,7 +346,7 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& en
 		if (cheater->GetNameSafe().empty())
 			continue; // Theoretically this should never happen, but don't embarass ourselves
 
-		logMsg << "\n\t" << cheater;
+		mh::format_to(std::back_inserter(logMsg), "\n\t{}", cheater);
 		chatMsgCheaterNames.emplace_back(cheater->GetNameSafe());
 
 		auto& cheaterData = cheater->GetOrCreateData<PlayerExtraData>();
@@ -355,25 +354,25 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& en
 		if (isBotLeader)
 		{
 			// We're supposedly in charge
-			DebugLog("We're bot leader: Triggered ACTIVE warning for "s << cheater);
+			DebugLog("We're bot leader: Triggered ACTIVE warning for {}", cheater);
 			needsWarning = true;
 		}
 		else if (cheaterData.m_WarningDelayEnd.has_value())
 		{
 			if (now >= cheaterData.m_WarningDelayEnd)
 			{
-				DebugLog("We're not bot leader: Delay expired for ACTIVE cheater "s << cheater);
+				DebugLog("We're not bot leader: Delay expired for ACTIVE cheater {}", cheater);
 				needsWarning = true;
 			}
 			else
 			{
-				DebugLog("We're not bot leader: "s << to_seconds(cheaterData.m_WarningDelayEnd.value() - now)
-					<< " seconds remaining for ACTIVE cheater " << cheater);
+				DebugLog("We're not bot leader: {} seconds remaining for ACTIVE cheater {}",
+					to_seconds(cheaterData.m_WarningDelayEnd.value() - now), cheater);
 			}
 		}
 		else if (!cheaterData.m_WarningDelayEnd.has_value())
 		{
-			DebugLog("We're not bot leader: Starting delay for ACTIVE cheater "s << cheater);
+			DebugLog("We're not bot leader: Starting delay for ACTIVE cheater {}", cheater);
 			cheaterData.m_WarningDelayEnd = now + CHEATER_WARNING_DELAY;
 		}
 	}
@@ -432,7 +431,7 @@ void ModeratorLogic::HandleConnectedEnemyCheaters(const std::vector<Cheater>& en
 
 void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<Cheater>& connectingEnemyCheaters)
 {
-	const auto now = clock_t::now();
+	const auto now = tfbd_clock_t::now();
 	if (now < m_NextConnectingCheaterWarningTime)
 	{
 		DebugLog("HandleEnemyCheaters(): Discarding connection warnings ("s
@@ -457,7 +456,7 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<Cheater>& c
 		if (isBotLeader)
 		{
 			// We're supposedly in charge
-			DebugLog("We're bot leader: Triggered connecting warning for "s << cheater);
+			DebugLog("We're bot leader: Triggered connecting warning for {}", cheater);
 			needsWarning = true;
 			break;
 		}
@@ -465,19 +464,19 @@ void ModeratorLogic::HandleConnectingEnemyCheaters(const std::vector<Cheater>& c
 		{
 			if (now >= cheaterData.m_ConnectingWarningDelayEnd)
 			{
-				DebugLog("We're not bot leader: Delay expired for connecting cheater "s << cheater);
+				DebugLog("We're not bot leader: Delay expired for connecting cheater {}", cheater);
 				needsWarning = true;
 				break;
 			}
 			else
 			{
-				DebugLog("We're not bot leader: "s << to_seconds(cheaterData.m_ConnectingWarningDelayEnd.value() - now)
-					<< " seconds remaining for connecting cheater " << cheater);
+				DebugLog("We're not bot leader: {} seconds remaining for connecting cheater {}",
+					to_seconds(cheaterData.m_ConnectingWarningDelayEnd.value() - now), cheater);
 			}
 		}
 		else if (!cheaterData.m_ConnectingWarningDelayEnd.has_value())
 		{
-			DebugLog("We're not bot leader: Starting delay for connecting cheater "s << cheater);
+			DebugLog("We're not bot leader: Starting delay for connecting cheater {}", cheater);
 			cheaterData.m_ConnectingWarningDelayEnd = now + CHEATER_WARNING_DELAY;
 		}
 	}
@@ -525,8 +524,8 @@ void ModeratorLogic::ProcessPlayerActions()
 	}
 
 	// Don't process actions if we're way out of date
-	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(clock_t::now() - now);
-	if ((clock_t::now() - now) > 15s)
+	[[maybe_unused]] const auto dbgDeltaTime = to_seconds(tfbd_clock_t::now() - now);
+	if ((tfbd_clock_t::now() - now) > 15s)
 		return;
 
 	const auto myTeam = TryGetMyTeam();

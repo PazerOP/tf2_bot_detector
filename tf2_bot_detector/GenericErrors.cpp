@@ -35,7 +35,7 @@ namespace
 	}
 }
 
-std::error_condition std::make_error_condition(tf2_bot_detector::ErrorCode e)
+std::error_condition tf2_bot_detector::make_error_condition(tf2_bot_detector::ErrorCode e)
 {
 	return std::error_condition(static_cast<int>(e), ErrorCategory());
 }

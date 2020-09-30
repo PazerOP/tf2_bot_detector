@@ -4,6 +4,7 @@
 #include "Log.h"
 #include "Config/Settings.h"
 
+#include <mh/text/codecvt.hpp>
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -280,8 +281,7 @@ bool HijackActionManager::SendHijackCommand(std::string cmd)
 	const std::filesystem::path hl2Dir = m_Settings->GetTFDir() / "..";
 	const std::filesystem::path hl2ExePath = hl2Dir / "hl2.exe";
 
-	std::wstring cmdLine;
-	cmdLine << hl2ExePath << " -game tf -hijack " << cmd;
+	std::wstring cmdLine = mh::format(L"{} -game tf -hijack {}", hl2ExePath, mh::change_encoding<wchar_t>(cmd));
 
 	STARTUPINFOW si{};
 	si.cb = sizeof(si);

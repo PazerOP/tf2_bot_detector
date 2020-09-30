@@ -328,7 +328,7 @@ std::future<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::InfoPrivate, "Games list is private");
 			}
 
-			auto& games = response.find("games");
+			auto games = response.find("games");
 			if (games == response.end())
 				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GameNotOwned); // TF2 not on their owned games list
 
@@ -390,7 +390,7 @@ namespace tf2_bot_detector::SteamAPI
 	}
 }
 
-std::error_condition std::make_error_condition(tf2_bot_detector::SteamAPI::ErrorCode e)
+std::error_condition tf2_bot_detector::SteamAPI::make_error_condition(tf2_bot_detector::SteamAPI::ErrorCode e)
 {
 	return std::error_condition(int(e), tf2_bot_detector::SteamAPI::ErrorCategory());
 }

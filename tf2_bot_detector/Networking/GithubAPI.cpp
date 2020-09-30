@@ -70,7 +70,7 @@ static NewVersionResult GetLatestVersion(const HTTPClient& client)
 
 		for (auto release : GetAllReleases(client))
 		{
-			DebugLog("GetLatestVersion(): version = "s << release.m_Version << ", url = " << release.m_URL);
+			DebugLog("GetLatestVersion(): version = {}, url = {}", release.m_Version, release.m_URL);
 
 			if (release.m_Version <= VERSION)
 			{

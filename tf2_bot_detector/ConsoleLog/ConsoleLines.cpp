@@ -80,7 +80,7 @@ std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_vie
 
 template<typename TTextFunc, typename TSameLineFunc>
 static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLine::PrintArgs& args,
-	TTextFunc&& textFunc, TSameLineFunc& sameLineFunc)
+	TTextFunc&& textFunc, TSameLineFunc&& sameLineFunc)
 {
 	auto& colorSettings = args.m_Settings.get().m_Theme.m_Colors;
 	std::array<float, 4> colors{ 0.8f, 0.8f, 1.0f, 1.0f };
@@ -1086,11 +1086,14 @@ std::shared_ptr<IConsoleLine> DifferingLobbyReceivedLine::TryParse(
 	return nullptr;
 }
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
-	const DifferingLobbyReceivedLine::Lobby& lobby)
+namespace tf2_bot_detector
 {
-	return os << lobby.m_LobbyID << "/Match" << lobby.m_MatchID << "/Lobby" << lobby.m_LobbyNumber;
+	template<typename CharT, typename Traits>
+	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
+		const DifferingLobbyReceivedLine::Lobby& lobby)
+	{
+		return os << lobby.m_LobbyID << "/Match" << lobby.m_MatchID << "/Lobby" << lobby.m_LobbyNumber;
+	}
 }
 
 void DifferingLobbyReceivedLine::Print(const PrintArgs& args) const

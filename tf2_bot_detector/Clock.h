@@ -7,6 +7,7 @@
 namespace tf2_bot_detector
 {
 	using clock_t = std::chrono::system_clock;
+	using tfbd_clock_t = clock_t;
 	using time_point_t = clock_t::time_point;
 	using duration_t = clock_t::duration;
 

@@ -47,7 +47,7 @@ TEST_CASE("tf2bd_cl_status")
 
 	for (const auto& test : s_StatusLineTests)
 	{
-		auto parsedLine = ServerStatusPlayerLine::TryParse(test.m_StatusLine, clock_t::now());
+		auto parsedLine = ServerStatusPlayerLine::TryParse(test.m_StatusLine, tfbd_clock_t::now());
 		REQUIRE(parsedLine);
 
 		auto parsedStatusLine = dynamic_cast<ServerStatusPlayerLine*>(parsedLine.get());

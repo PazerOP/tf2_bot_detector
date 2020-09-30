@@ -460,7 +460,7 @@ static void PrintChatWrappers(const ChatWrappers& wrappers)
 
 		logMsg << '\n';
 		Indent(logMsg, 1);
-		logMsg << cat << ':';
+		logMsg << mh::enum_fmt(cat) << ':';
 
 		logMsg << "\n\t\tFull: ";
 		PrintWrapperPair(logMsg, 2, wrappers.m_Types[i].m_Full);

@@ -101,7 +101,7 @@ void ChatWrappersGeneratorPage::Init(const InitState& is)
 		}
 		catch (const std::exception& e)
 		{
-			DebugLogWarning("Failed to load existing chat message wrappers: "s << typeid(e).name() << ": " << e.what());
+			DebugLogWarning("Failed to load existing chat message wrappers: {}: {}", typeid(e).name(), ": ", e.what());
 		}
 	}
 
@@ -110,7 +110,7 @@ void ChatWrappersGeneratorPage::Init(const InitState& is)
 		if (auto existingWrappers = GetSavedChatMsgWrappersFilename(tfDir);
 			std::filesystem::remove(existingWrappers))
 		{
-			DebugLog("Removed existing chat wrappers from "s << existingWrappers);
+			DebugLog("Removed existing chat wrappers from {}", existingWrappers);
 		}
 
 		DebugLog("Regenerating chat wrappers...");
@@ -172,5 +172,5 @@ void ChatWrappersGeneratorPage::Commit(Settings& settings)
 
 std::string ChatWrappersGeneratorPage::GetChatWrapperStringToken(uint32_t token)
 {
-	return "TF2BD_CHAT_WRAPPER_TOKEN_VERIFY_"s << token;
+	return mh::format("TF2BD_CHAT_WRAPPER_TOKEN_VERIFY_{}", token);
 }

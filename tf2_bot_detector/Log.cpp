@@ -40,8 +40,8 @@ namespace
 		void Init();
 
 		void Log(std::string msg, const LogMessageColor& color, LogSeverity severity,
-			LogVisibility visibility = LogVisibility::Default, time_point_t timestamp = clock_t::now()) override;
-		void LogToStream(std::string msg, std::ostream& output, time_point_t timestamp = clock_t::now(), bool skipScrub = false) const;
+			LogVisibility visibility = LogVisibility::Default, time_point_t timestamp = tfbd_clock_t::now()) override;
+		void LogToStream(std::string msg, std::ostream& output, time_point_t timestamp = tfbd_clock_t::now(), bool skipScrub = false) const;
 
 		const std::filesystem::path& GetFileName() const override { return m_FileName; }
 		cppcoro::generator<const LogMessage&> GetVisibleMsgs() const override;
@@ -112,7 +112,7 @@ void LogManager::Init()
 	::DebugLog(MH_SOURCE_LOCATION_CURRENT());
 	std::lock_guard lock(m_LogMutex);
 
-	const auto t = ToTM(clock_t::now());
+	const auto t = ToTM(tfbd_clock_t::now());
 	const mh::fmtstr<128> timestampStr("{}", std::put_time(&t, "%Y-%m-%d_%H-%M-%S"));
 
 	// Pick file name

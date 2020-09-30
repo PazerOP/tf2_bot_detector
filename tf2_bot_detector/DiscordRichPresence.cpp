@@ -264,74 +264,77 @@ static std::strong_ordering operator<=>(const discord::Activity& lhs, const disc
 	return std::strong_ordering::equal;
 }
 
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(
-	std::basic_ostream<CharT, Traits>& os, const discord::ActivityTimestamps& ts)
+namespace discord
 {
-	return os
-		<< "\n\t\tStart: " << ts.GetStart()
-		<< "\n\t\tEnd:   " << ts.GetEnd()
-		;
-}
+	template<typename CharT, typename Traits>
+	static std::basic_ostream<CharT, Traits>& operator<<(
+		std::basic_ostream<CharT, Traits>& os, const discord::ActivityTimestamps& ts)
+	{
+		return os
+			<< "\n\t\tStart: " << ts.GetStart()
+			<< "\n\t\tEnd:   " << ts.GetEnd()
+			;
+	}
 
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(
-	std::basic_ostream<CharT, Traits>& os, const discord::ActivityAssets& a)
-{
-	return os
-		<< "\n\t\tLargeImage: " << std::quoted(a.GetLargeImage())
-		<< "\n\t\tLargeText:  " << std::quoted(a.GetLargeText())
-		<< "\n\t\tSmallImage: " << std::quoted(a.GetSmallImage())
-		<< "\n\t\tSmallText:  " << std::quoted(a.GetSmallText())
-		;
-}
+	template<typename CharT, typename Traits>
+	static std::basic_ostream<CharT, Traits>& operator<<(
+		std::basic_ostream<CharT, Traits>& os, const discord::ActivityAssets& a)
+	{
+		return os
+			<< "\n\t\tLargeImage: " << std::quoted(a.GetLargeImage())
+			<< "\n\t\tLargeText:  " << std::quoted(a.GetLargeText())
+			<< "\n\t\tSmallImage: " << std::quoted(a.GetSmallImage())
+			<< "\n\t\tSmallText:  " << std::quoted(a.GetSmallText())
+			;
+	}
 
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(
-	std::basic_ostream<CharT, Traits>& os, const discord::PartySize& ps)
-{
-	return os
-		<< "\n\t\t\tCurrent: " << ps.GetCurrentSize()
-		<< "\n\t\t\tMax:     " << ps.GetMaxSize()
-		;
-}
+	template<typename CharT, typename Traits>
+	static std::basic_ostream<CharT, Traits>& operator<<(
+		std::basic_ostream<CharT, Traits>& os, const discord::PartySize& ps)
+	{
+		return os
+			<< "\n\t\t\tCurrent: " << ps.GetCurrentSize()
+			<< "\n\t\t\tMax:     " << ps.GetMaxSize()
+			;
+	}
 
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(
-	std::basic_ostream<CharT, Traits>& os, const discord::ActivityParty& p)
-{
-	return os
-		<< "\n\t\tID:   " << std::quoted(p.GetId())
-		<< "\n\t\tSize: " << p.GetSize()
-		;
-}
+	template<typename CharT, typename Traits>
+	static std::basic_ostream<CharT, Traits>& operator<<(
+		std::basic_ostream<CharT, Traits>& os, const discord::ActivityParty& p)
+	{
+		return os
+			<< "\n\t\tID:   " << std::quoted(p.GetId())
+			<< "\n\t\tSize: " << p.GetSize()
+			;
+	}
 
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(
-	std::basic_ostream<CharT, Traits>& os, const discord::ActivitySecrets& s)
-{
-	return os
-		<< "\n\t\tMatch:    " << std::quoted(s.GetMatch())
-		<< "\n\t\tJoin:     " << std::quoted(s.GetJoin())
-		<< "\n\t\tSpectate: " << std::quoted(s.GetSpectate())
-		;
-}
+	template<typename CharT, typename Traits>
+	static std::basic_ostream<CharT, Traits>& operator<<(
+		std::basic_ostream<CharT, Traits>& os, const discord::ActivitySecrets& s)
+	{
+		return os
+			<< "\n\t\tMatch:    " << std::quoted(s.GetMatch())
+			<< "\n\t\tJoin:     " << std::quoted(s.GetJoin())
+			<< "\n\t\tSpectate: " << std::quoted(s.GetSpectate())
+			;
+	}
 
-template<typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const discord::Activity& a)
-{
-	return os << std::boolalpha
-		<< "\n\tType:          " << a.GetType()
-		<< "\n\tApplicationID: " << a.GetApplicationId()
-		<< "\n\tName:          " << std::quoted(a.GetName())
-		<< "\n\tState:         " << std::quoted(a.GetState())
-		<< "\n\tDetails:       " << std::quoted(a.GetDetails())
-		<< "\n\tTimestamps:    " << a.GetTimestamps()
-		<< "\n\tAssets:        " << a.GetAssets()
-		<< "\n\tParty:         " << a.GetParty()
-		<< "\n\tSecrets:       " << a.GetSecrets()
-		<< "\n\tInstance:      " << a.GetInstance()
-		;
+	template<typename CharT, typename Traits>
+	static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const discord::Activity& a)
+	{
+		return os << std::boolalpha
+			<< "\n\tType:          " << mh::enum_fmt(a.GetType())
+			<< "\n\tApplicationID: " << a.GetApplicationId()
+			<< "\n\tName:          " << std::quoted(a.GetName())
+			<< "\n\tState:         " << std::quoted(a.GetState())
+			<< "\n\tDetails:       " << std::quoted(a.GetDetails())
+			<< "\n\tTimestamps:    " << a.GetTimestamps()
+			<< "\n\tAssets:        " << a.GetAssets()
+			<< "\n\tParty:         " << a.GetParty()
+			<< "\n\tSecrets:       " << a.GetSecrets()
+			<< "\n\tInstance:      " << a.GetInstance()
+			;
+	}
 }
 
 namespace
@@ -580,7 +583,7 @@ void DiscordGameState::OnQueueStateChange(TFMatchGroup queueType, TFQueueStateCh
 	if (state == TFQueueStateChange::Entered)
 	{
 		queue.m_Active = true;
-		queue.m_StartTime = clock_t::now();
+		queue.m_StartTime = tfbd_clock_t::now();
 	}
 	else if (state == TFQueueStateChange::Exited || state == TFQueueStateChange::RequestedExit)
 	{
@@ -860,7 +863,7 @@ void DiscordState::Update()
 	s_DiscordDebugLogEnabled = GetSettings().m_Logging.m_DiscordRichPresence;
 
 	// Initialize discord
-	const auto curTime = clock_t::now();
+	const auto curTime = tfbd_clock_t::now();
 	if (!m_Core && (curTime - m_LastDiscordInitializeTime) > 10s)
 	{
 		m_LastDiscordInitializeTime = curTime;

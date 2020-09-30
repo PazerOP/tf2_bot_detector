@@ -42,12 +42,13 @@ namespace tf2_bot_detector::SteamAPI
 
 		mh::source_location m_SourceLocation;
 	};
+
+	std::error_condition make_error_condition(tf2_bot_detector::SteamAPI::ErrorCode e);
 }
 
 namespace std
 {
 	template<> struct is_error_condition_enum<tf2_bot_detector::SteamAPI::ErrorCode> : std::bool_constant<true> {};
-	std::error_condition make_error_condition(tf2_bot_detector::SteamAPI::ErrorCode e);
 }
 
 namespace tf2_bot_detector::SteamAPI

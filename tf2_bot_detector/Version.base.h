@@ -44,17 +44,17 @@ namespace tf2_bot_detector
 
 	void to_json(nlohmann::json& j, const Version& d);
 	void from_json(const nlohmann::json& j, Version& d);
-}
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::Version& v)
-{
-	os << v.m_Major << '.' << v.m_Minor << '.' << v.m_Patch;
+	template<typename CharT, typename Traits>
+	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Version& v)
+	{
+		os << v.m_Major << '.' << v.m_Minor << '.' << v.m_Patch;
 
-	if (v.IsCustomBuild())
-		os << " (Custom Build)";
-	else
-		os << '.' << v.m_Build;
+		if (v.IsCustomBuild())
+			os << " (Custom Build)";
+		else
+			os << '.' << v.m_Build;
 
-	return os;
+		return os;
+	}
 }

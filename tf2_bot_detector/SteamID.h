@@ -91,6 +91,35 @@ namespace tf2_bot_detector
 
 	void to_json(nlohmann::json& j, const SteamID& d);
 	void from_json(const nlohmann::json& j, SteamID& d);
+
+	template<typename CharT, typename Traits>
+	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::SteamID& id)
+	{
+		using namespace tf2_bot_detector;
+
+		const char* c;
+		switch (id.Type)
+		{
+		case SteamAccountType::P2PSuperSeeder: c = "P2PSuperSeeder"; break;
+
+		case SteamAccountType::Individual:     c = "U"; break;
+		case SteamAccountType::Multiseat:      c = "M"; break;
+		case SteamAccountType::GameServer:     c = "G"; break;
+		case SteamAccountType::AnonGameServer: c = "A"; break;
+		case SteamAccountType::Pending:        c = "P"; break;
+		case SteamAccountType::ContentServer:  c = "C"; break;
+		case SteamAccountType::Clan:           c = "g"; break;
+		case SteamAccountType::AnonUser:       c = "a"; break;
+		case SteamAccountType::Chat:           c = "c"; break;
+
+		default:
+			assert(!"Invalid value when serializing SteamID");
+			[[fallthrough]];
+		case SteamAccountType::Invalid:        c = "I"; break;
+		}
+
+		return os << '[' << c << ':' << static_cast<int>(id.Universe) << ':' << id.ID << ']';
+	}
 }
 
 namespace std
@@ -103,33 +132,4 @@ namespace std
 			return std::hash<uint64_t>{}(id.ID64);
 		}
 	};
-}
-
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::SteamID& id)
-{
-	using namespace tf2_bot_detector;
-
-	const char* c;
-	switch (id.Type)
-	{
-	case SteamAccountType::P2PSuperSeeder: c = "P2PSuperSeeder"; break;
-
-	case SteamAccountType::Individual:     c = "U"; break;
-	case SteamAccountType::Multiseat:      c = "M"; break;
-	case SteamAccountType::GameServer:     c = "G"; break;
-	case SteamAccountType::AnonGameServer: c = "A"; break;
-	case SteamAccountType::Pending:        c = "P"; break;
-	case SteamAccountType::ContentServer:  c = "C"; break;
-	case SteamAccountType::Clan:           c = "g"; break;
-	case SteamAccountType::AnonUser:       c = "a"; break;
-	case SteamAccountType::Chat:           c = "c"; break;
-
-	default:
-		assert(!"Invalid value when serializing SteamID");
-		[[fallthrough]];
-	case SteamAccountType::Invalid:        c = "I"; break;
-	}
-
-	return os << '[' << c << ':' << static_cast<int>(id.Universe) << ':' << id.ID << ']';
 }

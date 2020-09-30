@@ -34,10 +34,10 @@ namespace tf2_bot_detector
 
 		std::optional<int> m_StatusCode;
 	};
-}
 
-template<typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::URL& url)
-{
-	return os << url.m_Scheme << url.m_Host << ':' << url.m_Port << url.m_Path;
+	template<typename CharT, typename Traits>
+	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const tf2_bot_detector::URL& url)
+	{
+		return os << url.m_Scheme << url.m_Host << ':' << url.m_Port << url.m_Path;
+	}
 }

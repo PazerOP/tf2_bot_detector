@@ -1,8 +1,9 @@
 #include "NetworkStatus.h"
+#include "UI/ImGui_TF2BotDetector.h"
 #include "Util/RegexUtils.h"
 #include "Log.h"
 
-#include "UI/ImGui_TF2BotDetector.h"
+#include <mh/text/format.hpp>
 
 using namespace tf2_bot_detector;
 using namespace std::string_literals;
@@ -39,7 +40,7 @@ std::shared_ptr<IConsoleLine> SplitPacketLine::TryParse(const std::string_view& 
 			else if (socket == "lan"sv)
 				packet.m_SocketType = SocketType::LAN;
 			else
-				throw std::runtime_error("Unknown socket type "s << std::quoted(socket));
+				throw std::runtime_error(mh::format("Unknown socket type {}", std::quoted(socket)));
 		}
 
 		from_chars_throw(result[2], packet.m_Index);

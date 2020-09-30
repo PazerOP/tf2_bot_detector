@@ -246,9 +246,9 @@ void WorldState::Update()
 void WorldState::UpdateFriends()
 {
 	if (auto client = GetSettings().GetHTTPClient();
-		client && !GetSettings().GetSteamAPIKey().empty() && (clock_t::now() - 5min) > m_LastFriendsUpdate)
+		client && !GetSettings().GetSteamAPIKey().empty() && (tfbd_clock_t::now() - 5min) > m_LastFriendsUpdate)
 	{
-		m_LastFriendsUpdate = clock_t::now();
+		m_LastFriendsUpdate = tfbd_clock_t::now();
 		m_FriendsFuture = SteamAPI::GetFriendList(GetSettings().GetSteamAPIKey(), GetSettings().GetLocalSteamID(), *client);
 	}
 
@@ -522,7 +522,7 @@ void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
 		cfgName == "spy.cfg"sv ||
 		cfgName == "engineer.cfg"sv)
 	{
-		DebugLog("Spawned as "s << cfgName.substr(0, cfgName.size() - 3));
+		DebugLog("Spawned as {}", cfgName.substr(0, cfgName.size() - 3));
 
 		TFClassType cl = TFClassType::Undefined;
 		if (cfgName.starts_with("scout"))
@@ -626,15 +626,14 @@ void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 			}
 			else
 			{
-				LogWarning("Dropped chat message with unknown IPlayer from "s
-					<< std::quoted(chatLine.GetPlayerName()) << " (" << *sid << "): "
-					<< std::quoted(chatLine.GetMessage()));
+				LogWarning("Dropped chat message with unknown IPlayer from {} ({})",
+					std::quoted(chatLine.GetPlayerName()), std::quoted(chatLine.GetMessage()));
 			}
 		}
 		else
 		{
-			LogWarning("Dropped chat message with unknown SteamID from "s
-				<< std::quoted(chatLine.GetPlayerName()) << ": " << std::quoted(chatLine.GetMessage()));
+			LogWarning("Dropped chat message with unknown SteamID from {}: {}",
+				std::quoted(chatLine.GetPlayerName()), std::quoted(chatLine.GetMessage()));
 		}
 
 		break;
@@ -651,14 +650,14 @@ void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 			}
 			else
 			{
-				LogWarning("Dropped \"player dropped\" message with unknown IPlayer from "s
-					<< std::quoted(dropLine.GetPlayerName()) << " (" << *sid << ')');
+				LogWarning("Dropped \"player dropped\" message with unknown IPlayer from {} ({})",
+					std::quoted(dropLine.GetPlayerName()), *sid);
 			}
 		}
 		else
 		{
-			LogWarning("Dropped \"player dropped\" message with unknown SteamID from "s
-				<< std::quoted(dropLine.GetPlayerName()));
+			LogWarning("Dropped \"player dropped\" message with unknown SteamID from {}",
+				std::quoted(dropLine.GetPlayerName()));
 		}
 		break;
 	}
@@ -1072,7 +1071,7 @@ auto WorldState::PlayerBansUpdateAction::SendRequest(state_type& state,
 void WorldState::PlayerBansUpdateAction::OnDataReady(state_type& state,
 	const response_type& response, queue_collection_type& collection)
 {
-	DebugLog("[SteamAPI] Received "s << response.size() << " player bans");
+	DebugLog("[SteamAPI] Received {} player bans", response.size());
 	for (const SteamAPI::PlayerBans& bans : response)
 	{
 		state->FindOrCreatePlayer(bans.m_SteamID).m_PlayerSteamBans = bans;

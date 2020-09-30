@@ -23,8 +23,8 @@ std::filesystem::path tf2_bot_detector::Platform::GetCurrentSteamDir()
 
 	if (result)
 	{
-		LogError(std::string(__FUNCTION__) << ": Failed to retrieve "s
-			<< STEAM_ACTIVE_PROCESS_KEY << "\\SteamClientDll: error " << result << ' ' << std::quoted(result.message()));
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\SteamClientDll: error {}",
+			STEAM_ACTIVE_PROCESS_KEY, result);
 		return {};
 	}
 
@@ -45,8 +45,8 @@ SteamID tf2_bot_detector::Platform::GetCurrentActiveSteamID()
 
 	if (result)
 	{
-		LogError(std::string(__FUNCTION__) << ": Failed to retrieve "s
-			<< STEAM_ACTIVE_PROCESS_KEY << "\\ActiveUser: error " << result << ' ' << std::quoted(result.message()));
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\ActiveUser: error {}",
+			STEAM_ACTIVE_PROCESS_KEY, result);
 		return {};
 	}
 
@@ -59,8 +59,8 @@ SteamID tf2_bot_detector::Platform::GetCurrentActiveSteamID()
 
 	if (result)
 	{
-		LogError(std::string(__FUNCTION__) << ": Failed to retrieve "s
-			<< STEAM_ACTIVE_PROCESS_KEY << "\\Universe: error " << result << ' ' << std::quoted(result.message()));
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to retrieve {}\\Universe: error {}",
+			STEAM_ACTIVE_PROCESS_KEY, result);
 		return {};
 	}
 
@@ -75,8 +75,7 @@ SteamID tf2_bot_detector::Platform::GetCurrentActiveSteamID()
 		universe = SteamAccountUniverse::Dev;
 	else
 	{
-		LogError(std::string(__FUNCTION__) << ": Unknown steam account universe "
-			<< std::quoted(universeStr));
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unknown steam account universe {}", std::quoted(universeStr));
 		return {};
 	}
 

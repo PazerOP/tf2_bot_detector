@@ -160,7 +160,7 @@ void RCONActionManager::ProcessRunningCommands()
 
 			if (m_Settings.m_Unsaved.m_DebugShowCommands)
 			{
-				const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock_t::now() - cmd.m_StartTime);
+				const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(tf2_bot_detector::clock_t::now() - cmd.m_StartTime);
 				std::string msg = "Game command processed in "s << elapsed.count() << "ms : " << std::quoted(cmd.m_Command);
 
 				if (!resultStr.empty())
@@ -216,7 +216,7 @@ void RCONActionManager::ProcessQueuedCommands()
 	if (!m_Settings.m_Unsaved.m_RCONClient)
 		return;
 
-	const auto curTime = clock_t::now();
+	const auto curTime = tfbd_clock_t::now();
 	if (curTime < (m_LastUpdateTime + UPDATE_INTERVAL))
 		return;
 
@@ -240,7 +240,7 @@ void RCONActionManager::ProcessQueuedCommands()
 
 				m_Manager->m_RunningCommands.push(
 					{
-						.m_StartTime = clock_t::now(),
+						.m_StartTime = tfbd_clock_t::now(),
 						.m_Command = cmd,
 						.m_Future = m_Manager->m_Settings.m_Unsaved.m_RCONClient->send_command_async(cmd, false),
 					});

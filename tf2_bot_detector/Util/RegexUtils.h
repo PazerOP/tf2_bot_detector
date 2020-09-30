@@ -1,7 +1,7 @@
 #pragma once
 
 #include <mh/text/charconv_helper.hpp>
-#include <mh/text/string_insertion.hpp>
+#include <mh/text/format.hpp>
 
 #include <iomanip>
 #include <regex>
@@ -31,8 +31,7 @@ namespace tf2_bot_detector
 		auto result = mh::from_chars(sv, out, std::forward<TArgs>(args)...);
 		if (!result)
 		{
-			using namespace std::string_literals;
-			throw std::runtime_error("Failed to parse "s << std::quoted(sv) << " as " << typeid(T).name());
+			throw std::runtime_error(mh::format("Failed to parse {} as {}", std::quoted(sv), typeid(T).name()));
 		}
 	}
 }
