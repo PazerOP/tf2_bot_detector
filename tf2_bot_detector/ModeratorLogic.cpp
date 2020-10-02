@@ -242,7 +242,7 @@ void ModeratorLogic::OnChatMsg(IWorldState& world, IPlayer& player, const std::s
 				continue;
 
 			OnRuleMatch(rule, player);
-			DebugLog("Chat message rule match: "s << std::quoted(msg));
+			Log("Chat message rule match for {}: {}", rule.m_Description, std::quoted(msg));
 		}
 	}
 }

@@ -349,13 +349,50 @@ bool ModerationRule::Match(const IPlayer& player) const
 	return Match(player, std::string_view{});
 }
 
+namespace
+{
+	enum class MatchResult
+	{
+		Unset,
+		Match,
+		NoMatch,
+	};
+
+	__declspec(noinline) MatchResult operator&&(MatchResult lhs, MatchResult rhs)
+	{
+		if (lhs == MatchResult::Match && rhs == MatchResult::Match)
+			return MatchResult::Match;
+		else if (lhs == MatchResult::NoMatch || rhs == MatchResult::NoMatch)
+			return MatchResult::NoMatch;
+		else if (lhs == MatchResult::Unset)
+			return rhs;
+		else
+			return lhs;
+	}
+
+	__declspec(noinline) MatchResult operator||(MatchResult lhs, MatchResult rhs)
+	{
+		if (lhs == MatchResult::Match || rhs == MatchResult::Match)
+			return MatchResult::Match;
+		else if (lhs == MatchResult::NoMatch)
+			return rhs;
+		else
+			return lhs;
+	}
+
+	__declspec(noinline) bool operator!(MatchResult r)
+	{
+		return !(r == MatchResult::Match);
+	}
+}
+
 template<typename... TFuncs>
 static bool MatchRules(TriggerMatchMode mode, TFuncs&&... funcs)
 {
 	if (mode == TriggerMatchMode::MatchAll)
-		return (... && funcs());
+		return !!(... && funcs());
 	else if (mode == TriggerMatchMode::MatchAny)
-		return (... || funcs());
+		return !!(... || funcs());
 	else
 	{
 		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected mode {}", mh::enum_fmt(mode));
@@ -368,36 +405,48 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 	const auto usernameMatch = [&]()
 	{
 		if (!m_Triggers.m_UsernameTextMatch)
-			return false;
+			return MatchResult::Unset;
 
 		const auto name = player.GetNameUnsafe();
 		if (name.empty())
-			return false;
+			return MatchResult::NoMatch;
 
-		return m_Triggers.m_UsernameTextMatch->Match(name);
+		if (!m_Triggers.m_UsernameTextMatch->Match(name))
+			return MatchResult::NoMatch;
+
+		return MatchResult::Match;
 	};
 
 	const auto chatMsgMatch = [&]()
 	{
-		if (!m_Triggers.m_ChatMsgTextMatch || chatMsg.empty())
-			return false;
+		if (!m_Triggers.m_ChatMsgTextMatch)
+			return MatchResult::Unset;
 
-		return m_Triggers.m_ChatMsgTextMatch->Match(chatMsg);
+		if (chatMsg.empty())
+			return MatchResult::NoMatch;
+
+		if (!m_Triggers.m_ChatMsgTextMatch->Match(chatMsg))
+			return MatchResult::NoMatch;
+
+		return MatchResult::Match;
 	};
 
 	const auto avatarMatch = [&]()
 	{
+		if (m_Triggers.m_AvatarMatches.empty())
+			return MatchResult::Unset;
+
 		const auto& summary = player.GetPlayerSummary();
 		if (!summary)
-			return false;
+			return MatchResult::NoMatch;
 
 		for (const auto& m : m_Triggers.m_AvatarMatches)
 		{
 			if (m.Match(summary->m_AvatarHash))
-				return true;
+				return MatchResult::Match;
 		}
 
-		return false;
+		return MatchResult::NoMatch;
 	};
 
 	return MatchRules(m_Triggers.m_Mode, usernameMatch, chatMsgMatch, avatarMatch);

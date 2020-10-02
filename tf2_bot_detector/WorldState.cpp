@@ -620,6 +620,7 @@ void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 		auto& chatLine = static_cast<const ChatConsoleLine&>(parsed);
 		if (auto sid = FindSteamIDForName(chatLine.GetPlayerName()))
 		{
+			DebugLog("Chat message from {}: {}", *sid, std::quoted(chatLine.GetMessage()));
 			if (auto player = FindPlayer(*sid))
 			{
 				InvokeEventListener(&IWorldEventListener::OnChatMsg, *this, *player, chatLine.GetMessage());
