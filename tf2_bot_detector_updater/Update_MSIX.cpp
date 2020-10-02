@@ -31,7 +31,7 @@ int tf2_bot_detector::Updater::Update_MSIX() try
 	const auto mainBundleURL = mh::change_encoding<wchar_t>(s_CmdLineArgs.m_SourcePath);
 
 	std::wcerr << "Main bundle URL: " << mainBundleURL;
-	const Uri uri = mainBundleURL;
+	const Uri uri = Uri(winrt::param::hstring(mainBundleURL));
 
 	IVector<Uri> deps{ winrt::single_threaded_vector<Uri>() };
 
