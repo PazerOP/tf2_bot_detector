@@ -133,7 +133,7 @@
 						},
 						"scoreboard_suspicious": {
 							"$ref": "./shared.schema.json#definitions/color",
-							"description": "Color to flash rows on the scoreboard for players marked as racist.",
+							"description": "Color to flash rows on the scoreboard for players marked as suspicious.",
 							"default": [
 								1.0,
 								1.0,
@@ -143,7 +143,7 @@
 						},
 						"scoreboard_exploiter": {
 							"$ref": "./shared.schema.json#definitions/color",
-							"description": "Color to flash rows on the scoreboard for players marked as racist.",
+							"description": "Color to flash rows on the scoreboard for players marked as exploiting.",
 							"default": [
 								0.0,
 								1.0,
