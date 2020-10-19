@@ -273,11 +273,13 @@
 			},
 			"description": "Generic name-stealing bot",
 			"triggers": {
+				"mode": "match_any",
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "ends_with",
 					"patterns": [
-						"\u200f"
+						"\u200f",
+						"\u0e4a"
 					]
 				}
 			}
@@ -317,9 +319,10 @@
 			},
 			"description": "Racism",
 			"triggers": {
+				"mode": "match_any",
 				"chatmsg_text_match": {
 					"case_sensitive": false,
-					"mode": "word",
+					"mode": "contains",
 					"patterns": [
 						"nigger",
 						"niggers"
