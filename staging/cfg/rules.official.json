@@ -90,7 +90,7 @@
 				],
 				"chatmsg_text_match": {
 					"case_sensitive": false,
-					"mode": "word",
+					"mode": "contains",
 					"patterns": [
 						"\n",
 						"\r\n",
