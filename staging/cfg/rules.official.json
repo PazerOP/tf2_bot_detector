@@ -2,10 +2,10 @@
 	"$schema": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/rules.schema.json",
 	"file_info": {
 		"authors": [
-			"pazer"
+			"moeb"
 		],
-		"description": "Official rules list for TF2 Bot Detector.",
-		"title": "Official rules list",
+		"description": "Rule List",
+		"title": "Generic Rules",
 		"update_url": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/staging/cfg/rules.official.json"
 	},
 	"rules": [
@@ -15,31 +15,11 @@
 					"cheater"
 				]
 			},
-			"description": "(catbot) mygot",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "contains",
-					"patterns": [
-						"MYG)T",
-						"[t0gym]",
-						"[g0tb0t]",
-						"myg0t.gg"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "[VAC] OneTrick",
+			"description": "[TF2BD]Name match",
 			"triggers": {
 				"avatar_match": [
 					{
-						"avatar_hash": "76c03c7865876dd13dbe4b60aad86150b8fc6233"
+						"avatar_hash": ""
 					}
 				],
 				"mode": "match_any",
@@ -47,83 +27,10 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"[VAC] OneTrick"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"suspicious"
-				]
-			},
-			"description": "Elkay EZH2O",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "contains",
-					"patterns": [
-						"Elkay EZH2O"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"suspicious"
-				]
-			},
-			"description": "garry :D",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "contains",
-					"patterns": [
-						"garry :D"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "Poohook",
-			"triggers": {
-				"avatar_match": [
-					{
-						"avatar_hash": "fd5b5bae0eeb72930a58702472f2c8c7ace04dfa"
-					},
-					{
-						"avatar_hash": "a6ede29c46bea13b4ba947799815e7336d39cb77"
-					}
-				],
-				"mode": "match_any",
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "contains",
-					"patterns": [
-						"discord.io/poohook"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "[VALVE] Twilight Sparkle",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "contains",
-					"patterns": [
+						"matchroom.live/snooker",
+						"braaaap \\d+",
+						"swonk bot \\d+",
+						"[VALVE]Niggerkiller",
 						"[VALVE] Twilight Sparkle"
 					]
 				}
@@ -135,13 +42,20 @@
 					"cheater"
 				]
 			},
-			"description": "royalhack.net",
+			"description": "[TF2BD]Invisible Character/namestealer",
 			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": ""
+					}
+				],
+				"mode": "match_any",
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"royalhack.net"
+						"\u0e4a",
+						"\u202c"
 					]
 				}
 			}
@@ -152,32 +66,13 @@
 					"cheater"
 				]
 			},
-			"description": "(catbot) furry-bot",
+			"description": "[TF2BD]Avatar match",
 			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "regex",
-					"patterns": [
-						"furry-bot \\d+"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"suspicious"
+				"avatar_match": [
+					{
+						"avatar_hash": ""
+					}
 				]
-			},
-			"description": "(catbot) cat.jpg",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": true,
-					"mode": "equal",
-					"patterns": [
-						"cat.jpg"
-					]
-				}
 			}
 		},
 		{
@@ -186,129 +81,23 @@
 					"cheater"
 				]
 			},
-			"description": "(catbot) shasta bot",
+			"description": "[TF2BD]Malicious chat message detected",
 			"triggers": {
-				"username_text_match": {
-					"case_sensitive": true,
-					"mode": "starts_with",
-					"patterns": [
-						"shasta bot"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "(catbot) Lag-bot",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "regex",
-					"patterns": [
-						"Lag-Bot \\d+"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "spikeymikey bot",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "regex",
-					"patterns": [
-						"spikeymikey bot \\d+"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "(catbot) poohook",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "regex",
-					"patterns": [
-						"poohook RCE bot \\d+"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "(catbot) Rick May Was A Pedo Bot ##",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "regex",
-					"patterns": [
-						"Rick May Was A Pedo Bot \\d+"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "Generic name-stealing bot",
-			"triggers": {
-				"mode": "match_any",
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "ends_with",
-					"patterns": [
-						"\u200f",
-						"\u0e4a"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"mark": [
-					"cheater"
-				]
-			},
-			"description": "Cheater (newlines in chat message/name)",
-			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": ""
+					}
+				],
 				"chatmsg_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
 						"\n",
-						"\r\n"
-					]
-				},
-				"mode": "match_any",
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "contains",
-					"patterns": [
-						"\n",
+						"\r\n",
 						"\r"
 					]
-				}
+				},
+				"mode": "match_any"
 			}
 		},
 		{
@@ -317,17 +106,22 @@
 					"racist"
 				]
 			},
-			"description": "Racism",
+			"description": "[TF2BD]Bigot detected",
 			"triggers": {
-				"mode": "match_any",
+				"avatar_match": [
+					{
+						"avatar_hash": ""
+					}
+				],
 				"chatmsg_text_match": {
 					"case_sensitive": false,
-					"mode": "contains",
+					"mode": "word",
 					"patterns": [
 						"nigger",
 						"niggers"
 					]
-				}
+				},
+				"mode": "match_any"
 			}
 		}
 	]
