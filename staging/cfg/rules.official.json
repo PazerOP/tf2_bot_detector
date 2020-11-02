@@ -4,8 +4,8 @@
 		"authors": [
 			"moeb"
 		],
-		"description": "The Official rule list for TF2 Bot Detector",
-		"title": "Official rule list",
+		"description": "Official rules list for TF2 Bot Detector.",
+		"title": "Official rules list",
 		"update_url": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/staging/cfg/rules.official.json"
 	},
 	"rules": [
@@ -27,7 +27,6 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"matchroom.live/snooker",
 						"braaaap \\d+",
 						"swonk bot \\d+",
 						"[VALVE]Niggerkiller",
@@ -54,8 +53,17 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"\u0e4a",
-						"\u202c"
+						"\u205f",
+						"\u200f",
+						"\u200e",
+						"\u200d",
+						"\u200c",
+						"\u200b",
+						"\u2060",
+						"\u202c",
+						"\u202d",
+						"\ufeff",
+						"\u0e4a"
 					]
 				}
 			}
@@ -115,9 +123,18 @@
 				],
 				"chatmsg_text_match": {
 					"case_sensitive": false,
-					"mode": "word",
+					"mode": "regex",
 					"patterns": [
-						"nigger",
+						"\\w*N\udb40\udc21\udb40\udc21IGGE\udb40\udc21\udb40\udc21R\\w*",
+						"\\w*\u0274\u026a\u0262\u0262\u1d07\u0280\\w*",
+						"\\w*n\u0456gg\u0435r\\w*",
+						"\\w*N\u00cdGGER\\w*",
+						"\\w*n\\\\|gger\\w*",
+						"\\w*nigg\u0435r\\w*",
+						"\\w*N1GG3R\\w*",
+						"\\w*nigger\\w*",
+						"\\w*nigg4\\w*",
+						"\\w*niggz\\w*",
 						"niggers"
 					]
 				},
