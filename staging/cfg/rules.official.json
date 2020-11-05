@@ -78,7 +78,10 @@
 			"triggers": {
 				"avatar_match": [
 					{
-						"avatar_hash": ""
+						"avatar_hash": "06f5f3319f23911d598a0eaaa0267ce6ebac10f6"
+					},
+					{
+						"avatar_hash": "a18eb153ec2b0a40d5522fac8e5a8a525fd5a7a4"
 					}
 				]
 			}
@@ -129,7 +132,6 @@
 						"\\w*\u0274\u026a\u0262\u0262\u1d07\u0280\\w*",
 						"\\w*n\u0456gg\u0435r\\w*",
 						"\\w*N\u00cdGGER\\w*",
-						"\\w*n\\\\|gger\\w*",
 						"\\w*nigg\u0435r\\w*",
 						"\\w*N1GG3R\\w*",
 						"\\w*nigger\\w*",
