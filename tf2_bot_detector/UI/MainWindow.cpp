@@ -41,6 +41,9 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
+
+//library used to make GUI (ImGui): https://github.com/ocornut/imgui
+
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
 	m_WorldState(IWorldState::Create(m_Settings)),
@@ -91,7 +94,7 @@ MainWindow::MainWindow() :
 	//m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 }
 
-MainWindow::~MainWindow()
+MainWindow::~MainWindow() //main window deconstructor
 {
 }
 
@@ -113,11 +116,11 @@ void MainWindow::OnDrawColorPickers(const char* id, const std::initializer_list<
 		});
 }
 
-void MainWindow::OnDrawChat()
+void MainWindow::OnDrawChat() //draw the chat box and color code them
 {
 	OnDrawColorPickers("ChatColorPickers",
 		{
-			{ "You", m_Settings.m_Theme.m_Colors.m_ChatLogYouFG },
+			{ "You", m_Settings.m_Theme.m_Colors.m_ChatLogYouFG }, // sets colors to differentiate bettween you and other player types. 
 			{ "Enemies", m_Settings.m_Theme.m_Colors.m_ChatLogEnemyTeamFG },
 			{ "Friendlies", m_Settings.m_Theme.m_Colors.m_ChatLogFriendlyTeamFG },
 		});
@@ -129,7 +132,7 @@ void MainWindow::OnDrawChat()
 
 			ImGui::PushTextWrapPos();
 
-			const IConsoleLine::PrintArgs args{ m_Settings };
+			const IConsoleLine::PrintArgs args{ m_Settings }; //print the console lines
 			for (auto it = m_MainState->m_PrintingLines.rbegin(); it != m_MainState->m_PrintingLines.rend(); ++it)
 			{
 				assert(*it);
@@ -180,7 +183,7 @@ void MainWindow::OnDrawAppLog()
 		});
 }
 
-void MainWindow::OnDrawSettingsPopup()
+void MainWindow::OnDrawSettingsPopup() //handles the settings menu popup screen 
 {
 	static constexpr char POPUP_NAME[] = "Settings##Popup";
 
@@ -209,12 +212,12 @@ void MainWindow::OnDrawSettingsPopup()
 			if (InputTextSteamIDOverride("My Steam ID", m_Settings.m_LocalSteamIDOverride, true))
 				m_Settings.SaveFile();
 
-			ImGui::TreePop();
+			ImGui::TreePop(); //this is the expand effect when you click the little down arrows under each of the top level settings
 		}
 
-		if (ImGui::TreeNode("Logging"))
+		if (ImGui::TreeNode("Logging")) //Logging section 
 		{
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
+#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION //under the Logging tab, check the Discord Rich Presence and RCON packets tab when discord integration enabled. 
 			if (ImGui::Checkbox("Discord Rich Presence", &m_Settings.m_Logging.m_DiscordRichPresence))
 				m_Settings.SaveFile();
 #endif
@@ -224,18 +227,18 @@ void MainWindow::OnDrawSettingsPopup()
 			ImGui::TreePop();
 		}
 
-		if (ImGui::TreeNode("Moderation"))
+		if (ImGui::TreeNode("Moderation")) //Moderation section 
 		{
 			// Auto temp mute
 			{
 				if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
-					m_Settings.SaveFile();
-				ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
+					m_Settings.SaveFile(); //Below is the text that's displayed when you hover your mouse over the sub-setting 'Auto temp mute'
+				ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool."); 
 			}
 
 			// Auto votekick delay
 			{
-				if (ImGui::SliderFloat("Auto votekick delay", &m_Settings.m_AutoVotekickDelay, 0, 30, "%1.1f seconds"))
+				if (ImGui::SliderFloat("Auto votekick delay", &m_Settings.m_AutoVotekickDelay, 0, 30, "%1.1f seconds")) //slider bar that lets you change auto votekick wait time
 					m_Settings.SaveFile();
 				ImGui::SetHoverTooltip("Delay between a player being registered as fully connected and us expecting them to be ready to vote on an issue.\n\n"
 					"This is needed because players can't vote until they have joined a team and picked a class. If we call a vote before enough people are ready, it might fail.");
@@ -244,7 +247,7 @@ void MainWindow::OnDrawSettingsPopup()
 			// Send warnings for connecting cheaters
 			{
 				if (ImGui::Checkbox("Chat message warnings for connecting cheaters", &m_Settings.m_AutoChatWarningsConnecting))
-					m_Settings.SaveFile();
+					m_Settings.SaveFile(); 
 
 				ImGui::SetHoverTooltip("Automatically sends a chat message if a cheater has joined the lobby,"
 					" but is not yet in the game. Only has an effect if \"Enable Chat Warnings\""
@@ -270,7 +273,7 @@ void MainWindow::OnDrawSettingsPopup()
 
 		if (ImGui::TreeNode("Service Integrations"))
 		{
-			if (ImGui::Checkbox("Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
+			if (ImGui::Checkbox("Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence)) // will enable the discord integration
 				m_Settings.SaveFile();
 
 #ifdef _DEBUG
@@ -280,7 +283,7 @@ void MainWindow::OnDrawSettingsPopup()
 #endif
 
 			if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
-				ImGui::Checkbox("Allow internet connectivity", &allowInternet))
+				ImGui::Checkbox("Allow internet connectivity", &allowInternet)) //toggle allowing the internet or not and saves it to the settings save file. 
 			{
 				m_Settings.m_AllowInternetUsage = allowInternet;
 				m_Settings.SaveFile();
@@ -290,9 +293,10 @@ void MainWindow::OnDrawSettingsPopup()
 				{
 					ImGui::NewLine();
 					if (std::string key = m_Settings.GetSteamAPIKey();
-						InputTextSteamAPIKey("Steam API Key", key, true))
+						InputTextSteamAPIKey("Steam API Key", key, true)) // allows you to enter or get your steam API key. This is necessary to get info 
+					                                                      // about players and bots, such as their steam ID. Highly recommend every user have this
 					{
-						m_Settings.SetSteamAPIKey(key);
+						m_Settings.SetSteamAPIKey(key); //save the API key once it's generated and save it in the save file
 						m_Settings.SaveFile();
 					}
 					ImGui::NewLine();
@@ -310,7 +314,10 @@ void MainWindow::OnDrawSettingsPopup()
 
 		ImGui::NewLine();
 
-		if (AutoLaunchTF2Checkbox(m_Settings.m_AutoLaunchTF2))
+		if (AutoLaunchTF2Checkbox(m_Settings.m_AutoLaunchTF2)) //checkbox at the beginning when you launch the gui for the first time that session, asks u if u 
+			                                                 //you want TF2 to automatically launch when you start the program. In my opinion,
+			                                              //there should be a way you can start the program AFTER you start tf2 because I always forget and go to 
+			                                             //my steam library and launch it from there. 
 			m_Settings.SaveFile();
 
 		ImGui::EndPopup();
@@ -335,7 +342,7 @@ void MainWindow::OpenUpdateCheckPopup()
 	m_UpdateCheckPopupOpen = true;
 }
 
-void MainWindow::OnDrawAboutPopup()
+void MainWindow::OnDrawAboutPopup() //this is the popout that comes when you click in the main menu under Help-> About Tf2 Bot Detector.
 {
 	static constexpr char POPUP_NAME[] = "About##Popup";
 
