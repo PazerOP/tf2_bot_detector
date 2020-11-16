@@ -4,6 +4,7 @@ message("CMAKE_CURRENT_LIST_DIR = ${CMAKE_CURRENT_LIST_DIR}")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 include(warning_level)
+include(CheckCXXSourceCompiles)
 
 message("TF2BD CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
@@ -52,8 +53,14 @@ if (MSVC)
 		/MP              # Improve build performance when running without ninja
 		/permissive-     # More closely follow c++ standard
 		/Zc:__cplusplus  # Correct __cplusplus macro
-		/await           # coroutine support
 	)
+
+	if (MSVC_VERSION LESS 1928)
+		message("MSVC_VERSION = ${MSVC_VERSION}, adding /await")
+		add_compile_options(
+			/await           # coroutine support
+		)
+	endif()
 
 	# Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")

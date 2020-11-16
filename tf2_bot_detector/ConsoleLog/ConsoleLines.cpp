@@ -959,10 +959,12 @@ std::shared_ptr<IConsoleLine> InQueueLine::TryParse(const std::string_view& text
 void InQueueLine::Print(const PrintArgs& args) const
 {
 	char timeBufNow[128];
-	strftime(timeBufNow, sizeof(timeBufNow), "%c", &GetLocalTM());
+	const auto localTM = GetLocalTM();
+	strftime(timeBufNow, sizeof(timeBufNow), "%c", &localTM);
 
 	char timeBufThen[128];
-	strftime(timeBufThen, sizeof(timeBufThen), "%c", &ToTM(m_QueueStartTime));
+	const auto queueStartTimeTM = ToTM(m_QueueStartTime);
+	strftime(timeBufThen, sizeof(timeBufThen), "%c", &queueStartTimeTM);
 
 	const uint64_t seconds = to_seconds<uint64_t>(clock_t::now() - m_QueueStartTime);
 
