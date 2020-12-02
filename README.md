@@ -9,7 +9,9 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-[![Build Status][build-shield]][actions-build-url]
+<!-- this looks bad if it is failing even if its just due to github nonsense
+[![Build Status][build-shield]][actions-build-url] 
+-->
 [![Discord Status][discord-shield]][discord-link]
 
 
@@ -45,8 +47,9 @@
 
 - [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
   - [Installation](#installation)
+    - [Automatic Install](#automatic-install)
+    - [Manual/Portable Install](#manualportable-install)
   - [How to use](#how-to-use)
   - [How to update](#how-to-update)
 - [FAQ](#faq)
@@ -55,9 +58,10 @@
   - [How does it work?](#how-does-it-work)
   - [How is the list of known cheaters curated?](#how-is-the-list-of-known-cheaters-curated)
   - [I don't like how the tool spams chat. Can I change that?](#i-dont-like-how-the-tool-spams-chat-can-i-change-that)
-  - [I downloaded the tool but I don't see an executable. What did I do wrong?](#i-downloaded-the-tool-but-i-dont-see-an-executable-what-did-i-do-wrong)
+  - [I downloaded the tool but I don't see an executable. What went wrong?](#i-downloaded-the-tool-but-i-dont-see-an-executable-what-went-wrong)
+  - [This doesn't detect anything!](#this-doesnt-detect-anything)
   - [Help! The tool wont open!](#help-the-tool-wont-open)
-  - [What do you think of using aimbot/cathook/esp/cheats against the bots?](#what-do-you-think-of-using-aimbotcathookespcheats-against-the-bots)
+  - [What do you think of using aimbot/cathook/esp/bots/cheats against the bots?](#what-do-you-think-of-using-aimbotcathookespbotscheats-against-the-bots)
   - [I have a question that is not listed here!](#i-have-a-question-that-is-not-listed-here)
 - [License](#license)
 - [Contact](#contact)
@@ -76,9 +80,6 @@ These instructions will give a quick overview of getting started with TF2BD. The
 
 If you are using Windows 10 1809 or newer, just click this link: [Install][msix-install-link]
 
-#### Powershell Install
-`Add-AppxPackage -AppInstallerFile https://tf2bd-util.pazer.us/AppInstaller/Nightly.appinstaller`
-
 #### Manual/Portable Install
 
 1. Download and install the [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
@@ -94,7 +95,9 @@ If you are using Windows 10 1809 or newer, just click this link: [Install][msix-
 
 ### How to update
 
-Currently the program does not self update. You can update the program by extracting the new zip over the existing folder. You could also delete the old version and follow the installation instructions again.
+The installed version can self update, however you can also just click the install link again to manually update if something goes wrong.
+
+Currently the protable version does not self update. You can update the program by extracting the new zip over the existing folder. You could also delete the old version and follow the installation instructions again.
 
 <!-- FAQ -->
 ## FAQ
@@ -119,9 +122,13 @@ The official list that is included with the program is maintained by Pazer exclu
 
 You can turn off chat warnings by unchecking the checkbox labeled "Enable Chat Warnings." By default if there are multiple tool users in the same server a "Bot Leader" is chosen and only their tool will send messages. There is no other way to customize chat messages outside of editing the code yourself.
 
-### I downloaded the tool but I don't see an executable. What did I do wrong?
+### I downloaded the tool but I don't see an executable. What went wrong?
 
 You likely downloaded the source code instead of the actual tool. Make sure you are downloading one of the .ZIPs that is not labeled "Source Code." There are two of them, one labeled with an x86 and one with an x64. If you don't know which one you want, you almost certainly want the one with the x64. For further instructions go [here][wiki-installation-link].
+
+### This doesn't detect anything!
+
+Right now the base player list and rule set is very very limited due to an abundance of caution. There are third party community lists and rules that are run by people who are not Pazer. While the general community trusts them, it is important to remember that these are not official resources and not under direct control of this project. For more information on installing community lists go [here][wiki-customization-link].
 
 ### Help! The tool wont open!
 
