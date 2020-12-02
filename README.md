@@ -97,7 +97,7 @@ If you are using Windows 10 1809 or newer, just click this link: [Install][msix-
 
 The installed version can self update, however you can also just click the install link again to manually update if something goes wrong.
 
-Currently the protable version does not self update. You can update the program by extracting the new zip over the existing folder. You could also delete the old version and follow the installation instructions again.
+Currently the portable version does not self update. You can update the program by extracting the new zip over the existing folder. You could also delete the old version and follow the installation instructions again.
 
 <!-- FAQ -->
 ## FAQ
