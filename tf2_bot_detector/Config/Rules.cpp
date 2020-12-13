@@ -74,16 +74,12 @@ namespace tf2_bot_detector
 			j["username_text_match"] = *d.m_UsernameTextMatch;
 			count++;
 		}
-				{
-			j["steamname_text_match"] = *d.m_UsernameTextMatch;
+		if (d.m_NicknameTextMatch)
+		{
+			j["nickname_text_match"] = *d.m_NicknameTextMatch;
 			count++;
 		}
 		if (d.m_AvatarMatches.size() > 0)
-		{
-			j["avatar_match"] = d.m_AvatarMatches;
-			count++;
-		}
-		if (d.m_PersonaMatches.size() > 0)
 		{
 			j["avatar_match"] = d.m_AvatarMatches;
 			count++;
@@ -426,22 +422,19 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 		return MatchResult::Match;
 	};
 
-const auto personaMatch = [&]()
+	const auto nicknameMatch = [&]()
 	{
-		if (m_Triggers.m_PersonaMatches.empty())
+		if (!m_Triggers.m_NicknameTextMatch)
 			return MatchResult::Unset;
 
-		const auto& summary = player.GetPlayerSummary();
-		if (!summary)
+		const auto name = player.GetNameUnsafe();
+		if (name.empty())
 			return MatchResult::NoMatch;
 
-		for (const auto& m : m_Triggers.m_PersonaMatches)
-		{
-			if (m.Match(summary->m_Nickname))
-				return MatchResult::Match;
-		}
+		if (!m_Triggers.m_NicknameTextMatch->Match(name))
+			return MatchResult::NoMatch;
 
-		return MatchResult::NoMatch;
+		return MatchResult::Match;
 	};
 
 	const auto chatMsgMatch = [&]()
@@ -476,10 +469,15 @@ const auto personaMatch = [&]()
 		return MatchResult::NoMatch;
 	};
 
-	return MatchRules(m_Triggers.m_Mode, usernameMatch, chatMsgMatch, avatarMatch, personaMatch);
+	return MatchRules(m_Triggers.m_Mode, usernameMatch, chatMsgMatch, avatarMatch);
 }
 
 bool AvatarMatch::Match(const std::string_view& avatarHash) const
 {
 	return m_AvatarHash == avatarHash;
+};
+
+bool ::Match(const std::string_view& personaname) const
+{
+	return m_NicknameMatch == personaname;
 }
