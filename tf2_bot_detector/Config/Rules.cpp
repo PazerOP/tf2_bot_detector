@@ -74,7 +74,16 @@ namespace tf2_bot_detector
 			j["username_text_match"] = *d.m_UsernameTextMatch;
 			count++;
 		}
+				{
+			j["steamname_text_match"] = *d.m_UsernameTextMatch;
+			count++;
+		}
 		if (d.m_AvatarMatches.size() > 0)
+		{
+			j["avatar_match"] = d.m_AvatarMatches;
+			count++;
+		}
+		if (d.m_PersonaMatches.size() > 0)
 		{
 			j["avatar_match"] = d.m_AvatarMatches;
 			count++;
@@ -417,6 +426,24 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 		return MatchResult::Match;
 	};
 
+const auto personaMatch = [&]()
+	{
+		if (m_Triggers.m_PersonaMatches.empty())
+			return MatchResult::Unset;
+
+		const auto& summary = player.GetPlayerSummary();
+		if (!summary)
+			return MatchResult::NoMatch;
+
+		for (const auto& m : m_Triggers.m_PersonaMatches)
+		{
+			if (m.Match(summary->m_Nickname))
+				return MatchResult::Match;
+		}
+
+		return MatchResult::NoMatch;
+	};
+
 	const auto chatMsgMatch = [&]()
 	{
 		if (!m_Triggers.m_ChatMsgTextMatch)
@@ -449,7 +476,7 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 		return MatchResult::NoMatch;
 	};
 
-	return MatchRules(m_Triggers.m_Mode, usernameMatch, chatMsgMatch, avatarMatch);
+	return MatchRules(m_Triggers.m_Mode, usernameMatch, chatMsgMatch, avatarMatch, personaMatch);
 }
 
 bool AvatarMatch::Match(const std::string_view& avatarHash) const
