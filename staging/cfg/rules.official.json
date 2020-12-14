@@ -1,12 +1,11 @@
 {
-	"$schema": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/rules.schema.json",
+	"$schema": "https://raw.githubusercontent.com/moebkun/tf2_bot_detector/master/schemas/v3/rules.schema.json",
 	"file_info": {
 		"authors": [
 			"moeb"
 		],
-		"description": "Official rules list for TF2 Bot Detector.",
-		"title": "Official rules list",
-		"update_url": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/staging/cfg/rules.official.json"
+		"description": "This is my test version for the rule-list",
+		"title": "Moeb's test ruleset"
 	},
 	"rules": [
 		{
@@ -15,22 +14,23 @@
 					"cheater"
 				]
 			},
-			"description": "[TF2BD]Name match",
+			"description": "[BETA]Regex Name match",
 			"triggers": {
-				"avatar_match": [
-					{
-						"avatar_hash": ""
-					}
-				],
-				"mode": "match_any",
 				"username_text_match": {
 					"case_sensitive": false,
-					"mode": "contains",
+					"mode": "regex",
 					"patterns": [
 						"braaaap \\d+",
 						"swonk bot \\d+",
-						"[VALVE]Niggerkiller",
-						"[VALVE] Twilight Sparkle"
+						"S.* bit\\.ly\\/2UnS5z8",
+						"(\\(\\d\\))?Morpheus Bot Removal Service",
+						"\\[VALVE\\][\u5350\u534d]?N[i\u00ed]\\w[g]+\\w+[i\u00ed]\\w[l]+[e\\d]r[\u534d\u5350]?",
+						"(\\(\\d+\\))?\\/id\\/heinrichderpro",
+						"(\\(\\d+\\))?\\[VALVE\\]Twilight Sparkle(\n)?",
+						"(\\(\\d+\\))?shoppy\\.gg\\/@d3fc0n6",
+						"(\\(\\d+\\))?Festive Hitman",
+						"(\\(\\d+\\))?cheemsburger gaming",
+						"(\\(\\d+\\))?blu ((red)|(me))"
 					]
 				}
 			}
@@ -41,7 +41,47 @@
 					"cheater"
 				]
 			},
-			"description": "[TF2BD]Invisible Character/namestealer",
+			"description": "[BETA]Full Name Match",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"braaaap god"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "[BETA]Name and Avatar match",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "7a6e1f6ffeea6215b18b27a5b18e4b7d910a06f7"
+					}
+				],
+				"mode": "match_all",
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"(\\(\\d+\\))?cory"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "[BETA]Invisible Character/namestealer",
 			"triggers": {
 				"avatar_match": [
 					{
@@ -63,7 +103,10 @@
 						"\u202c",
 						"\u202d",
 						"\ufeff",
-						"\u0e4a"
+						"\u0e4a",
+						"\u0e38",
+						"\u202c",
+						"\n"
 					]
 				}
 			}
@@ -74,14 +117,11 @@
 					"cheater"
 				]
 			},
-			"description": "[TF2BD]Avatar match",
+			"description": "[BETA]Avatar match",
 			"triggers": {
-				"avatar_match": [
+				"nickname_text_match": [
 					{
-						"avatar_hash": "06f5f3319f23911d598a0eaaa0267ce6ebac10f6"
-					},
-					{
-						"avatar_hash": "a18eb153ec2b0a40d5522fac8e5a8a525fd5a7a4"
+						"nickname": "moeb"
 					}
 				]
 			}
@@ -92,13 +132,8 @@
 					"cheater"
 				]
 			},
-			"description": "[TF2BD]Malicious chat message detected",
+			"description": "[BETA]Malicious chat message detected",
 			"triggers": {
-				"avatar_match": [
-					{
-						"avatar_hash": ""
-					}
-				],
 				"chatmsg_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
@@ -107,8 +142,7 @@
 						"\r\n",
 						"\r"
 					]
-				},
-				"mode": "match_any"
+				}
 			}
 		},
 		{
