@@ -348,7 +348,7 @@ ConfigSchemaInfo::ConfigSchemaInfo(const std::string_view& schema)
 {
 	std::match_results<std::string_view::iterator> match;
 	const std::regex schemaRegex(
-		R"regex(https:\/\/raw\.githubusercontent\.com\/PazerOP\/tf2_bot_detector\/(\w+)\/schemas\/v(\d+)\/(\w+)\.schema\.json)regex");
+		R"regex(https:\/\/raw\.githubusercontent\.com\/moebkun/tf2_bot_detector\/(\w+)\/schemas\/v(\d+)\/(\w+)\.schema\.json)regex");
 	if (!std::regex_match(schema.begin(), schema.end(), match, schemaRegex))
 		throw std::runtime_error("Unknown schema "s << std::quoted(schema));
 
