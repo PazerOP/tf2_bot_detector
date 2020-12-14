@@ -254,6 +254,23 @@
 					"cheater"
 				]
 			},
+			"description": "braaap",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"shoppy.gg/@d3fc0n6"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "(catbot) Rick May Was A Pedo Bot ##",
 			"triggers": {
 				"username_text_match": {
@@ -325,6 +342,21 @@
 						"niggers"
 					]
 				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Festive Hitman",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "b98a862b985db1f08d97a8b537f6cd394a460cab"
+					}
+				]
 			}
 		}
 	]
