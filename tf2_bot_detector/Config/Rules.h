@@ -56,6 +56,16 @@ namespace tf2_bot_detector
 	void to_json(nlohmann::json& j, const AvatarMatch& d);
 	void from_json(const nlohmann::json& j, AvatarMatch& d);
 
+	struct NicknameMatch
+	{
+		std::string m_Nickname;
+
+		bool Match(const std::string_view& Nickname) const;
+	};
+
+	void to_json(nlohmann::json& j, const NicknameMatch& d);
+	void from_json(const nlohmann::json& j, NicknameMatch& d);
+
 	struct ModerationRule
 	{
 		std::string m_Description;
@@ -68,9 +78,9 @@ namespace tf2_bot_detector
 			TriggerMatchMode m_Mode = TriggerMatchMode::MatchAll;
 
 			std::optional<TextMatch> m_UsernameTextMatch;
-			std::optional<TextMatch> m_NicknameTextMatch;
 			std::optional<TextMatch> m_ChatMsgTextMatch;
 			std::vector<AvatarMatch> m_AvatarMatches;
+			std::vector<NicknameMatch> m_NicknameMatches;
 		} m_Triggers;
 
 		struct Actions
