@@ -79,7 +79,7 @@
 										"avatar_hash": {
 											"type": "string",
 											"description": "Nickname Matching Rule",
-											"pattern": "[0-9a-fA-F]*"
+											"pattern": "[0-9a-fA-F]"
 										}
 									}
 								}
