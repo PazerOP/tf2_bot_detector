@@ -74,14 +74,14 @@ namespace tf2_bot_detector
 			j["username_text_match"] = *d.m_UsernameTextMatch;
 			count++;
 		}
-		if (d.m_NicknameTextMatch)
-		{
-			j["nickname_text_match"] = *d.m_NicknameTextMatch;
-			count++;
-		}
 		if (d.m_AvatarMatches.size() > 0)
 		{
 			j["avatar_match"] = d.m_AvatarMatches;
+			count++;
+		}
+				if (d.m_NicknameMatches.size() > 0)
+		{
+			j["Nickname_text_match"] = d.m_NicknameMatches;
 			count++;
 		}
 
@@ -149,6 +149,18 @@ namespace tf2_bot_detector
 		d.m_AvatarHash = mh::tolower(j.at("avatar_hash").get<std::string_view>());
 	}
 
+		void to_json(nlohmann::json& j, const NicknameMatch& d)
+	{
+		j =
+		{
+			{ "Nickname_text_match", d.m_Nickname },
+		};
+	}
+	void from_json(const nlohmann::json& j, NicknameMatch& d)
+	{
+		d.m_Nickname = mh::tolower(j.at("Nickname_text_match").get<std::string_view>());
+	}
+
 	void from_json(const nlohmann::json& j, TextMatch& d)
 	{
 		d.m_Mode = j.at("mode");
@@ -175,6 +187,19 @@ namespace tf2_bot_detector
 			{
 				throw std::runtime_error(mh::format(
 					"{}: Expected avatar_match to be an array or object, instead it was a {}",
+					MH_SOURCE_LOCATION_CURRENT(), mh::enum_fmt(found->type())));
+			}
+		};
+		if (auto found = j.find("Nickname_text_match"); found != j.end())
+		{
+			if (found->is_array())
+				found->get_to(d.m_NicknameMatches);
+			else if (found->is_object())
+				d.m_NicknameMatches = { NicknameMatch(*found) };
+			else
+			{
+				throw std::runtime_error(mh::format(
+					"{}: Expected Nickname_text_match to be an array or object, instead it was a {}",
 					MH_SOURCE_LOCATION_CURRENT(), mh::enum_fmt(found->type())));
 			}
 		}
@@ -422,21 +447,6 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 		return MatchResult::Match;
 	};
 
-	const auto nicknameMatch = [&]()
-	{
-		if (!m_Triggers.m_NicknameTextMatch)
-			return MatchResult::Unset;
-
-		const auto name = player.GetNameUnsafe();
-		if (name.empty())
-			return MatchResult::NoMatch;
-
-		if (!m_Triggers.m_NicknameTextMatch->Match(name))
-			return MatchResult::NoMatch;
-
-		return MatchResult::Match;
-	};
-
 	const auto chatMsgMatch = [&]()
 	{
 		if (!m_Triggers.m_ChatMsgTextMatch)
@@ -468,16 +478,33 @@ bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMs
 
 		return MatchResult::NoMatch;
 	};
+	const auto NicknameMatch = [&]()
+	{
+		if (m_Triggers.m_NicknameMatches.empty())
+			return MatchResult::Unset;
 
-	return MatchRules(m_Triggers.m_Mode, usernameMatch, chatMsgMatch, avatarMatch);
+		const auto& summary = player.GetPlayerSummary();
+		if (!summary)
+			return MatchResult::NoMatch;
+
+		for (const auto& m : m_Triggers.m_NicknameMatches)
+		{
+			if (m.Match(summary->m_Nickname))
+				return MatchResult::Match;
+		}
+
+		return MatchResult::NoMatch;
+	};
+
+	return MatchRules(m_Triggers.m_Mode, usernameMatch, chatMsgMatch, avatarMatch, NicknameMatch);
 }
 
 bool AvatarMatch::Match(const std::string_view& avatarHash) const
 {
 	return m_AvatarHash == avatarHash;
 };
-
-bool ::Match(const std::string_view& personaname) const
+bool NicknameMatch::Match(const std::string_view& Nickname) const
 {
-	return m_NicknameMatch == personaname;
+	return m_Nickname == Nickname;
 }
+
