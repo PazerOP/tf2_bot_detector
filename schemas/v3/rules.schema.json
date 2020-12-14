@@ -66,7 +66,7 @@
 									}
 								}
 							},
-                          				"nickname_match": {
+                          				"nickname_text_match": {
 								"type": "array",
 								"description": "Array of Steam avatar match rules. If any of these match, avatar_match is considered a match.",
 								"items": {
@@ -74,7 +74,7 @@
 									"description": "A Steam avatar match rule for a player.",
 									"additionalProperties": false,
 									"properties": {
-										"nickname_text_match": {
+										"nickname": {
 											"type": "string",
 											"description": "The SHA-1 hash of the user's Steam avatar."
 										}
