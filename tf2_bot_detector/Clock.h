@@ -62,50 +62,51 @@ namespace tf2_bot_detector
 
 		std::chrono::duration<TRep, TPeriod> m_Duration{};
 	};
-}
 
-template<typename CharT, typename Traits, typename TRep, typename TPeriod>
-std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
-	const tf2_bot_detector::HumanDuration<TRep, TPeriod>& humanDuration)
-{
-	int printCount = 0;
-
-	const auto Print = [&](auto& value, auto period, const auto& text)
+	template<typename CharT, typename Traits, typename TRep, typename TPeriod>
+	inline std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
+		const tf2_bot_detector::HumanDuration<TRep, TPeriod>& humanDuration)
 	{
-		if (printCount >= 2)
-			return;
+		int printCount = 0;
 
-		using TPeriod = std::decay_t<decltype(period)>;
-		const auto truncated = std::chrono::duration_cast<TPeriod>(value);
-		const auto count = truncated.count();
-		if (count <= 0)
+		using TInputDuration = std::chrono::duration<TRep, TPeriod>;
+		const auto Print = [&](TInputDuration& value, auto period, const char* text)
 		{
+			if (printCount >= 2)
+				return;
+
+			using TPeriod = std::decay_t<decltype(period)>;
+			const auto truncated = std::chrono::duration_cast<TPeriod>(value);
+			const auto count = truncated.count();
+			if (count <= 0)
+			{
+				if (printCount > 0)
+					printCount++;
+
+				return;
+			}
+
 			if (printCount > 0)
-				printCount++;
+				os << ", ";
 
-			return;
-		}
+			os << count << ' ' << text;
 
-		if (printCount > 0)
-			os << ", ";
+			if (count > 1)
+				os << 's';
 
-		os << count << ' ' << text;
+			printCount++;
+			value -= std::chrono::duration_cast<TInputDuration>(truncated);
+		};
 
-		if (count > 1)
-			os << 's';
+		auto duration = humanDuration.m_Duration;
+		Print(duration, tf2_bot_detector::year_t{}, "year");
+		Print(duration, tf2_bot_detector::month_t{}, "month");
+		Print(duration, tf2_bot_detector::week_t{}, "week");
+		Print(duration, tf2_bot_detector::day_t{}, "day");
+		Print(duration, std::chrono::hours{}, "hour");
+		Print(duration, std::chrono::minutes{}, "minute");
+		Print(duration, std::chrono::seconds{}, "second");
 
-		printCount++;
-		value -= truncated;
-	};
-
-	auto duration = humanDuration.m_Duration;
-	Print(duration, tf2_bot_detector::year_t{}, "year");
-	Print(duration, tf2_bot_detector::month_t{}, "month");
-	Print(duration, tf2_bot_detector::week_t{}, "week");
-	Print(duration, tf2_bot_detector::day_t{}, "day");
-	Print(duration, std::chrono::hours{}, "hour");
-	Print(duration, std::chrono::minutes{}, "minute");
-	Print(duration, std::chrono::seconds{}, "second");
-
-	return os;
+		return os;
+	}
 }

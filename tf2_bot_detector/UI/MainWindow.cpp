@@ -440,7 +440,7 @@ void MainWindow::GenerateDebugReport() try
 	{
 		using namespace libzippp;
 		ZipArchive archive(dbgReportLocation.string());
-		archive.open(ZipArchive::NEW);
+		archive.open(ZipArchive::New);
 
 		const auto mutableDir = IFilesystem::Get().GetMutableDataDir();
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(mutableDir / "logs"))

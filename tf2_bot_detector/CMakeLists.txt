@@ -192,16 +192,16 @@ endif()
 
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(libzip CONFIG REQUIRED)
 find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
 
-target_link_libraries(tf2_bot_detector PRIVATE
+target_link_libraries(tf2_bot_detector PUBLIC
 	tf2_bot_detector::common
 	imgui_desktop
-	mh::stuff
 	ValveFileVDF
-	libzip::libzip
+	libzip::zip
 	libzippp::libzippp
 	cppcoro
 	SourceRCON
