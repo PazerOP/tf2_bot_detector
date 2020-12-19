@@ -343,7 +343,7 @@ jobs:
       shell: cmd
       run: |
         cd msix
-        makeappx.exe pack /d package_staging /p ${{ steps.msix_filename.value }}
+        makeappx.exe pack /d package_staging /p ${{ steps.msix_filename.outputs.value }}
 
     - name: Sign msix package
       uses: PazerOP/code-sign-action@v3
@@ -356,8 +356,8 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
-        name: ${{ steps.msix_filename.value }}
-        path: "msix/${{ steps.msix_filename.value }}"
+        name: ${{ steps.msix_filename.outputs.value }}
+        path: "msix/${{ steps.msix_filename.outputs.value }}"
 
 
 
@@ -395,7 +395,7 @@ jobs:
       shell: cmd
       run: |
         cd msix
-        makeappx bundle /d bundle_staging /bv ${{ needs.config.outputs.tf2bd_version }} /p ${{ steps.msixbundle_name.value }}
+        makeappx bundle /d bundle_staging /bv ${{ needs.config.outputs.tf2bd_version }} /p ${{ steps.msixbundle_name.outputs.value }}
 
     - name: Sign bundle
       uses: PazerOP/code-sign-action@v3
@@ -408,11 +408,11 @@ jobs:
       if: matrix.build_type.name == 'Release' && github.ref == 'refs/heads/master'
       run: |
         echo "Uploading artifact to tf2bd-util..."
-        curl -T "msix/${{ steps.msixbundle_name.value }}" "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ needs.config.outputs.tf2bd_version }}&artifactType=MainToolMSIXBundle&os=windows&arch=AnyCPU"
+        curl -T "msix/${{ steps.msixbundle_name.outputs.value }}" "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ needs.config.outputs.tf2bd_version }}&artifactType=MainToolMSIXBundle&os=windows&arch=AnyCPU"
 
     - name: Upload bundle (github actions artifact)
       uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
-        name: ${{ steps.msixbundle_name.value }}
-        path: "msix/${{ steps.msixbundle_name.value }}"
+        name: ${{ steps.msixbundle_name.outputs.value }}
+        path: "msix/${{ steps.msixbundle_name.outputs.value }}"
