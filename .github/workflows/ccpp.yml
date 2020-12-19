@@ -102,9 +102,9 @@ jobs:
     - name: cache-vcpkg
       uses: actions/cache@v2
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-5
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-6
         path: |
-          ${{ env.VCPKG_BINARY_SOURCES }}
+          ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
@@ -226,9 +226,9 @@ jobs:
     - name: cache-vcpkg
       uses: actions/cache@v2
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-5
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-6
         path: |
-          ${{ env.VCPKG_BINARY_SOURCES }}
+          ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
