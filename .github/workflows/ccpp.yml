@@ -293,7 +293,7 @@ jobs:
 
   msix:
     runs-on: windows-latest
-    needs: build
+    needs: [setup_version, build]
     strategy:
       # fail-fast: false
       matrix:
@@ -364,7 +364,7 @@ jobs:
 
   msixbundle:
     runs-on: windows-latest
-    needs: msix
+    needs: [setup_version, msix]
     strategy:
       # fail-fast: false
       matrix:
