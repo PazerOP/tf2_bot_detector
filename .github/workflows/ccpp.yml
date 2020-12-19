@@ -8,6 +8,11 @@ on:
       - '*.md'
       - '*.appinstaller_template'
 
+env:
+  VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
+  VCPKG_BINARY_SOURCES: ${{ env.VCPKG_ROOT }}/archives
+  VCPKG_FEATURE_FLAGS: manifests
+
 defaults:
   run:
     shell: bash
@@ -92,12 +97,10 @@ jobs:
 
     - name: cache-vcpkg
       uses: actions/cache@v2
-      env:
-        VCPKG_ROOT: '${{ github.workspace }}/submodules/vcpkg'
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-3
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-4
         path: |
-          ${{ env.VCPKG_ROOT }}/archives
+          ${{ env.VCPKG_BINARY_SOURCES }}
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
@@ -108,16 +111,13 @@ jobs:
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
-      env:
-        VCPKG_FEATURE_FLAGS: manifests
-        RUNVCPKG_VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cmake -G Ninja \
           -DTF2BD_IS_CI_COMPILE=ON \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
@@ -221,12 +221,10 @@ jobs:
 
     - name: cache-vcpkg
       uses: actions/cache@v2
-      env:
-        VCPKG_ROOT: '${{ github.workspace }}/submodules/vcpkg'
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-3
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-4
         path: |
-          ${{ env.VCPKG_ROOT }}/archives
+          ${{ env.VCPKG_BINARY_SOURCES }}
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
@@ -237,9 +235,6 @@ jobs:
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
-      env:
-        VCPKG_FEATURE_FLAGS: manifests
-        RUNVCPKG_VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
       run: |
         mkdir "${{ steps.tf2bd_paths.outputs.build_dir }}"
         cd "${{ steps.tf2bd_paths.outputs.build_dir }}"
@@ -249,7 +244,7 @@ jobs:
           -DVCPKG_CRT_LINKAGE=static \
           -DVCPKG_LIBRARY_LINKAGE=static \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE="${{ env.RUNVCPKG_VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
+          -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ steps.tf2bd_paths.outputs.build_dir }}" \
           -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
