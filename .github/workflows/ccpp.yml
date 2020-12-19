@@ -10,7 +10,7 @@ on:
 
 env:
   VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
-  VCPKG_BINARY_SOURCES: $VCPKG_ROOT/archives
+  VCPKG_BINARY_SOURCES: ${{ github.workspace }}/submodules/vcpkg/archives
   VCPKG_FEATURE_FLAGS: manifests
 
 defaults:
