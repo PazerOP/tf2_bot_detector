@@ -100,7 +100,7 @@ jobs:
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
-    - uses: seanmiddleditch/gha-setup-ninja@v2
+    - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
       with:
@@ -229,7 +229,7 @@ jobs:
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
-    - uses: seanmiddleditch/gha-setup-ninja@v2
+    - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1
       with:
