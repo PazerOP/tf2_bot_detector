@@ -5,6 +5,7 @@ on:
     paths:
       - 'staging/cfg/**.json'
       - 'schemas/**.json'
+      - '.github/workflows/validate.yml'
 
 jobs:
   validate-json-files:
@@ -14,8 +15,8 @@ jobs:
 
       - name: fix go path
         run: |
-          echo "::set-env name=GOPATH::$(go env GOPATH)"
-          echo "::add-path::$(go env GOPATH)/bin"
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
         shell: bash
 
       - name: Install validator
