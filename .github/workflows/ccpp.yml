@@ -46,7 +46,7 @@ jobs:
     needs: setup_version
     runs-on: ${{ matrix.os }}
     strategy:
-      # fail-fast: false
+      fail-fast: false
       matrix:
         os: [windows-latest]
         triplet: [x86-windows, x64-windows]
