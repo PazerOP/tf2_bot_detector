@@ -141,7 +141,7 @@ jobs:
       if: steps.determine_artifact_behavior.outputs.upload && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "smartscreen_${{ matrix.triplet }}_${{ needs.config.tf2bd_version.value }}_${{ matrix.build_type }}"
+        name: "smartscreen_${{ matrix.triplet }}_${{ needs.config.outputs.tf2bd_version }}_${{ matrix.build_type }}"
         if-no-files-found: error
         path: "${{ needs.config.outputs.tf2bd_build_dir }}/*.exe"
 
@@ -163,13 +163,13 @@ jobs:
       run: |
         echo "Uploading artifact to tf2bd-util..."
         cd "${{ needs.config.outputs.tf2bd_workspace }}/staging/"
-        7z a -so data.zip * | curl -T - "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ needs.config.tf2bd_version.value }}&artifactType=MainToolPortable&os=windows&arch=${{ matrix.tf2bd_arch }}"
+        7z a -so data.zip * | curl -T - "https://tf2bd-util.pazer.us/NightlyArchive/UploadArtifact?key=${{ secrets.TF2BD_NIGHTLY_UPLOAD_API_KEY }}&version=${{ needs.config.outputs.tf2bd_version }}&artifactType=MainToolPortable&os=windows&arch=${{ matrix.tf2bd_arch }}"
 
     - name: "Artifacts: Upload staging/"
       if: steps.determine_artifact_behavior.outputs.upload && startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v2
       with:
-        name: "tf2-bot-detector_${{ matrix.triplet }}_${{ needs.config.tf2bd_version.value }}_${{ matrix.build_type }}"
+        name: "tf2-bot-detector_${{ matrix.triplet }}_${{ needs.config.outputs.tf2bd_version }}_${{ matrix.build_type }}"
         if-no-files-found: error
         path: ${{ needs.config.outputs.tf2bd_workspace }}/staging/
 
