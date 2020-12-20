@@ -2,7 +2,7 @@
 
 #include "Clock.h"
 
-#include <cppcoro/generator.hpp>
+#include <mh/coroutine/generator.hpp>
 #include <mh/text/format.hpp>
 #include <mh/source_location.hpp>
 
@@ -76,7 +76,7 @@ namespace tf2_bot_detector
 
 		virtual const std::filesystem::path& GetFileName() const = 0;
 
-		virtual cppcoro::generator<const LogMessage&> GetVisibleMsgs() const = 0;
+		virtual mh::generator<const LogMessage&> GetVisibleMsgs() const = 0;
 		virtual void ClearVisibleMsgs() = 0;
 
 		virtual void LogConsoleOutput(const std::string_view& consoleOutput) = 0;

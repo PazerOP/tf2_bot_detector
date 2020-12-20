@@ -13,9 +13,6 @@
 [submodule "submodules/mh_stuff"]
 	path = submodules/mh_stuff
 	url = https://github.com/PazerOP/stuff.git
-[submodule "submodules/cppcoro"]
-	path = submodules/cppcoro
-	url = https://github.com/PazerOP/cppcoro.git
 [submodule "submodules/vcpkg"]
 	path = submodules/vcpkg
 	url = https://github.com/microsoft/vcpkg.git

@@ -208,7 +208,7 @@ bool ModerationRules::SaveFile() const
 	return true;
 }
 
-cppcoro::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules() const
+mh::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules() const
 {
 	if (mh::is_future_ready(m_CFGGroup.m_OfficialList))
 	{

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cppcoro/generator.hpp>
+#include <mh/coroutine/generator.hpp>
 #include <mh/reflection/enum.hpp>
 
 #include <cstddef>
@@ -25,7 +25,7 @@ namespace tf2_bot_detector
 
 		static IFilesystem& Get();
 
-		virtual cppcoro::generator<std::filesystem::path> GetSearchPaths() const = 0;
+		virtual mh::generator<std::filesystem::path> GetSearchPaths() const = 0;
 
 		virtual std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const = 0;
 

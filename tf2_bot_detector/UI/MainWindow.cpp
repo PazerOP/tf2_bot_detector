@@ -818,7 +818,7 @@ void MainWindow::OnConsoleLineUnparsed(IWorldState& world, const std::string_vie
 	m_ParsedLineCount++;
 }
 
-cppcoro::generator<IPlayer&> MainWindow::PostSetupFlowState::GeneratePlayerPrintData()
+mh::generator<IPlayer&> MainWindow::PostSetupFlowState::GeneratePlayerPrintData()
 {
 	IPlayer* printData[33]{};
 	auto begin = std::begin(printData);

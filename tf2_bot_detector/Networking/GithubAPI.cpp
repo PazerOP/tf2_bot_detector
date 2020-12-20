@@ -5,7 +5,7 @@
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
 
-#include <cppcoro/generator.hpp>
+#include <mh/coroutine/generator.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
@@ -29,7 +29,7 @@ namespace
 	};
 }
 
-static cppcoro::generator<InternalRelease> GetAllReleases(const HTTPClient& client)
+static mh::generator<InternalRelease> GetAllReleases(const HTTPClient& client)
 {
 	auto str = client.GetString("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
 	if (str.empty())

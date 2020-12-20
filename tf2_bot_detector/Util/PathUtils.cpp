@@ -140,7 +140,7 @@ DirectoryValidatorResult tf2_bot_detector::ValidateSteamDir(std::filesystem::pat
 	return result;
 }
 
-cppcoro::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(const std::filesystem::path& steamDir)
+mh::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(const std::filesystem::path& steamDir)
 {
 	co_yield steamDir / "steamapps";
 

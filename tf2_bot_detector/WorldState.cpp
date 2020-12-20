@@ -116,8 +116,8 @@ namespace
 		using IWorldState::FindPlayer;
 		const IPlayer* FindPlayer(const SteamID& id) const override;
 
-		cppcoro::generator<const IPlayer&> GetLobbyMembers() const;
-		cppcoro::generator<const IPlayer&> GetPlayers() const;
+		mh::generator<const IPlayer&> GetLobbyMembers() const;
+		mh::generator<const IPlayer&> GetPlayers() const;
 		std::vector<const IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32) const;
 		std::vector<IPlayer*> GetRecentPlayers(size_t recentPlayerCount = 32);
 
@@ -418,7 +418,7 @@ size_t WorldState::GetApproxLobbyMemberCount() const
 	return m_CurrentLobbyMembers.size() + m_PendingLobbyMembers.size();
 }
 
-cppcoro::generator<const IPlayer&> WorldState::GetLobbyMembers() const
+mh::generator<const IPlayer&> WorldState::GetLobbyMembers() const
 {
 	const auto GetPlayer = [&](const LobbyMember& member) -> const IPlayer*
 	{
@@ -462,7 +462,7 @@ cppcoro::generator<const IPlayer&> WorldState::GetLobbyMembers() const
 	}
 }
 
-cppcoro::generator<const IPlayer&> WorldState::GetPlayers() const
+mh::generator<const IPlayer&> WorldState::GetPlayers() const
 {
 	for (const auto& pair : m_CurrentPlayerData)
 		co_yield pair.second;

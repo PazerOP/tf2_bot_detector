@@ -4,7 +4,7 @@
 #include "SteamID.h"
 #include "TFConstants.h"
 
-#include <cppcoro/generator.hpp>
+#include <mh/coroutine/generator.hpp>
 
 #include <optional>
 
@@ -76,22 +76,22 @@ namespace tf2_bot_detector
 		IPlayer* FindPlayer(const SteamID& id) { return const_cast<IPlayer*>(std::as_const(*this).FindPlayer(id)); }
 
 		virtual size_t GetApproxLobbyMemberCount() const = 0;
-		virtual cppcoro::generator<const IPlayer&> GetLobbyMembers() const = 0;
-		cppcoro::generator<IPlayer&> GetLobbyMembers();
-		virtual cppcoro::generator<const IPlayer&> GetPlayers() const = 0;
-		cppcoro::generator<IPlayer&> GetPlayers();
+		virtual mh::generator<const IPlayer&> GetLobbyMembers() const = 0;
+		mh::generator<IPlayer&> GetLobbyMembers();
+		virtual mh::generator<const IPlayer&> GetPlayers() const = 0;
+		mh::generator<IPlayer&> GetPlayers();
 
 		// Have we joined a team and picked a class?
 		virtual bool IsLocalPlayerInitialized() const = 0;
 		virtual bool IsVoteInProgress() const = 0;
 	};
 
-	inline cppcoro::generator<IPlayer&> IWorldState::GetLobbyMembers()
+	inline mh::generator<IPlayer&> IWorldState::GetLobbyMembers()
 	{
 		for (const IPlayer& p : std::as_const(*this).GetLobbyMembers())
 			co_yield const_cast<IPlayer&>(p);
 	}
-	inline cppcoro::generator<IPlayer&> IWorldState::GetPlayers()
+	inline mh::generator<IPlayer&> IWorldState::GetPlayers()
 	{
 		for (const IPlayer& p : std::as_const(*this).GetPlayers())
 			co_yield const_cast<IPlayer&>(p);

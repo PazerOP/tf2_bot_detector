@@ -6,7 +6,7 @@
 #include "Log.h"
 
 #include <vdf_parser.hpp>
-#include <cppcoro/generator.hpp>
+#include <mh/coroutine/generator.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
@@ -322,7 +322,7 @@ static void ApplyChatWrappers(const std::string_view& debugInfo, ChatCategory ca
 	translation = std::move(replaced);
 }
 
-static cppcoro::generator<std::filesystem::path> GetLocalizationFiles(
+static mh::generator<std::filesystem::path> GetLocalizationFiles(
 	const std::filesystem::path& tfDir, const std::string_view& language, bool baseFirst = true)
 {
 	if (baseFirst)

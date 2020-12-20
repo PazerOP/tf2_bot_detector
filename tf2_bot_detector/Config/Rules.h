@@ -1,7 +1,7 @@
 #pragma once
 #include "ConfigHelpers.h"
 
-#include <cppcoro/generator.hpp>
+#include <mh/coroutine/generator.hpp>
 #include <mh/reflection/enum.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -87,7 +87,7 @@ namespace tf2_bot_detector
 		bool LoadFiles();
 		bool SaveFile() const;
 
-		cppcoro::generator<const ModerationRule&> GetRules() const;
+		mh::generator<const ModerationRule&> GetRules() const;
 		size_t GetRuleCount() const { return m_CFGGroup.size(); }
 
 	private:
