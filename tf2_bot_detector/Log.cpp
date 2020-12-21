@@ -44,7 +44,7 @@ namespace
 		void LogToStream(std::string msg, std::ostream& output, time_point_t timestamp = tfbd_clock_t::now(), bool skipScrub = false) const;
 
 		const std::filesystem::path& GetFileName() const override { return m_FileName; }
-		cppcoro::generator<const LogMessage&> GetVisibleMsgs() const override;
+		mh::generator<const LogMessage&> GetVisibleMsgs() const override;
 		void ClearVisibleMsgs() override;
 
 		std::ofstream& GetFile() { return m_File; }
@@ -285,7 +285,7 @@ void LogManager::Log(std::string msg, const LogMessageColor & color,
 	}
 }
 
-cppcoro::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
+mh::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
 {
 	std::lock_guard lock(m_LogMutex);
 

@@ -16,7 +16,7 @@ namespace
 	public:
 		Filesystem();
 
-		cppcoro::generator<std::filesystem::path> GetSearchPaths() const override;
+		mh::generator<std::filesystem::path> GetSearchPaths() const override;
 
 		std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const override;
 		std::string ReadFile(std::filesystem::path path) const override;
@@ -85,7 +85,7 @@ catch (const std::exception& e)
 	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to initialize filesystem");
 }
 
-cppcoro::generator<std::filesystem::path> Filesystem::GetSearchPaths() const
+mh::generator<std::filesystem::path> Filesystem::GetSearchPaths() const
 {
 	for (auto searchPath : m_SearchPaths)
 		co_yield searchPath;

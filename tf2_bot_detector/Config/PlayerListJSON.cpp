@@ -219,7 +219,7 @@ void PlayerListJSON::SaveFiles() const
 }
 
 auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
-	cppcoro::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
+	mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 {
 	if (m_CFGGroup.m_UserList.has_value())
 	{
@@ -249,7 +249,7 @@ auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
 }
 
 auto PlayerListJSON::FindPlayerAttributes(const SteamID& id) const ->
-	cppcoro::generator<std::pair<const ConfigFileName&, const PlayerAttributesList&>>
+	mh::generator<std::pair<const ConfigFileName&, const PlayerAttributesList&>>
 {
 	for (auto& [fileName, found] : FindPlayerData(id))
 		co_yield { fileName, found.m_Attributes };

@@ -167,7 +167,7 @@ namespace tf2_bot_detector
 			ConsoleLogParser m_Parser;
 			std::list<std::shared_ptr<const IConsoleLine>> m_PrintingLines;  // newest to oldest order
 			static constexpr size_t MAX_PRINTING_LINES = 512;
-			cppcoro::generator<IPlayer&> GeneratePlayerPrintData();
+			mh::generator<IPlayer&> GeneratePlayerPrintData();
 
 			void OnUpdateDiscord();
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION

@@ -203,7 +203,6 @@ target_link_libraries(tf2_bot_detector PUBLIC
 	ValveFileVDF
 	libzip::zip
 	libzippp::libzippp
-	cppcoro
 	SourceRCON
 	OpenSSL::SSL # cpp-httplib requires openssl
 	nlohmann_json::nlohmann_json
