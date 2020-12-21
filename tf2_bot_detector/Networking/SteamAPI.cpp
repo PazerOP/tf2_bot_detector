@@ -63,8 +63,15 @@ namespace
 			// See if we're already stored in the cache
 			{
 				std::lock_guard lock(m_CacheMutex);
-				if (std::filesystem::exists(cachedPath))
-					return mh::make_ready_future(Bitmap(cachedPath));
+				try
+				{
+					if (std::filesystem::exists(cachedPath))
+						return mh::make_ready_future(Bitmap(cachedPath));
+				}
+				catch (const std::exception& e)
+				{
+					LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load cached avatar from {}, re-fetching...", cachedPath);
+				}
 			}
 
 			if (client)
