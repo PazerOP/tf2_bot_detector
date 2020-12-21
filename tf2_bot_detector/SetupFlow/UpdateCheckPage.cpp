@@ -21,7 +21,7 @@ namespace
 		void Init(const InitState& is) override;
 
 		bool CanCommit() const override;
-		void Commit(Settings& settings);
+		void Commit(const CommitState& cs) override {}
 
 		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
@@ -319,10 +319,6 @@ namespace
 			, UpdateStatus::DownloadSuccess
 			, UpdateStatus::Updating
 			);
-	}
-
-	void UpdateCheckPage::Commit(Settings& settings)
-	{
 	}
 }
 

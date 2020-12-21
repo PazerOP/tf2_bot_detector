@@ -15,7 +15,7 @@ namespace tf2_bot_detector
 		OnDrawResult OnDraw(const DrawState& ds) override;
 		void Init(const InitState& is) override;
 		bool CanCommit() const override;
-		void Commit(Settings& settings) override;
+		void Commit(const CommitState& cs) override;
 		SetupFlowPage GetPage() const override { return SetupFlowPage::NetworkSettings; }
 
 	private:

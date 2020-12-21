@@ -117,7 +117,9 @@ bool SetupFlow::OnDraw(Settings& settings, const ISetupFlowPage::DrawState& ds)
 				{
 					if (canCommit)
 					{
-						page->Commit(settings);
+						ISetupFlowPage::CommitState cs(settings);
+						cs.m_UpdateManager = ds.m_UpdateManager;
+						page->Commit(cs);
 						settings.SaveFile();
 					}
 

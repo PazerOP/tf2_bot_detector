@@ -62,7 +62,15 @@ namespace tf2_bot_detector
 		};
 		virtual void Init(const InitState& is) = 0;
 		virtual bool CanCommit() const = 0;
-		virtual void Commit(Settings& settings) = 0;
+
+		struct CommitState
+		{
+			explicit CommitState(Settings& settings) : m_Settings(settings) {}
+
+			Settings& m_Settings;
+			IUpdateManager* m_UpdateManager = nullptr;
+		};
+		virtual void Commit(const CommitState& cs) = 0;
 		virtual bool WantsSetupText() const { return true; }
 		virtual bool WantsContinueButton() const { return true; }
 

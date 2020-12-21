@@ -47,7 +47,7 @@ namespace
 
 		void Init(const InitState&) override {}
 		bool CanCommit() const override { return m_ValidationState == ValidationState::ValidationSuccess; }
-		void Commit(Settings&) override {}
+		void Commit(const CommitState& cs) override {}
 		bool WantsSetupText() const { return false; }
 		bool WantsContinueButton() const { return false; }
 		SetupFlowPage GetPage() const override { return SetupFlowPage::PermissionsCheck; }

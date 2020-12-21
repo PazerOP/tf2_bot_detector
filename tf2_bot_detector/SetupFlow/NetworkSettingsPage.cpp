@@ -3,6 +3,9 @@
 #include "UI/ImGui_TF2BotDetector.h"
 #include "ReleaseChannel.h"
 #include "Version.h"
+#include "UpdateManager.h"
+
+#include <mh/error/ensure.hpp>
 
 using namespace tf2_bot_detector;
 
@@ -75,8 +78,18 @@ bool NetworkSettingsPage::CanCommit() const
 	return InternalValidateSettings(m_Settings);
 }
 
-void NetworkSettingsPage::Commit(Settings& settings)
+void NetworkSettingsPage::Commit(const CommitState& cs)
 {
-	settings.m_AllowInternetUsage = m_Settings.m_AllowInternetUsage;
-	settings.m_ReleaseChannel = m_Settings.m_ReleaseChannel;
+	const bool oldClient = !!cs.m_Settings.GetHTTPClient();
+	cs.m_Settings.m_AllowInternetUsage = m_Settings.m_AllowInternetUsage;
+	cs.m_Settings.m_ReleaseChannel = m_Settings.m_ReleaseChannel;
+
+	if (!oldClient && cs.m_Settings.GetHTTPClient())
+	{
+		DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Re-checking for updates, user has chosen to allow internet connectivity");
+
+		// Trigger an update check, user has enabled
+		if (mh_ensure(cs.m_UpdateManager))
+			cs.m_UpdateManager->QueueUpdateCheck();
+	}
 }

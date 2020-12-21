@@ -94,6 +94,6 @@ bool ChatWrappersVerifyPage::CanCommit() const
 	return true;
 }
 
-void ChatWrappersVerifyPage::Commit(Settings& settings)
+void ChatWrappersVerifyPage::Commit(const CommitState& cs)
 {
 }

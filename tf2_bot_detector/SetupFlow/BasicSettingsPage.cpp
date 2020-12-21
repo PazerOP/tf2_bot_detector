@@ -86,7 +86,7 @@ bool BasicSettingsPage::CanCommit() const
 	return InternalValidateSettings(m_Settings);
 }
 
-void BasicSettingsPage::Commit(Settings& settings)
+void BasicSettingsPage::Commit(const CommitState& cs)
 {
-	static_cast<AutoDetectedSettings&>(settings) = m_Settings;
+	static_cast<AutoDetectedSettings&>(cs.m_Settings) = m_Settings;
 }

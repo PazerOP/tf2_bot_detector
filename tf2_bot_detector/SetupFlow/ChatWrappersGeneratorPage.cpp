@@ -123,24 +123,23 @@ bool ChatWrappersGeneratorPage::CanCommit() const
 	return true;
 }
 
-void ChatWrappersGeneratorPage::Commit(Settings& settings)
+void ChatWrappersGeneratorPage::Commit(const CommitState& cs)
 {
-	const auto wrappersFolder = settings.GetTFDir() / "custom" / TF2BD_CHAT_WRAPPERS_DIR;
+	const auto wrappersFolder = cs.m_Settings.GetTFDir() / "custom" / TF2BD_CHAT_WRAPPERS_DIR;
 
 	if (m_ChatWrappersGenerated.valid())
 	{
 		assert(mh::is_future_ready(m_ChatWrappersGenerated));
-		settings.m_Unsaved.m_ChatMsgWrappers = m_ChatWrappersGenerated.get();
-
+		cs.m_Settings.m_Unsaved.m_ChatMsgWrappers = m_ChatWrappersGenerated.get();
 		// Write chat wrappers
 		{
 			nlohmann::json json;
 			json =
 			{
-				{ "wrappers", settings.m_Unsaved.m_ChatMsgWrappers.value() }
+				{ "wrappers", cs.m_Settings.m_Unsaved.m_ChatMsgWrappers.value() }
 			};
 
-			auto jsonFileName = GetSavedChatMsgWrappersFilename(settings.GetTFDir());
+			auto jsonFileName = GetSavedChatMsgWrappersFilename(cs.m_Settings.GetTFDir());
 			std::ofstream jsonFile(jsonFileName, std::ios::trunc | std::ios::binary);
 
 			auto jsonStr = json.dump(1, '\t', true);
@@ -149,14 +148,14 @@ void ChatWrappersGeneratorPage::Commit(Settings& settings)
 	}
 	else
 	{
-		settings.m_Unsaved.m_ChatMsgWrappers = m_ChatWrappersLoaded.value();
+		cs.m_Settings.m_Unsaved.m_ChatMsgWrappers = m_ChatWrappersLoaded.value();
 	}
 
 	// Generate a random token that will be used to verify that our
 	// custom chat wrappers are in the search path
 	{
 		std::random_device generator;
-		settings.m_Unsaved.m_ChatMsgWrappersToken = generator();
+		cs.m_Settings.m_Unsaved.m_ChatMsgWrappersToken = generator();
 	}
 
 	// Write a cfg file
@@ -166,7 +165,7 @@ void ChatWrappersGeneratorPage::Commit(Settings& settings)
 
 		auto fileName = folder / VERIFY_CFG_FILE_NAME;
 		std::ofstream file(fileName, std::ios::trunc);
-		file << "echo " << GetChatWrapperStringToken(settings.m_Unsaved.m_ChatMsgWrappersToken);
+		file << "echo " << GetChatWrapperStringToken(cs.m_Settings.m_Unsaved.m_ChatMsgWrappersToken);
 	}
 }
 

@@ -368,9 +368,9 @@ void TF2CommandLinePage::Init(const InitState& is)
 	m_Data.m_RandomRCONPort = GenerateRandomRCONPort();
 }
 
-void TF2CommandLinePage::Commit(Settings& settings)
+void TF2CommandLinePage::Commit(const CommitState& cs)
 {
 	m_IsAutoLaunchAllowed = false;
-	settings.m_Unsaved.m_RCONClient = std::move(m_Data.m_TestRCONClient.value().m_Client);
+	cs.m_Settings.m_Unsaved.m_RCONClient = std::move(m_Data.m_TestRCONClient.value().m_Client);
 	m_Data.m_TestRCONClient.reset();
 }

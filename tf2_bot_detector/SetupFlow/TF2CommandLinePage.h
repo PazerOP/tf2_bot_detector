@@ -21,7 +21,7 @@ namespace tf2_bot_detector
 
 		void Init(const InitState& is) override;
 		bool CanCommit() const override { return true; }
-		void Commit(Settings& settings) override;
+		void Commit(const CommitState& cs) override;
 
 		bool WantsSetupText() const override { return false; }
 		bool WantsContinueButton() const override { return false; }
