@@ -42,9 +42,6 @@ endif()
 target_compile_features(tf2_bot_detector_updater PUBLIC cxx_std_20)
 
 set_target_properties(tf2_bot_detector_updater PROPERTIES
-	# RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${PROJECT_NAME}"
-	# RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/${PROJECT_NAME}"
-	# RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/${PROJECT_NAME}"
 	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
 )
 
@@ -56,17 +53,17 @@ message("VCPKG_TARGET_TRIPLET = ${VCPKG_TARGET_TRIPLET}")
 message("MSVC_RUNTIME_LIBRARY = ${MSVC_RUNTIME_LIBRARY}")
 
 find_package(fmt CONFIG REQUIRED)
-# include(../tf2_bot_detector_common/CMakeLists.txt)
 add_subdirectory(../submodules/mh_stuff "${PROJECT_BINARY_DIR}/submodules/mh_stuff")
-
-# add_library(tf2_bot_detector::common INTERFACE IMPORTED)
-# find_package(tf2_bot_detector)
-
-# find_package(tf2_bot_detector REQUIRED)
 add_subdirectory(../tf2_bot_detector_common "${PROJECT_BINARY_DIR}/tf2_bot_detector_common")
+
+find_package(OpenSSL REQUIRED)
 
 target_link_libraries(tf2_bot_detector_updater PRIVATE
 	tf2_bot_detector::common
 	mh::stuff
 	fmt::fmt
+	OpenSSL::SSL # cpp-httplib requires openssl
 )
+
+find_path(HTTPLIB_PATH NAMES httplib.h)
+target_include_directories(tf2_bot_detector_updater PRIVATE ${HTTPLIB_PATH})

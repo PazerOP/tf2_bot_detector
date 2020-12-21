@@ -2,6 +2,8 @@
 	"name": "tf2-bot-detector",
 	"version-string": "",
 	"dependencies": [
-		"fmt"
+		"fmt",
+		"cpp-httplib",
+		"openssl"
 	]
 }
