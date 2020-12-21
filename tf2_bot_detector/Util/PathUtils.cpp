@@ -142,23 +142,27 @@ DirectoryValidatorResult tf2_bot_detector::ValidateSteamDir(std::filesystem::pat
 
 mh::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(const std::filesystem::path& steamDir)
 {
-	co_yield steamDir / "steamapps";
-
-	const auto libraryFoldersFilename = steamDir / "steamapps/libraryfolders.vdf";
-	std::ifstream file(libraryFoldersFilename);
-	if (!file.good())
+	const auto baseSteamAppsDir = steamDir / "steamapps";
+	if (std::filesystem::exists(baseSteamAppsDir))
 	{
-		DebugLogWarning(std::string(__FUNCTION__) << ": Failed to read " << libraryFoldersFilename);
-		co_return;
-	}
+		co_yield baseSteamAppsDir;
 
-	auto vdf = tyti::vdf::read(file);
-	for (const auto& attrib : vdf.attribs)
-	{
-		if (!std::all_of(attrib.first.begin(), attrib.first.end(), [](char c) { return isdigit(c); }))
-			continue;
+		const auto libraryFoldersFilename = baseSteamAppsDir / "libraryfolders.vdf";
+		std::ifstream file(libraryFoldersFilename);
+		if (!file.good())
+		{
+			DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Failed to read {}", libraryFoldersFilename);
+			co_return;
+		}
 
-		co_yield std::filesystem::path(attrib.second) / "steamapps";
+		auto vdf = tyti::vdf::read(file);
+		for (const auto& attrib : vdf.attribs)
+		{
+			if (!std::all_of(attrib.first.begin(), attrib.first.end(), [](char c) { return isdigit(c); }))
+				continue;
+
+			co_yield std::filesystem::path(attrib.second) / "steamapps";
+		}
 	}
 }
 
@@ -166,14 +170,14 @@ std::filesystem::path tf2_bot_detector::FindTFDir(const std::filesystem::path& s
 {
 	for (const auto& libraryFolder : GetSteamLibraryFolders(steamDir))
 	{
-		auto tfDir = libraryFolder / "common/Team Fortress 2/tf";
+		auto tfDir = libraryFolder / "common" / "Team Fortress 2" / "tf";
 		if (!ValidateTFDir(tfDir))
 			continue;
 
 		return tfDir;
 	}
 
-	LogError("Failed to find tf directory from "s << steamDir);
+	LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to find tf directory from {}", steamDir);
 	return {};
 }
 
@@ -201,10 +205,10 @@ void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duratio
 		if (age > maxAge)
 		{
 			std::error_code ec;
-			DebugLog("Removing old file "s << path);
+			DebugLog("Removing old file {}", path);
 			std::filesystem::remove(path, ec);
 			if (ec)
-				LogWarning("Failed to delete "s << path << ": " << ec.message());
+				LogWarning("Failed to delete {}: {}", path, ec);
 		}
 	}
 }
