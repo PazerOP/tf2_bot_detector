@@ -9,6 +9,7 @@
 #include "Platform/Platform.h"
 
 #include <mh/text/format.hpp>
+#include <mh/text/formatters/error_code.hpp>
 #include <mh/future.hpp>
 
 #include <regex>
@@ -51,13 +52,18 @@ void ConsoleLogParser::Update()
 				Log("Truncated console log file");
 		}
 
+		std::error_condition ec;
 		{
-			FILE* temp = _fsopen(m_FileName.string().c_str(), "r", _SH_DENYNO);
+			FILE* temp = _wfsopen(m_FileName.c_str(), L"r", _SH_DENYNO);
+			auto e = errno;
+			ec = std::system_category().default_error_condition(e);
 			m_File.reset(temp);
 		}
 
 		if (!m_File)
-			DebugLog("Failed to open {}", m_FileName);
+			DebugLog("Failed to open {}: {}", m_FileName, ec);
+		else
+			Log("Successfully opened {}", m_FileName);
 	}
 
 	bool snapshotUpdated = false;

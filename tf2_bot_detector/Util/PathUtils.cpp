@@ -84,6 +84,9 @@ using namespace tf2_bot_detector;
 
 DirectoryValidatorResult tf2_bot_detector::ValidateTFDir(std::filesystem::path path)
 {
+	if (path.empty())
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "\"path\" was empty!");
+
 	DirectoryValidatorResult result(std::move(path));
 
 	using Result = DirectoryValidatorResult::Result;
@@ -148,6 +151,12 @@ mh::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(co
 		co_yield baseSteamAppsDir;
 
 		const auto libraryFoldersFilename = baseSteamAppsDir / "libraryfolders.vdf";
+		if (!std::filesystem::exists(libraryFoldersFilename))
+		{
+			DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "{} does not exist", libraryFoldersFilename);
+			co_return;
+		}
+
 		std::ifstream file(libraryFoldersFilename);
 		if (!file.good())
 		{
@@ -167,18 +176,18 @@ mh::generator<std::filesystem::path> tf2_bot_detector::GetSteamLibraryFolders(co
 }
 
 std::filesystem::path tf2_bot_detector::FindTFDir(const std::filesystem::path& steamDir)
-{
-	for (const auto& libraryFolder : GetSteamLibraryFolders(steamDir))
-	{
-		auto tfDir = libraryFolder / "common" / "Team Fortress 2" / "tf";
-		if (!ValidateTFDir(tfDir))
-			continue;
+		{
+			for (const auto& libraryFolder : GetSteamLibraryFolders(steamDir))
+			{
+				auto tfDir = libraryFolder / "common" / "Team Fortress 2" / "tf";
+				if (!ValidateTFDir(tfDir))
+					continue;
 
-		return tfDir;
-	}
+				return tfDir;
+			}
 
-	LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to find tf directory from {}", steamDir);
-	return {};
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to find tf directory from {}", steamDir);
+			return {};
 }
 
 void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duration_t maxAge) try
