@@ -56,32 +56,7 @@ MainWindow::MainWindow() :
 	GetWorld().AddConsoleLineListener(this);
 	GetWorld().AddWorldEventListener(this);
 
-	DebugLog("Debug Info:"s
-		<< "\n\tSteam dir:         " << m_Settings.GetSteamDir()
-		<< "\n\tTF dir:            " << m_Settings.GetTFDir()
-		<< "\n\tSteamID:           " << m_Settings.GetLocalSteamID()
-		<< "\n\tVersion:           " << VERSION
-		<< "\n\tIs CI Build:       " << std::boolalpha << (TF2BD_IS_CI_COMPILE ? true : false)
-		<< "\n\tCompile Timestamp: " << __TIMESTAMP__
-		<< "\n\tOpenGL Version:    " << GetGLContextVersion()
-
-		<< "\n\tIs Debug Build:    "
-#ifdef _DEBUG
-		<< true
-#else
-		<< false
-#endif
-
-#ifdef _MSC_FULL_VER
-		<< "\n\t-D _MSC_FULL_VER:  " << _MSC_FULL_VER
-#endif
-#if _M_X64
-		<< "\n\t-D _M_X64:         " << _M_X64
-#endif
-#if _MT
-		<< "\n\t-D _MT:            " << _MT
-#endif
-	);
+	PrintDebugInfo();
 
 	m_OpenTime = clock_t::now();
 
@@ -430,6 +405,36 @@ void MainWindow::OnDrawAboutPopup()
 
 		ImGui::EndPopup();
 	}
+}
+
+void MainWindow::PrintDebugInfo()
+{
+	DebugLog("Debug Info:"s
+		<< "\n\tSteam dir:         " << m_Settings.GetSteamDir()
+		<< "\n\tTF dir:            " << m_Settings.GetTFDir()
+		<< "\n\tSteamID:           " << m_Settings.GetLocalSteamID()
+		<< "\n\tVersion:           " << VERSION
+		<< "\n\tIs CI Build:       " << std::boolalpha << (TF2BD_IS_CI_COMPILE ? true : false)
+		<< "\n\tCompile Timestamp: " << __TIMESTAMP__
+		<< "\n\tOpenGL Version:    " << GetGLContextVersion()
+
+		<< "\n\tIs Debug Build:    "
+#ifdef _DEBUG
+		<< true
+#else
+		<< false
+#endif
+
+#ifdef _MSC_FULL_VER
+		<< "\n\t-D _MSC_FULL_VER:  " << _MSC_FULL_VER
+#endif
+#if _M_X64
+		<< "\n\t-D _M_X64:         " << _M_X64
+#endif
+#if _MT
+		<< "\n\t-D _MT:            " << _MT
+#endif
+	);
 }
 
 void MainWindow::GenerateDebugReport() try

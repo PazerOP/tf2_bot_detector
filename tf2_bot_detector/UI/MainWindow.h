@@ -78,6 +78,7 @@ namespace tf2_bot_detector
 		bool m_AboutPopupOpen = false;
 		void OpenAboutPopup() { m_AboutPopupOpen = true; }
 
+		void PrintDebugInfo();
 		void GenerateDebugReport();
 
 		void OnUpdate() override;
