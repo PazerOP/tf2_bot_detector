@@ -52,11 +52,14 @@ void ConsoleLogParser::Update()
 				Log("Truncated console log file");
 		}
 
-		std::error_condition ec;
+		std::error_code ec;
 		{
 			FILE* temp = _wfsopen(m_FileName.c_str(), L"r", _SH_DENYNO);
-			auto e = errno;
-			ec = std::system_category().default_error_condition(e);
+			if (!temp)
+			{
+				auto e = errno;
+				ec = std::error_code(e, std::system_category());
+			}
 			m_File.reset(temp);
 		}
 
