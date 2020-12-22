@@ -58,7 +58,7 @@ void ConsoleLogParser::Update()
 			if (!temp)
 			{
 				auto e = errno;
-				ec = std::error_code(e, std::system_category());
+				ec = std::error_code(e, std::generic_category());
 			}
 			m_File.reset(temp);
 		}
