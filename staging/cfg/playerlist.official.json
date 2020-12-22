@@ -132,6 +132,16 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "MGW",
+				"time": 1608675097
+			},
+			"steamid": "[U:1:56737138]"
+		},
+		{
+			"attributes": [
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "steven seaga;l",
 				"time": 1594610064
 			},
@@ -5739,10 +5749,30 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(1)Festive Hitman",
+				"time": 1608676642
+			},
+			"steamid": "[U:1:1140146670]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "Gray Bot Removal Service",
 				"time": 1606097365
 			},
 			"steamid": "[U:1:1140146806]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Festive Hitman",
+				"time": 1608677540
+			},
+			"steamid": "[U:1:1140150188]"
 		},
 		{
 			"attributes": [
@@ -5843,6 +5873,16 @@
 				"time": 1608421572
 			},
 			"steamid": "[U:1:1140871705]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Festive Hitman",
+				"time": 1608676640
+			},
+			"steamid": "[U:1:1140882378]"
 		},
 		{
 			"attributes": [
@@ -6073,6 +6113,16 @@
 				"time": 1607325369
 			},
 			"steamid": "[U:1:1148632109]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Emmitrtmil\u0e4a",
+				"time": 1608677395
+			},
+			"steamid": "[U:1:1158572804]"
 		}
 	]
 }
