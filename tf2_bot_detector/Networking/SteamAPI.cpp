@@ -31,7 +31,7 @@ namespace
 	};
 
 	static mh::thread_pool<SteamAPITask> s_SteamAPIThreadPool(2);
-	static std::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, URL url)
+	static mh::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, URL url)
 	{
 		auto clientPtr = client.shared_from_this();
 		return s_SteamAPIThreadPool.add_task([clientPtr, url]() -> SteamAPITask
@@ -55,7 +55,7 @@ namespace
 			DeleteOldFiles(m_CacheDir, 24h * 7);
 		}
 
-		std::shared_future<Bitmap> GetAvatarBitmap(const HTTPClient* client,
+		mh::task<Bitmap> GetAvatarBitmap(const HTTPClient* client,
 			const std::string& url, const std::string_view& hash) const
 		{
 			const std::filesystem::path cachedPath = m_CacheDir / mh::fmtstr<128>("{}.jpg", hash).view();
@@ -66,7 +66,7 @@ namespace
 				try
 				{
 					if (std::filesystem::exists(cachedPath))
-						return mh::make_ready_future(Bitmap(cachedPath));
+						co_return Bitmap(cachedPath);
 				}
 				catch (const std::exception& e)
 				{
@@ -76,23 +76,19 @@ namespace
 
 			if (client)
 			{
-				auto dataFuture = SteamAPIGET(*client, url);
 				// We're not stored in the cache, download now
-				return std::async([this, cachedPath, dataFuture]() -> Bitmap
-					{
-						const SteamAPITask& data = dataFuture.get();
+				const SteamAPITask& data = co_await SteamAPIGET(*client, url);
 
-						std::lock_guard lock(m_CacheMutex);
-						{
-							std::ofstream file(cachedPath, std::ios::trunc | std::ios::binary);
-							file << data.m_Response;
-						}
-						return Bitmap(cachedPath);
-					});
+				std::lock_guard lock(m_CacheMutex);
+				{
+					std::ofstream file(cachedPath, std::ios::trunc | std::ios::binary);
+					file << data.m_Response;
+				}
+				co_return Bitmap(cachedPath);
 			}
 
 			// No HTTPClient and we're not in the cache, so just give up
-			return mh::make_ready_future(Bitmap{});
+			co_return Bitmap{};
 		}
 
 	private:
@@ -135,7 +131,7 @@ std::string PlayerSummary::GetAvatarURL(AvatarQuality quality) const
 		m_AvatarHash, qualityStr);
 }
 
-std::shared_future<Bitmap> PlayerSummary::GetAvatarBitmap(const HTTPClient* client, AvatarQuality quality) const
+mh::task<Bitmap> PlayerSummary::GetAvatarBitmap(const HTTPClient* client, AvatarQuality quality) const
 {
 	return s_AvatarCacheManager.GetAvatarBitmap(client, GetAvatarURL(quality), m_AvatarHash);
 }
@@ -179,16 +175,16 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerSummar
 		d.m_CreationTime = std::chrono::system_clock::time_point(std::chrono::seconds(found->get<uint64_t>()));
 }
 
-std::future<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSummariesAsync(
+mh::task<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSummariesAsync(
 	const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
-		return {};
+		co_return {};
 
 	if (apikey.empty())
 	{
 		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
-		return {};
+		co_return {};
 	}
 
 	if (steamIDs.size() > 100)
@@ -208,13 +204,10 @@ std::future<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSum
 		url << steamIDs[i].ID64;
 	}
 
-	auto data = SteamAPIGET(client, url);
+	const auto& data = co_await SteamAPIGET(client, url);
 
-	return std::async([data]
-		{
-			auto json = nlohmann::json::parse(data.get().m_Response);
-			return json.at("response").at("players").get<std::vector<PlayerSummary>>();
-		});
+	auto json = nlohmann::json::parse(data.m_Response);
+	co_return json.at("response").at("players").get<std::vector<PlayerSummary>>();
 }
 
 void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerBans& d)
@@ -240,11 +233,11 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerBans& 
 	}
 }
 
-std::shared_future<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync(
+mh::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync(
 	const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
-		return mh::make_ready_future<std::vector<PlayerBans>>();
+		co_return std::vector<PlayerBans>();
 
 	if (apikey.empty())
 		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::EmptyAPIKey);
@@ -265,33 +258,30 @@ std::shared_future<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlaye
 
 	auto data = SteamAPIGET(client, url);
 
-	return std::async([data]
-		{
-			std::string response;
-			try
-			{
-				response = data.get().m_Response;
-			}
-			catch (const std::exception&)
-			{
-				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GenericHttpError);
-			}
+	std::string response;
+	try
+	{
+		response = (co_await data).m_Response;
+	}
+	catch (const std::exception&)
+	{
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GenericHttpError);
+	}
 
-			nlohmann::json json;
-			try
-			{
-				json = nlohmann::json::parse(response);
-			}
-			catch (const std::exception&)
-			{
-				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::JSONParseError);
-			}
+	nlohmann::json json;
+	try
+	{
+		json = nlohmann::json::parse(response);
+	}
+	catch (const std::exception&)
+	{
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::JSONParseError);
+	}
 
-			return json.at("players").get<std::vector<PlayerBans>>();
-		});
+	co_return json.at("players").get<std::vector<PlayerBans>>();
 }
 
-std::future<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
+mh::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 	const std::string_view& apikey, const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
@@ -305,55 +295,53 @@ std::future<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 
 	auto url = mh::format(MH_FMT_STRING("https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&input_json=%7B%22appids_filter%22%3A%5B440%5D,%22include_played_free_games%22%3Atrue,%22steamid%22%3A{}%7D"), apikey, steamID.ID64);
 
-	auto data = SteamAPIGET(client, url);
-	return std::async([data]() -> duration_t
-		{
-			std::string responseString;
-			try
-			{
-				responseString = data.get().m_Response;
-			}
-			catch (...)
-			{
-				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GenericHttpError);
-			}
+	auto data = co_await SteamAPIGET(client, url);
 
-			nlohmann::json json;
-			try
-			{
-				json = nlohmann::json::parse(responseString);
-			}
-			catch (...)
-			{
-				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::JSONParseError);
-			}
+	std::string responseString;
+	try
+	{
+		responseString = data.m_Response;
+	}
+	catch (...)
+	{
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GenericHttpError);
+	}
 
-			auto& response = json.at("response");
-			if (!response.contains("game_count"))
-			{
-				// response is empty (as opposed to games being empty and game_count = 0) if games list is private
-				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::InfoPrivate, "Games list is private");
-			}
+	nlohmann::json json;
+	try
+	{
+		json = nlohmann::json::parse(responseString);
+	}
+	catch (...)
+	{
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::JSONParseError);
+	}
 
-			auto games = response.find("games");
-			if (games == response.end())
-				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GameNotOwned); // TF2 not on their owned games list
+	auto& response = json.at("response");
+	if (!response.contains("game_count"))
+	{
+		// response is empty (as opposed to games being empty and game_count = 0) if games list is private
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::InfoPrivate, "Games list is private");
+	}
 
-			if (games->size() != 1)
-			{
-				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::UnexpectedDataFormat,
-					mh::format(MH_FMT_STRING("Unexpected games array size {}"), games->size()));
-			}
+	auto games = response.find("games");
+	if (games == response.end())
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GameNotOwned); // TF2 not on their owned games list
 
-			auto& firstElem = games->at(0);
-			if (uint32_t appid = firstElem.at("appid"); appid != 440)
-			{
-				throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::UnexpectedDataFormat,
-					mh::format(MH_FMT_STRING("Unexpected appid {} at response.games[0].appid"), appid));
-			}
+	if (games->size() != 1)
+	{
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::UnexpectedDataFormat,
+			mh::format(MH_FMT_STRING("Unexpected games array size {}"), games->size()));
+	}
 
-			return std::chrono::minutes(firstElem.at("playtime_forever"));
-		});
+	auto& firstElem = games->at(0);
+	if (uint32_t appid = firstElem.at("appid"); appid != 440)
+	{
+		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::UnexpectedDataFormat,
+			mh::format(MH_FMT_STRING("Unexpected appid {} at response.games[0].appid"), appid));
+	}
+
+	co_return std::chrono::minutes(firstElem.at("playtime_forever"));
 }
 
 namespace tf2_bot_detector::SteamAPI
@@ -402,40 +390,38 @@ std::error_condition tf2_bot_detector::SteamAPI::make_error_condition(tf2_bot_de
 	return std::error_condition(int(e), tf2_bot_detector::SteamAPI::ErrorCategory());
 }
 
-std::future<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(const std::string_view& apikey,
+mh::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(const std::string_view& apikey,
 	const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
 	{
 		LogError(MH_SOURCE_LOCATION_CURRENT(), "Invalid SteamID {}", steamID.ID64);
-		return {};
+		co_return {};
 	}
 
 	if (apikey.empty())
 	{
 		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
-		return {};
+		co_return {};
 	}
 
 	auto url = mh::format(
 		MH_FMT_STRING("https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}"),
 		apikey, steamID.ID64);
 
-	auto data = SteamAPIGET(client, url);
-	return std::async([data]() -> std::unordered_set<SteamID>
-		{
-			const auto json = nlohmann::json::parse(data.get().m_Response);
+	auto data = co_await SteamAPIGET(client, url);
 
-			std::unordered_set<SteamID> retVal;
+	const auto json = nlohmann::json::parse(data.m_Response);
 
-			auto& friendsList = json.at("friendslist");
-			auto& friends = friendsList.at("friends");
+	std::unordered_set<SteamID> retVal;
 
-			for (const auto& friendEntry : friends)
-				retVal.insert(SteamID(friendEntry.at("steamid").get<std::string_view>()));
+	auto& friendsList = json.at("friendslist");
+	auto& friends = friendsList.at("friends");
 
-			return retVal;
-		});
+	for (const auto& friendEntry : friends)
+		retVal.insert(SteamID(friendEntry.at("steamid").get<std::string_view>()));
+
+	co_return retVal;
 }
 
 tf2_bot_detector::SteamAPI::SteamAPIError::SteamAPIError(const mh::source_location& location,

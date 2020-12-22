@@ -3,6 +3,7 @@
 #include "Config/ChatWrappers.h"
 #include "ISetupFlowPage.h"
 
+#include <mh/concurrency/future.hpp>
 #include <mh/error/status.hpp>
 
 #include <future>
@@ -31,7 +32,7 @@ namespace tf2_bot_detector
 	private:
 		mh::status_reader<ChatWrappersProgress> m_Progress;
 
-		std::future<ChatWrappers> m_ChatWrappersGenerated;
+		mh::future<ChatWrappers> m_ChatWrappersGenerated;
 		bool m_WasInitiallyClosed = true;
 		std::optional<ChatWrappers> m_ChatWrappersLoaded;
 	};

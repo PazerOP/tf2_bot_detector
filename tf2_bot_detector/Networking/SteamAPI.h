@@ -4,6 +4,7 @@
 #include "Clock.h"
 #include "SteamID.h"
 
+#include <mh/coroutine/task.hpp>
 #include <mh/error/error_code_exception.hpp>
 #include <nlohmann/json_fwd.hpp>
 
@@ -95,14 +96,14 @@ namespace tf2_bot_detector::SteamAPI
 		std::optional<duration_t> GetAccountAge() const;
 
 		std::string GetAvatarURL(AvatarQuality quality = AvatarQuality::Large) const;
-		std::shared_future<Bitmap> GetAvatarBitmap(const HTTPClient* client,
+		mh::task<Bitmap> GetAvatarBitmap(const HTTPClient* client,
 			AvatarQuality quality = AvatarQuality::Large) const;
 
 		std::string_view GetVanityURL() const;
 	};
 	void from_json(const nlohmann::json& j, PlayerSummary& d);
 
-	std::future<std::vector<PlayerSummary>> GetPlayerSummariesAsync(
+	mh::task<std::vector<PlayerSummary>> GetPlayerSummariesAsync(
 		const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client);
 
 	enum class PlayerEconomyBan
@@ -125,12 +126,12 @@ namespace tf2_bot_detector::SteamAPI
 	};
 	void from_json(const nlohmann::json& j, PlayerBans& d);
 
-	std::shared_future<std::vector<PlayerBans>> GetPlayerBansAsync(
+	mh::task<std::vector<PlayerBans>> GetPlayerBansAsync(
 		const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client);
 
-	std::future<duration_t> GetTF2PlaytimeAsync(const std::string_view& apikey,
+	mh::task<duration_t> GetTF2PlaytimeAsync(const std::string_view& apikey,
 		const SteamID& steamID, const HTTPClient& client);
 
-	std::future<std::unordered_set<SteamID>> GetFriendList(const std::string_view& apikey,
+	mh::task<std::unordered_set<SteamID>> GetFriendList(const std::string_view& apikey,
 		const SteamID& steamID, const HTTPClient& client);
 }

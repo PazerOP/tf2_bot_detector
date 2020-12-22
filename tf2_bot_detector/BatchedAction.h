@@ -18,7 +18,7 @@ namespace tf2_bot_detector
 		using state_type = TState;
 		using queue_collection_type = std::unordered_set<TItem>;
 		using response_type = TResponse;
-		using response_future_type = std::shared_future<response_type>;
+		using response_future_type = mh::task<response_type>;
 
 		BatchedAction() = default;
 		BatchedAction(const TState& state) : m_State(state) {}
@@ -60,7 +60,7 @@ namespace tf2_bot_detector
 					m_ResponseFuture = SendRequest(m_State, m_Queued);
 				});
 
-			if (mh::is_future_ready(m_ResponseFuture))
+			if (m_ResponseFuture.is_ready())
 			{
 				std::lock_guard lock(m_Mutex);
 				try

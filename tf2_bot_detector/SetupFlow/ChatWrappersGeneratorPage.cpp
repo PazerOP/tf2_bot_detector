@@ -5,6 +5,7 @@
 #include "Platform/Platform.h"
 
 #include <mh/future.hpp>
+#include <mh/concurrency/async.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
@@ -114,7 +115,7 @@ void ChatWrappersGeneratorPage::Init(const InitState& is)
 		}
 
 		DebugLog("Regenerating chat wrappers...");
-		m_ChatWrappersGenerated = std::async([this, tfDir] { return RandomizeChatWrappers(tfDir, &m_Progress); });
+		m_ChatWrappersGenerated = mh::async([this, tfDir] { return RandomizeChatWrappers(tfDir, &m_Progress); });
 	}
 }
 

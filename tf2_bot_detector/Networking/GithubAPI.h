@@ -2,7 +2,8 @@
 
 #include "Version.h"
 
-#include <future>
+#include <mh/coroutine/task.hpp>
+
 #include <optional>
 #include <string>
 
@@ -41,5 +42,5 @@ namespace tf2_bot_detector::GithubAPI
 		std::optional<Release> m_Preview;
 	};
 
-	[[nodiscard]] std::future<NewVersionResult> CheckForNewVersion(const HTTPClient& client);
+	[[nodiscard]] mh::task<NewVersionResult> CheckForNewVersion(const HTTPClient& client);
 }

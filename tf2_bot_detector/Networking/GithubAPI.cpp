@@ -5,6 +5,7 @@
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
 
+#include <mh/concurrency/async.hpp>
 #include <mh/coroutine/generator.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
@@ -101,33 +102,7 @@ static NewVersionResult GetLatestVersion(const HTTPClient& client)
 	}
 }
 
-#if 0
-static const std::shared_future<GithubAPI::NewVersionResult>& GetVersionCheckFuture()
+auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> mh::task<NewVersionResult>
 {
-	static std::shared_future<GithubAPI::NewVersionResult> s_IsNewerVersionAvailable = std::async([]() -> NewVersionResult
-		{
-			using Status = NewVersionResult::Status;
-			Version latestVersion;
-			std::string url;
-			if (!GetLatestVersion(latestVersion, url))
-				return Status::Error;
-
-			if (VERSION.m_Major == latestVersion.m_Major &&
-				VERSION.m_Minor == latestVersion.m_Minor &&
-				VERSION.m_Patch == latestVersion.m_Patch &&
-				VERSION.m_Preview < latestVersion.m_Preview)
-			{
-				return { Status::PreviewAvailable, url };
-			}
-
-			return (latestVersion > VERSION) ? NewVersionResult{ Status::ReleaseAvailable, url } : Status::NoNewVersion;
-		});
-
-	return s_IsNewerVersionAvailable;
-}
-#endif
-
-auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> std::future<NewVersionResult>
-{
-	return std::async([&] { return GetLatestVersion(client); });
+	co_return co_await mh::async([&] { return GetLatestVersion(client); });
 }
