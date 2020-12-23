@@ -574,6 +574,8 @@ void MainWindow::OnDraw()
 		ImGui::TextFmt("FPS: {:1.1f}", GetFPS());
 
 		ImGui::Value("Texture Count", m_TextureManager->GetActiveTextureCount());
+
+		ImGui::TextFmt("RAM Usage: {:1.1f} MB", Platform::Processes::GetCurrentRAMUsage() / 1024.0f / 1024);
 	}
 #endif
 

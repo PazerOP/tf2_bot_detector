@@ -2,6 +2,7 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
+#include <mh/error/ensure.hpp>
 #include <mh/text/codecvt.hpp>
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -20,6 +21,7 @@
 #include <Wbemidl.h>
 #include <TlHelp32.h>
 #include <wrl/client.h>
+#include <Psapi.h>
 
 #undef min
 #undef max
@@ -295,4 +297,12 @@ void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable
 int tf2_bot_detector::Processes::GetCurrentProcessID()
 {
 	return ::GetCurrentProcessId();
+}
+
+size_t tf2_bot_detector::Processes::GetCurrentRAMUsage()
+{
+	PROCESS_MEMORY_COUNTERS counters{};
+	counters.cb = sizeof(counters);
+	mh_ensure(GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters)));
+	return counters.WorkingSetSize;
 }

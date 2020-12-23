@@ -78,6 +78,8 @@ namespace tf2_bot_detector
 			void Launch(const std::filesystem::path& executable, const std::string_view& args = {},
 					bool elevated = false);
 			int GetCurrentProcessID();
+
+			size_t GetCurrentRAMUsage();
 		}
 
 		namespace Shell
