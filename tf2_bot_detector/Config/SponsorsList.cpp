@@ -20,7 +20,7 @@ void SponsorsList::LoadFile()
 
 auto SponsorsList::GetSponsors() const -> std::vector<Sponsor>
 {
-	if (!mh::is_future_ready(m_Sponsors))
+	if (!m_Sponsors.is_ready())
 		return {};
 
 	return m_Sponsors.get().m_Sponsors;

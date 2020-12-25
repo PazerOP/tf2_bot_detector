@@ -4,11 +4,11 @@
 #include "SteamID.h"
 #include "Version.h"
 
+#include <mh/coroutine/task.hpp>
 #include <mh/reflection/enum.hpp>
 
 #include <filesystem>
 #include <future>
-#include <optional>
 #include <string>
 #include <variant>
 
@@ -61,7 +61,7 @@ namespace tf2_bot_detector
 		};
 
 		bool CanInstallUpdate(const BuildInfo& bi);
-		std::future<InstallUpdate::Result> BeginInstallUpdate(const BuildInfo& bi, const HTTPClient& client);
+		mh::task<InstallUpdate::Result> BeginInstallUpdate(const BuildInfo& bi, const HTTPClient& client);
 		bool IsInstalled(); // As opposed to portable
 
 		bool NeedsElevationToWrite(const std::filesystem::path& path, bool recursive = false);

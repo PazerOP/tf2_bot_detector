@@ -2,7 +2,7 @@
 
 #include "ConfigHelpers.h"
 
-#include <mh/future.hpp>
+#include <mh/coroutine/task.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 #include <vector>
@@ -16,7 +16,7 @@ namespace tf2_bot_detector
 
 		void LoadFile();
 
-		bool IsLoading() const { return mh::is_future_ready(m_Sponsors); }
+		bool IsLoading() const { return !m_Sponsors.is_ready(); }
 
 		struct Sponsor
 		{
@@ -42,7 +42,7 @@ namespace tf2_bot_detector
 			std::vector<Sponsor> m_Sponsors;
 		};
 
-		std::shared_future<SponsorsListFile> m_Sponsors;
+		mh::task<SponsorsListFile> m_Sponsors;
 	};
 
 	void to_json(nlohmann::json& j, const SponsorsList::Sponsor& d);

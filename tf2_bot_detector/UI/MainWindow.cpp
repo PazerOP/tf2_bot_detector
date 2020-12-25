@@ -955,14 +955,14 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 	struct PlayerAvatarData
 	{
 		std::variant<
-			mh::shared_task<Bitmap>,
+			mh::task<Bitmap>,
 			std::shared_ptr<ITexture>,
 			std::error_condition> m_State;
 	};
 
 	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>().m_State;
 
-	if (auto future = std::get_if<mh::shared_task<Bitmap>>(&avatarData))
+	if (auto future = std::get_if<mh::task<Bitmap>>(&avatarData))
 	{
 		if (future->is_ready())
 		{

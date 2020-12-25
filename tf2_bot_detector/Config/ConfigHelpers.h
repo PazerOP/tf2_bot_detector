@@ -2,6 +2,8 @@
 #include "Log.h"
 #include "Settings.h"
 
+#include <mh/coroutine/task.hpp>
+#include <mh/coroutine/thread.hpp>
 #include <mh/future.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
@@ -117,17 +119,18 @@ namespace tf2_bot_detector
 	{
 		if constexpr (std::is_base_of_v<SharedConfigFileBase, T>)
 		{
-			if (allowAutoupdate)
+			return [filename, allowAutoupdate, &settings]() -> typename mh::task<T>
 			{
-				return std::async([filename, &settings]
-					{
-						return LoadConfigFile<T>(filename, true, settings);
-					});
-			}
-			else
-			{
-				return mh::make_ready_future(LoadConfigFile<T>(filename, false, settings));
-			}
+				if (allowAutoupdate)
+				{
+					co_await mh::co_create_thread();
+					co_return LoadConfigFile<T>(filename, true, settings);
+				}
+				else
+				{
+					co_return LoadConfigFile<T>(filename, false, settings);
+				}
+			}();
 		}
 		else
 		{
@@ -160,10 +163,12 @@ namespace tf2_bot_detector
 			if (!paths.m_Official.empty())
 				m_OfficialList = LoadConfigFileAsync<T>(paths.m_Official, !IsOfficial(), *m_Settings);
 			else
-				m_OfficialList = mh::make_ready_future<T>();
+				m_OfficialList = mh::make_ready_task<T>();
 
-			m_ThirdPartyLists = std::async([this, paths]
+			m_ThirdPartyLists = [this, paths]() -> mh::task<collection_type>
 				{
+					co_await mh::co_create_thread();
+
 					collection_type collection;
 
 					for (const auto& file : paths.m_Others)
@@ -179,8 +184,8 @@ namespace tf2_bot_detector
 						}
 					}
 
-					return collection;
-				});
+					co_return collection;
+			}();
 		}
 
 		void SaveFiles() const
@@ -237,19 +242,19 @@ namespace tf2_bot_detector
 		{
 			size_t retVal = 0;
 
-			if (mh::is_future_ready(m_OfficialList))
+			if (m_OfficialList.is_ready())
 				retVal += m_OfficialList.get().size();
 			if (m_UserList)
 				retVal += m_UserList->size();
-			if (mh::is_future_ready(m_ThirdPartyLists))
+			if (m_ThirdPartyLists.is_ready())
 				retVal += m_ThirdPartyLists.get().size();
 
 			return retVal;
 		}
 
 		const Settings* m_Settings = nullptr;
-		std::shared_future<T> m_OfficialList;
+		mh::task<T> m_OfficialList;
 		std::optional<T> m_UserList;
-		std::shared_future<collection_type> m_ThirdPartyLists;
+		mh::task<collection_type> m_ThirdPartyLists;
 	};
 }

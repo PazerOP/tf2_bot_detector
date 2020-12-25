@@ -7,6 +7,7 @@
 
 #include <mh/concurrency/async.hpp>
 #include <mh/coroutine/generator.hpp>
+#include <mh/coroutine/thread.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
@@ -104,5 +105,8 @@ static NewVersionResult GetLatestVersion(const HTTPClient& client)
 
 auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> mh::task<NewVersionResult>
 {
-	co_return co_await mh::async([&] { return GetLatestVersion(client); });
+	auto clientPtr = client.shared_from_this();
+	co_await mh::co_create_thread();
+
+	co_return GetLatestVersion(*clientPtr);
 }

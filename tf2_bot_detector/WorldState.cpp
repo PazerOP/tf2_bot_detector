@@ -80,7 +80,7 @@ namespace
 		time_point_t m_LastStatusUpdateTime{};
 		time_point_t m_LastPingUpdateTime{};
 
-		mutable std::variant<mh::shared_task<duration_t>, std::error_condition> m_TF2Playtime;
+		mutable std::variant<mh::task<duration_t>, std::error_condition> m_TF2Playtime;
 	};
 
 	class WorldState final : public IWorldState, BaseConsoleLineListener
@@ -921,7 +921,7 @@ const mh::expected<SteamAPI::PlayerBans, std::error_condition>& Player::GetPlaye
 
 mh::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
 {
-	if (auto future = std::get_if<mh::shared_task<duration_t>>(&m_TF2Playtime))
+	if (auto future = std::get_if<mh::task<duration_t>>(&m_TF2Playtime))
 	{
 		if (!future->valid())
 		{

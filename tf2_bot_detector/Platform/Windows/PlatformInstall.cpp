@@ -65,7 +65,7 @@ bool tf2_bot_detector::Platform::CanInstallUpdate(const BuildInfo& bi)
 	return true;
 }
 
-std::future<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdate(
+mh::task<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdate(
 	const BuildInfo& buildInfo, const HTTPClient& client)
 {
 	if (!IsInstalled())
@@ -86,16 +86,11 @@ std::future<InstallUpdate::Result> tf2_bot_detector::Platform::BeginInstallUpdat
 
 	const auto bundleUri = buildInfo.m_MSIXBundleURL;
 
-	return std::async([bundleUri]() -> InstallUpdate::Result
-		{
-			{
-				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(),
-					"Microsoft has ensured that we can't have anything nice, requesting update tool");
+	DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(),
+		"Microsoft has ensured that we can't have anything nice, requesting update tool");
 
-				return InstallUpdate::NeedsUpdateTool
-				{
-					.m_UpdateToolArgs = mh::format("--update-type MSIX --source-path {}", std::quoted(bundleUri)),
-				};
-			}
-		});
+	co_return InstallUpdate::NeedsUpdateTool
+	{
+		.m_UpdateToolArgs = mh::format("--update-type MSIX --source-path {}", std::quoted(bundleUri)),
+	};
 }

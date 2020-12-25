@@ -23,13 +23,20 @@ void DRPInfo::LoadFile()
 
 auto DRPInfo::FindMap(const std::string_view& name) const -> const Map*
 {
-	if (mh::is_future_ready(m_DRPInfo))
+	if (m_DRPInfo.is_ready())
 	{
-		auto& drpInfo = m_DRPInfo.get();
-		for (const auto& map : drpInfo.m_Maps)
+		try
 		{
-			if (map.Matches(name))
-				return &map;
+			auto& drpInfo = m_DRPInfo.get();
+			for (const auto& map : drpInfo.m_Maps)
+			{
+				if (map.Matches(name))
+					return &map;
+			}
+		}
+		catch (const std::exception& e)
+		{
+			LogException(MH_SOURCE_LOCATION_CURRENT(), e);
 		}
 	}
 
