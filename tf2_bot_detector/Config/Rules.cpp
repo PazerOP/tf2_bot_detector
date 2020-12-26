@@ -210,9 +210,9 @@ bool ModerationRules::SaveFile() const
 
 mh::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules() const
 {
-	if (m_CFGGroup.m_OfficialList.is_ready())
+	if (auto list = m_CFGGroup.m_OfficialList.try_get())
 	{
-		for (const auto& rule : m_CFGGroup.m_OfficialList.get().m_Rules)
+		for (const auto& rule : list->m_Rules)
 			co_yield rule;
 	}
 
@@ -222,9 +222,9 @@ mh::generator<const ModerationRule&> tf2_bot_detector::ModerationRules::GetRules
 			co_yield rule;
 	}
 
-	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
+	if (auto list = m_CFGGroup.m_ThirdPartyLists.try_get())
 	{
-		for (const auto& rule : m_CFGGroup.m_ThirdPartyLists.get())
+		for (const auto& rule : *list)
 			co_yield rule;
 	}
 }

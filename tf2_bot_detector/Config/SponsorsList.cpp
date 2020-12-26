@@ -20,10 +20,8 @@ void SponsorsList::LoadFile()
 
 auto SponsorsList::GetSponsors() const -> std::vector<Sponsor>
 {
-	if (!m_Sponsors.is_ready())
-		return {};
-
-	return m_Sponsors.get().m_Sponsors;
+	auto result = m_Sponsors.try_get();
+	return result ? result->m_Sponsors : std::vector<Sponsor>{};
 }
 
 void SponsorsList::SponsorsListFile::Deserialize(const nlohmann::json& json)

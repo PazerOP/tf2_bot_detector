@@ -8,7 +8,6 @@
 #include <mh/error/error_code_exception.hpp>
 #include <nlohmann/json_fwd.hpp>
 
-#include <future>
 #include <optional>
 #include <string>
 #include <unordered_set>

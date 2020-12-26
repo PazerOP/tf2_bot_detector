@@ -229,20 +229,19 @@ auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
 			co_yield { m_CFGGroup.m_UserList->GetName(), found->second };
 		}
 	}
-	if (m_CFGGroup.m_ThirdPartyLists.is_ready())
+	if (auto list = m_CFGGroup.m_ThirdPartyLists.try_get())
 	{
-		for (auto& file : m_CFGGroup.m_ThirdPartyLists.get())
+		for (auto& file : *list)
 		{
 			if (auto found = file.second.find(id); found != file.second.end())
 				co_yield { file.first, found->second };
 		}
 	}
-	if (m_CFGGroup.m_OfficialList.is_ready())
+	if (auto list = m_CFGGroup.m_OfficialList.try_get())
 	{
-		if (auto found = m_CFGGroup.m_OfficialList.get().m_Players.find(id);
-			found != m_CFGGroup.m_OfficialList.get().m_Players.end())
+		if (auto found = list->m_Players.find(id); found != list->m_Players.end())
 		{
-			co_yield { m_CFGGroup.m_OfficialList.get().GetName(), found->second };
+			co_yield { list->GetName(), found->second };
 		}
 	}
 }

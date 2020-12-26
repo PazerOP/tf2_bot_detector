@@ -5,10 +5,10 @@
 #include <mh/coroutine/task.hpp>
 #include <mh/coroutine/thread.hpp>
 #include <mh/future.hpp>
-#include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
 #include <nlohmann/json_fwd.hpp>
 
+#include <cassert>
 #include <filesystem>
 #include <future>
 #include <optional>
@@ -105,7 +105,7 @@ namespace tf2_bot_detector
 	{
 		const HTTPClient* client = allowAutoupdate ? settings.GetHTTPClient() : nullptr;
 		if (allowAutoupdate && !client)
-			Log(mh::format("Disallowing auto-update of {} because internet connectivity is disabled or unset in settings", filename));
+			Log("Disallowing auto-update of {} because internet connectivity is disabled or unset in settings", filename);
 
 		// Not going to be doing any async loading
 		if (T file; file.LoadFile(filename, client))
@@ -115,28 +115,19 @@ namespace tf2_bot_detector
 	}
 
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
-	auto LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoupdate, const Settings& settings)
+	mh::task<T> LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoupdate, const Settings& settings)
 	{
 		if constexpr (std::is_base_of_v<SharedConfigFileBase, T>)
 		{
-			return [filename, allowAutoupdate, &settings]() -> typename mh::task<T>
+			if (allowAutoupdate)
 			{
-				if (allowAutoupdate)
-				{
-					co_await mh::co_create_thread();
-					co_return LoadConfigFile<T>(filename, true, settings);
-				}
-				else
-				{
-					co_return LoadConfigFile<T>(filename, false, settings);
-				}
-			}();
+				co_await mh::co_create_thread();
+				co_return LoadConfigFile<T>(filename, true, settings);
+			}
 		}
-		else
-		{
-			assert(!allowAutoupdate);
-			return LoadConfigFile<T>(filename, allowAutoupdate, settings);
-		}
+
+		assert(!allowAutoupdate);
+		co_return LoadConfigFile<T>(filename, allowAutoupdate, settings);
 	}
 
 	template<typename T, typename TOthers = typename T::collection_type>
@@ -165,27 +156,7 @@ namespace tf2_bot_detector
 			else
 				m_OfficialList = mh::make_ready_task<T>();
 
-			m_ThirdPartyLists = [this, paths]() -> mh::task<collection_type>
-				{
-					co_await mh::co_create_thread();
-
-					collection_type collection;
-
-					for (const auto& file : paths.m_Others)
-					{
-						try
-						{
-							auto parsedFile = LoadConfigFile<T>(file, true, *m_Settings);
-							CombineEntries(collection, parsedFile);
-						}
-						catch (const std::exception& e)
-						{
-							LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when loading {}", file);
-						}
-					}
-
-					co_return collection;
-			}();
+			m_ThirdPartyLists = LoadThirdPartyListsAsync(paths);
 		}
 
 		void SaveFiles() const
@@ -218,7 +189,10 @@ namespace tf2_bot_detector
 		const T* GetDefaultMutableList() const
 		{
 			if (IsOfficial())
-				return &m_OfficialList.get();
+			{
+				if (auto list = m_OfficialList.try_get())
+					return list;
+			}
 
 			return GetLocalList();
 		}
@@ -242,12 +216,12 @@ namespace tf2_bot_detector
 		{
 			size_t retVal = 0;
 
-			if (m_OfficialList.is_ready())
-				retVal += m_OfficialList.get().size();
+			if (auto list = m_OfficialList.try_get())
+				retVal += list->size();
 			if (m_UserList)
 				retVal += m_UserList->size();
-			if (m_ThirdPartyLists.is_ready())
-				retVal += m_ThirdPartyLists.get().size();
+			if (auto list = m_ThirdPartyLists.try_get())
+				retVal += list->size();
 
 			return retVal;
 		}
@@ -256,5 +230,28 @@ namespace tf2_bot_detector
 		mh::task<T> m_OfficialList;
 		std::optional<T> m_UserList;
 		mh::task<collection_type> m_ThirdPartyLists;
+
+	private:
+		mh::task<collection_type> LoadThirdPartyListsAsync(ConfigFilePaths paths)
+		{
+			co_await mh::co_create_thread();
+
+			collection_type collection;
+
+			for (const auto& file : paths.m_Others)
+			{
+				try
+				{
+					auto parsedFile = LoadConfigFile<T>(file, true, *m_Settings);
+					CombineEntries(collection, parsedFile);
+				}
+				catch (const std::exception& e)
+				{
+					LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when loading {}", file);
+				}
+			}
+
+			co_return collection;
+		}
 	};
 }

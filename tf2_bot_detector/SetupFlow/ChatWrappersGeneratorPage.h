@@ -3,7 +3,7 @@
 #include "Config/ChatWrappers.h"
 #include "ISetupFlowPage.h"
 
-#include <mh/concurrency/future.hpp>
+#include <mh/coroutine/future.hpp>
 #include <mh/error/status.hpp>
 
 #include <future>

@@ -6,6 +6,7 @@
 #include "Log.h"
 
 #include <mh/concurrency/thread_pool.hpp>
+#include <mh/coroutine/future.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
