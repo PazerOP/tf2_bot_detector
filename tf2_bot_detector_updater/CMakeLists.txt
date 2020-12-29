@@ -58,7 +58,7 @@ add_subdirectory(../tf2_bot_detector_common "${PROJECT_BINARY_DIR}/tf2_bot_detec
 
 find_package(OpenSSL REQUIRED)
 
-target_link_libraries(tf2_bot_detector_updater PRIVATE
+target_link_libraries(tf2_bot_detector_updater PUBLIC
 	tf2_bot_detector::common
 	mh::stuff
 	fmt::fmt

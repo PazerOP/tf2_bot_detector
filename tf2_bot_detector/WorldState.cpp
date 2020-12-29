@@ -254,9 +254,9 @@ void WorldState::UpdateFriends()
 
 	if (m_FriendsFuture.is_ready())
 	{
-		const auto GenericException = [](const mh::source_location& loc, const std::exception& e)
+		const auto GenericException = [](const mh::source_location& loc)
 		{
-			LogException(loc, e, "Failed to update our friends list");
+			LogException(loc, "Failed to update our friends list");
 		};
 
 		try
@@ -272,12 +272,12 @@ void WorldState::UpdateFriends()
 			}
 			else
 			{
-				GenericException(MH_SOURCE_LOCATION_CURRENT(), e);
+				GenericException(MH_SOURCE_LOCATION_CURRENT());
 			}
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			GenericException(MH_SOURCE_LOCATION_CURRENT(), e);
+			GenericException(MH_SOURCE_LOCATION_CURRENT());
 		}
 	}
 }
@@ -946,9 +946,9 @@ mh::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
 				m_TF2Playtime = e.code();
 				return e.code();
 			}
-			catch (const std::exception& e)
+			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e);
+				LogException(MH_SOURCE_LOCATION_CURRENT());
 			}
 		}
 

@@ -4,6 +4,8 @@
 
 #include <imgui.h>
 #include <mh/compiler.hpp>
+#include <mh/error/exception_details.hpp>
+#include <mh/text/codecvt.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -21,6 +23,7 @@
 #include <Windows.h>
 #endif
 
+#undef ERROR
 #undef max
 
 using namespace std::chrono_literals;
@@ -218,16 +221,6 @@ void LogManager::ReplaceSecrets(std::string& msg) const
 	}
 }
 
-#define LOG_EXCEPTION_IMPL(logExFn, logFn) \
-	void tf2_bot_detector::logExFn(const mh::source_location& location, const std::exception& e, \
-		const std::string_view& msg) \
-	{ \
-		logFn(location, msg.empty() ? "{1}: {2}"sv : "{0}: {1}: {2}"sv, msg, typeid(e).name(), e.what()); \
-	}
-
-LOG_EXCEPTION_IMPL(LogException, LogError);
-LOG_EXCEPTION_IMPL(DebugLogException, DebugLogWarning);
-
 void tf2_bot_detector::LogFatalError(const mh::source_location& location, const std::string_view& msg)
 {
 	LogError(location, msg);
@@ -244,25 +237,37 @@ Error source function: {})"
 	std::exit(1);
 }
 
-void tf2_bot_detector::LogFatalException(const mh::source_location& location, const std::exception& e,
-	const std::string_view& msg)
+void tf2_bot_detector::LogException(const mh::source_location& location, const std::exception_ptr& e,
+	LogSeverity severity, LogVisibility visibility, const std::string_view& msg)
 {
-	LogException(location, e, msg);
+	const mh::exception_details details(std::current_exception());
 
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal error",
-		mh::format(
-R"({}
+	detail::log_h::LogImpl(LogColors::ERROR, severity, visibility, location,
+		msg.empty() ? "{1}: {2}"sv : "{0}: {1}: {2}"sv, msg, details.type_name(), details.m_Message);
+
+	if (severity == LogSeverity::Fatal)
+	{
+		auto dialogText = mh::format(
+			R"({}
 
 Exception type: {}
 Exception message: {}
 
 Exception source filename: {}:{}
-Exception source function: {})"
-			, msg, typeid(e).name(), e.what(),
-			location.file_name(), location.line(), location.function_name()
-		).c_str(), nullptr);
+Exception source function: {})",
 
-	std::exit(1);
+msg,
+
+details.type_name(),
+details.m_Message,
+
+location.file_name(), location.line(),
+location.function_name());
+
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unhandled exception", dialogText.c_str(), nullptr);
+
+		std::exit(1);
+	}
 }
 
 void LogManager::Log(std::string msg, const LogMessageColor & color,

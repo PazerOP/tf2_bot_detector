@@ -1,5 +1,7 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT 1
 
+#include <mh/coroutine/thread.hpp>
+
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
 
@@ -30,8 +32,20 @@ std::string HTTPClient::GetString(const URL& url) const try
 
 	return response->body;
 }
-catch (const std::exception& e)
+catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), e, "{}", url);
+	LogException(MH_SOURCE_LOCATION_CURRENT(), "{}", url);
+	throw;
+}
+
+mh::task<std::string> HTTPClient::GetStringAsync(const URL& url) const try
+{
+	auto self = shared_from_this(); // Make sure we don't vanish
+	co_await mh::co_create_background_thread();
+	co_return self->GetString(url);
+}
+catch (...)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT(), "{}", url);
 	throw;
 }

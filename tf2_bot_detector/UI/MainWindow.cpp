@@ -471,9 +471,9 @@ void MainWindow::GenerateDebugReport() try
 	Log("Finished generating debug_report.zip ({})", dbgReportLocation);
 	Shell::ExploreToAndSelect(dbgReportLocation);
 }
-catch (const std::exception& e)
+catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to generate debug_report.zip");
+	LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to generate debug_report.zip");
 }
 
 void MainWindow::OnDrawServerStats()
@@ -970,9 +970,9 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 			{
 				future->get();
 			}
-			catch (const std::exception& e)
+			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load avatar bitmap");
+				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load avatar bitmap");
 
 				const auto err = ErrorCode::UnknownError;
 				avatarData = err;
@@ -985,9 +985,9 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 				avatarData = tex;
 				return tex;
 			}
-			catch (const std::exception& e)
+			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to create avatar texture from bitmap");
+				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to create avatar texture from bitmap");
 
 				const auto err = ErrorCode::UnknownError;
 				avatarData = err;

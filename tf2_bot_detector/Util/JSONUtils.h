@@ -83,9 +83,9 @@ namespace tf2_bot_detector
 				DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Failed to find {}", std::quoted(name));
 			}
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when getting {}", std::quoted(name));
+			LogException(MH_SOURCE_LOCATION_CURRENT(), "Exception when getting {}", std::quoted(name));
 		}
 
 		defaultValFunc(value);
@@ -167,9 +167,9 @@ namespace tf2_bot_detector
 				return true;
 			}
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when getting {}", std::quoted(name));
+			LogException(MH_SOURCE_LOCATION_CURRENT(), "Exception when getting {}", std::quoted(name));
 		}
 
 		value.reset();

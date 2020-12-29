@@ -221,7 +221,7 @@ void tf2_bot_detector::DeleteOldFiles(const std::filesystem::path& path, duratio
 		}
 	}
 }
-catch (const std::exception& e)
+catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), e);
+	LogException(MH_SOURCE_LOCATION_CURRENT());
 }

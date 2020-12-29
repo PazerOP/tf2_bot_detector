@@ -34,9 +34,9 @@ auto DRPInfo::FindMap(const std::string_view& name) const -> const Map*
 					return &map;
 			}
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e);
+			LogException(MH_SOURCE_LOCATION_CURRENT());
 		}
 	}
 

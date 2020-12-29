@@ -245,9 +245,9 @@ namespace tf2_bot_detector
 					auto parsedFile = LoadConfigFile<T>(file, true, *m_Settings);
 					CombineEntries(collection, parsedFile);
 				}
-				catch (const std::exception& e)
+				catch (...)
 				{
-					LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Exception when loading {}", file);
+					LogException(MH_SOURCE_LOCATION_CURRENT(), "Exception when loading {}", file);
 				}
 			}
 

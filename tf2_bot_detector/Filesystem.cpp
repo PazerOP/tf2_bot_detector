@@ -151,9 +151,9 @@ std::string Filesystem::ReadFile(std::filesystem::path path) const try
 
 	return retVal;
 }
-catch (const std::exception& e)
+catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Filename: {}", path);
+	LogException(MH_SOURCE_LOCATION_CURRENT(), "Filename: {}", path);
 	throw;
 }
 

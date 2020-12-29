@@ -91,9 +91,9 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	{
 		newJson = nlohmann::json::parse(client.GetString(info.m_UpdateURL));
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+		LogException(MH_SOURCE_LOCATION_CURRENT(), 
 			"Failed to auto-update {}: failed to parse new json from {}", filename, info.m_UpdateURL);
 		return false;
 	}
@@ -102,9 +102,9 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	{
 		LoadAndValidateSchema(config, newJson);
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+		LogException(MH_SOURCE_LOCATION_CURRENT(), 
 			"Failed to auto-update {} from {}: new json failed schema validation", filename, info.m_UpdateURL);
 		return false;
 	}
@@ -115,9 +115,9 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	{
 		try_get_to_defaulted(newJson, fileInfo, "file_info");
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+		LogException(MH_SOURCE_LOCATION_CURRENT(), 
 			"Failed to auto-update {} from {}: failed to parse file info from new json", filename, info.m_UpdateURL);
 		return false;
 	}
@@ -129,9 +129,9 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	{
 		config.Deserialize(newJson);
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+		LogException(MH_SOURCE_LOCATION_CURRENT(), 
 			"Failed to auto-update {}: failed to deserialize response from {}", filename, info.m_UpdateURL);
 		return false;
 	}
@@ -213,9 +213,9 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		{
 			file = IFilesystem::Get().ReadFile(filename);
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to load {}", filename);
+			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load {}", filename);
 			return false;
 		}
 
@@ -223,9 +223,9 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		{
 			json = nlohmann::json::parse(file);
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to parse JSON from {}", filename);
+			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse JSON from {}", filename);
 			return false;
 		}
 	}
@@ -234,9 +234,9 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 	{
 		LoadAndValidateSchema(*this, json);
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+		LogException(MH_SOURCE_LOCATION_CURRENT(), 
 			"Failed to load {}, existing json failed schema validation", filename);
 		return false;
 	}
@@ -251,9 +251,9 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 			if (try_get_to_defaulted(json, shared->m_FileInfo, "file_info"))
 				fileInfoParsed = true;
 		}
-		catch (const std::exception& e)
+		catch (...)
 		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			LogException(MH_SOURCE_LOCATION_CURRENT(),
 				"Skipping auto-update for {}, failed to parse file_info", filename);
 		}
 	}
@@ -275,9 +275,9 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 	{
 		Deserialize(json);
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+		LogException(MH_SOURCE_LOCATION_CURRENT(), 
 			"Failed to load {}, existing file failed to deserialize, and auto-update did not occur", filename);
 		return false;
 	}
@@ -296,9 +296,9 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 		if (m_Schema)
 			json["$schema"] = *m_Schema;
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+		LogException(MH_SOURCE_LOCATION_CURRENT(), 
 			"Failed to serialize {}, schema failed to validate", filename);
 		return false;
 	}
@@ -307,9 +307,9 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	{
 		Serialize(json);
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to serialize {}", filename);
+		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to serialize {}", filename);
 		return false;
 	}
 
@@ -317,9 +317,9 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	{
 		LoadAndValidateSchema(*this, json);
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to serialize {}", filename);
+		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to serialize {}", filename);
 		return false;
 	}
 
@@ -327,9 +327,9 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	{
 		SaveJSONToFile(filename, json);
 	}
-	catch (const std::exception& e)
+	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to write {}", filename);
+		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to write {}", filename);
 		return false;
 	}
 

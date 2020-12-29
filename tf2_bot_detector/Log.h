@@ -55,6 +55,7 @@ namespace tf2_bot_detector
 		Info,
 		Warning,
 		Error,
+		Fatal,
 	};
 
 	enum class LogVisibility
@@ -168,19 +169,33 @@ namespace tf2_bot_detector
 
 #undef LOG_DEFINITION_HELPER
 
-#define LOG_DEFINITION_HELPER(name, attr) \
-	attr void name(const mh::source_location& location, const std::exception& e, const std::string_view& msg = {}); \
-	\
-	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	attr void name(const mh::source_location& location, const std::exception& e, \
-		const std::string_view& fmtStr, const TArgs&... args) \
+	void LogException(const mh::source_location& location, const std::exception_ptr& e,
+		LogSeverity severity, LogVisibility visibility, const std::string_view& msg = {});
+
+#define LOG_DEFINITION_HELPER(name, attr, severity, visibility) \
+	template<typename... TArgs> \
+	attr void name(const mh::source_location& location, const std::exception_ptr& e, \
+		const std::string_view& fmtStr = {}, const TArgs&... args) \
 	{ \
-		name(location, e, mh::try_format(fmtStr, args...)); \
+		LogException(location, e, severity, visibility, mh::try_format(fmtStr, args...)); \
+	} \
+	\
+	template<typename... TArgs> \
+	attr void name(const mh::source_location& location, const std::exception& e, \
+		const std::string_view& fmtStr = {}, const TArgs&... args) \
+	{ \
+		name(location, std::make_exception_ptr(e), fmtStr, args...); \
+	} \
+	\
+	template<typename... TArgs> \
+	attr void name(const mh::source_location& location, const std::string_view& fmtStr = {}, const TArgs&... args) \
+	{ \
+		name(location, std::current_exception(), fmtStr, args...); \
 	}
 
-	LOG_DEFINITION_HELPER(DebugLogException, );
-	LOG_DEFINITION_HELPER(LogException, );
-	LOG_DEFINITION_HELPER(LogFatalException, [[noreturn]]);
+	LOG_DEFINITION_HELPER(DebugLogException, , LogSeverity::Error, LogVisibility::Debug);
+	LOG_DEFINITION_HELPER(LogException, , LogSeverity::Error, LogVisibility::Default);
+	LOG_DEFINITION_HELPER(LogFatalException, [[noreturn]], LogSeverity::Fatal, LogVisibility::Default);
 
 #undef LOG_DEFINITION_HELPER
 

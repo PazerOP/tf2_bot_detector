@@ -203,9 +203,9 @@ void Settings::LoadFile()
 				{
 					std::filesystem::copy_file(settingsPath, backupPath);
 				}
-				catch (const std::exception& e)
+				catch (...)
 				{
-					LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+					LogException(MH_SOURCE_LOCATION_CURRENT(), 
 						"Failed to make backup of settings.json to {}", backupPath);
 				}
 			}
@@ -310,9 +310,9 @@ bool Settings::SaveFile() const try
 
 	return true;
 }
-catch (const std::exception& e)
+catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to save settings");
+	LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to save settings");
 	return false;
 }
 

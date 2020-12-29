@@ -11,6 +11,7 @@
 #include <libzippp/libzippp.h>
 #include <mh/algorithm/multi_compare.hpp>
 #include <mh/future.hpp>
+#include <mh/error/exception_details.hpp>
 #include <mh/raii/scope_exit.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/types/disable_copy_move.hpp>
@@ -286,11 +287,12 @@ namespace
 					variant.emplace<TFutureResult>(std::move(value));
 				}
 			}
-			catch (const std::exception& e)
+			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e, __FUNCSIG__);
+				const mh::exception_details details(std::current_exception());
+				LogException(MH_SOURCE_LOCATION_CURRENT(), __FUNCSIG__);
 				SetUpdateStatus(MH_SOURCE_LOCATION_CURRENT(), failure,
-					mh::format("{}:\n\t- {}\n\t- {}", failureMsg, typeid(e).name(), e.what()));
+					mh::format("{}:\n\t- {}\n\t- {}", failureMsg, details.type_name(), details.m_Message));
 				variant.emplace<std::monostate>();
 			}
 
