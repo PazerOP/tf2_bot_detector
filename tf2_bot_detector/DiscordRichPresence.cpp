@@ -11,6 +11,7 @@
 #include "WorldEventListener.h"
 #include "WorldState.h"
 
+#include <mh/concurrency/thread_sentinel.hpp>
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -695,6 +696,8 @@ namespace
 		void OnLocalPlayerSpawned(IWorldState& world, TFClassType classType) override;
 
 	private:
+		mh::thread_sentinel m_Sentinel;
+
 		std::unique_ptr<discord::Core> m_Core;
 		time_point_t m_LastDiscordInitializeTime{};
 
@@ -729,6 +732,8 @@ DiscordState::~DiscordState()
 
 void DiscordState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& line)
 {
+	m_Sentinel.check();
+
 	switch (line.GetType())
 	{
 	case ConsoleLineType::PlayerStatusMapPosition:
@@ -831,6 +836,8 @@ void DiscordState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& line)
 
 void DiscordState::OnLocalPlayerSpawned(IWorldState& world, TFClassType classType)
 {
+	m_Sentinel.check();
+
 	QueueUpdate();
 	m_GameState.OnLocalPlayerSpawned(classType);
 }
@@ -860,6 +867,8 @@ static void DiscordLogFunc(discord::LogLevel level, const char* msg)
 
 void DiscordState::Update()
 {
+	m_Sentinel.check();
+
 	s_DiscordDebugLogEnabled = GetSettings().m_Logging.m_DiscordRichPresence;
 
 	// Initialize discord

@@ -121,7 +121,7 @@ namespace tf2_bot_detector
 		{
 			if (allowAutoupdate)
 			{
-				co_await mh::co_create_thread();
+				co_await mh::co_create_background_thread();
 				co_return LoadConfigFile<T>(filename, true, settings);
 			}
 		}
@@ -234,7 +234,7 @@ namespace tf2_bot_detector
 	private:
 		mh::task<collection_type> LoadThirdPartyListsAsync(ConfigFilePaths paths)
 		{
-			co_await mh::co_create_thread();
+			co_await mh::co_create_background_thread();
 
 			collection_type collection;
 

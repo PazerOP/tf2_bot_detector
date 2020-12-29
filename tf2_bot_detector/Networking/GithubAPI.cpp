@@ -106,7 +106,7 @@ static NewVersionResult GetLatestVersion(const HTTPClient& client)
 auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> mh::task<NewVersionResult>
 {
 	auto clientPtr = client.shared_from_this();
-	co_await mh::co_create_thread();
+	co_await mh::co_create_background_thread();
 
 	co_return GetLatestVersion(*clientPtr);
 }
