@@ -16,8 +16,14 @@
 #include "Log.h"
 #include "WorldEventListener.h"
 
+#include <mh/concurrency/dispatcher.hpp>
 #include <mh/concurrency/main_thread.hpp>
+#include <mh/concurrency/thread_pool.hpp>
 #include <mh/future.hpp>
+
+#undef GetCurrentTime
+#undef max
+#undef min
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -89,6 +95,9 @@ namespace
 		WorldState(const Settings& settings);
 		~WorldState();
 
+		std::shared_ptr<WorldState> shared_from_this() { return std::static_pointer_cast<WorldState>(IWorldState::shared_from_this()); }
+		std::shared_ptr<const WorldState> shared_from_this() const { return std::static_pointer_cast<const WorldState>(IWorldState::shared_from_this()); }
+
 		time_point_t GetCurrentTime() const override { return m_CurrentTimestamp.GetSnapshot(); }
 		size_t GetApproxLobbyMemberCount() const override;
 
@@ -101,7 +110,7 @@ namespace
 		void RemoveConsoleLineListener(IConsoleLineListener* listener) override;
 
 		void AddConsoleOutputChunk(const std::string_view& chunk) override;
-		void AddConsoleOutputLine(const std::string_view& line) override;
+		mh::task<> AddConsoleOutputLine(std::string line) override;
 
 		std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const override;
 		std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const override;
@@ -133,7 +142,7 @@ namespace
 		const Settings& GetSettings() const { return m_Settings; }
 		const std::vector<LobbyMember>& GetCurrentLobbyMembers() const { return m_CurrentLobbyMembers; }
 		const std::vector<LobbyMember>& GetPendingLobbyMembers() const { return m_PendingLobbyMembers; }
-		const std::unordered_set<SteamID> GetFriends() const { return m_Friends; }
+		const std::unordered_set<SteamID>& GetFriends() const { return m_Friends; }
 
 	protected:
 		virtual IConsoleLineListener& GetConsoleLineListenerBroadcaster() { return m_ConsoleLineListenerBroadcaster; }
@@ -152,6 +161,8 @@ namespace
 		time_point_t m_LastFriendsUpdate{};
 
 		Player& FindOrCreatePlayer(const SteamID& id);
+
+		mh::dispatcher m_UpdateDispatcher;
 
 		struct PlayerSummaryUpdateAction final :
 			BatchedAction<WorldState*, SteamID, std::vector<SteamAPI::PlayerSummary>>
@@ -183,6 +194,10 @@ namespace
 
 		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
 		std::unordered_set<IWorldEventListener*> m_EventListeners;
+
+		void UpdateConsoleLineParsing();
+		mh::thread_pool m_ConsoleLineParsingPool{ 1 };
+		std::vector<mh::shared_future<std::shared_ptr<IConsoleLine>>> m_ConsoleLineParsingTasks;
 
 		struct ConsoleLineListenerBroadcaster final : IConsoleLineListener
 		{
@@ -216,9 +231,9 @@ namespace
 	};
 }
 
-std::unique_ptr<IWorldState> IWorldState::Create(const Settings& settings)
+std::shared_ptr<IWorldState> IWorldState::Create(const Settings& settings)
 {
-	return std::make_unique<WorldState>(settings);
+	return std::make_shared<WorldState>(settings);
 }
 
 WorldState::WorldState(const Settings& settings) :
@@ -239,6 +254,8 @@ void WorldState::Update()
 {
 	m_PlayerSummaryUpdates.Update();
 	m_PlayerBansUpdates.Update();
+
+	m_UpdateDispatcher.run();
 
 	UpdateFriends();
 }
@@ -298,23 +315,32 @@ void WorldState::AddConsoleOutputChunk(const std::string_view& chunk)
 	for (auto i = chunk.find('\n', 0); i != chunk.npos; i = chunk.find('\n', last))
 	{
 		auto line = chunk.substr(last, i - last);
-		AddConsoleOutputLine(line);
+		AddConsoleOutputLine(std::string(line));
 		last = i + 1;
 	}
 }
 
-void WorldState::AddConsoleOutputLine(const std::string_view& line)
+mh::task<> WorldState::AddConsoleOutputLine(std::string line)
 {
+	auto worldState = shared_from_this();
+
+	// Switch to thread "pool" thread (there is only 1 thread in this particular pool)
+	co_await m_ConsoleLineParsingPool.co_add_task();
+
 	auto parsed = IConsoleLine::ParseConsoleLine(line, GetCurrentTime());
+
+	// switch to main thread
+	co_await m_UpdateDispatcher.co_dispatch();
+
 	if (parsed)
 	{
 		for (auto listener : m_ConsoleLineListeners)
-			listener->OnConsoleLineParsed(*this, *parsed);
+			listener->OnConsoleLineParsed(*worldState, *parsed);
 	}
 	else
 	{
 		for (auto listener : m_ConsoleLineListeners)
-			listener->OnConsoleLineUnparsed(*this, line);
+			listener->OnConsoleLineUnparsed(*worldState, std::move(line));
 	}
 }
 

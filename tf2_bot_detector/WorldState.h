@@ -4,6 +4,7 @@
 #include "SteamID.h"
 #include "TFConstants.h"
 
+#include <mh/coroutine/task.hpp>
 #include <mh/coroutine/generator.hpp>
 
 #include <optional>
@@ -42,12 +43,12 @@ namespace tf2_bot_detector
 		virtual void UpdateTimestamp(const ConsoleLogParser& parser) = 0;
 	};
 
-	class IWorldState : public IWorldStateConLog
+	class IWorldState : public IWorldStateConLog, public std::enable_shared_from_this<IWorldState>
 	{
 	public:
 		virtual ~IWorldState() = default;
 
-		static std::unique_ptr<IWorldState> Create(const Settings& settings);
+		static std::shared_ptr<IWorldState> Create(const Settings& settings);
 
 		virtual void Update() = 0;
 
@@ -60,7 +61,7 @@ namespace tf2_bot_detector
 		virtual void RemoveConsoleLineListener(IConsoleLineListener* listener) = 0;
 
 		virtual void AddConsoleOutputChunk(const std::string_view& chunk) = 0;
-		virtual void AddConsoleOutputLine(const std::string_view& line) = 0;
+		virtual mh::task<> AddConsoleOutputLine(std::string line) = 0;
 
 		virtual std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const = 0;
 		virtual std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const = 0;

@@ -18,6 +18,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#undef GetMessage
+
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
 using namespace std::string_literals;

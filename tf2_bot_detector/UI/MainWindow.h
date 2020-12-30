@@ -149,7 +149,7 @@ namespace tf2_bot_detector
 
 		SetupFlow m_SetupFlow;
 
-		std::unique_ptr<IWorldState> m_WorldState;
+		std::shared_ptr<IWorldState> m_WorldState;
 		std::unique_ptr<IRCONActionManager> m_ActionManager;
 
 		IWorldState& GetWorld() { return *m_WorldState; }

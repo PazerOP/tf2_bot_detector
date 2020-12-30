@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <fstream>
 
+#undef DrawState
+
 using namespace tf2_bot_detector;
 
 namespace

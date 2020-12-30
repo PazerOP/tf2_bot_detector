@@ -9,6 +9,8 @@
 #include <future>
 #include <optional>
 
+#undef DrawState
+
 namespace tf2_bot_detector
 {
 	class ChatWrappersGeneratorPage final : public ISetupFlowPage

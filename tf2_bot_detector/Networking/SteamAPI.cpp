@@ -31,19 +31,18 @@ namespace
 		std::string m_Response;
 	};
 
-	static mh::thread_pool<SteamAPITask> s_SteamAPIThreadPool(2);
-	static mh::shared_future<SteamAPITask> SteamAPIGET(const HTTPClient& client, URL url)
+	static mh::thread_pool s_SteamAPIThreadPool(2);
+	static mh::task<SteamAPITask> SteamAPIGET(const HTTPClient& client, URL url)
 	{
 		auto clientPtr = client.shared_from_this();
-		return s_SteamAPIThreadPool.add_task([clientPtr, url]() -> SteamAPITask
-			{
-				DebugLog("[SteamAPI] HTTP GET "s << url);
+		co_await s_SteamAPIThreadPool.co_add_task();
 
-				SteamAPITask retVal;
-				retVal.m_RequestURL = url;
-				retVal.m_Response = clientPtr->GetString(url);
-				return retVal;
-			});
+		DebugLog("[SteamAPI] HTTP GET "s << url);
+
+		SteamAPITask retVal;
+		retVal.m_RequestURL = url;
+		retVal.m_Response = clientPtr->GetString(url);
+		co_return retVal;
 	}
 
 	class AvatarCacheManager final

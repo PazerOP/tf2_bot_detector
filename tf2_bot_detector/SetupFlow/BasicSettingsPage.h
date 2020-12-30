@@ -3,6 +3,8 @@
 #include "Config/Settings.h"
 #include "ISetupFlowPage.h"
 
+#undef DrawState
+
 namespace tf2_bot_detector
 {
 	class BasicSettingsPage final : public ISetupFlowPage

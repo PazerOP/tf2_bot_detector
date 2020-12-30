@@ -1,5 +1,7 @@
 #pragma once
 
+#undef DrawState
+
 namespace tf2_bot_detector
 {
 	class IActionManager;
