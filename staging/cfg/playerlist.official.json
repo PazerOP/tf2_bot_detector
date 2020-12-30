@@ -6251,6 +6251,26 @@
 				"time": 1608677395
 			},
 			"steamid": "[U:1:1158572804]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(4)TTV/mannnymans",
+				"time": 1609370165
+			},
+			"steamid": "[U:1:1164249635]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(7)TTV/mannnymans",
+				"time": 1609370189
+			},
+			"steamid": "[U:1:1164317570]"
 		}
 	]
 }
