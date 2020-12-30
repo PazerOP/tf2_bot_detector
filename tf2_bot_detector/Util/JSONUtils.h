@@ -163,7 +163,11 @@ namespace tf2_bot_detector
 		{
 			if (auto found = j.find(name); found != j.end())
 			{
-				found->get_to(value.emplace());
+				if (!found->is_null())
+					found->get_to(value.emplace());
+				else
+					value.reset();
+
 				return true;
 			}
 		}

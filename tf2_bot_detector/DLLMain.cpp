@@ -91,12 +91,14 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 
 	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
 
+	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Initializing MainWindow...");
 	tf2_bot_detector::MainWindow window;
 
+	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Entering event loop...");
 	while (!window.ShouldClose())
 		window.Update();
 
-	DebugLog(""s << __func__ << "(): Graceful shutdown");
+	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Graceful shutdown");
 	return 0;
 }
 

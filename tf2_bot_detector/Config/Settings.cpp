@@ -170,14 +170,19 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ReleaseChannel& d)
 		throw std::invalid_argument(mh::format("Unknown ReleaseChannel {}", std::quoted(value)));
 }
 
-Settings::Settings()
+Settings::Settings() try
 {
 	// Immediately load and resave to normalize any formatting
 	LoadFile();
 	SaveFile();
 }
+catch (...)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT());
+	throw;
+}
 
-void Settings::LoadFile()
+void Settings::LoadFile() try
 {
 	nlohmann::json json;
 	{
@@ -205,7 +210,7 @@ void Settings::LoadFile()
 				}
 				catch (...)
 				{
-					LogException(MH_SOURCE_LOCATION_CURRENT(), 
+					LogException(MH_SOURCE_LOCATION_CURRENT(),
 						"Failed to make backup of settings.json to {}", backupPath);
 				}
 			}
@@ -252,6 +257,11 @@ void Settings::LoadFile()
 		m_GotoProfileSites.push_back({ "SteamRep", "https://steamrep.com/profiles/%SteamID64%" });
 		m_GotoProfileSites.push_back({ "UGC League", "https://www.ugcleague.com/players_page.cfm?player_id=%SteamID64%" });
 	}
+}
+catch (...)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT());
+	throw;
 }
 
 bool Settings::SaveFile() const try
