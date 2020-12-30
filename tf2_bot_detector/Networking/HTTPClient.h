@@ -14,6 +14,6 @@ namespace tf2_bot_detector
 	{
 	public:
 		std::string GetString(const URL& url) const;
-		mh::task<std::string> GetStringAsync(const URL& url) const;
+		mh::task<std::string> GetStringAsync(URL url) const;
 	};
 }

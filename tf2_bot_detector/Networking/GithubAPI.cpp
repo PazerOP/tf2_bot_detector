@@ -7,7 +7,6 @@
 
 #include <mh/concurrency/async.hpp>
 #include <mh/coroutine/generator.hpp>
-#include <mh/coroutine/thread.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
 
@@ -33,7 +32,7 @@ namespace
 
 static mh::generator<InternalRelease> GetAllReleases(const HTTPClient& client)
 {
-	auto str = client.GetString("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
+	auto str = co_await client.GetStringAsync("https://api.github.com/repos/PazerOP/tf2_bot_detector/releases");
 	if (str.empty())
 		throw std::runtime_error("Autoupdate: response string was empty");
 
@@ -63,7 +62,7 @@ static mh::generator<InternalRelease> GetAllReleases(const HTTPClient& client)
 	}
 }
 
-static NewVersionResult GetLatestVersion(const HTTPClient& client)
+static mh::task<NewVersionResult> GetLatestVersion(const HTTPClient& client)
 {
 	DebugLog("GetLatestVersion()");
 	try
@@ -89,24 +88,21 @@ static NewVersionResult GetLatestVersion(const HTTPClient& client)
 				break;
 		}
 
-		return retVal;
+		co_return retVal;
 	}
 	catch (const nlohmann::json::parse_error& e)
 	{
 		LogError("Autoupdate: Failed to parse json: "s << e.what());
-		return NewVersionResult{ .m_Error = true };
+		co_return NewVersionResult{ .m_Error = true };
 	}
 	catch (const std::exception& e)
 	{
 		LogError("Autoupdate: Unknown error of type "s << typeid(e).name() << ": " << e.what());
-		return NewVersionResult{ .m_Error = true };
+		co_return NewVersionResult{ .m_Error = true };
 	}
 }
 
 auto GithubAPI::CheckForNewVersion(const HTTPClient& client) -> mh::task<NewVersionResult>
 {
-	auto clientPtr = client.shared_from_this();
-	co_await mh::co_create_background_thread();
-
-	co_return GetLatestVersion(*clientPtr);
+	return GetLatestVersion(client);
 }

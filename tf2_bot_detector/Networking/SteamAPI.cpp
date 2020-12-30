@@ -31,17 +31,15 @@ namespace
 		std::string m_Response;
 	};
 
-	static mh::thread_pool s_SteamAPIThreadPool(2);
 	static mh::task<SteamAPITask> SteamAPIGET(const HTTPClient& client, URL url)
 	{
 		auto clientPtr = client.shared_from_this();
-		co_await s_SteamAPIThreadPool.co_add_task();
 
 		DebugLog("[SteamAPI] HTTP GET "s << url);
 
 		SteamAPITask retVal;
 		retVal.m_RequestURL = url;
-		retVal.m_Response = clientPtr->GetString(url);
+		retVal.m_Response = co_await clientPtr->GetStringAsync(url);
 		co_return retVal;
 	}
 

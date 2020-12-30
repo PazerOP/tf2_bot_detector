@@ -1,6 +1,6 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT 1
 
-#include <mh/coroutine/thread.hpp>
+#include <mh/concurrency/thread_pool.hpp>
 
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
@@ -11,6 +11,8 @@
 
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
+
+static mh::thread_pool s_HTTPThreadPool(4);
 
 std::string HTTPClient::GetString(const URL& url) const try
 {
@@ -38,10 +40,10 @@ catch (...)
 	throw;
 }
 
-mh::task<std::string> HTTPClient::GetStringAsync(const URL& url) const try
+mh::task<std::string> HTTPClient::GetStringAsync(URL url) const try
 {
 	auto self = shared_from_this(); // Make sure we don't vanish
-	co_await mh::co_create_background_thread();
+	co_await s_HTTPThreadPool.co_add_task();
 	co_return self->GetString(url);
 }
 catch (...)
