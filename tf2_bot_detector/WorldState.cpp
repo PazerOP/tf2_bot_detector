@@ -281,7 +281,7 @@ void WorldState::UpdateFriends()
 		}
 		catch (const http_error& e)
 		{
-			if (e.m_StatusCode == 401)
+			if (e.code() == HTTPResponseCode::Unauthorized)
 			{
 				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Failed to access friends list (our friends list is "
 					"private/friends only, and the Steam API is bugged)");

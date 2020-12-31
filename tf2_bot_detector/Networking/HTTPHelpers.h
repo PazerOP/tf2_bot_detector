@@ -1,11 +1,13 @@
 #pragma once
 
+#include <mh/error/error_code_exception.hpp>
 #include <nlohmann/json.hpp>
 
 #include <compare>
 #include <optional>
 #include <ostream>
 #include <string>
+#include <system_error>
 
 namespace tf2_bot_detector
 {
@@ -26,13 +28,45 @@ namespace tf2_bot_detector
 		std::string m_Path;
 	};
 
-	class http_error : public std::runtime_error
+	enum class HTTPResponseCode
 	{
-	public:
-		http_error(int statusCode);
-		http_error(std::string msg, int statusCode = -1);
+		Continue = 100,
+		SwitchingProtocol = 101,
+		Processing = 102,
+		EarlyHints = 103,
 
-		std::optional<int> m_StatusCode;
+		OK = 200,
+		Created = 201,
+		Accepted = 202,
+
+		MultipleChoice = 300,
+		MovedPermanently = 301,
+		MovedTemporarily = 302,
+		SeeOther = 303,
+		NotModified = 304,
+		TemporaryRedirect = 307,
+		PermanentRedirect = 308,
+
+		BadRequest = 400,
+		Unauthorized = 401,
+		PaymentRequired = 402,
+		Forbidden = 403,
+		NotFound = 404,
+
+		InternalServerError = 500,
+		NotImplemented = 501,
+		BadGateway = 502,
+		ServiceUnavailable = 503,
+		GatewayTimeout = 504,
+	};
+
+	std::error_condition make_error_condition(HTTPResponseCode e);
+
+	class http_error : public mh::error_condition_exception
+	{
+		using super = mh::error_condition_exception;
+	public:
+		using super::super;
 	};
 
 	template<typename CharT, typename Traits>
@@ -40,4 +74,9 @@ namespace tf2_bot_detector
 	{
 		return os << url.m_Scheme << url.m_Host << ':' << url.m_Port << url.m_Path;
 	}
+}
+
+namespace std
+{
+	template<> struct is_error_condition_enum<tf2_bot_detector::HTTPResponseCode> : true_type {};
 }

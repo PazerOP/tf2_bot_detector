@@ -52,14 +52,80 @@ URL::URL(const std::string_view& url)
 	m_Path = std::string(url.substr(firstSlash));
 }
 
-http_error::http_error(int statusCode) :
-	http_error("HTTP error "s << statusCode, statusCode)
+std::error_condition tf2_bot_detector::make_error_condition(HTTPResponseCode e)
 {
-}
+	struct Category final : std::error_category
+	{
+		const char* name() const noexcept override { return "http response codes"; }
 
-http_error::http_error(std::string msg, int statusCode) :
-	std::runtime_error(std::move(msg))
-{
-	if (statusCode > 0)
-		m_StatusCode = statusCode;
+		std::string message(int condition) const override
+		{
+			switch (static_cast<HTTPResponseCode>(condition))
+			{
+				// 100
+			case HTTPResponseCode::Continue:
+				return "Continue";
+			case HTTPResponseCode::SwitchingProtocol:
+				return "Switching Protocol";
+			case HTTPResponseCode::Processing:
+				return "Processing";
+			case HTTPResponseCode::EarlyHints:
+				return "Early Hints";
+
+				// 200
+			case HTTPResponseCode::OK:
+				return "OK";
+			case HTTPResponseCode::Created:
+				return "Created";
+			case HTTPResponseCode::Accepted:
+				return "Accepted";
+
+				// 300
+			case HTTPResponseCode::MultipleChoice:
+				return "Multiple Choice";
+			case HTTPResponseCode::MovedPermanently:
+				return "Moved Permanently";
+			case HTTPResponseCode::MovedTemporarily:
+				return "Moved Temporarily";
+			case HTTPResponseCode::SeeOther:
+				return "See Other";
+			case HTTPResponseCode::NotModified:
+				return "Not Modified";
+			case HTTPResponseCode::TemporaryRedirect:
+				return "Temporary Redirect";
+			case HTTPResponseCode::PermanentRedirect:
+				return "Permanent Redirect";
+
+				// 400
+			case HTTPResponseCode::BadRequest:
+				return "Bad Request";
+			case HTTPResponseCode::Unauthorized:
+				return "Unauthorized";
+			case HTTPResponseCode::PaymentRequired:
+				return "Payment Required";
+			case HTTPResponseCode::Forbidden:
+				return "Forbidden";
+			case HTTPResponseCode::NotFound:
+				return "Not Found";
+
+				// 500
+			case HTTPResponseCode::InternalServerError:
+				return "Internal Server Error";
+			case HTTPResponseCode::NotImplemented:
+				return "Not Implemented";
+			case HTTPResponseCode::BadGateway:
+				return "Bad Gateway";
+			case HTTPResponseCode::ServiceUnavailable:
+				return "Service Unavailable";
+			case HTTPResponseCode::GatewayTimeout:
+				return "Gateway Timeout";
+
+			default:
+				return mh::format("<UNKNOWN>(HTTP {})", condition);
+			}
+		}
+
+	} static const s_Category;
+
+	return std::error_condition(static_cast<int>(e), s_Category);
 }
