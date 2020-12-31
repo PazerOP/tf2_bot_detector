@@ -35,11 +35,14 @@ namespace
 	{
 		auto clientPtr = client.shared_from_this();
 
-		DebugLog("[SteamAPI] HTTP GET "s << url);
+		DebugLog("[SteamAPI] HTTP GET {}", url);
 
 		SteamAPITask retVal;
 		retVal.m_RequestURL = url;
 		retVal.m_Response = co_await clientPtr->GetStringAsync(url);
+
+		DebugLog("[SteamAPI] HTTP GET (done) {}", url);
+
 		co_return retVal;
 	}
 
@@ -54,7 +57,7 @@ namespace
 		}
 
 		mh::task<Bitmap> GetAvatarBitmap(const HTTPClient* client,
-			const std::string& url, const std::string_view& hash) const
+			const std::string url, const std::string hash) const
 		{
 			const std::filesystem::path cachedPath = m_CacheDir / mh::fmtstr<128>("{}.jpg", hash).view();
 
@@ -129,9 +132,9 @@ std::string PlayerSummary::GetAvatarURL(AvatarQuality quality) const
 		m_AvatarHash, qualityStr);
 }
 
-mh::task<Bitmap> PlayerSummary::GetAvatarBitmap(const HTTPClient* client, AvatarQuality quality) const
+mh::task<Bitmap> PlayerSummary::GetAvatarBitmap(std::shared_ptr<const HTTPClient> client, AvatarQuality quality) const
 {
-	return s_AvatarCacheManager.GetAvatarBitmap(client, GetAvatarURL(quality), m_AvatarHash);
+	return s_AvatarCacheManager.GetAvatarBitmap(client.get(), GetAvatarURL(quality), m_AvatarHash);
 }
 
 std::string_view PlayerSummary::GetVanityURL() const

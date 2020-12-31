@@ -95,7 +95,7 @@ namespace tf2_bot_detector::SteamAPI
 		std::optional<duration_t> GetAccountAge() const;
 
 		std::string GetAvatarURL(AvatarQuality quality = AvatarQuality::Large) const;
-		mh::task<Bitmap> GetAvatarBitmap(const HTTPClient* client,
+		mh::task<Bitmap> GetAvatarBitmap(std::shared_ptr<const HTTPClient> client,
 			AvatarQuality quality = AvatarQuality::Large) const;
 
 		std::string_view GetVanityURL() const;

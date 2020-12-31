@@ -45,12 +45,10 @@ MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
 	m_WorldState(IWorldState::Create(m_Settings)),
 	m_ActionManager(IRCONActionManager::Create(m_Settings, GetWorld())),
-	m_TextureManager(CreateTextureManager()),
+	m_TextureManager(ITextureManager::Create()),
 	m_BaseTextures(IBaseTextures::Create(*m_TextureManager)),
 	m_UpdateManager(IUpdateManager::Create(m_Settings))
 {
-	m_TextureManager = CreateTextureManager();
-
 	ILogManager::GetInstance().CleanupLogFiles();
 
 	GetWorld().AddConsoleLineListener(this);
@@ -731,6 +729,8 @@ void MainWindow::OnUpdate()
 	if (m_Paused)
 		return;
 
+	m_UpdateDispatcher.run_for(10ms);
+
 	GetWorld().Update();
 	m_UpdateManager->Update();
 
@@ -952,83 +952,64 @@ time_point_t MainWindow::GetCurrentTimestampCompensated() const
 
 mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGetAvatarTexture(IPlayer& player)
 {
+	using StateTask_t = mh::task<mh::expected<std::shared_ptr<ITexture>, std::error_condition>>;
+
 	struct PlayerAvatarData
 	{
-		std::variant<
-			mh::task<Bitmap>,
-			std::shared_ptr<ITexture>,
-			std::error_condition> m_State;
-	};
+		StateTask_t m_State;
 
-	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>().m_State;
-
-	if (auto future = std::get_if<mh::task<Bitmap>>(&avatarData))
-	{
-		if (future->is_ready())
+		static StateTask_t LoadAvatarAsync(mh::task<Bitmap> avatarBitmapTask,
+			mh::dispatcher updateDispatcher, std::shared_ptr<ITextureManager> textureManager)
 		{
+			const Bitmap* avatarBitmap = nullptr;
+
 			try
 			{
-				future->get();
+				avatarBitmap = &(co_await avatarBitmapTask);
 			}
 			catch (...)
 			{
 				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load avatar bitmap");
-
-				const auto err = ErrorCode::UnknownError;
-				avatarData = err;
-				return err;
+				co_return ErrorCode::UnknownError;
 			}
+
+			// Switch to main thread
+			co_await updateDispatcher.co_dispatch();
 
 			try
 			{
-				auto tex = m_TextureManager->CreateTexture(future->get());
-				avatarData = tex;
-				return tex;
+				co_return textureManager->CreateTexture(*avatarBitmap);
 			}
 			catch (...)
 			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to create avatar texture from bitmap");
-
-				const auto err = ErrorCode::UnknownError;
-				avatarData = err;
-				return err;
+				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to create avatar bitmap");
+				co_return ErrorCode::UnknownError;
 			}
 		}
-		else if (!(*future))
+	};
+
+	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>().m_State;
+
+	if (avatarData.empty())
+	{
+		auto playerPtr = player.shared_from_this();
+		const auto& summary = playerPtr->GetPlayerSummary();
+		if (summary)
 		{
-			const auto& summary = player.GetPlayerSummary();
-			if (summary)
-			{
-				avatarData = summary->GetAvatarBitmap(m_Settings.GetHTTPClient());
-				return std::errc::operation_in_progress;
-			}
-			else
-			{
-				auto err = summary.error();
-#ifdef _DEBUG
-				auto errText = mh::format("error: {}", err);
-#endif
-				return err;
-			}
+			avatarData = PlayerAvatarData::LoadAvatarAsync(
+				summary->GetAvatarBitmap(m_Settings.GetHTTPClient()),
+				m_UpdateDispatcher, m_TextureManager);
 		}
 		else
 		{
-			return std::errc::operation_in_progress;
+			return summary.error();
 		}
 	}
-	else if (auto tex = std::get_if<std::shared_ptr<ITexture>>(&avatarData))
-	{
-		return *tex;
-	}
-	else if (auto err = std::get_if<std::error_condition>(&avatarData))
-	{
-		return *err;
-	}
+
+	if (auto data = avatarData.try_get())
+		return *data;
 	else
-	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected variant index {}", avatarData.index());
-		return ErrorCode::LogicError;
-	}
+		return std::errc::operation_in_progress;
 }
 
 MainWindow::PostSetupFlowState::PostSetupFlowState(MainWindow& window) :

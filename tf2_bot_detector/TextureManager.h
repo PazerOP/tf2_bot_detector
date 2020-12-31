@@ -30,6 +30,8 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ITextureManager() = default;
 
+		static std::shared_ptr<ITextureManager> Create();
+
 		virtual void EndFrame() = 0;
 
 		virtual std::shared_ptr<ITexture> CreateTexture(const Bitmap& bitmap,
@@ -37,6 +39,4 @@ namespace tf2_bot_detector
 
 		virtual size_t GetActiveTextureCount() const = 0;
 	};
-
-	std::unique_ptr<ITextureManager> CreateTextureManager();
 }

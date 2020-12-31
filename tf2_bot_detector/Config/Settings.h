@@ -93,7 +93,7 @@ namespace tf2_bot_detector
 		} m_Unsaved;
 
 		std::optional<bool> m_AllowInternetUsage;
-		const HTTPClient* GetHTTPClient() const;
+		std::shared_ptr<const HTTPClient> GetHTTPClient() const;
 
 		std::vector<GotoProfileSite> m_GotoProfileSites;
 

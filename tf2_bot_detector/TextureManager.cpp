@@ -5,6 +5,7 @@
 #include <glbinding/gl21/gl.h>
 #include <glbinding/gl21ext/gl.h>
 #include <glbinding/gl30/gl.h>
+#include <mh/concurrency/thread_sentinel.hpp>
 #include <mh/memory/unique_object.hpp>
 
 using namespace gl21;
@@ -72,10 +73,11 @@ namespace
 		const std::set<GLextension> m_Extensions = glbinding::aux::ContextInfo::extensions();
 		uint64_t m_FrameCount{};
 		std::vector<std::shared_ptr<Texture>> m_Textures;
+		mh::thread_sentinel m_Sentinel;
 	};
 }
 
-std::unique_ptr<ITextureManager> tf2_bot_detector::CreateTextureManager()
+std::shared_ptr<ITextureManager> tf2_bot_detector::ITextureManager::Create()
 {
 	return std::make_unique<TextureManager>();
 }
@@ -87,6 +89,7 @@ TextureManager::TextureManager()
 
 void TextureManager::EndFrame()
 {
+	m_Sentinel.check();
 	std::erase_if(m_Textures, [](const std::shared_ptr<Texture>& t)
 		{
 			return t.use_count() == 1;
@@ -95,6 +98,7 @@ void TextureManager::EndFrame()
 
 std::shared_ptr<ITexture> TextureManager::CreateTexture(const Bitmap& bitmap, const TextureSettings& settings)
 {
+	m_Sentinel.check();
 	return m_Textures.emplace_back(std::make_shared<Texture>(*this, bitmap, settings));
 }
 

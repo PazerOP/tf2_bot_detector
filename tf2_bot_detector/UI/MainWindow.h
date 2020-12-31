@@ -20,6 +20,7 @@
 #include "TFConstants.h"
 
 #include <imgui_desktop/Window.h>
+#include <mh/concurrency/dispatcher.hpp>
 #include <mh/error/expected.hpp>
 
 #include <optional>
@@ -98,13 +99,14 @@ namespace tf2_bot_detector
 		//void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
 		//void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
+		mh::dispatcher m_UpdateDispatcher;
 		bool m_Paused = false;
 
 		// Gets the current timestamp, but time progresses in real time even without new messages
 		time_point_t GetCurrentTimestampCompensated() const;
 
 		mh::expected<std::shared_ptr<ITexture>, std::error_condition> TryGetAvatarTexture(IPlayer& player);
-		std::unique_ptr<ITextureManager> m_TextureManager;
+		std::shared_ptr<ITextureManager> m_TextureManager;
 		std::unique_ptr<IBaseTextures> m_BaseTextures;
 
 		struct PingSample

@@ -186,7 +186,7 @@ namespace
 
 		std::vector<LobbyMember> m_CurrentLobbyMembers;
 		std::vector<LobbyMember> m_PendingLobbyMembers;
-		std::unordered_map<SteamID, Player> m_CurrentPlayerData;
+		std::unordered_map<SteamID, std::shared_ptr<Player>> m_CurrentPlayerData;
 		bool m_IsLocalPlayerInitialized = false;
 		bool m_IsVoteInProgress = false;
 
@@ -195,7 +195,6 @@ namespace
 		std::unordered_set<IConsoleLineListener*> m_ConsoleLineListeners;
 		std::unordered_set<IWorldEventListener*> m_EventListeners;
 
-		void UpdateConsoleLineParsing();
 		mh::thread_pool m_ConsoleLineParsingPool{ 1 };
 		std::vector<mh::shared_future<std::shared_ptr<IConsoleLine>>> m_ConsoleLineParsingTasks;
 
@@ -366,10 +365,10 @@ std::optional<SteamID> WorldState::FindSteamIDForName(const std::string_view& pl
 
 	for (const auto& data : m_CurrentPlayerData)
 	{
-		if (data.second.GetStatus().m_Name == playerName && data.second.GetLastStatusUpdateTime() > lastUpdated)
+		if (data.second->GetStatus().m_Name == playerName && data.second->GetLastStatusUpdateTime() > lastUpdated)
 		{
-			retVal = data.second.GetSteamID();
-			lastUpdated = data.second.GetLastStatusUpdateTime();
+			retVal = data.second->GetSteamID();
+			lastUpdated = data.second->GetLastStatusUpdateTime();
 		}
 	}
 
@@ -397,8 +396,8 @@ std::optional<UserID_t> WorldState::FindUserID(const SteamID& id) const
 {
 	for (const auto& player : m_CurrentPlayerData)
 	{
-		if (player.second.GetSteamID() == id)
-			return player.second.GetUserID();
+		if (player.second->GetSteamID() == id)
+			return player.second->GetUserID();
 	}
 
 	return std::nullopt;
@@ -434,7 +433,7 @@ auto WorldState::GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0,
 const IPlayer* WorldState::FindPlayer(const SteamID& id) const
 {
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
-		return &found->second;
+		return found->second.get();
 
 	return nullptr;
 }
@@ -453,9 +452,9 @@ mh::generator<const IPlayer&> WorldState::GetLobbyMembers() const
 
 		if (auto found = m_CurrentPlayerData.find(member.m_SteamID); found != m_CurrentPlayerData.end())
 		{
-			[[maybe_unused]] const LobbyMember* testMember = found->second.GetLobbyMember();
+			[[maybe_unused]] const LobbyMember* testMember = found->second->GetLobbyMember();
 			//assert(*testMember == member);
-			return &found->second;
+			return found->second.get();
 		}
 		else
 		{
@@ -491,7 +490,7 @@ mh::generator<const IPlayer&> WorldState::GetLobbyMembers() const
 mh::generator<const IPlayer&> WorldState::GetPlayers() const
 {
 	for (const auto& pair : m_CurrentPlayerData)
-		co_yield pair.second;
+		co_yield *pair.second;
 }
 
 void WorldState::QueuePlayerSummaryUpdate(const SteamID& id)
@@ -511,7 +510,7 @@ static auto GetRecentPlayersImpl(TMap&& map, size_t recentPlayerCount)
 	std::vector<value_type> retVal;
 
 	for (auto& [sid, player] : map)
-		retVal.push_back(&player);
+		retVal.push_back(player.get());
 
 	std::sort(retVal.begin(), retVal.end(),
 		[](const IPlayer* a, const IPlayer* b)
@@ -624,7 +623,7 @@ void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 		{
 			// We can't trust the existing client indices
 			for (auto& player : m_CurrentPlayerData)
-				player.second.m_ClientIndex = 0;
+				player.second->m_ClientIndex = 0;
 		}
 		break;
 	}
@@ -859,9 +858,9 @@ Player& WorldState::FindOrCreatePlayer(const SteamID& id)
 {
 	Player* data;
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
-		data = &found->second;
+		data = found->second.get();
 	else
-		data = &m_CurrentPlayerData.emplace(id, Player{ *this, id }).first->second;
+		data = m_CurrentPlayerData.emplace(id, std::make_shared<Player>(*this, id)).first->second.get();
 
 	assert(data->GetSteamID() == id);
 	return *data;

@@ -197,9 +197,8 @@ mh::task<std::error_condition> tf2_bot_detector::detail::LoadConfigFileAsync(Con
 	std::shared_ptr<const HTTPClient> client;
 	if (dynamic_cast<SharedConfigFileBase*>(&file) && allowAutoUpdate)
 	{
-		if (auto clientRaw = settings.GetHTTPClient())
-			client = clientRaw->shared_from_this();
-		else
+		client = settings.GetHTTPClient();
+		if (!client)
 			Log("Disallowing auto-update of {} because internet connectivity is disabled or unset in settings", filename);
 	}
 

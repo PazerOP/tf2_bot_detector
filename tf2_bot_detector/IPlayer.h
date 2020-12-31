@@ -33,7 +33,7 @@ namespace tf2_bot_detector
 		uint16_t m_LocalDeaths = 0;
 	};
 
-	class IPlayer
+	class IPlayer : public std::enable_shared_from_this<IPlayer>
 	{
 	public:
 		virtual ~IPlayer() = default;

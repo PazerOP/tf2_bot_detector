@@ -48,6 +48,6 @@ mh::task<std::string> HTTPClient::GetStringAsync(URL url) const try
 }
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), "{}", url);
+	DebugLogException(MH_SOURCE_LOCATION_CURRENT(), "{}", url);
 	throw;
 }

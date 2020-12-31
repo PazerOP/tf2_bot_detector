@@ -236,7 +236,7 @@ Settings::Unsaved::~Unsaved()
 {
 }
 
-const HTTPClient* tf2_bot_detector::Settings::GetHTTPClient() const
+std::shared_ptr<const HTTPClient> tf2_bot_detector::Settings::GetHTTPClient() const
 {
 	if (!m_AllowInternetUsage.value_or(false))
 		return nullptr;
@@ -244,7 +244,7 @@ const HTTPClient* tf2_bot_detector::Settings::GetHTTPClient() const
 	if (!m_HTTPClient)
 		m_HTTPClient = std::make_shared<HTTPClient>();
 
-	return &*m_HTTPClient;
+	return m_HTTPClient;
 }
 
 void Settings::ValidateSchema(const ConfigSchemaInfo& schema) const
