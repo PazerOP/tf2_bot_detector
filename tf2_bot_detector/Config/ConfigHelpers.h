@@ -88,7 +88,7 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ConfigFileBase() = default;
 
-		std::error_condition LoadFile(const std::filesystem::path& filename, const HTTPClient* client = nullptr);
+		mh::task<std::error_condition> LoadFileAsync(const std::filesystem::path& filename, std::shared_ptr<const HTTPClient> client = nullptr);
 		std::error_condition SaveFile(const std::filesystem::path& filename) const;
 
 		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0 {}
@@ -99,7 +99,7 @@ namespace tf2_bot_detector
 		std::string m_FileName; // Name of the file this was loaded from
 
 	private:
-		std::error_condition LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client);
+		mh::task<std::error_condition> LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const HTTPClient> client);
 	};
 
 	class SharedConfigFileBase : public ConfigFileBase
@@ -119,37 +119,15 @@ namespace tf2_bot_detector
 
 	namespace detail
 	{
-		const HTTPClient* GetHTTPClient(const Settings& settings);
+		mh::task<std::error_condition> LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename, bool allowAutoUpdate, const Settings& settings);
 	}
 
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
-	T LoadConfigFile(const std::filesystem::path& filename, bool allowAutoupdate, const Settings& settings)
+	mh::task<T> LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoUpdate, const Settings& settings)
 	{
-		const HTTPClient* client = allowAutoupdate ? detail::GetHTTPClient(settings) : nullptr;
-		if (allowAutoupdate && !client)
-			Log("Disallowing auto-update of {} because internet connectivity is disabled or unset in settings", filename);
-
-		// Not going to be doing any async loading
-		if (T file; file.LoadFile(filename, client))
-			return file;
-
-		return T{};
-	}
-
-	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
-	mh::task<T> LoadConfigFileAsync(std::filesystem::path filename, bool allowAutoupdate, const Settings& settings)
-	{
-		if constexpr (std::is_base_of_v<SharedConfigFileBase, T>)
-		{
-			if (allowAutoupdate)
-			{
-				co_await mh::co_create_background_thread();
-				co_return LoadConfigFile<T>(filename, true, settings);
-			}
-		}
-
-		assert(!allowAutoupdate);
-		co_return LoadConfigFile<T>(filename, allowAutoupdate, settings);
+		T file;
+		co_await detail::LoadConfigFileAsync(file, filename, allowAutoUpdate, settings);
+		co_return file;
 	}
 
 	template<typename T, typename TOthers = typename T::collection_type>
@@ -171,7 +149,7 @@ namespace tf2_bot_detector
 			const auto paths = GetConfigFilePaths(GetBaseFileName());
 
 			if (!IsOfficial() && !paths.m_User.empty())
-				m_UserList = LoadConfigFile<T>(paths.m_User, false, *m_Settings);
+				m_UserList = LoadConfigFileAsync<T>(paths.m_User, false, *m_Settings).get();
 
 			if (!paths.m_Official.empty())
 				m_OfficialList = LoadConfigFileAsync<T>(paths.m_Official, !IsOfficial(), *m_Settings);
@@ -204,7 +182,7 @@ namespace tf2_bot_detector
 		T& GetDefaultMutableList()
 		{
 			if (IsOfficial())
-				return const_cast<T&>(m_OfficialList.get()); // forgive me for i have sinned
+				return m_OfficialList.get();
 
 			return GetLocalList();
 		}
@@ -212,8 +190,8 @@ namespace tf2_bot_detector
 		{
 			if (IsOfficial())
 			{
-				if (auto list = m_OfficialList.try_get())
-					return list;
+				// This might cause occasional UI hiccups, but I am the only one this code path will run for
+				return &m_OfficialList.get();
 			}
 
 			return GetLocalList();
@@ -256,15 +234,13 @@ namespace tf2_bot_detector
 	private:
 		mh::task<collection_type> LoadThirdPartyListsAsync(ConfigFilePaths paths)
 		{
-			co_await mh::co_create_background_thread();
-
 			collection_type collection;
 
 			for (const auto& file : paths.m_Others)
 			{
 				try
 				{
-					auto parsedFile = LoadConfigFile<T>(file, true, *m_Settings);
+					auto parsedFile = co_await LoadConfigFileAsync<T>(file, true, *m_Settings);
 					CombineEntries(collection, parsedFile);
 				}
 				catch (...)

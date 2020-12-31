@@ -71,33 +71,33 @@ static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, cons
 	return schema;
 }
 
-static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& existingJson,
+static mh::task<bool> TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& existingJson,
 	SharedConfigFileBase& config, const HTTPClient& client)
 {
 	auto fileInfoJson = existingJson.find("file_info");
 	if (fileInfoJson == existingJson.end())
 	{
 		DebugLog("Skipping auto-update of {}: file_info object missing", filename);
-		return false;
+		co_return false;
 	}
 
 	const ConfigFileInfo info(*fileInfoJson);
 	if (info.m_UpdateURL.empty())
 	{
 		DebugLog("Skipping auto-update of {}: update_url was empty", filename);
-		return false;
+		co_return false;
 	}
 
 	nlohmann::json newJson;
 	try
 	{
-		newJson = nlohmann::json::parse(client.GetString(info.m_UpdateURL));
+		newJson = nlohmann::json::parse(co_await client.GetStringAsync(info.m_UpdateURL));
 	}
 	catch (...)
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {}: failed to parse new json from {}", filename, info.m_UpdateURL);
-		return false;
+		co_return false;
 	}
 
 	try
@@ -108,7 +108,7 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {} from {}: new json failed schema validation", filename, info.m_UpdateURL);
-		return false;
+		co_return false;
 	}
 
 	ConfigFileInfo fileInfo;
@@ -121,7 +121,7 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {} from {}: failed to parse file info from new json", filename, info.m_UpdateURL);
-		return false;
+		co_return false;
 	}
 
 	if (fileInfo.m_Title.empty())
@@ -135,7 +135,7 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {}: failed to deserialize response from {}", filename, info.m_UpdateURL);
-		return false;
+		co_return false;
 	}
 
 	if (config.SaveFile(filename))
@@ -148,7 +148,7 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 		DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Wrote auto-updated config file from {} to {}", info.m_UpdateURL, filename);
 	}
 
-	return true;
+	co_return true;
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const ConfigSchemaInfo& d)
@@ -191,6 +191,21 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 	try_get_to_defaulted(j, d.m_UpdateURL, "update_url");
 }
 
+mh::task<std::error_condition> tf2_bot_detector::detail::LoadConfigFileAsync(ConfigFileBase& file, std::filesystem::path filename,
+	bool allowAutoUpdate, const Settings& settings)
+{
+	std::shared_ptr<const HTTPClient> client;
+	if (dynamic_cast<SharedConfigFileBase*>(&file) && allowAutoUpdate)
+	{
+		if (auto clientRaw = settings.GetHTTPClient())
+			client = clientRaw->shared_from_this();
+		else
+			Log("Disallowing auto-update of {} because internet connectivity is disabled or unset in settings", filename);
+	}
+
+	co_return co_await file.LoadFileAsync(filename, client);
+}
+
 static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept try
 {
 	auto& fs = IFilesystem::Get();
@@ -221,9 +236,9 @@ catch (...)
 		filename);
 }
 
-std::error_condition ConfigFileBase::LoadFile(const std::filesystem::path& filename, const HTTPClient* client)
+mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesystem::path& filename, std::shared_ptr<const HTTPClient> client)
 {
-	auto retVal = LoadFileInternal(filename, client);
+	auto retVal = co_await LoadFileInternalAsync(filename, client);
 
 	if (retVal)
 		SaveConfigFileBackup(filename);
@@ -240,10 +255,10 @@ std::error_condition ConfigFileBase::LoadFile(const std::filesystem::path& filen
 		}
 	}
 
-	return retVal;
+	co_return retVal;
 }
 
-std::error_condition ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client)
+mh::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const HTTPClient> client)
 {
 	const auto startTime = clock_t::now();
 
@@ -259,7 +274,7 @@ std::error_condition ConfigFileBase::LoadFileInternal(const std::filesystem::pat
 		catch (...)
 		{
 			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load {}", filename);
-			return ConfigErrorType::ReadFileFailed;
+			co_return ConfigErrorType::ReadFileFailed;
 		}
 
 		try
@@ -269,7 +284,7 @@ std::error_condition ConfigFileBase::LoadFileInternal(const std::filesystem::pat
 		catch (...)
 		{
 			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse JSON from {}", filename);
-			return ConfigErrorType::JSONParseFailed;
+			co_return ConfigErrorType::JSONParseFailed;
 		}
 	}
 
@@ -281,7 +296,7 @@ std::error_condition ConfigFileBase::LoadFileInternal(const std::filesystem::pat
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to load {}, existing json failed schema validation", filename);
-		return ConfigErrorType::SchemaValidationFailed;
+		co_return ConfigErrorType::SchemaValidationFailed;
 	}
 
 	m_FileName = filename.string();
@@ -305,8 +320,8 @@ std::error_condition ConfigFileBase::LoadFileInternal(const std::filesystem::pat
 	{
 		if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
 		{
-			if (fileInfoParsed && TryAutoUpdate(filename, json, *shared, *client))
-				return ConfigErrorType::Success;
+			if (fileInfoParsed && co_await TryAutoUpdate(filename, json, *shared, *client))
+				co_return ConfigErrorType::Success;
 		}
 	}
 	else
@@ -322,11 +337,11 @@ std::error_condition ConfigFileBase::LoadFileInternal(const std::filesystem::pat
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to load {}, existing file failed to deserialize, and auto-update did not occur", filename);
-		return ConfigErrorType::DeserializeFailed;
+		co_return ConfigErrorType::DeserializeFailed;
 	}
 
 	DebugLog("Loaded {} in {} seconds", filename, to_seconds(clock_t::now() - startTime));
-	return ConfigErrorType::Success;
+	co_return ConfigErrorType::Success;
 }
 
 std::error_condition tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& filename) const
@@ -435,11 +450,6 @@ ConfigFileInfo SharedConfigFileBase::GetFileInfo() const
 	ConfigFileInfo retVal;
 	retVal.m_Title = m_FileName;
 	return retVal;
-}
-
-const HTTPClient* detail::GetHTTPClient(const Settings& settings)
-{
-	return settings.GetHTTPClient();
 }
 
 const std::error_category& tf2_bot_detector::ConfigErrorCategory()

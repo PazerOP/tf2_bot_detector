@@ -214,7 +214,7 @@ void Settings::LoadFile() try
 		}
 	}
 #endif
-	ConfigFileBase::LoadFile("cfg/settings.json");
+	ConfigFileBase::LoadFileAsync("cfg/settings.json").get();
 }
 catch (...)
 {
