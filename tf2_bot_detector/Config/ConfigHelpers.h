@@ -1,6 +1,5 @@
 #pragma once
 #include "Log.h"
-#include "Settings.h"
 
 #include <mh/coroutine/task.hpp>
 #include <mh/coroutine/thread.hpp>
@@ -16,6 +15,9 @@
 
 namespace tf2_bot_detector
 {
+	class HTTPClient;
+	class Settings;
+
 	enum class ConfigFileType
 	{
 		User,
@@ -24,6 +26,21 @@ namespace tf2_bot_detector
 
 		COUNT,
 	};
+
+	enum class ConfigErrorType
+	{
+		Success = 0,
+
+		ReadFileFailed,
+		JSONParseFailed,
+		SchemaValidationFailed,
+		DeserializeFailed,
+		SerializeFailed,
+		SerializedSchemaValidationFailed,
+		WriteFileFailed,
+	};
+	const std::error_category& ConfigErrorCategory();
+	std::error_condition make_error_condition(ConfigErrorType e);
 
 	struct ConfigFilePaths
 	{
@@ -71,8 +88,8 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ConfigFileBase() = default;
 
-		bool LoadFile(const std::filesystem::path& filename, const HTTPClient* client = nullptr);
-		bool SaveFile(const std::filesystem::path& filename) const;
+		std::error_condition LoadFile(const std::filesystem::path& filename, const HTTPClient* client = nullptr);
+		std::error_condition SaveFile(const std::filesystem::path& filename) const;
 
 		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0 {}
 		virtual void Deserialize(const nlohmann::json& json) = 0 {}
@@ -82,7 +99,7 @@ namespace tf2_bot_detector
 		std::string m_FileName; // Name of the file this was loaded from
 
 	private:
-		bool LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client);
+		std::error_condition LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client);
 	};
 
 	class SharedConfigFileBase : public ConfigFileBase
@@ -100,10 +117,15 @@ namespace tf2_bot_detector
 		std::optional<ConfigFileInfo> m_FileInfo;
 	};
 
+	namespace detail
+	{
+		const HTTPClient* GetHTTPClient(const Settings& settings);
+	}
+
 	template<typename T, typename = std::enable_if_t<std::is_base_of_v<ConfigFileBase, T>>>
 	T LoadConfigFile(const std::filesystem::path& filename, bool allowAutoupdate, const Settings& settings)
 	{
-		const HTTPClient* client = allowAutoupdate ? settings.GetHTTPClient() : nullptr;
+		const HTTPClient* client = allowAutoupdate ? detail::GetHTTPClient(settings) : nullptr;
 		if (allowAutoupdate && !client)
 			Log("Disallowing auto-update of {} because internet connectivity is disabled or unset in settings", filename);
 
@@ -254,4 +276,21 @@ namespace tf2_bot_detector
 			co_return collection;
 		}
 	};
+}
+
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::ConfigErrorType)
+	MH_ENUM_REFLECT_VALUE(Success)
+
+	MH_ENUM_REFLECT_VALUE(ReadFileFailed)
+	MH_ENUM_REFLECT_VALUE(JSONParseFailed)
+	MH_ENUM_REFLECT_VALUE(SchemaValidationFailed)
+	MH_ENUM_REFLECT_VALUE(DeserializeFailed)
+	MH_ENUM_REFLECT_VALUE(SerializeFailed)
+	MH_ENUM_REFLECT_VALUE(SerializedSchemaValidationFailed)
+	MH_ENUM_REFLECT_VALUE(WriteFileFailed)
+MH_ENUM_REFLECT_END()
+
+namespace std
+{
+	template<> struct is_error_condition_enum<tf2_bot_detector::ConfigErrorType> : true_type {};
 }

@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include "Networking/HTTPClient.h"
 #include "Networking/NetworkHelpers.h"
 #include "Util/JSONUtils.h"
 #include "Util/PathUtils.h"
@@ -23,11 +24,6 @@
 using namespace tf2_bot_detector;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
-
-static std::filesystem::path GetSettingsPath(PathUsage usage)
-{
-	return IFilesystem::Get().ResolvePath("cfg/settings.json", usage);
-}
 
 namespace tf2_bot_detector
 {
@@ -172,9 +168,7 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ReleaseChannel& d)
 
 Settings::Settings() try
 {
-	// Immediately load and resave to normalize any formatting
 	LoadFile();
-	SaveFile();
 }
 catch (...)
 {
@@ -182,8 +176,11 @@ catch (...)
 	throw;
 }
 
+Settings::~Settings() = default;
+
 void Settings::LoadFile() try
 {
+#if 0
 	nlohmann::json json;
 	{
 		const auto settingsPath = GetSettingsPath(PathUsage::Read);
@@ -216,7 +213,50 @@ void Settings::LoadFile() try
 			}
 		}
 	}
+#endif
+	ConfigFileBase::LoadFile("cfg/settings.json");
+}
+catch (...)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT());
+	throw;
+}
 
+bool Settings::SaveFile() const try
+{
+	return !ConfigFileBase::SaveFile("cfg/settings.json");
+}
+catch (...)
+{
+	LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to save settings");
+	return false;
+}
+
+Settings::Unsaved::~Unsaved()
+{
+}
+
+const HTTPClient* tf2_bot_detector::Settings::GetHTTPClient() const
+{
+	if (!m_AllowInternetUsage.value_or(false))
+		return nullptr;
+
+	if (!m_HTTPClient)
+		m_HTTPClient = std::make_shared<HTTPClient>();
+
+	return &*m_HTTPClient;
+}
+
+void Settings::ValidateSchema(const ConfigSchemaInfo& schema) const
+{
+	if (schema.m_Type != "settings")
+		throw std::runtime_error(mh::format("Schema {} is not a settings file", schema.m_Type));
+	if (schema.m_Version != 3)
+		throw std::runtime_error(mh::format("Schema must be version {} (current version {})", SETTINGS_SCHEMA_VERSION, schema.m_Version));
+}
+
+void Settings::Deserialize(const nlohmann::json& json)
+{
 	if (auto found = json.find("general"); found != json.end())
 	{
 		static const GeneralSettings DEFAULTS;
@@ -258,15 +298,10 @@ void Settings::LoadFile() try
 		m_GotoProfileSites.push_back({ "UGC League", "https://www.ugcleague.com/players_page.cfm?player_id=%SteamID64%" });
 	}
 }
-catch (...)
-{
-	LogException(MH_SOURCE_LOCATION_CURRENT());
-	throw;
-}
 
-bool Settings::SaveFile() const try
+void Settings::Serialize(nlohmann::json& json) const
 {
-	nlohmann::json json =
+	json =
 	{
 		{ "$schema", "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/settings.schema.json" },
 		{ "theme", m_Theme },
@@ -297,48 +332,6 @@ bool Settings::SaveFile() const try
 		json["general"]["local_steamid_override"] = m_LocalSteamIDOverride;
 	if (m_AllowInternetUsage)
 		json["general"]["allow_internet_usage"] = *m_AllowInternetUsage;
-
-	// Make sure we successfully serialize BEFORE we destroy our file
-	auto jsonString = json.dump(1, '\t', true);
-	{
-		const auto settingsPath = GetSettingsPath(PathUsage::Write);
-		std::filesystem::create_directories(std::filesystem::path(settingsPath).remove_filename());
-		std::ofstream file(settingsPath, std::ios::binary);
-		if (!file.good())
-		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open settings file for writing: {}", settingsPath);
-			return false;
-		}
-
-		file << jsonString << '\n';
-		if (!file.good())
-		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to write settings to {}", settingsPath);
-			return false;
-		}
-	}
-
-	return true;
-}
-catch (...)
-{
-	LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to save settings");
-	return false;
-}
-
-Settings::Unsaved::~Unsaved()
-{
-}
-
-const HTTPClient* tf2_bot_detector::Settings::GetHTTPClient() const
-{
-	if (!m_AllowInternetUsage.value_or(false))
-		return nullptr;
-
-	if (!m_HTTPClient)
-		m_HTTPClient = std::make_shared<HTTPClient>();
-
-	return &*m_HTTPClient;
 }
 
 SteamID AutoDetectedSettings::GetLocalSteamID() const

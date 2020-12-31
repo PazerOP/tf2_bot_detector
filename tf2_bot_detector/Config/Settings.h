@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Networking/HTTPClient.h"
+#include "ConfigHelpers.h"
 #include "ChatWrappers.h"
 #include "Clock.h"
-#include "ReleaseChannel.h"
 #include "SteamID.h"
 
 #include <nlohmann/json_fwd.hpp>
@@ -19,6 +18,9 @@ namespace srcon
 
 namespace tf2_bot_detector
 {
+	class HTTPClient;
+	enum class ReleaseChannel;
+
 	void to_json(nlohmann::json& j, const ReleaseChannel& d);
 	void from_json(const nlohmann::json& j, ReleaseChannel& d);
 
@@ -67,10 +69,11 @@ namespace tf2_bot_detector
 		std::string m_SteamAPIKey;
 	};
 
-	class Settings final : public AutoDetectedSettings, public GeneralSettings
+	class Settings final : public AutoDetectedSettings, public GeneralSettings, ConfigFileBase
 	{
 	public:
 		Settings();
+		~Settings();
 
 		void LoadFile();
 		bool SaveFile() const;
@@ -129,6 +132,12 @@ namespace tf2_bot_detector
 		} m_Theme;
 
 	private:
+		static constexpr int SETTINGS_SCHEMA_VERSION = 3;
+
+		void ValidateSchema(const ConfigSchemaInfo& schema) const override;
+		void Deserialize(const nlohmann::json& json) override;
+		void Serialize(nlohmann::json& json) const override;
+
 		mutable std::shared_ptr<HTTPClient> m_HTTPClient;
 	};
 }

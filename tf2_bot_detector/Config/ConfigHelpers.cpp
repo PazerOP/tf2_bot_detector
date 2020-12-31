@@ -1,4 +1,5 @@
 #include "ConfigHelpers.h"
+#include "Networking/HTTPClient.h"
 #include "Networking/HTTPHelpers.h"
 #include "Platform/Platform.h"
 #include "Util/JSONUtils.h"
@@ -6,6 +7,7 @@
 #include "Filesystem.h"
 #include "Log.h"
 #include "Version.h"
+#include "Settings.h"
 
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -93,7 +95,7 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), 
+		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {}: failed to parse new json from {}", filename, info.m_UpdateURL);
 		return false;
 	}
@@ -104,7 +106,7 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), 
+		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {} from {}: new json failed schema validation", filename, info.m_UpdateURL);
 		return false;
 	}
@@ -117,7 +119,7 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), 
+		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {} from {}: failed to parse file info from new json", filename, info.m_UpdateURL);
 		return false;
 	}
@@ -131,20 +133,19 @@ static bool TryAutoUpdate(std::filesystem::path filename, const nlohmann::json& 
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), 
+		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to auto-update {}: failed to deserialize response from {}", filename, info.m_UpdateURL);
 		return false;
 	}
 
-	if (!config.SaveFile(filename))
+	if (config.SaveFile(filename))
 	{
-		LogError("Successfully downloaded and deserialized new version of "s
-			<< filename << " from " << info.m_UpdateURL
-			<< ", but couldn't write it back to disk.");
+		LogError(MH_SOURCE_LOCATION_CURRENT(), "Successfully downloaded and deserialized new version of {} from {}, but couldn't write it back to disk.",
+			filename, info.m_UpdateURL);
 	}
 	else
 	{
-		DebugLog("Wrote auto-updated config file from "s << info.m_UpdateURL << " to " << filename);
+		DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Wrote auto-updated config file from {} to {}", info.m_UpdateURL, filename);
 	}
 
 	return true;
@@ -190,17 +191,59 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ConfigFileInfo& d)
 	try_get_to_defaulted(j, d.m_UpdateURL, "update_url");
 }
 
-bool ConfigFileBase::LoadFile(const std::filesystem::path& filename, const HTTPClient* client)
+static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept try
 {
-	bool retVal = LoadFileInternal(filename, client);
+	auto& fs = IFilesystem::Get();
+	const auto readPath = fs.ResolvePath(filename, PathUsage::Read);
 
-	if (!SaveFile(filename))
-		LogWarning("Failed to resave "s << filename);
+	const auto extension = filename.extension();
+	const auto baseFilename = filename.filename().replace_extension();
+
+	std::filesystem::path backupPath;
+	for (size_t i = 1; ; i++)
+	{
+		backupPath = fs.ResolvePath(filename, PathUsage::Write).remove_filename();
+		backupPath /= mh::format("{}_BACKUP_{}{}", baseFilename.string(), i, extension.string());
+
+		if (!std::filesystem::exists(backupPath))
+		{
+			Log(MH_SOURCE_LOCATION_CURRENT(), "Attempting to make backup of {} to {}...", filename, backupPath);
+			std::filesystem::copy_file(filename, backupPath);
+			break;
+		}
+	}
+
+	LogWarning(MH_SOURCE_LOCATION_CURRENT(), "A backup of {0} was saved to {1} before {0} was overwritten.", filename, backupPath);
+}
+catch (...)
+{
+	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), "Loading config file {} failed, and TF2 Bot Detector was unable to make a backup before overwriting it.",
+		filename);
+}
+
+std::error_condition ConfigFileBase::LoadFile(const std::filesystem::path& filename, const HTTPClient* client)
+{
+	auto retVal = LoadFileInternal(filename, client);
+
+	if (retVal)
+		SaveConfigFileBackup(filename);
+
+	if (SaveFile(filename))
+	{
+		if (retVal)
+		{
+			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load and resave {}. TF2 Bot Detector may not have permission to write to where it is installed.", filename);
+		}
+		else
+		{
+			LogWarning(MH_SOURCE_LOCATION_CURRENT(), "Failed to resave {}", filename);
+		}
+	}
 
 	return retVal;
 }
 
-bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client)
+std::error_condition ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, const HTTPClient* client)
 {
 	const auto startTime = clock_t::now();
 
@@ -216,7 +259,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		catch (...)
 		{
 			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load {}", filename);
-			return false;
+			return ConfigErrorType::ReadFileFailed;
 		}
 
 		try
@@ -226,7 +269,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		catch (...)
 		{
 			LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to parse JSON from {}", filename);
-			return false;
+			return ConfigErrorType::JSONParseFailed;
 		}
 	}
 
@@ -236,9 +279,9 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), 
+		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to load {}, existing json failed schema validation", filename);
-		return false;
+		return ConfigErrorType::SchemaValidationFailed;
 	}
 
 	m_FileName = filename.string();
@@ -263,7 +306,7 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 		if (auto shared = dynamic_cast<SharedConfigFileBase*>(this))
 		{
 			if (fileInfoParsed && TryAutoUpdate(filename, json, *shared, *client))
-				return true;
+				return ConfigErrorType::Success;
 		}
 	}
 	else
@@ -277,16 +320,16 @@ bool ConfigFileBase::LoadFileInternal(const std::filesystem::path& filename, con
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), 
+		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to load {}, existing file failed to deserialize, and auto-update did not occur", filename);
-		return false;
+		return ConfigErrorType::DeserializeFailed;
 	}
 
 	DebugLog("Loaded {} in {} seconds", filename, to_seconds(clock_t::now() - startTime));
-	return true;
+	return ConfigErrorType::Success;
 }
 
-bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& filename) const
+std::error_condition tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& filename) const
 {
 	nlohmann::json json;
 
@@ -298,9 +341,9 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), 
+		LogException(MH_SOURCE_LOCATION_CURRENT(),
 			"Failed to serialize {}, schema failed to validate", filename);
-		return false;
+		return ConfigErrorType::SchemaValidationFailed;
 	}
 
 	try
@@ -310,7 +353,7 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	catch (...)
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to serialize {}", filename);
-		return false;
+		return ConfigErrorType::SerializeFailed;
 	}
 
 	try
@@ -320,7 +363,7 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	catch (...)
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to serialize {}", filename);
-		return false;
+		return ConfigErrorType::SerializedSchemaValidationFailed;
 	}
 
 	try
@@ -330,10 +373,10 @@ bool tf2_bot_detector::ConfigFileBase::SaveFile(const std::filesystem::path& fil
 	catch (...)
 	{
 		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to write {}", filename);
-		return false;
+		return ConfigErrorType::WriteFileFailed;
 	}
 
-	return true;
+	return ConfigErrorType::Success;
 }
 
 void ConfigFileBase::Serialize(nlohmann::json& json) const
@@ -392,4 +435,53 @@ ConfigFileInfo SharedConfigFileBase::GetFileInfo() const
 	ConfigFileInfo retVal;
 	retVal.m_Title = m_FileName;
 	return retVal;
+}
+
+const HTTPClient* detail::GetHTTPClient(const Settings& settings)
+{
+	return settings.GetHTTPClient();
+}
+
+const std::error_category& tf2_bot_detector::ConfigErrorCategory()
+{
+	struct ConfigErrorCategory_t final : std::error_category
+	{
+		const char* name() const noexcept override { return "tf2_bot_detector::ConfigErrorType"; }
+
+		std::string message(int condition) const override
+		{
+			switch ((ConfigErrorType)condition)
+			{
+			case ConfigErrorType::Success:
+				return "Success";
+
+			case ConfigErrorType::ReadFileFailed:
+				return "Failed to read file";
+			case ConfigErrorType::JSONParseFailed:
+				return "Failed to parse JSON";
+			case ConfigErrorType::SchemaValidationFailed:
+				return "Failed to validate $schema";
+			case ConfigErrorType::DeserializeFailed:
+				return "Failed to deserialize data from json";
+			case ConfigErrorType::SerializeFailed:
+				return "Failed to serialize data to json";
+			case ConfigErrorType::SerializedSchemaValidationFailed:
+				return "Failed to validate $schema that was generated by the Serialize() function";
+			case ConfigErrorType::WriteFileFailed:
+				return "Failed to write file";
+
+			default:
+				assert(false);
+				return "<UNKNOWN>";
+			}
+		}
+
+	} static const s_Category;
+
+	return s_Category;
+}
+
+std::error_condition tf2_bot_detector::make_error_condition(tf2_bot_detector::ConfigErrorType e)
+{
+	return std::error_condition(static_cast<int>(e), ConfigErrorCategory());
 }
