@@ -6,7 +6,7 @@
 using namespace std::chrono_literals;
 using namespace tf2_bot_detector;
 
-TEST_CASE("tf2bd_cl_status")
+TEST_CASE("tf2bd_cl_status", "[ConsoleLines]")
 {
 	struct StatusLineTest
 	{

@@ -225,7 +225,6 @@ if (TF2BD_ENABLE_TESTS)
 		"Tests/Catch2.cpp"
 		"Tests/ConsoleLineTests.cpp"
 		"Tests/Tests.h"
-		"Tests/CharConverterTests.cpp"
 	)
 
 	SET(TF2BD_ENABLE_CLI_EXE true)
