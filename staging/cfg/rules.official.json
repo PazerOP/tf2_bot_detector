@@ -305,6 +305,23 @@
 					"cheater"
 				]
 			},
+			"description": "Generic name-stealing bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"\u202c"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "Cheater (newlines in chat message/name)",
 			"triggers": {
 				"chatmsg_text_match": {
