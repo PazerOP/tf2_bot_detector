@@ -5957,6 +5957,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "shell\u202cshockgaming",
+				"time": 1609485245
+			},
+			"steamid": "[U:1:1140154121]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "(4)Gray Bot Removal Service",
 				"time": 1606097340
 			},
@@ -5981,6 +5991,16 @@
 				"time": 1609479522
 			},
 			"steamid": "[U:1:1140162960]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "The sn\u202ciper",
+				"time": 1609486473
+			},
+			"steamid": "[U:1:1140214632]"
 		},
 		{
 			"attributes": [
@@ -6117,8 +6137,18 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "p\u202cazer",
-				"time": 1609387956
+				"player_name": "shellshockgamin\u202cg",
+				"time": 1609486473
+			},
+			"steamid": "[U:1:1140902640]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "paz\u202cer",
+				"time": 1609486706
 			},
 			"steamid": "[U:1:1140915263]"
 		},
