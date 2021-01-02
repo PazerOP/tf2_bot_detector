@@ -9,6 +9,7 @@
 #include "Version.h"
 #include "Settings.h"
 
+#include <mh/text/formatters/error_code.hpp>
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <nlohmann/json.hpp>
@@ -237,16 +238,16 @@ catch (...)
 
 mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesystem::path& filename, std::shared_ptr<const HTTPClient> client)
 {
-	auto retVal = co_await LoadFileInternalAsync(filename, client);
+	const auto loadResult = co_await LoadFileInternalAsync(filename, client);
 
-	if (retVal)
+	if (loadResult && loadResult != std::errc::no_such_file_or_directory)
 		SaveConfigFileBackup(filename);
 
-	if (SaveFile(filename))
+	if (auto saveResult = SaveFile(filename))
 	{
-		if (retVal)
+		if (loadResult)
 		{
-			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load and resave {}. TF2 Bot Detector may not have permission to write to where it is installed.", filename);
+			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Failed to load and resave {}. TF2 Bot Detector may not have permission to write to where it is installed.\n\nLoad error: {}\nSave error: {}", filename, loadResult, saveResult);
 		}
 		else
 		{
@@ -254,11 +255,25 @@ mh::task<std::error_condition> ConfigFileBase::LoadFileAsync(const std::filesyst
 		}
 	}
 
-	co_return retVal;
+	co_return loadResult;
 }
 
 mh::task<std::error_condition> ConfigFileBase::LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const HTTPClient> client)
 {
+	try
+	{
+		if (!IFilesystem::Get().Exists(filename))
+		{
+			DebugLog("{} does not exist, not loading.", filename);
+			co_return std::errc::no_such_file_or_directory;
+		}
+	}
+	catch (...)
+	{
+		LogException("Failed to check if {} exists", filename);
+		co_return ConfigErrorType::ReadFileFailed;
+	}
+
 	const auto startTime = clock_t::now();
 
 	nlohmann::json json;

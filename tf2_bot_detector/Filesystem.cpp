@@ -134,7 +134,7 @@ std::string Filesystem::ReadFile(std::filesystem::path path) const try
 {
 	path = ResolvePath(path, PathUsage::Read);
 	if (path.empty())
-		return {};
+		throw std::filesystem::filesystem_error("ResolvePath returned an empty path.", path, make_error_code(std::errc::no_such_file_or_directory));
 
 	std::ifstream file;
 	file.exceptions(std::ios::badbit | std::ios::failbit);
