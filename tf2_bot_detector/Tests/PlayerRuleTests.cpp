@@ -87,6 +87,10 @@ namespace
 		{
 			throw mh::not_implemented_error();
 		}
+		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override
+		{
+			throw mh::not_implemented_error();
+		}
 	};
 }
 

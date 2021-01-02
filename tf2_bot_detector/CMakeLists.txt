@@ -51,6 +51,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"Actions/HijackActionManager.cpp"
 	"Actions/IActionManager.h"
 	"Actions/ICommandSource.h"
+	"Config/AccountAges.cpp"
+	"Config/AccountAges.h"
 	"Config/ConfigHelpers.cpp"
 	"Config/ConfigHelpers.h"
 	"Config/DRPInfo.cpp"
