@@ -44,10 +44,10 @@ namespace tf2_bot_detector
 		virtual const LobbyMember* GetLobbyMember() const = 0;
 
 		// Player name exactly as it is ingame, no evil characters collapsed/removed
-		virtual std::string_view GetNameUnsafe() const = 0;
+		virtual std::string GetNameUnsafe() const = 0;
 
 		// Player name with evil characters collapsed/removed
-		virtual std::string_view GetNameSafe() const = 0;
+		std::string GetNameSafe() const;
 
 		virtual SteamID GetSteamID() const = 0;
 		virtual const mh::expected<SteamAPI::PlayerSummary, std::error_condition>& GetPlayerSummary() const = 0;

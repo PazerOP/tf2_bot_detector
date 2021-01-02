@@ -42,8 +42,7 @@ namespace
 		using IPlayer::GetWorld;
 		const IWorldState& GetWorld() const override;
 		const LobbyMember* GetLobbyMember() const override;
-		std::string_view GetNameUnsafe() const override { return m_Status.m_Name; }
-		std::string_view GetNameSafe() const override { return m_PlayerNameSafe; }
+		std::string GetNameUnsafe() const override { return m_Status.m_Name; }
 		SteamID GetSteamID() const override { return m_Status.m_SteamID; }
 		PlayerStatusState GetConnectionState() const override { return m_Status.m_State; }
 		std::optional<UserID_t> GetUserID() const override;
@@ -79,7 +78,6 @@ namespace
 	private:
 		WorldState* m_World = nullptr;
 		PlayerStatus m_Status{};
-		std::string m_PlayerNameSafe;
 
 		time_point_t m_LastStatusActiveBegin{};
 
@@ -1002,7 +1000,6 @@ void Player::SetStatus(PlayerStatus status, time_point_t timestamp)
 		m_LastStatusActiveBegin = timestamp;
 
 	m_Status = std::move(status);
-	m_PlayerNameSafe = CollapseNewlines(m_Status.m_Name);
 	m_LastStatusUpdateTime = m_LastPingUpdateTime = timestamp;
 }
 void Player::SetPing(uint16_t ping, time_point_t timestamp)

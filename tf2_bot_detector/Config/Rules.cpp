@@ -9,6 +9,7 @@
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
+#include <mh/utility.hpp>
 #include <nlohmann/json.hpp>
 
 #include <iomanip>
@@ -165,7 +166,7 @@ namespace tf2_bot_detector
 			if (found->is_array())
 				found->get_to(d.m_AvatarMatches);
 			else if (found->is_object())
-				d.m_AvatarMatches = { AvatarMatch(*found) };
+				d.m_AvatarMatches = { mh::copy(*found) };
 			else
 			{
 				throw std::runtime_error(mh::format(
@@ -358,7 +359,7 @@ namespace
 		NoMatch,
 	};
 
-	__declspec(noinline) MatchResult operator&&(MatchResult lhs, MatchResult rhs)
+	__declspec(noinline) constexpr MatchResult operator&&(MatchResult lhs, MatchResult rhs)
 	{
 		if (lhs == MatchResult::Match && rhs == MatchResult::Match)
 			return MatchResult::Match;
@@ -370,24 +371,48 @@ namespace
 			return lhs;
 	}
 
-	__declspec(noinline) MatchResult operator||(MatchResult lhs, MatchResult rhs)
+	__declspec(noinline) constexpr MatchResult operator||(MatchResult lhs, MatchResult rhs)
 	{
 		if (lhs == MatchResult::Match || rhs == MatchResult::Match)
 			return MatchResult::Match;
-		else if (lhs == MatchResult::NoMatch)
-			return rhs;
-		else
+		else if (lhs != MatchResult::Unset)
 			return lhs;
+		else
+			return rhs;
 	}
 
-	__declspec(noinline) bool operator!(MatchResult r)
+	__declspec(noinline) constexpr bool operator!(MatchResult r)
 	{
 		return !(r == MatchResult::Match);
 	}
+
+	static_assert((MatchResult::Unset && MatchResult::Unset) == MatchResult::Unset);
+	static_assert((MatchResult::Unset && MatchResult::Match) == MatchResult::Match);
+	static_assert((MatchResult::Unset && MatchResult::NoMatch) == MatchResult::NoMatch);
+
+	static_assert((MatchResult::Match && MatchResult::Unset) == MatchResult::Match);
+	static_assert((MatchResult::Match && MatchResult::Match) == MatchResult::Match);
+	static_assert((MatchResult::Match && MatchResult::NoMatch) == MatchResult::NoMatch);
+
+	static_assert((MatchResult::NoMatch && MatchResult::Unset) == MatchResult::NoMatch);
+	static_assert((MatchResult::NoMatch && MatchResult::Match) == MatchResult::NoMatch);
+	static_assert((MatchResult::NoMatch && MatchResult::NoMatch) == MatchResult::NoMatch);
+
+	static_assert((MatchResult::Unset || MatchResult::Unset) == MatchResult::Unset);
+	static_assert((MatchResult::Unset || MatchResult::Match) == MatchResult::Match);
+	static_assert((MatchResult::Unset || MatchResult::NoMatch) == MatchResult::NoMatch);
+
+	static_assert((MatchResult::Match || MatchResult::Unset) == MatchResult::Match);
+	static_assert((MatchResult::Match || MatchResult::Match) == MatchResult::Match);
+	static_assert((MatchResult::Match || MatchResult::NoMatch) == MatchResult::Match);
+
+	static_assert((MatchResult::NoMatch || MatchResult::Unset) == MatchResult::NoMatch);
+	static_assert((MatchResult::NoMatch || MatchResult::Match) == MatchResult::Match);
+	static_assert((MatchResult::NoMatch || MatchResult::NoMatch) == MatchResult::NoMatch);
 }
 
 template<typename... TFuncs>
-static bool MatchRules(TriggerMatchMode mode, TFuncs&&... funcs)
+static constexpr bool MatchRules(TriggerMatchMode mode, TFuncs&&... funcs)
 {
 	if (mode == TriggerMatchMode::MatchAll)
 		return !!(... && funcs());
@@ -398,6 +423,91 @@ static bool MatchRules(TriggerMatchMode mode, TFuncs&&... funcs)
 		LogError(MH_SOURCE_LOCATION_CURRENT(), "Unexpected mode {}", mh::enum_fmt(mode));
 		return false;
 	}
+}
+
+static constexpr void RunTests()
+{
+	const auto match = [] { return MatchResult::Match; };
+	const auto noMatch = [] { return MatchResult::NoMatch; };
+	const auto unset = [] { return MatchResult::Unset; };
+
+	//////////////
+	// MatchAll //
+	//////////////
+	static_assert(MatchRules(TriggerMatchMode::MatchAll, match, match, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, match, match, noMatch));
+	static_assert(MatchRules(TriggerMatchMode::MatchAll, match, match, unset));
+
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, match, noMatch, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, match, noMatch, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, match, noMatch, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAll, match, unset, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, match, unset, noMatch));
+	static_assert(MatchRules(TriggerMatchMode::MatchAll, match, unset, unset));
+
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, match, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, match, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, match, unset));
+
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, noMatch, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, noMatch, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, noMatch, unset));
+
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, unset, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, unset, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, noMatch, unset, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAll, unset, match, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, unset, match, noMatch));
+	static_assert(MatchRules(TriggerMatchMode::MatchAll, unset, match, unset));
+
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, unset, noMatch, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, unset, noMatch, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, unset, noMatch, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAll, unset, unset, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, unset, unset, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAll, unset, unset, unset));
+
+	//////////////
+	// MatchAny //
+	//////////////
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, match, match));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, match, noMatch));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, match, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, noMatch, match));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, noMatch, noMatch));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, noMatch, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, unset, match));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, unset, noMatch));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, match, unset, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, noMatch, match, match));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, noMatch, match, noMatch));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, noMatch, match, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, noMatch, noMatch, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAny, noMatch, noMatch, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAny, noMatch, noMatch, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, noMatch, unset, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAny, noMatch, unset, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAny, noMatch, unset, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, unset, match, match));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, unset, match, noMatch));
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, unset, match, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, unset, noMatch, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAny, unset, noMatch, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAny, unset, noMatch, unset));
+
+	static_assert(MatchRules(TriggerMatchMode::MatchAny, unset, unset, match));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAny, unset, unset, noMatch));
+	static_assert(!MatchRules(TriggerMatchMode::MatchAny, unset, unset, unset));
 }
 
 bool ModerationRule::Match(const IPlayer& player, const std::string_view& chatMsg) const
