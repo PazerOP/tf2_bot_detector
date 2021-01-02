@@ -172,7 +172,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 * [Admiral Bread Crumbs](https://github.com/AdmiralBreadCrumbs)
 * [Czechball](https://github.com/Czechball)
 * [RedNightmare](https://github.com/RedNightmare)
-* [PoliteYeti](https://github.com/PoliteYeti)
+* [Public Toilet](https://github.com/PoliteYeti)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
