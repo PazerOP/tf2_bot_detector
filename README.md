@@ -10,7 +10,7 @@
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 <!-- this looks bad if it is failing even if its just due to github nonsense
-[![Build Status][build-shield]][actions-build-url] 
+[![Build Status][build-shield]][actions-build-url]
 -->
 [![Discord Status][discord-shield]][discord-link]
 
@@ -165,13 +165,14 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 * [Crazy Gunman](https://github.com/CrazyGunman2C4U)
 * [camp3r101](https://github.com/camp3r101)
 * [bgausden](https://github.com/bgausden)
-* [Space Butterfly](https://github.com/spacebuterfly)
+* [Symthos](https://github.com/Symthos)
+
 <!--$5-->
 * [ClusterConsultant](https://github.com/ClusterConsultant)
-* [KTachibanaM](https://github.com/KTachibanaM)
 * [Admiral Bread Crumbs](https://github.com/AdmiralBreadCrumbs)
 * [Czechball](https://github.com/Czechball)
-* [moeb](https://github.com/moebkun)
+* [RedNightmare](https://github.com/RedNightmare)
+* [PoliteYeti](https://github.com/PoliteYeti)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
