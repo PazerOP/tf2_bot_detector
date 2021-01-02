@@ -270,7 +270,23 @@ location.function_name());
 	}
 }
 
-void LogManager::Log(std::string msg, const LogMessageColor & color,
+void detail::log_h::LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+	const std::string_view& fmtStr, const mh::format_args& args)
+{
+	ILogManager::GetInstance().Log(mh::try_vformat(fmtStr, args), color, severity, visibility);
+}
+
+void detail::log_h::LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+	const mh::source_location& location, const std::string_view& fmtStr, const mh::format_args& args)
+{
+	using namespace std::string_view_literals;
+	if (!fmtStr.empty())
+		LogImpl(color, severity, visibility, "{}: {}"sv, location, mh::try_vformat(fmtStr, args));
+	else
+		LogImpl(color, severity, visibility, "{}"sv, location);
+}
+
+void LogManager::Log(std::string msg, const LogMessageColor& color,
 	LogSeverity severity, LogVisibility visibility, time_point_t timestamp)
 {
 	std::lock_guard lock(m_LogMutex);

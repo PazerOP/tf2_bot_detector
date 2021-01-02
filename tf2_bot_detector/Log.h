@@ -97,66 +97,73 @@ namespace tf2_bot_detector
 
 	namespace detail::log_h
 	{
+		NOINLINE void LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const std::string_view& fmtStr, const mh::format_args& args);
+		NOINLINE void LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const mh::source_location& location, const std::string_view& fmtStr, const mh::format_args& args);
 		template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
 		NOINLINE inline auto LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
 			const std::string_view& fmtStr, const TArgs&... args) ->
 			decltype(mh::try_format(fmtStr, args...), void())
 		{
-			ILogManager::GetInstance().Log(mh::try_format(fmtStr, args...), color, severity, visibility);
+			LogImplBase(color, severity, visibility, fmtStr, mh::make_format_args(args...));
 		}
 		template<typename... TArgs>
 		NOINLINE inline auto LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
 			const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) ->
 			decltype(mh::try_format(fmtStr, args...), void())
 		{
-			using namespace std::string_view_literals;
-			if (!fmtStr.empty())
-				LogImpl(color, severity, visibility, "{}: {}"sv, location, mh::try_format(fmtStr, args...));
-			else
-				LogImpl(color, severity, visibility, "{}"sv, location);
+			LogImplBase(color, severity, visibility, location, fmtStr, mh::make_format_args(args...));
 		}
+
+		struct src_location_wrapper
+		{
+			template<typename T, typename = std::enable_if_t<std::is_constructible_v<std::string_view, T>>>
+			constexpr src_location_wrapper(const T& value, MH_SOURCE_LOCATION_AUTO(location)) :
+				m_Value(value), m_Location(location)
+			{
+			}
+
+			std::string_view m_Value;
+			mh::source_location m_Location;
+		};
 	}
 
 #undef LOG_DEFINITION_HELPER
 #define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
-	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	inline auto name(const LogMessageColor& color, const std::string_view& fmtStr, const TArgs&... args) -> \
-		decltype(detail::log_h::LogImpl(color, (severity), (visibility), fmtStr, args...)) \
-	{ \
-		detail::log_h::LogImpl(color, (severity), (visibility), fmtStr, args...); \
-	} \
-	inline void name(const LogMessageColor& color, std::string msg) \
-	{ \
-		ILogManager::GetInstance().Log(std::move(msg), color, (severity), (visibility)); \
-	} \
-	template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>> \
-	inline auto name(const std::string_view& fmtStr, const TArgs&... args) -> \
-		decltype(name((defaultColor), fmtStr, args...)) \
-	{ \
-		name((defaultColor), fmtStr, args...); \
-	} \
-	inline void name(std::string msg) \
-	{ \
-		name((defaultColor), std::move(msg)); \
-	} \
-	\
 	template<typename... TArgs> \
-	inline auto name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) -> \
-		decltype(detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...)) \
+	inline auto name(const LogMessageColor& color, const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		detail::log_h::LogImpl(color, (severity), (visibility), location, fmtStr, args...); \
 	} \
 	template<typename... TArgs> \
-	inline auto name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) -> \
-		decltype(name((defaultColor), location, fmtStr, args...)) \
+	inline auto name(const LogMessageColor& color, const detail::log_h::src_location_wrapper& fmtStr, const TArgs&... args) \
+	{ \
+		name(color, fmtStr.m_Location, fmtStr.m_Value, args...); \
+	} \
+	template<typename... TArgs> \
+	inline auto name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		name((defaultColor), location, fmtStr, args...); \
 	} \
-	inline void name(const LogMessageColor& color, const mh::source_location& location) \
+	template<typename... TArgs> \
+	inline auto name(const detail::log_h::src_location_wrapper& fmtStr, const TArgs&... args) \
+	{ \
+		name(fmtStr.m_Location, fmtStr.m_Value, args...); \
+	} \
+	inline void name(const LogMessageColor& color, const std::string_view& msg, MH_SOURCE_LOCATION_AUTO(location)) \
+	{ \
+		name(color, location, msg); \
+	} \
+	inline void name(const std::string_view& msg, MH_SOURCE_LOCATION_AUTO(location)) \
+	{ \
+		name(location, msg); \
+	} \
+	inline void name(const LogMessageColor& color, MH_SOURCE_LOCATION_AUTO(location)) \
 	{ \
 		name(color, location, std::string_view{}); \
 	} \
-	inline void name(const mh::source_location& location) \
+	inline void name(MH_SOURCE_LOCATION_AUTO(location)) \
 	{ \
 		name((defaultColor), location); \
 	}
