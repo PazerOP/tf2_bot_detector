@@ -1,0 +1,31 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://raw.githubusercontent.com/PazerOP/tf2_bot_detector/master/schemas/v3/account_ages.schema.json",
+	"title": "TF2 Bot Detector Account Ages Schema",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"description": "The JSON schema to validate this file against.",
+			"type": "string"
+		},
+		"accounts": {
+			"description": "List of accounts",
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"id": {
+						"type": "integer",
+						"description": "Account ID (*not* the full SteamID64)"
+					},
+					"creation_time": {
+						"type": "integer",
+						"description": "Account creation time (unix epoch seconds)"
+					}
+				}
+			}
+		}
+	}
+}

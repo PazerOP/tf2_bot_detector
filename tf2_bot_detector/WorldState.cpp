@@ -15,6 +15,7 @@
 #include "IPlayer.h"
 #include "Log.h"
 #include "WorldEventListener.h"
+#include "Config/AccountAges.h"
 
 #include <mh/concurrency/dispatcher.hpp>
 #include <mh/concurrency/main_thread.hpp>
@@ -57,6 +58,8 @@ namespace
 		mh::expected<duration_t, std::error_condition> GetTF2Playtime() const override;
 		bool IsFriend() const override;
 		duration_t GetActiveTime() const override;
+
+		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override;
 
 		PlayerScores m_Scores{};
 		TFTeam m_Team{};
@@ -142,6 +145,9 @@ namespace
 		const std::vector<LobbyMember>& GetPendingLobbyMembers() const { return m_PendingLobbyMembers; }
 		const std::unordered_set<SteamID>& GetFriends() const { return m_Friends; }
 
+		IAccountAges& GetAccountAges() { return *m_AccountAges; }
+		const IAccountAges& GetAccountAges() const { return *m_AccountAges; }
+
 	protected:
 		virtual IConsoleLineListener& GetConsoleLineListenerBroadcaster() { return m_ConsoleLineListenerBroadcaster; }
 
@@ -187,6 +193,8 @@ namespace
 		std::unordered_map<SteamID, std::shared_ptr<Player>> m_CurrentPlayerData;
 		bool m_IsLocalPlayerInitialized = false;
 		bool m_IsVoteInProgress = false;
+
+		std::shared_ptr<IAccountAges> m_AccountAges = IAccountAges::Create();
 
 		time_point_t m_LastStatusUpdateTime{};
 
@@ -994,6 +1002,17 @@ duration_t Player::GetActiveTime() const
 	return m_LastStatusUpdateTime - m_LastStatusActiveBegin;
 }
 
+std::optional<time_point_t> Player::GetEstimatedAccountCreationTime() const
+{
+	if (auto& summary = GetPlayerSummary())
+	{
+		if (summary->GetAccountAge())
+			return summary->m_CreationTime;
+	}
+
+	return m_World->GetAccountAges().EstimateAccountCreationTime(GetSteamID());
+}
+
 void Player::SetStatus(PlayerStatus status, time_point_t timestamp)
 {
 	if (m_Status.m_State != PlayerStatusState::Active && status.m_State == PlayerStatusState::Active)
@@ -1061,11 +1080,16 @@ auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 void WorldState::PlayerSummaryUpdateAction::OnDataReady(WorldState*& state,
 	const response_type& response, queue_collection_type& collection)
 {
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "[SteamAPI] Received {} player summaries", response.size());
+	DebugLog("[SteamAPI] Received {} player summaries", response.size());
 	for (const SteamAPI::PlayerSummary& entry : response)
 	{
-		state->FindOrCreatePlayer(entry.m_SteamID).m_PlayerSummary = entry;
+		auto& player = state->FindOrCreatePlayer(entry.m_SteamID);
+		player.m_PlayerSummary = entry;
+
 		collection.erase(entry.m_SteamID);
+
+		if (entry.m_CreationTime.has_value())
+			state->m_AccountAges->OnDataReady(entry.m_SteamID, entry.m_CreationTime.value());
 	}
 }
 

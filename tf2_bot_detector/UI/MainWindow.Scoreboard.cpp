@@ -613,9 +613,26 @@ static void PrintPlayerSummary(const IPlayer& player)
 				ImGui::TextFmt("   Account Age : ");
 				ImGui::SameLineNoPad();
 				if (auto age = summary.GetAccountAge())
+				{
 					ImGui::TextFmt("{}", HumanDuration(*age));
+				}
 				else
+				{
 					ImGui::TextFmt(COLOR_PRIVATE, "Private");
+
+					if (auto estimated = player.GetEstimatedAccountAge())
+					{
+						ImGui::SameLine();
+						ImGui::TextFmt("(estimated {})", HumanDuration(*estimated));
+					}
+#ifdef _DEBUG
+					else
+					{
+						ImGui::SameLine();
+						ImGui::TextFmt("(estimated ???)");
+					}
+#endif
+				}
 
 				ImGui::TextFmt("        Status : ");
 				ImGui::SameLineNoPad();

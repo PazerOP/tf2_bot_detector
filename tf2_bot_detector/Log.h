@@ -186,6 +186,11 @@ namespace tf2_bot_detector
 	{ \
 		LogException(location, e, severity, visibility, mh::try_format(fmtStr, args...)); \
 	} \
+	template<typename... TArgs> \
+	attr void name(const std::exception_ptr& e, const detail::log_h::src_location_wrapper& fmtStr = {}, const TArgs&... args) \
+	{ \
+		name(fmtStr.m_Location, e, fmtStr.m_Value, args...); \
+	} \
 	\
 	template<typename... TArgs> \
 	attr void name(const mh::source_location& location, const std::exception& e, \
@@ -193,11 +198,21 @@ namespace tf2_bot_detector
 	{ \
 		name(location, std::make_exception_ptr(e), fmtStr, args...); \
 	} \
+	template<typename... TArgs> \
+	attr void name(const std::exception& e, const detail::log_h::src_location_wrapper& fmtStr = {}, const TArgs&... args) \
+	{ \
+		name(fmtStr.m_Location, e, fmtStr.m_Value, args...); \
+	} \
 	\
 	template<typename... TArgs> \
 	attr void name(const mh::source_location& location, const std::string_view& fmtStr = {}, const TArgs&... args) \
 	{ \
 		name(location, std::current_exception(), fmtStr, args...); \
+	} \
+	template<typename... TArgs> \
+	attr void name(const detail::log_h::src_location_wrapper& fmtStr = {}, const TArgs&... args) \
+	{ \
+		name(fmtStr.m_Location, fmtStr.m_Value, args...); \
 	}
 
 	LOG_DEFINITION_HELPER(DebugLogException, , LogSeverity::Error, LogVisibility::Debug);

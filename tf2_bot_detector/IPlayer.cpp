@@ -9,6 +9,14 @@ duration_t IPlayer::GetTimeSinceLastStatusUpdate() const
 	return GetWorld().GetCurrentTime() - GetLastStatusUpdateTime();
 }
 
+std::optional<duration_t> IPlayer::GetEstimatedAccountAge() const
+{
+	if (auto timePoint = GetEstimatedAccountCreationTime())
+		return clock_t::now() - *timePoint;
+
+	return std::nullopt;
+}
+
 std::string IPlayer::GetNameSafe() const
 {
 	return CollapseNewlines(GetNameUnsafe());

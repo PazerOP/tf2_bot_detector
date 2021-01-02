@@ -67,6 +67,11 @@ namespace tf2_bot_detector
 		virtual time_point_t GetLastStatusUpdateTime() const = 0;
 		duration_t GetTimeSinceLastStatusUpdate() const;
 
+		// The estimated creation time of the account. Determined via linear interpolation
+		// between ages of surrounding public steam profiles.
+		virtual std::optional<time_point_t> GetEstimatedAccountCreationTime() const = 0;
+		std::optional<duration_t> GetEstimatedAccountAge() const;
+
 		// The time that this player has been in the "active" state.
 		virtual duration_t GetActiveTime() const = 0;
 
