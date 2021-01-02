@@ -128,8 +128,6 @@ With default settings TF2BD can self update. When the tool opens it will check f
 
 ![update-image]
 
-This behavior is disabled on first run to prevent the tool from connecting to the internet before the user allows it to.
-
 >Note: Player lists and rule sets are updated separately from the tool itself. As long as internet connectivity is allowed those lists will be updated
 
 ## Common Tweaks
@@ -150,6 +148,10 @@ TF2 Bot Detector is a standalone application that calls a votekick against known
 ### What ISN'T TF2 Bot Detector?
 
 TF2BD isn't a perfect solution. It does not (and can not) perfectly detect every single cheater. TF2BD also isn't finished. This is an ongoing project that will continue to be improved with new features, more powerful detection, and better customization.
+
+### Why would I want this? It's easy to identify and kick bots!
+
+While true, this automates the process to a large degree. It also makes identifying name stealing bots trivial. With the addition of maintaining a data base of cheaters you have encountered you can "remember" any and all cheaters you have encountered. This is handy to identify the more subtle human cheaters.
 
 ### Will this get me VAC banned?
 
