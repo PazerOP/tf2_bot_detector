@@ -1,6 +1,8 @@
 #include "Platform/Platform.h"
 
+#include <mh/error/ensure.hpp>
 #include <mh/raii/scope_exit.hpp>
+#include <mh/source_location.hpp>
 #include <mh/text/codecvt.hpp>
 #include <mh/text/format.hpp>
 
@@ -42,53 +44,120 @@ tf2_bot_detector::Platform::Arch tf2_bot_detector::Platform::GetArch()
 	return arch;
 }
 
+namespace
+{
+	struct HandleDeleter
+	{
+		void operator()(HANDLE h) const
+		{
+			mh_ensure(CloseHandle(h));
+		}
+	};
+}
+
+static std::unique_ptr<void, HandleDeleter> LaunchImpl(const std::filesystem::path& executable, const std::string_view& arguments)
+{
+	std::cerr << "Launching " << executable << "..." << std::endl;
+
+	const auto wArgs = mh::change_encoding<wchar_t>(arguments);
+
+	SHELLEXECUTEINFOW info{};
+	info.cbSize = sizeof(info);
+	info.lpVerb = L"open";
+	info.lpFile = executable.c_str();
+	info.lpParameters = wArgs.c_str();
+	info.nShow = SW_SHOWNORMAL;
+	info.fMask = SEE_MASK_NOCLOSEPROCESS;
+
+	std::error_code ec;
+	if (!ShellExecuteExW(&info))
+	{
+		auto err = GetLastError();
+		throw std::system_error(err, std::system_category(), mh::format("ShellExecuteExW failed for {} {}", executable, arguments));
+	}
+
+	return std::unique_ptr<void, HandleDeleter>(info.hProcess);
+}
+
 void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable, const std::string_view& arguments)
 {
-	const auto result = ShellExecuteW(
-		NULL,
-		L"open",
-		executable.c_str(),
-		mh::change_encoding<wchar_t>(arguments).c_str(),
-		nullptr,
-		SW_SHOWNORMAL);
+	LaunchImpl(executable, arguments);
+}
 
-	if (const auto iResult = reinterpret_cast<intptr_t>(result); iResult <= 32)
+int tf2_bot_detector::Processes::LaunchAndWait(const std::filesystem::path& executable, const std::string_view& arguments)
+{
+	auto handle = LaunchImpl(executable, arguments);
+
+	std::cerr << "\tWaiting for " << executable.filename() << " to close..." << std::endl;
+
 	{
-		auto msg = mh::format("{}: ShellExecuteW returned {} (", __FUNCTION__, iResult);
-
-#define ERROR_HELPER(value) \
-	case value: msg += #value; \
-	break;
-
-		switch (iResult)
+		const auto waitResult = WaitForSingleObject(handle.get(), INFINITE);
+		switch (waitResult)
 		{
-		case 0:
-			msg += "The operating system is out of memory or resources.";
-			break;
-
-			ERROR_HELPER(ERROR_FILE_NOT_FOUND);
-			ERROR_HELPER(ERROR_PATH_NOT_FOUND);
-			ERROR_HELPER(ERROR_BAD_FORMAT);
-			ERROR_HELPER(SE_ERR_ACCESSDENIED);
-			ERROR_HELPER(SE_ERR_ASSOCINCOMPLETE);
-			ERROR_HELPER(SE_ERR_DDEBUSY);
-			ERROR_HELPER(SE_ERR_DDEFAIL);
-			ERROR_HELPER(SE_ERR_DDETIMEOUT);
-			ERROR_HELPER(SE_ERR_DLLNOTFOUND);
-			//ERROR_HELPER(SE_ERR_FNF); // Same as ERROR_FILE_NOT_FOUND
-			ERROR_HELPER(SE_ERR_NOASSOC);
-			ERROR_HELPER(SE_ERR_OOM);
-			//ERROR_HELPER(SE_ERR_PNF); // Same as ERROR_PATH_NOT_FOUND
-			ERROR_HELPER(SE_ERR_SHARE);
-
 		default:
-			msg += "unknown error";
+			throw std::runtime_error(mh::format(MH_FMT_STRING("{}: Unexpected result from WaitForSingleObject: {:x}"),
+				mh::source_location::current(), waitResult));
+		case WAIT_ABANDONED:
+			throw std::runtime_error(mh::format("{}: WAIT_ABANDONED (this should never happen???)", mh::source_location::current()));
+		case WAIT_OBJECT_0:
 			break;
+		case WAIT_TIMEOUT:
+			throw std::runtime_error(mh::format("{}: WAIT_TIMEOUT (this should never happen???)", mh::source_location::current()));
+		case WAIT_FAILED:
+		{
+			auto err = GetLastError();
+			throw std::system_error(err, std::system_category(), mh::format("{}: WAIT_FAILED", mh::source_location::current()));
 		}
+		}
+	}
 
-		msg += ")";
+	DWORD exitCode{};
+	if (!GetExitCodeProcess(handle.get(), &exitCode))
+	{
+		auto err = GetLastError();
+		throw std::system_error(err, std::system_category(), mh::format("GetExitCodeProcess failed for {} {}", executable, arguments));
+	}
 
-		std::cerr << msg << std::endl;
-		throw std::runtime_error(msg);
+	if (exitCode)
+		std::cerr << mh::format(MH_FMT_STRING("\t{} returned 0x{:x}"), executable.filename(), exitCode) << std::endl;
+
+	return exitCode;
+}
+
+void tf2_bot_detector::RebootComputer()
+{
+	std::unique_ptr<void, HandleDeleter> tokenHandle;
+	if (HANDLE hToken; OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken))
+	{
+		tokenHandle.reset(hToken);
+	}
+	else
+	{
+		auto err = GetLastError();
+		throw std::system_error(err, std::system_category(), mh::format("{}: OpenProcessToken failed", mh::source_location::current()));
+	}
+
+	LUID shutdownPrivilege;
+	if (!LookupPrivilegeValue(nullptr, SE_SHUTDOWN_NAME, &shutdownPrivilege))
+	{
+		auto err = GetLastError();
+		throw std::system_error(err, std::system_category(), mh::format("{}: LookupPrivilegeValue failed", mh::source_location::current()));
+	}
+
+	TOKEN_PRIVILEGES privileges{};
+	privileges.PrivilegeCount = 1;
+	privileges.Privileges[0].Luid = shutdownPrivilege;
+	privileges.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+	AdjustTokenPrivileges(tokenHandle.get(), false, &privileges, sizeof(privileges), nullptr, nullptr);
+	{
+		auto err = GetLastError();
+		if (err != ERROR_SUCCESS)
+			throw std::system_error(err, std::system_category(), mh::format("{}: AdjustTokenPrivileges failed", mh::source_location::current()));
+	}
+
+	if (!ExitWindowsEx(EWX_REBOOT | EWX_RESTARTAPPS, SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_INSTALLATION | SHTDN_REASON_FLAG_PLANNED))
+	{
+		auto err = GetLastError();
+		throw std::system_error(err, std::system_category(), "ExitWindowsEx failed");
 	}
 }

@@ -2,7 +2,9 @@
 #include "Platform/Platform.h"
 #include "Common.h"
 
+#include <mh/reflection/enum.hpp>
 #include <mh/text/format.hpp>
+#include <mh/text/formatters/error_code.hpp>
 
 #include <exception>
 #include <filesystem>
@@ -29,7 +31,7 @@ MH_ENUM_REFLECT_BEGIN(httplib::Error)
 	MH_ENUM_REFLECT_VALUE(UnsupportedMultipartBoundaryChars)
 MH_ENUM_REFLECT_END()
 
-static void UpdateVCRedist() try
+static bool UpdateVCRedist() try
 {
 	auto arch = tf2_bot_detector::Platform::GetArch();
 	const auto filename = mh::format(MH_FMT_STRING("vc_redist.{:v}.exe"), mh::enum_fmt(arch));
@@ -62,8 +64,32 @@ static void UpdateVCRedist() try
 	}
 
 	std::cerr << "Installing latest vcredist..." << std::endl;
-	tf2_bot_detector::Platform::Processes::Launch(savePath, "/install /quiet");
+	auto vcRedistResult = tf2_bot_detector::Platform::Processes::LaunchAndWait(savePath, "/install /passive /norestart");
+	const auto vcRedistErrorCode = std::error_code(vcRedistResult, std::system_category());
+
+	switch (vcRedistResult)
+	{
+	case ERROR_PRODUCT_VERSION:
+		std::cerr << "vcredist already installed." << std::endl;
+		break;
+
+	case ERROR_SUCCESS_REBOOT_REQUIRED:
+	{
+		const auto result = MessageBoxA(nullptr,
+			"TF2 Bot Detector Updater has successfully installed the latest Microsoft Visual C++ Redistributable. Some programs (including TF2 Bot Detector) might not work properly until you restart your computer.\n\nWould you like to restart your computer now?",
+			"Reboot Recommended", MB_YESNO | MB_ICONINFORMATION);
+
+		return result == IDYES;
+	}
+
+	default:
+		MessageBoxA(nullptr,
+			mh::format("TF2 Bot Detector attempted to install the latest Microsoft Visual C++ Redistributable, but there was an error:\n\n{}\n\nTF2 Bot Detector might not work correctly. If possible, please report this error on the TF2 Bot Detector discord server.", vcRedistErrorCode).c_str(), "Unknown Error", MB_OK | MB_ICONERROR);
+		break;
+	}
+
 	std::cerr << "Finished installing latest vcredist.\n\n" << std::flush;
+	return false;
 }
 catch (const std::exception& e)
 {
@@ -75,8 +101,9 @@ catch (const std::exception& e)
 
 int tf2_bot_detector::Updater::Update_Portable() try
 {
+	bool rebootRequired = false;
 #ifdef _WIN32
-	UpdateVCRedist();
+	rebootRequired = UpdateVCRedist();
 #endif
 
 	std::cerr << "Attempting to install portable version from "
@@ -90,7 +117,11 @@ int tf2_bot_detector::Updater::Update_Portable() try
 	std::cerr << "Finished copying files. Attempting to start tool..." << std::endl;
 
 	// FIXME linux
-	Platform::Processes::Launch(s_CmdLineArgs.m_DestPath / "tf2_bot_detector.exe");
+	if (!rebootRequired)
+		Platform::Processes::Launch(s_CmdLineArgs.m_DestPath / "tf2_bot_detector.exe");
+
+	if (rebootRequired)
+		Platform::RebootComputer();
 
 	return 0;
 }

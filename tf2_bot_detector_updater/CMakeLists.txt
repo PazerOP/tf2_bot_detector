@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.17)
 
+set(VCPKG_CRT_LINKAGE static)
+set(VCPKG_LIBRARY_LINKAGE static)
+
 include(../cmake/init-preproject.cmake)
 	project(tf2_bot_detector_updater)
 include(../cmake/init-postproject.cmake)
@@ -41,9 +44,7 @@ endif()
 
 target_compile_features(tf2_bot_detector_updater PUBLIC cxx_std_20)
 
-set_target_properties(tf2_bot_detector_updater PROPERTIES
-	MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-)
+set_property(GLOBAL PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 message("CMAKE_VS_PLATFORM_NAME = ${CMAKE_VS_PLATFORM_NAME}")
 message("CMAKE_VS_PLATFORM_NAME_DEFAULT = ${CMAKE_VS_PLATFORM_NAME_DEFAULT}")

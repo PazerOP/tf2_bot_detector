@@ -21,7 +21,10 @@ namespace tf2_bot_detector
 		namespace Processes
 		{
 			void Launch(const std::filesystem::path& executable, const std::string_view& arguments = {});
+			int LaunchAndWait(const std::filesystem::path& executable, const std::string_view& arguments = {});
 		}
+
+		void RebootComputer();
 	}
 }
 
