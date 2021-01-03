@@ -157,7 +157,7 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 		" +contimes 0 +alias contimes"   // the text in the top left when developer >= 1
 		" +ip 0.0.0.0 +alias ip"
 		" +sv_rcon_whitelist_address 127.0.0.1 +alias sv_rcon_whitelist_address"
-		" +sv_quota_stringcmdspersecond 1000000 +alias sv_quota_stringcmdspersecond"
+		" +sv_quota_stringcmdspersecond 1000000 +alias sv_quota_stringcmdspersecond" // workaround for mastercomfig causing crashes on local servers
 		" +rcon_password " << rconPassword << " +alias rcon_password"
 		" +hostport " << rconPort << " +alias hostport"
 		" +alias cl_reload_localization_files" // This command reloads files in backwards order, so any customizations get overwritten by stuff from the base game
@@ -257,6 +257,9 @@ void TF2CommandLinePage::DrawLaunchTF2Button(const DrawState& ds)
 		{
 			if ((ImGui::Button("Launch TF2") || (m_IsAutoLaunchAllowed && ds.m_Settings->m_AutoLaunchTF2)) && canLaunchTF2)
 			{
+				m_Data.m_RandomRCONPassword = GenerateRandomRCONPassword();
+				m_Data.m_RandomRCONPort = GenerateRandomRCONPort();
+
 				OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
 				m_Data.m_LastTF2LaunchTime = curTime;
 			}
@@ -366,8 +369,6 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 void TF2CommandLinePage::Init(const InitState& is)
 {
 	m_Data = {};
-	m_Data.m_RandomRCONPassword = GenerateRandomRCONPassword();
-	m_Data.m_RandomRCONPort = GenerateRandomRCONPort();
 }
 
 void TF2CommandLinePage::Commit(const CommitState& cs)
