@@ -69,6 +69,10 @@ static bool UpdateVCRedist() try
 
 	switch (vcRedistResult)
 	{
+	case ERROR_SUCCESS:
+		std::cerr << "vcredist install successful." << std::endl;
+		break;
+
 	case ERROR_PRODUCT_VERSION:
 		std::cerr << "vcredist already installed." << std::endl;
 		break;
@@ -84,7 +88,7 @@ static bool UpdateVCRedist() try
 
 	default:
 		MessageBoxA(nullptr,
-			mh::format("TF2 Bot Detector attempted to install the latest Microsoft Visual C++ Redistributable, but there was an error:\n\n{}\n\nTF2 Bot Detector might not work correctly. If possible, please report this error on the TF2 Bot Detector discord server.", vcRedistErrorCode).c_str(), "Unknown Error", MB_OK | MB_ICONERROR);
+			mh::format("TF2 Bot Detector attempted to install the latest Microsoft Visual C++ Redistributable, but there was an error:\n\n{}\n\nTF2 Bot Detector might not work correctly. If possible, please report this error on the TF2 Bot Detector discord server.", vcRedistErrorCode).c_str(), "Unknown Error", MB_OK | MB_ICONWARNING);
 		break;
 	}
 
