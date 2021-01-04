@@ -97,11 +97,15 @@ namespace tf2_bot_detector
 
 	namespace detail::log_h
 	{
+		void LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility, std::string str);
+		void LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+			const mh::source_location& location, const std::string_view& str);
 		NOINLINE void LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
 			const std::string_view& fmtStr, const mh::format_args& args);
 		NOINLINE void LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
 			const mh::source_location& location, const std::string_view& fmtStr, const mh::format_args& args);
-		template<typename... TArgs, typename = std::enable_if_t<(sizeof...(TArgs) > 0)>>
+
+		template<typename... TArgs>
 		NOINLINE inline auto LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
 			const std::string_view& fmtStr, const TArgs&... args) ->
 			decltype(mh::try_format(fmtStr, args...), void())

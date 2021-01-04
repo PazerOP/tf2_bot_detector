@@ -270,20 +270,27 @@ location.function_name());
 	}
 }
 
+void detail::log_h::LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility, std::string str)
+{
+	ILogManager::GetInstance().Log(std::move(str), color, severity, visibility);
+}
+
+void tf2_bot_detector::detail::log_h::LogImpl(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
+	const mh::source_location& location, const std::string_view& str)
+{
+	LogImpl(color, severity, visibility, mh::format(MH_FMT_STRING("{}: {}"sv), location, str));
+}
+
 void detail::log_h::LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
 	const std::string_view& fmtStr, const mh::format_args& args)
 {
-	ILogManager::GetInstance().Log(mh::try_vformat(fmtStr, args), color, severity, visibility);
+	LogImpl(color, severity, visibility, mh::try_vformat(fmtStr, args));
 }
 
 void detail::log_h::LogImplBase(const LogMessageColor& color, LogSeverity severity, LogVisibility visibility,
 	const mh::source_location& location, const std::string_view& fmtStr, const mh::format_args& args)
 {
-	using namespace std::string_view_literals;
-	if (!fmtStr.empty())
-		LogImpl(color, severity, visibility, "{}: {}"sv, location, mh::try_vformat(fmtStr, args));
-	else
-		LogImpl(color, severity, visibility, "{}"sv, location);
+	LogImpl(color, severity, visibility, location, mh::try_vformat(fmtStr, args));
 }
 
 void LogManager::Log(std::string msg, const LogMessageColor& color,

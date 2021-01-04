@@ -232,9 +232,9 @@ struct mh::formatter<tf2_bot_detector::PlayerAttributesList, CharT>
 				continue;
 
 			if (printed)
-				it = format_to(it, MH_FMT_STRING(", "));
+				it = mh::format_to(it, MH_FMT_STRING(", "));
 
-			it = format_to(it, MH_FMT_STRING("{}"), thisAttr);
+			it = mh::format_to(it, MH_FMT_STRING("{}"), mh::enum_fmt(thisAttr));
 			printed = true;
 		}
 
@@ -250,7 +250,7 @@ struct mh::formatter<tf2_bot_detector::PlayerMarks::Mark, CharT>
 	template<typename FormatContext>
 	auto format(const tf2_bot_detector::PlayerMarks::Mark& mark, FormatContext& ctx)
 	{
-		return format_to(ctx.out(), MH_FMT_STRING("{} ({})"), std::quoted(mark.m_FileName), mark.m_Attributes);
+		return mh::format_to(ctx.out(), MH_FMT_STRING("{} ({})"), std::quoted(mark.m_FileName), mark.m_Attributes);
 	}
 };
 
@@ -265,7 +265,7 @@ struct mh::formatter<tf2_bot_detector::PlayerMarks, CharT>
 		auto it = ctx.out();
 
 		for (auto& mark : marks)
-			it = format_to(it, MH_FMT_STRING("\n\t - {}"), mark);
+			it = mh::format_to(it, MH_FMT_STRING("\n\t - {}"), mark);
 
 		return it;
 	}
