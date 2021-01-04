@@ -36,20 +36,6 @@ static std::string GenerateRandomRCONPassword(size_t length = 16)
 	return retVal;
 }
 
-static uint16_t GenerateRandomRCONPort()
-{
-	std::mt19937 generator;
-	{
-		std::random_device randomSeed;
-		generator.seed(randomSeed());
-	}
-
-	// Some routers have issues handling high port numbers. By restricting
-	// ourselves to these high port numbers, we add another layer of security.
-	std::uniform_int_distribution<uint16_t> dist(40000, 65535);
-	return dist(generator);
-}
-
 void TF2CommandLinePage::Data::TryUpdateCmdlineArgs()
 {
 	if (mh::is_future_ready(m_CommandLineArgsFuture))
@@ -258,7 +244,7 @@ void TF2CommandLinePage::DrawLaunchTF2Button(const DrawState& ds)
 			if ((ImGui::Button("Launch TF2") || (m_IsAutoLaunchAllowed && ds.m_Settings->m_AutoLaunchTF2)) && canLaunchTF2)
 			{
 				m_Data.m_RandomRCONPassword = GenerateRandomRCONPassword();
-				m_Data.m_RandomRCONPort = GenerateRandomRCONPort();
+				m_Data.m_RandomRCONPort = ds.m_Settings->m_TF2Interface.GetRandomRCONPort();
 
 				OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
 				m_Data.m_LastTF2LaunchTime = curTime;

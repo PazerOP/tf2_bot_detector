@@ -131,6 +131,19 @@ namespace tf2_bot_detector
 
 		} m_Theme;
 
+		struct TF2Interface
+		{
+			uint16_t GetRandomRCONPort() const;
+
+		private:
+			uint16_t m_RCONPortMin = 40000;
+			uint16_t m_RCONPortMax = 60000;
+
+			friend void to_json(nlohmann::json& j, const TF2Interface& d);
+			friend void from_json(const nlohmann::json& j, TF2Interface& d);
+
+		} m_TF2Interface;
+
 	private:
 		static constexpr int SETTINGS_SCHEMA_VERSION = 3;
 

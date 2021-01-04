@@ -150,6 +150,34 @@ namespace tf2_bot_detector
 		return try_get_to_defaulted(j, value, names, [&](T& v) { v = std::move(defaultVal); });
 	}
 
+	/// <summary>
+	/// Tries to get a value with the given name from json, otherwise sets the value to the class default.
+	/// </summary>
+	/// <typeparam name="TClass">Type of the class holding the given member variable.</typeparam>
+	/// <typeparam name="TMember">The type of the member variable.</typeparam>
+	/// <param name="j">The json to read data from.</param>
+	/// <param name="obj">The object containing the member variable that will be written to.</param>
+	/// <param name="memberVar">A pointer to a member variable that will be written to, and also used to read a default
+	/// value from a default-initialized instance of TClass.</param>
+	/// <param name="name">The name of the json variable to read.</param>
+	/// <returns>true if the value was successfully deserialized from the json, false if there was an exception or the
+	/// json did not contain a value with that name.</returns>
+	template<typename TClass, typename TMember>
+	bool try_get_to_defaulted(const nlohmann::json& j, TClass& obj, TMember(TClass::* memberVar), const std::string_view& name)
+	{
+		constexpr TClass DEFAULTS;
+
+		return try_get_to_defaulted(j, obj.*memberVar, name, DEFAULTS.*memberVar);
+	}
+	template<typename TClass, typename TMember>
+	bool try_get_to_defaulted(const nlohmann::json& j, TClass& obj, TMember(TClass::* memberVar),
+		const std::initializer_list<std::string_view>& names)
+	{
+		constexpr TClass DEFAULTS;
+
+		return try_get_to_defaulted(j, obj.*memberVar, names, DEFAULTS.*memberVar);
+	}
+
 	template<typename T>
 	bool try_get_to_noinit(const nlohmann::json& j, T& value, const std::initializer_list<std::string_view>& names)
 	{

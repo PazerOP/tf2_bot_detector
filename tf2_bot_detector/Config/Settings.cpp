@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <random>
 #include <regex>
 
 using namespace tf2_bot_detector;
@@ -65,30 +66,20 @@ namespace tf2_bot_detector
 
 	void from_json(const nlohmann::json& j, Settings::Theme::Colors& d)
 	{
-		static constexpr Settings::Theme::Colors DEFAULTS;
+		using Colors = Settings::Theme::Colors;
 
-		try_get_to_defaulted(j, d.m_ScoreboardCheaterBG, { "scoreboard_marked_cheater.bg", "scoreboard_cheater" },
-			DEFAULTS.m_ScoreboardCheaterBG);
-		try_get_to_defaulted(j, d.m_ScoreboardSuspiciousBG, { "scoreboard_marked_suspicious.bg", "scoreboard_suspicious" },
-			DEFAULTS.m_ScoreboardSuspiciousBG);
-		try_get_to_defaulted(j, d.m_ScoreboardExploiterBG, { "scoreboard_marked_exploiter.bg", "scoreboard_exploiter" },
-			DEFAULTS.m_ScoreboardExploiterBG);
-		try_get_to_defaulted(j, d.m_ScoreboardRacistBG, { "scoreboard_marked_racism.bg", "scoreboard_racism" },
-			DEFAULTS.m_ScoreboardRacistBG);
-		try_get_to_defaulted(j, d.m_ScoreboardYouFG, { "scoreboard_you.fg", "scoreboard_you" },
-			DEFAULTS.m_ScoreboardYouFG);
-		try_get_to_defaulted(j, d.m_ScoreboardConnectingFG, { "scoreboard_connecting.fg", "scoreboard_connecting" },
-			DEFAULTS.m_ScoreboardConnectingFG);
-		try_get_to_defaulted(j, d.m_ScoreboardFriendlyTeamBG, { "scoreboard_team_friendly.bg", "friendly_team" },
-			DEFAULTS.m_ScoreboardFriendlyTeamBG);
-		try_get_to_defaulted(j, d.m_ScoreboardEnemyTeamBG, { "scoreboard_team_enemy.bg", "enemy_team" },
-			DEFAULTS.m_ScoreboardEnemyTeamBG);
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardCheaterBG, { "scoreboard_marked_cheater.bg", "scoreboard_cheater" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardSuspiciousBG, { "scoreboard_marked_suspicious.bg", "scoreboard_suspicious" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardExploiterBG, { "scoreboard_marked_exploiter.bg", "scoreboard_exploiter" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardRacistBG, { "scoreboard_marked_racism.bg", "scoreboard_racism" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardYouFG, { "scoreboard_you.fg", "scoreboard_you" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardConnectingFG, { "scoreboard_connecting.fg", "scoreboard_connecting" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardFriendlyTeamBG, { "scoreboard_team_friendly.bg", "friendly_team" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardEnemyTeamBG, { "scoreboard_team_enemy.bg", "enemy_team" });
 
-		try_get_to_defaulted(j, d.m_ChatLogYouFG, "chat_log_you.fg", DEFAULTS.m_ChatLogYouFG);
-		try_get_to_defaulted(j, d.m_ChatLogFriendlyTeamFG, "chat_log_team_friendly.fg",
-			DEFAULTS.m_ChatLogFriendlyTeamFG);
-		try_get_to_defaulted(j, d.m_ChatLogEnemyTeamFG, "chat_log_team_enemy.fg",
-			DEFAULTS.m_ChatLogEnemyTeamFG);
+		try_get_to_defaulted(j, d, &Colors::m_ChatLogYouFG, "chat_log_you.fg");
+		try_get_to_defaulted(j, d, &Colors::m_ChatLogFriendlyTeamFG, "chat_log_team_friendly.fg");
+		try_get_to_defaulted(j, d, &Colors::m_ChatLogEnemyTeamFG, "chat_log_team_enemy.fg");
 	}
 
 	void from_json(const nlohmann::json& j, Settings::Theme& d)
@@ -166,6 +157,38 @@ void tf2_bot_detector::from_json(const nlohmann::json& j, ReleaseChannel& d)
 		throw std::invalid_argument(mh::format("Unknown ReleaseChannel {}", std::quoted(value)));
 }
 
+uint16_t Settings::TF2Interface::GetRandomRCONPort() const
+{
+	std::mt19937 generator;
+	{
+		std::random_device randomSeed;
+		generator.seed(randomSeed());
+	}
+
+	// Some routers have issues handling high port numbers. By restricting
+	// ourselves to these high port numbers, we add another layer of security.
+	std::uniform_int_distribution<uint16_t> dist(m_RCONPortMin, m_RCONPortMax);
+	return dist(generator);
+}
+
+void tf2_bot_detector::to_json(nlohmann::json& j, const Settings::TF2Interface& d)
+{
+	j =
+	{
+		{ "rcon_port_min", d.m_RCONPortMin },
+		{ "rcon_port_max", d.m_RCONPortMax },
+	};
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, Settings::TF2Interface& d)
+{
+	try_get_to_defaulted(j, d, &Settings::TF2Interface::m_RCONPortMin, "rcon_port_min");
+	try_get_to_defaulted(j, d, &Settings::TF2Interface::m_RCONPortMax, "rcon_port_max");
+
+	if (d.m_RCONPortMin > d.m_RCONPortMax)
+		std::swap(d.m_RCONPortMin, d.m_RCONPortMax);
+}
+
 Settings::Settings() try
 {
 	LoadFile();
@@ -180,40 +203,6 @@ Settings::~Settings() = default;
 
 void Settings::LoadFile() try
 {
-#if 0
-	nlohmann::json json;
-	{
-		const auto settingsPath = GetSettingsPath(PathUsage::Read);
-		std::ifstream file(settingsPath);
-		if (!file.good())
-		{
-			LogError(MH_SOURCE_LOCATION_CURRENT(), "Failed to open {}", settingsPath);
-		}
-		else
-		{
-			try
-			{
-				file >> json;
-			}
-			catch (const nlohmann::json::exception& e)
-			{
-				const auto backupPath = std::filesystem::path(settingsPath).replace_filename("settings.backup.json");
-				LogException(MH_SOURCE_LOCATION_CURRENT(), e,
-					"Failed to parse JSON from {}. Writing backup to {}...", settingsPath, backupPath);
-
-				try
-				{
-					std::filesystem::copy_file(settingsPath, backupPath);
-				}
-				catch (...)
-				{
-					LogException(MH_SOURCE_LOCATION_CURRENT(),
-						"Failed to make backup of settings.json to {}", backupPath);
-				}
-			}
-		}
-	}
-#endif
 	ConfigFileBase::LoadFileAsync("cfg/settings.json").get();
 }
 catch (...)
@@ -288,6 +277,7 @@ void Settings::Deserialize(const nlohmann::json& json)
 
 	try_get_to_defaulted(json, m_Discord, "discord");
 	try_get_to_defaulted(json, m_Theme, "theme");
+	try_get_to_defaulted(json, m_TF2Interface, "tf2_interface");
 	if (!try_get_to_defaulted(json, m_GotoProfileSites, "goto_profile_sites"))
 	{
 		// Some defaults
@@ -322,6 +312,7 @@ void Settings::Serialize(nlohmann::json& json) const
 		},
 		{ "goto_profile_sites", m_GotoProfileSites },
 		{ "discord", m_Discord },
+		{ "tf2_interface", m_TF2Interface },
 	};
 
 	if (!m_SteamDirOverride.empty())

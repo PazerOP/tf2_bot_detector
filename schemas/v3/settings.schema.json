@@ -20,6 +20,25 @@
 				}
 			}
 		},
+		"tf2_interface": {
+			"type": "object",
+			"description": "Settings related to the tool's communication with TF2.",
+			"additionalProperties": false,
+			"properties": {
+				"rcon_port_min": {
+					"type": "integer",
+					"description": "The minimum port number to use for the local RCON connection.",
+					"minimum": 0,
+					"maximum": 65535
+				},
+				"rcon_port_max": {
+					"type": "integer",
+					"description": "The maximum port number to use for the local RCON connection.",
+					"minimum": 0,
+					"maximum": 65535
+				}
+			}
+		},
 		"general": {
 			"type": "object",
 			"description": "General settings.",
@@ -80,7 +99,7 @@
 				},
 				"command_timeout_seconds": {
 					"description": "Seconds before terminating -hijack processes.",
-					"type":"number",
+					"type": "number",
 					"default": 5
 				},
 				"program_update_check_mode": {
