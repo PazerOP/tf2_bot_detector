@@ -165,8 +165,6 @@ uint16_t Settings::TF2Interface::GetRandomRCONPort() const
 		generator.seed(randomSeed());
 	}
 
-	// Some routers have issues handling high port numbers. By restricting
-	// ourselves to these high port numbers, we add another layer of security.
 	std::uniform_int_distribution<uint16_t> dist(m_RCONPortMin, m_RCONPortMax);
 	return dist(generator);
 }
