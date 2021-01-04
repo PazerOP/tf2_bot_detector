@@ -59,8 +59,10 @@ namespace tf2_bot_detector
 			return lhs;
 		}
 
+		constexpr bool operator==(const PlayerAttributesList&) const = default;
+
 		bool empty() const { return m_Bits.none(); }
-		operator bool() const { return m_Bits.any(); }
+		explicit operator bool() const { return m_Bits.any(); }
 
 	private:
 		bits_t m_Bits;
