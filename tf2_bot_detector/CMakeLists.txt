@@ -227,6 +227,7 @@ if (TF2BD_ENABLE_TESTS)
 		"Tests/Catch2.cpp"
 		"Tests/ConsoleLineTests.cpp"
 		"Tests/FormattingTests.cpp"
+		"Tests/HumanDurationTests.cpp"
 		"Tests/PlayerRuleTests.cpp"
 		"Tests/Tests.h"
 	)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <chrono>
 #include <ctime>
 #include <ostream>
@@ -70,12 +71,22 @@ namespace tf2_bot_detector
 		int printCount = 0;
 
 		using TInputDuration = std::chrono::duration<TRep, TPeriod>;
-		const auto Print = [&](TInputDuration& value, auto period, const char* text)
+		const auto Print = [&](TInputDuration& value, auto periodType, const char* text, auto prevPeriodType)
 		{
 			if (printCount >= 2)
 				return;
 
-			using TPeriod = std::decay_t<decltype(period)>;
+			using TPeriod = std::decay_t<decltype(periodType)>;
+			using TPrevPeriod = std::decay_t<decltype(prevPeriodType)>;
+			static constexpr bool HAS_PREV_PERIOD = !std::is_same_v<TPrevPeriod, std::nullptr_t>;
+			constexpr TPeriod prevPeriod = []()
+			{
+				if constexpr (HAS_PREV_PERIOD)
+					return std::chrono::duration_cast<TPeriod>(TPrevPeriod(1));
+				else
+					return TPeriod{};
+			}();
+
 			const auto truncated = std::chrono::duration_cast<TPeriod>(value);
 			const auto count = truncated.count();
 			if (count <= 0)
@@ -94,18 +105,25 @@ namespace tf2_bot_detector
 			if (count > 1)
 				os << 's';
 
+			if constexpr (HAS_PREV_PERIOD)
+			{
+				assert(truncated <= prevPeriod);
+				assert(count <= prevPeriod.count());
+			}
+
 			printCount++;
 			value -= std::chrono::duration_cast<TInputDuration>(truncated);
 		};
 
 		auto duration = humanDuration.m_Duration;
-		Print(duration, tf2_bot_detector::year_t{}, "year");
-		Print(duration, tf2_bot_detector::month_t{}, "month");
-		Print(duration, tf2_bot_detector::week_t{}, "week");
-		Print(duration, tf2_bot_detector::day_t{}, "day");
-		Print(duration, std::chrono::hours{}, "hour");
-		Print(duration, std::chrono::minutes{}, "minute");
-		Print(duration, std::chrono::seconds{}, "second");
+
+		Print(duration, year_t{}, "year", nullptr);
+		Print(duration, month_t{}, "month", year_t{});
+		Print(duration, week_t{}, "week", month_t{});
+		Print(duration, day_t{}, "day", week_t{});
+		Print(duration, hour_t{}, "hour", day_t{});
+		Print(duration, minute_t{}, "minute", hour_t{});
+		Print(duration, second_t{}, "second", minute_t{});
 
 		return os;
 	}
