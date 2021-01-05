@@ -28,7 +28,7 @@ namespace
 
 	auto CheckSteamOpenPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 	{
-		if (!Platform::Processes::IsSteamRunning() || !Platform::GetCurrentActiveSteamID().IsValid())
+		if (!Platform::Processes::IsSteamRunning())
 			return ValidateSettingsResult::TriggerOpen;
 
 		return ValidateSettingsResult::Success;
@@ -42,6 +42,8 @@ namespace
 		m_CanContinue = isSteamRunning;
 		if (isSteamRunning)
 		{
+			m_CanContinue = true;
+
 			if (Platform::GetCurrentActiveSteamID().IsValid())
 			{
 				return OnDrawResult::EndDrawing;
@@ -50,7 +52,6 @@ namespace
 			{
 				ImGui::NewLine();
 				ImGui::Text("Steam is open, but it might not be logged into an account yet.");
-				m_CanContinue = true;
 			}
 		}
 
