@@ -132,7 +132,7 @@ With default settings TF2BD can self update. When the tool opens it will check f
 
 ## Common Tweaks
 
-TF2BD allows for a fair amount of customization (with even more planned). Currently the most popular community tweak is the addition of community rule lists and player lists. More information about these can be found [here][customization-wiki].
+TF2BD allows for a fair amount of customization (with even more planned). Currently the most popular community tweak is the addition of community rule lists and player lists. More information about these can be found [here][wiki-customization-link].
 
 > **Community lists are not maintained by this project!** While being on the official project wiki implies endorsement by the project, ultimately we cannot guarantee quality, accuracy, or truthfulness of any player lists or rule sets. Please use responsibly.
 
