@@ -226,13 +226,13 @@ bool tf2_bot_detector::Processes::IsSteamRunning()
 	if (!Process32First(snapshot.get(), &entry))
 	{
 		auto error = GetLastErrorCode();
-		LogError(std::string(__FUNCTION__) << "(): Failed to enumerate processes: " << error.message());
+		LogError("Failed to enumerate processes: {}", error);
 		return false;
 	}
 
 	do
 	{
-		if (!strcmp(entry.szExeFile, "Steam.exe"))
+		if (!_stricmp(entry.szExeFile, "Steam.exe"))
 			return true;
 
 	} while (Process32Next(snapshot.get(), &entry));
