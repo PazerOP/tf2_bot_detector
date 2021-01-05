@@ -28,7 +28,7 @@ namespace
 
 	auto CheckSteamOpenPage::ValidateSettings(const Settings& settings) const -> ValidateSettingsResult
 	{
-		if (!Platform::Processes::IsSteamRunning())
+		if (!Platform::Processes::IsSteamRunning() || !Platform::GetCurrentActiveSteamID().IsValid())
 			return ValidateSettingsResult::TriggerOpen;
 
 		return ValidateSettingsResult::Success;
@@ -61,7 +61,7 @@ namespace
 	}
 	bool CheckSteamOpenPage::CanCommit() const
 	{
-		return true;
+		return m_CanContinue;
 	}
 	void CheckSteamOpenPage::Commit(const CommitState& cs)
 	{

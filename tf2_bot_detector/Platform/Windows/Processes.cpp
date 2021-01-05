@@ -4,6 +4,7 @@
 
 #include <mh/error/ensure.hpp>
 #include <mh/text/codecvt.hpp>
+#include <mh/text/formatters/error_code.hpp>
 #include <mh/text/insertion_conversion.hpp>
 #include <mh/text/string_insertion.hpp>
 
@@ -222,7 +223,9 @@ bool tf2_bot_detector::Processes::IsSteamRunning()
 {
 	const SafeHandle snapshot(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
 
-	PROCESSENTRY32 entry;
+	PROCESSENTRY32 entry{};
+	entry.dwSize = sizeof(entry);
+
 	if (!Process32First(snapshot.get(), &entry))
 	{
 		auto error = GetLastErrorCode();
