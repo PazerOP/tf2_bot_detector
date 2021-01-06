@@ -45,18 +45,15 @@ namespace tf2_bot_detector
 		{
 			return baseDataDir / "logs";
 		}
-		std::filesystem::path GetLogsDir() const
-		{
-			return GetLogsDir(GetMutableDataDir());
-		}
+		std::filesystem::path GetLogsDir() const { return GetLogsDir(GetMutableDataDir()); }
+		std::filesystem::path GetRealLogsDir() const { return GetLogsDir(GetRealMutableDataDir()); }
+
 		static std::filesystem::path GetConfigDir(const std::filesystem::path& baseDataDir)
 		{
 			return baseDataDir / "cfg";
 		}
-		std::filesystem::path GetConfigDir() const
-		{
-			return GetConfigDir(GetMutableDataDir());
-		}
+		std::filesystem::path GetConfigDir() const { return GetConfigDir(GetMutableDataDir()); }
+		std::filesystem::path GetRealConfigDir() const { return GetConfigDir(GetRealMutableDataDir()); }
 
 		bool Exists(const std::filesystem::path& path) const
 		{

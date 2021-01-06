@@ -115,10 +115,7 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 		}
 		else if (usage == PathUsage::Write)
 		{
-			if (!m_IsPortable)
-				return m_AppDataDir / path;
-
-			return m_WorkingDir / path;
+			return GetRealMutableDataDir() / path;
 		}
 		else
 		{
