@@ -105,6 +105,11 @@ static auto DiscordDebugLog(const mh::source_location& location,
 		DebugLog(DISCORD_LOG_COLOR, location, "DRP: {}", mh::format(fmtStr, args...));
 }
 
+static void DiscordLogHookFunc(discord::LogLevel level, const char* logMsg)
+{
+	DebugLog(DISCORD_LOG_COLOR, logMsg);
+}
+
 namespace
 {
 	enum class ConnectionState
@@ -889,6 +894,8 @@ void DiscordState::Update()
 		else
 		{
 			m_Core.reset(core);
+
+			core->SetLogHook(discord::LogLevel::Debug, &DiscordLogHookFunc);
 
 			if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
 				LogError("Failed to register discord integration as steam appid 440: {}", mh::enum_fmt(result));
