@@ -271,6 +271,40 @@
 					"cheater"
 				]
 			},
+			"description": "[VALVE]n-killer",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"(\\(\\d+\\))?\\[VALVE\\]N(í|i)ggerkiller"
+					]
+				}
+			}
+		},
+				{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "cheemsburger gaming",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"(\\(\\d+\\))?cheemsburger gaming"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "(catbot) Rick May Was A Pedo Bot ##",
 			"triggers": {
 				"username_text_match": {
