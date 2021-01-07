@@ -58,7 +58,7 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 
 static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann::json& json)
 {
-	IFilesystem::Get().WriteFile(filename, json.dump(1, '\t', true) << '\n');
+	IFilesystem::Get().WriteFile(filename, json.dump(1, '\t', true, nlohmann::detail::error_handler_t::ignore) << '\n');
 }
 
 static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, const nlohmann::json& json)
