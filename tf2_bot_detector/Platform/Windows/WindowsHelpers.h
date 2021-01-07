@@ -10,33 +10,23 @@ namespace tf2_bot_detector::Windows
 	inline std::error_code GetLastErrorCode(DWORD lastError) { return std::error_code(lastError, std::system_category()); }
 	inline std::error_code GetLastErrorCode() { return GetLastErrorCode(GetLastError()); }
 
-	class GetLastErrorException final : public std::runtime_error
+	class GetLastErrorException final : public std::system_error
 	{
-		static std::string GetLastErrorString(HRESULT hr, const std::string_view& context, DWORD errorCode)
+		static std::string ConstructString(HRESULT hr, const std::string_view& context)
 		{
-			if (errorCode == 0)
-				return {};
-
-			std::string retVal;
-			if (!context.empty())
-				retVal.append(context).append(": ");
-
-			retVal.append(GetLastErrorCode(errorCode).message());
-			return retVal;
+			return std::string(context);
 		}
 
 	public:
 		GetLastErrorException(HRESULT hr, DWORD lastError) :
 			GetLastErrorException(hr, lastError, std::string_view{}) {}
 		GetLastErrorException(HRESULT hr, DWORD lastError, const std::string_view& msg) :
-			std::runtime_error(GetLastErrorString(m_Result = hr, msg, m_ErrorCode = lastError)) {}
+			std::system_error(lastError, std::system_category(), ConstructString(m_Result = hr, msg)) {}
 
 		HRESULT GetResult() const { return m_Result; }
-		DWORD GetErrorCode() const { return m_ErrorCode; }
 
 	private:
 		HRESULT m_Result;
-		DWORD m_ErrorCode;
 	};
 
 
