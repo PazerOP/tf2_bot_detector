@@ -391,7 +391,7 @@ std::error_condition tf2_bot_detector::ConfigFileBase::SaveFile(const std::files
 	}
 	catch (...)
 	{
-		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to serialize {}", filename);
+		LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to validate schema for serialized content {}", filename);
 		return ConfigErrorType::SerializedSchemaValidationFailed;
 	}
 

@@ -4,6 +4,7 @@
 
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <mh/utility.hpp>
 
 #include <fstream>
 
@@ -154,18 +155,25 @@ catch (...)
 	throw;
 }
 
-void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const void* end) const
+void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const void* end) const try
 {
 	path = ResolvePath(path, PathUsage::Write);
 
-	std::ofstream file(path, std::ios::binary | std::ios::trunc);
-	if (!file.good())
-		throw std::runtime_error(mh::format("{}: Failed to open file {}", __FUNCTION__, path));
+	// Create any missing directories
+	if (auto folderPath = mh::copy(path).remove_filename(); std::filesystem::create_directories(folderPath))
+		DebugLog("Created one or more directories in the path {}", folderPath);
+
+	std::ofstream file;
+	file.exceptions(std::ios::badbit | std::ios::failbit);
+	file.open(path, std::ios::binary | std::ios::trunc);
 
 	const auto bytes = uintptr_t(end) - uintptr_t(begin);
 	file.write(reinterpret_cast<const char*>(begin), bytes);
-	if (!file.good())
-		throw std::runtime_error(mh::format("{}: Failed to write {} bytes to {}", __FUNCTION__, bytes, path));
+}
+catch (...)
+{
+	LogException("Filename: {}", path);
+	throw;
 }
 
 std::filesystem::path Filesystem::GetMutableDataDir() const
