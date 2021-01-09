@@ -7,6 +7,7 @@
 #include "Util/JSONUtils.h"
 #include "Log.h"
 #include "ReleaseChannel.h"
+#include "Filesystem.h"
 
 #include <libzippp/libzippp.h>
 #include <mh/algorithm/multi_compare.hpp>
@@ -245,7 +246,7 @@ namespace
 		bool CanReplaceUpdateCheckState() const;
 
 		inline static const std::filesystem::path DOWNLOAD_DIR_ROOT =
-			std::filesystem::temp_directory_path() / "TF2 Bot Detector" / "Portable Updates";
+			IFilesystem::Get().GetRealTempDataDir() / "Portable Updates";
 
 		void CleanupOldUpdates() const;
 

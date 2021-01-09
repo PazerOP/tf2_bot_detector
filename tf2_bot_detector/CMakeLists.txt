@@ -195,6 +195,10 @@ if (TF2BD_ENABLE_DISCORD_INTEGRATION)
 	)
 endif()
 
+if (WIN32)
+	INCLUDE_TF2BD_WINRT(tf2_bot_detector)
+endif()
+
 find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzip CONFIG REQUIRED)

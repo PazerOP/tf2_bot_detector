@@ -25,6 +25,7 @@ namespace tf2_bot_detector
 		std::filesystem::path GetCurrentExeDir();
 		std::filesystem::path GetAppDataDir();
 		std::filesystem::path GetRealAppDataDir();
+		std::filesystem::path GetRealTempDataDir();
 
 		bool IsDebuggerAttached();
 

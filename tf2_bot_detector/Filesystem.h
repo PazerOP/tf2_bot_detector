@@ -31,6 +31,7 @@ namespace tf2_bot_detector
 
 		virtual std::filesystem::path GetMutableDataDir() const = 0;
 		virtual std::filesystem::path GetRealMutableDataDir() const = 0;
+		virtual std::filesystem::path GetRealTempDataDir() const = 0;
 
 		//virtual std::fstream OpenFile(const std::filesystem::path& path) = 0;
 		virtual std::string ReadFile(std::filesystem::path path) const = 0;

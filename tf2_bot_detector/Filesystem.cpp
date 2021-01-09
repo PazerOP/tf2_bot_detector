@@ -25,6 +25,7 @@ namespace
 
 		std::filesystem::path GetMutableDataDir() const override;
 		std::filesystem::path GetRealMutableDataDir() const override;
+		std::filesystem::path GetRealTempDataDir() const override;
 
 	private:
 		static constexpr char NON_PORTABLE_MARKER[] = ".non_portable";
@@ -47,7 +48,7 @@ IFilesystem& IFilesystem::Get()
 
 Filesystem::Filesystem() try
 {
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Initializing filesystem...");
+	DebugLog("Initializing filesystem...");
 
 	m_SearchPaths.insert(m_SearchPaths.begin(), m_ExeDir);
 
@@ -81,9 +82,9 @@ Filesystem::Filesystem() try
 		DebugLog(std::move(initMsg));
 	}
 }
-catch (const std::exception& e)
+catch (...)
 {
-	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to initialize filesystem");
+	LogFatalException("Failed to initialize filesystem");
 }
 
 mh::generator<std::filesystem::path> Filesystem::GetSearchPaths() const
@@ -190,4 +191,12 @@ std::filesystem::path Filesystem::GetRealMutableDataDir() const
 		return m_WorkingDir;
 	else
 		return Platform::GetRealAppDataDir() / APPDATA_SUBFOLDER;
+}
+
+std::filesystem::path Filesystem::GetRealTempDataDir() const
+{
+	if (m_IsPortable)
+		return m_WorkingDir / "temp";
+	else
+		return Platform::GetRealTempDataDir() / "TF2 Bot Detector";
 }

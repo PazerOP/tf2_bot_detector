@@ -360,3 +360,32 @@ LogMessageColor::LogMessageColor(const ImVec4& vec) :
 	LogMessageColor(vec.x, vec.y, vec.z, vec.w)
 {
 }
+
+#define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
+	void name(const mh::source_location& location) \
+	{ \
+		name((defaultColor), location); \
+	} \
+	void name(const LogMessageColor& color, const std::string_view& msg, const mh::source_location& location) \
+	{ \
+		name(color, location, msg); \
+	} \
+	void name(const std::string_view& msg, const mh::source_location& location) \
+	{ \
+		name(location, msg); \
+	} \
+	void name(const LogMessageColor& color, const mh::source_location& location) \
+	{ \
+		name(color, location, std::string_view{}); \
+	} \
+
+namespace tf2_bot_detector
+{
+	LOG_DEFINITION_HELPER(Log, LogColors::DEFAULT, LogSeverity::Info, LogVisibility::Default);
+	LOG_DEFINITION_HELPER(DebugLog, LogColors::DEFAULT_DEBUG, LogSeverity::Info, LogVisibility::Debug);
+	LOG_DEFINITION_HELPER(LogWarning, LogColors::WARN, LogSeverity::Warning, LogVisibility::Default);
+	LOG_DEFINITION_HELPER(DebugLogWarning, LogColors::WARN_DEBUG, LogSeverity::Warning, LogVisibility::Debug);
+	LOG_DEFINITION_HELPER(LogError, LogColors::ERROR, LogSeverity::Error, LogVisibility::Default);
+}
+
+#undef LOG_DEFINITION_HELPER
