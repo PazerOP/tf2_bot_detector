@@ -197,20 +197,18 @@ std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
 	return std::filesystem::path(path, path + length).remove_filename();
 }
 
+std::filesystem::path tf2_bot_detector::Platform::GetLegacyAppDataDir()
+{
+	auto packageFamilyName = GetCurrentPackageFamilyName();
+	if (packageFamilyName.empty())
+		return {};
+
+	return GetKnownFolderPath(FOLDERID_LocalAppData) / "Packages" / packageFamilyName / "LocalCache" / "Roaming";
+}
+
 std::filesystem::path tf2_bot_detector::Platform::GetRootLocalAppDataDir()
 {
-#if 0
-	const auto lad = GetKnownFolderPath(FOLDERID_LocalAppData);
-
-	const auto packageAppDataDir = lad / "Packages" / GetCurrentPackageFamilyName() / "LocalCache" / "Roaming";
-
-	if (std::filesystem::exists(packageAppDataDir))
-		return packageAppDataDir;
-	else
-		return GetAppDataDir();
-#else
 	return GetWinRTInterface()->GetLocalAppDataDir();
-#endif
 }
 
 std::filesystem::path tf2_bot_detector::Platform::GetRootRoamingAppDataDir()

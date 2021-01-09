@@ -94,6 +94,12 @@ void Filesystem::Init()
 				m_IsPortable = true;
 			}
 
+			if (auto legacyPath = Platform::GetLegacyAppDataDir(); std::filesystem::exists(legacyPath))
+			{
+				Log("Found legacy appdata folder {}, adding to search paths...", legacyPath);
+				m_SearchPaths.push_back(legacyPath);
+			}
+
 			{
 				std::string initMsg = "Filesystem initialized. Search paths:";
 				for (const auto& searchPath : m_SearchPaths)
