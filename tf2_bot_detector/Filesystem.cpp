@@ -96,8 +96,12 @@ void Filesystem::Init()
 
 			if (auto legacyPath = Platform::GetLegacyAppDataDir(); std::filesystem::exists(legacyPath))
 			{
-				Log("Found legacy appdata folder {}, adding to search paths...", legacyPath);
-				m_SearchPaths.push_back(legacyPath);
+				legacyPath /= APPDATA_SUBFOLDER;
+				if (std::filesystem::exists(legacyPath))
+				{
+					Log("Found legacy appdata folder {}, adding to search paths...", legacyPath);
+					m_SearchPaths.push_back(legacyPath);
+				}
 			}
 
 			{
