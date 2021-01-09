@@ -7,6 +7,7 @@
 #include "Util/JSONUtils.h"
 #include "Log.h"
 #include "ReleaseChannel.h"
+#include "Filesystem.h"
 
 #include <libzippp/libzippp.h>
 #include <mh/algorithm/multi_compare.hpp>
@@ -244,15 +245,15 @@ namespace
 
 		bool CanReplaceUpdateCheckState() const;
 
-		inline static const std::filesystem::path DOWNLOAD_DIR_ROOT =
-			std::filesystem::temp_directory_path() / "TF2 Bot Detector" / "Portable Updates";
+		const std::filesystem::path DOWNLOAD_DIR_ROOT =
+			IFilesystem::Get().GetTempDir() / "Portable Updates";
 
 		void CleanupOldUpdates() const;
 
 		static std::future<std::optional<DownloadedBuild>> DownloadBuild(const HTTPClient& client,
-			BuildInfo::BuildVariant tool, BuildInfo::BuildVariant updater);
+			BuildInfo::BuildVariant tool, BuildInfo::BuildVariant updater, std::filesystem::path downloadDirRoot);
 		static std::future<std::optional<DownloadedUpdateTool>> DownloadUpdateTool(const HTTPClient& client,
-			BuildInfo::BuildVariant updater, std::string args);
+			BuildInfo::BuildVariant updater, std::string args, std::filesystem::path downloadDirRoot);
 		static std::future<std::optional<UpdateToolResult>> RunUpdateTool(std::filesystem::path path, std::string args);
 
 		bool m_IsUpdateQueued = true;
@@ -400,7 +401,7 @@ namespace
 
 					DownloadUpdateTool(*client, downloadedBuild->m_UpdaterVariant,
 						mh::format("--update-type Portable --source-path {} --dest-path {}",
-							downloadedBuild->m_ExtractedLocation, Platform::GetCurrentExeDir())));
+							downloadedBuild->m_ExtractedLocation, Platform::GetCurrentExeDir()), DOWNLOAD_DIR_ROOT));
 			}();
 		}
 		else if (auto installUpdateResult = std::get_if<InstallUpdate::Result>(&m_State.GetVariant()))
@@ -437,7 +438,7 @@ namespace
 				m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::UpdateToolDownloading,
 					"Platform app updater unavailable. Downloading update tool...",
 
-					DownloadUpdateTool(*client, *availableUpdate->m_Updater, needsUpdateTool->m_UpdateToolArgs));
+					DownloadUpdateTool(*client, *availableUpdate->m_Updater, needsUpdateTool->m_UpdateToolArgs, DOWNLOAD_DIR_ROOT));
 			}();
 		}
 		else if (auto downloadedUpdateTool = std::get_if<DownloadedUpdateTool>(&m_State.GetVariant()))
@@ -598,10 +599,10 @@ namespace
 	}
 
 	auto UpdateManager::DownloadBuild(const HTTPClient& client,
-		BuildInfo::BuildVariant tool, BuildInfo::BuildVariant updater) ->
+		BuildInfo::BuildVariant tool, BuildInfo::BuildVariant updater, std::filesystem::path downloadDirRoot) ->
 		std::future<std::optional<DownloadedBuild>>
 	{
-		const auto downloadDir = DOWNLOAD_DIR_ROOT / mh::format("tool_{}",
+		const auto downloadDir = downloadDirRoot / mh::format("tool_{}",
 			std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
 		auto clientPtr = client.shared_from_this();
@@ -614,13 +615,13 @@ namespace
 	}
 
 	auto UpdateManager::DownloadUpdateTool(const HTTPClient& client, BuildInfo::BuildVariant updater,
-		std::string args) -> std::future<std::optional<DownloadedUpdateTool>>
+		std::string args, std::filesystem::path downloadDirRoot) -> std::future<std::optional<DownloadedUpdateTool>>
 	{
 		auto clientPtr = client.shared_from_this();
 
-		return std::async([clientPtr, updater, args]() -> std::optional<DownloadedUpdateTool>
+		return std::async([clientPtr, updater, args, downloadDirRoot]() -> std::optional<DownloadedUpdateTool>
 			{
-				const auto downloadDir = DOWNLOAD_DIR_ROOT / mh::format("updater_{}",
+				const auto downloadDir = downloadDirRoot / mh::format("updater_{}",
 					std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
 				DownloadAndExtractZip(*clientPtr, updater.m_DownloadURL, downloadDir);
@@ -757,7 +758,7 @@ namespace
 			auto portable = m_Portable.value();
 			auto updater = m_Updater.value();
 
-			auto downloadBuildFuture = DownloadBuild(*client, portable, updater);
+			auto downloadBuildFuture = DownloadBuild(*client, portable, updater, m_Parent.DOWNLOAD_DIR_ROOT);
 			m_Parent.m_State.Set(MH_SOURCE_LOCATION_CURRENT(), UpdateStatus::Downloading,
 				"Downloading new build...",
 				std::move(downloadBuildFuture));

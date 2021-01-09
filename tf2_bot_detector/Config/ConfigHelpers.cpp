@@ -29,28 +29,26 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 	if (auto path = mh::format("cfg/{}.json", basename); IFilesystem::Get().Exists(path))
 		retVal.m_User = path;
 
-	if (const auto cfg = IFilesystem::Get().GetMutableDataDir() / std::filesystem::path("cfg");
-		std::filesystem::is_directory(cfg))
+	constexpr std::filesystem::directory_options options =
+		std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink;
+
+	try
 	{
-		try
+		for (const auto& file : IFilesystem::Get().IterateDir("cfg", false, options))
 		{
 			const std::regex filenameRegex(mh::format("{}{}", basename, R"regex(\.(?!official).*\.json)regex"),
 				std::regex::optimize | std::regex::icase);
 
-			for (const auto& file : std::filesystem::directory_iterator(cfg,
-				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
-			{
-				const auto path = file.path();
-				const auto filename = path.filename().string();
-				if (std::regex_match(filename.begin(), filename.end(), filenameRegex))
-					retVal.m_Others.push_back(cfg / filename);
-			}
+			const auto path = file.path();
+			const auto filename = path.filename().string();
+			if (std::regex_match(filename.begin(), filename.end(), filenameRegex))
+				retVal.m_Others.push_back(path);
 		}
-		catch (const std::filesystem::filesystem_error& e)
-		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e,
-				"Failed to gather names matching {}.*.json in {}", basename, cfg);
-		}
+	}
+	catch (const std::filesystem::filesystem_error& e)
+	{
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to gather names matching {}.*.json in cfg", basename);
 	}
 
 	return retVal;
@@ -58,7 +56,7 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 
 static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann::json& json)
 {
-	IFilesystem::Get().WriteFile(filename, json.dump(1, '\t', true, nlohmann::detail::error_handler_t::ignore) << '\n');
+	IFilesystem::Get().WriteFile(filename, json.dump(1, '\t', true, nlohmann::detail::error_handler_t::ignore) << '\n', PathUsage::WriteRoaming);
 }
 
 static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, const nlohmann::json& json)
@@ -217,7 +215,7 @@ static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept
 	std::filesystem::path backupPath;
 	for (size_t i = 1; ; i++)
 	{
-		backupPath = fs.ResolvePath(filename, PathUsage::Write).remove_filename();
+		backupPath = fs.ResolvePath(filename, PathUsage::WriteLocal).remove_filename();
 		backupPath /= mh::format("{}_BACKUP_{}{}", baseFilename.string(), i, extension.string());
 
 		if (!std::filesystem::exists(backupPath))

@@ -4,6 +4,7 @@
 #include "UI/MainWindow.h"
 #include "Util/TextUtils.h"
 #include "Log.h"
+#include "Filesystem.h"
 
 #include <mh/text/string_insertion.hpp>
 
@@ -65,6 +66,9 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 		return 1;
 	}
 #endif
+
+	IFilesystem::Get().Init();
+	ILogManager::GetInstance().Init();
 
 	for (int i = 1; i < argc; i++)
 	{

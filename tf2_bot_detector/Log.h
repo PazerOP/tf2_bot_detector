@@ -71,6 +71,8 @@ namespace tf2_bot_detector
 
 		static ILogManager& GetInstance();
 
+		virtual void Init() = 0;
+
 		virtual void Log(std::string msg, const LogMessageColor& color,
 			LogSeverity severity, LogVisibility visibility,
 			time_point_t timestamp = clock_t::now()) = 0;
@@ -155,22 +157,10 @@ namespace tf2_bot_detector
 	{ \
 		name(fmtStr.m_Location, fmtStr.m_Value, args...); \
 	} \
-	inline void name(const LogMessageColor& color, const std::string_view& msg, MH_SOURCE_LOCATION_AUTO(location)) \
-	{ \
-		name(color, location, msg); \
-	} \
-	inline void name(const std::string_view& msg, MH_SOURCE_LOCATION_AUTO(location)) \
-	{ \
-		name(location, msg); \
-	} \
-	inline void name(const LogMessageColor& color, MH_SOURCE_LOCATION_AUTO(location)) \
-	{ \
-		name(color, location, std::string_view{}); \
-	} \
-	inline void name(MH_SOURCE_LOCATION_AUTO(location)) \
-	{ \
-		name((defaultColor), location); \
-	}
+	void name(const LogMessageColor& color, const std::string_view& msg, MH_SOURCE_LOCATION_AUTO(location)); \
+	void name(const std::string_view& msg, MH_SOURCE_LOCATION_AUTO(location)); \
+	void name(const LogMessageColor& color, MH_SOURCE_LOCATION_AUTO(location)); \
+	void name(MH_SOURCE_LOCATION_AUTO(location));
 
 	LOG_DEFINITION_HELPER(Log, LogColors::DEFAULT, LogSeverity::Info, LogVisibility::Default);
 	LOG_DEFINITION_HELPER(DebugLog, LogColors::DEFAULT_DEBUG, LogSeverity::Info, LogVisibility::Debug);

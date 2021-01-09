@@ -2,6 +2,7 @@
 #include "Log.h"
 #include "Platform/Platform.h"
 
+#include <mh/concurrency/main_thread.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/utility.hpp>
@@ -15,26 +16,34 @@ namespace
 	class Filesystem final : public IFilesystem
 	{
 	public:
-		Filesystem();
+		void Init() override;
 
 		mh::generator<std::filesystem::path> GetSearchPaths() const override;
 
 		std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const override;
 		std::string ReadFile(std::filesystem::path path) const override;
-		void WriteFile(std::filesystem::path path, const void* begin, const void* end) const override;
+		void WriteFile(std::filesystem::path path, const void* begin, const void* end, PathUsage usage) const override;
 
-		std::filesystem::path GetMutableDataDir() const override;
-		std::filesystem::path GetRealMutableDataDir() const override;
+		std::filesystem::path GetLocalAppDataDir() const override;
+		std::filesystem::path GetRoamingAppDataDir() const override;
+		std::filesystem::path GetTempDir() const override;
+
+		mh::generator<std::filesystem::directory_entry> IterateDir(std::filesystem::path path, bool recursive,
+			std::filesystem::directory_options options) const override;
 
 	private:
+		bool m_IsInit = false;
+		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
+
 		static constexpr char NON_PORTABLE_MARKER[] = ".non_portable";
 		static constexpr char APPDATA_SUBFOLDER[] = "TF2 Bot Detector";
 		std::vector<std::filesystem::path> m_SearchPaths;
 		bool m_IsPortable;
 
-		const std::filesystem::path m_ExeDir = Platform::GetCurrentExeDir();
-		const std::filesystem::path m_WorkingDir = std::filesystem::current_path();
-		const std::filesystem::path m_AppDataDir = Platform::GetAppDataDir() / APPDATA_SUBFOLDER;
+		std::filesystem::path m_ExeDir;
+		std::filesystem::path m_WorkingDir;
+		std::filesystem::path m_LocalAppDataDir;
+		std::filesystem::path m_RoamingAppDataDir;
 		//std::filesystem::path m_MutableDataDir = ChooseMutableDataPath();
 	};
 }
@@ -45,45 +54,81 @@ IFilesystem& IFilesystem::Get()
 	return s_Filesystem;
 }
 
-Filesystem::Filesystem() try
+void Filesystem::Init()
 {
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Initializing filesystem...");
+	assert(mh::is_main_thread());
 
-	m_SearchPaths.insert(m_SearchPaths.begin(), m_ExeDir);
-
-	if (m_WorkingDir != m_ExeDir)
-		m_SearchPaths.insert(m_SearchPaths.begin(), m_WorkingDir);
-
-	if (!ResolvePath(std::filesystem::path("cfg") / NON_PORTABLE_MARKER, PathUsage::Read).empty())
+	if (!m_IsInit)
 	{
-		DebugLog("Installation detected as non-portable.");
-		m_SearchPaths.insert(m_SearchPaths.begin(), m_AppDataDir);
-		m_IsPortable = false;
+		m_IsInit = true;
+		try
+		{
+			DebugLog("Initializing filesystem...");
 
-		// If we crash, we want our working directory to be somewhere we can write to.
-		if (std::filesystem::create_directories(m_AppDataDir))
-			DebugLog("Created {}", m_AppDataDir);
+			m_ExeDir = Platform::GetCurrentExeDir();
+			m_WorkingDir = std::filesystem::current_path();
+			m_LocalAppDataDir = Platform::GetRootLocalAppDataDir() / APPDATA_SUBFOLDER;
+			m_RoamingAppDataDir = Platform::GetRootRoamingAppDataDir() / APPDATA_SUBFOLDER;
 
-		std::filesystem::current_path(m_AppDataDir);
-		DebugLog("Set working directory to {}", m_AppDataDir);
+			m_SearchPaths.insert(m_SearchPaths.begin(), m_ExeDir);
+
+			if (m_WorkingDir != m_ExeDir)
+				m_SearchPaths.insert(m_SearchPaths.begin(), m_WorkingDir);
+
+			if (!ResolvePath(std::filesystem::path("cfg") / NON_PORTABLE_MARKER, PathUsage::Read).empty())
+			{
+				DebugLog("Installation detected as non-portable.");
+				m_SearchPaths.insert(m_SearchPaths.begin(), m_RoamingAppDataDir);
+				m_IsPortable = false;
+
+				// If we crash, we want our working directory to be somewhere we can write to.
+				if (std::filesystem::create_directories(m_RoamingAppDataDir))
+					DebugLog("Created {}", m_RoamingAppDataDir);
+
+				if (std::filesystem::create_directories(m_LocalAppDataDir))
+					DebugLog("Created {}", m_LocalAppDataDir);
+
+				std::filesystem::current_path(m_LocalAppDataDir);
+				DebugLog("Set working directory to {}", m_LocalAppDataDir);
+			}
+			else
+			{
+				DebugLog("Installation detected as portable.");
+				m_IsPortable = true;
+			}
+
+			if (auto legacyPath = Platform::GetLegacyAppDataDir(); std::filesystem::exists(legacyPath))
+			{
+				legacyPath /= APPDATA_SUBFOLDER;
+				if (std::filesystem::exists(legacyPath))
+				{
+					Log("Found legacy appdata folder {}, copying to {}...", legacyPath, m_RoamingAppDataDir);
+					std::filesystem::copy(legacyPath, m_RoamingAppDataDir,
+						std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_existing);
+
+					Log("Copy complete. Deleting {}...", legacyPath);
+					std::filesystem::remove_all(legacyPath);
+				}
+			}
+
+			{
+				std::string initMsg = "Filesystem initialized. Search paths:";
+				for (const auto& searchPath : m_SearchPaths)
+					initMsg << "\n\t" << searchPath;
+
+				DebugLog(std::move(initMsg));
+			}
+
+			DebugLog("\tLocalAppDataDir: {}", GetLocalAppDataDir());
+			DebugLog("\tRoamingAppDataDir: {}", GetRoamingAppDataDir());
+			DebugLog("\tTempDir: {}", GetTempDir());
+			std::filesystem::create_directories(GetTempDir());
+		}
+		catch (...)
+		{
+			LogFatalException("Failed to initialize filesystem");
+		}
 	}
-	else
-	{
-		DebugLog("Installation detected as portable.");
-		m_IsPortable = true;
-	}
-
-	{
-		std::string initMsg = "Filesystem initialized. Search paths:";
-		for (const auto& searchPath : m_SearchPaths)
-			initMsg << "\n\t" << searchPath;
-
-		DebugLog(std::move(initMsg));
-	}
-}
-catch (const std::exception& e)
-{
-	LogFatalException(MH_SOURCE_LOCATION_CURRENT(), e, "Failed to initialize filesystem");
 }
 
 mh::generator<std::filesystem::path> Filesystem::GetSearchPaths() const
@@ -96,6 +141,8 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 {
 	if (path.is_absolute())
 		return path;
+
+	EnsureInit();
 
 	auto retVal = std::invoke([&]() -> std::filesystem::path
 	{
@@ -114,9 +161,13 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 			DebugLogWarning("Unable to find {} in any search path", path);
 			return {};
 		}
-		else if (usage == PathUsage::Write)
+		else if (usage == PathUsage::WriteLocal)
 		{
-			return GetRealMutableDataDir() / path;
+			return GetLocalAppDataDir() / path;
+		}
+		else if (usage == PathUsage::WriteRoaming)
+		{
+			return GetRoamingAppDataDir() / path;
 		}
 		else
 		{
@@ -155,9 +206,9 @@ catch (...)
 	throw;
 }
 
-void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const void* end) const try
+void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const void* end, PathUsage usage) const try
 {
-	path = ResolvePath(path, PathUsage::Write);
+	path = ResolvePath(path, usage);
 
 	// Create any missing directories
 	if (auto folderPath = mh::copy(path).remove_filename(); std::filesystem::create_directories(folderPath))
@@ -176,18 +227,62 @@ catch (...)
 	throw;
 }
 
-std::filesystem::path Filesystem::GetMutableDataDir() const
+std::filesystem::path Filesystem::GetLocalAppDataDir() const
 {
-	if (m_IsPortable)
-		return m_WorkingDir;
-	else
-		return m_AppDataDir;
+	EnsureInit();
+
+	return m_IsPortable ? m_WorkingDir : m_LocalAppDataDir;
 }
 
-std::filesystem::path Filesystem::GetRealMutableDataDir() const
+std::filesystem::path Filesystem::GetRoamingAppDataDir() const
 {
+	EnsureInit();
+
+	return m_IsPortable ? m_WorkingDir : m_RoamingAppDataDir;
+}
+
+std::filesystem::path Filesystem::GetTempDir() const
+{
+	EnsureInit();
+
 	if (m_IsPortable)
-		return m_WorkingDir;
+		return m_WorkingDir / "temp";
 	else
-		return Platform::GetRealAppDataDir() / APPDATA_SUBFOLDER;
+		return Platform::GetRootTempDataDir() / "TF2 Bot Detector";
+}
+
+void Filesystem::EnsureInit(const mh::source_location& location) const
+{
+	if (!m_IsInit)
+	{
+		assert(false);
+		LogFatalError(location, "Filesystem::EnsureInit failed");
+	}
+}
+
+template<typename TIter>
+static mh::generator<std::filesystem::directory_entry> IterateDirImpl(
+	const std::vector<std::filesystem::path>& searchPaths, std::filesystem::path path, std::filesystem::directory_options options)
+{
+	for (std::filesystem::path searchPath : searchPaths)
+	{
+		searchPath /= path;
+
+		if (std::filesystem::exists(searchPath))
+		{
+			for (const std::filesystem::directory_entry& entry : TIter(searchPath, options))
+				co_yield entry;
+		}
+	}
+}
+
+mh::generator<std::filesystem::directory_entry> Filesystem::IterateDir(std::filesystem::path path, bool recursive,
+	std::filesystem::directory_options options) const
+{
+	assert(!path.is_absolute());
+
+	if (recursive)
+		return IterateDirImpl<std::filesystem::recursive_directory_iterator>(m_SearchPaths, std::move(path), options);
+	else
+		return IterateDirImpl<std::filesystem::directory_iterator>(m_SearchPaths, std::move(path), options);
 }

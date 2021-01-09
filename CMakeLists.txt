@@ -14,6 +14,11 @@ add_subdirectory(submodules/imgui_desktop)
 add_subdirectory(submodules/mh_stuff)
 
 add_subdirectory(tf2_bot_detector_common)
+
+if (WIN32)
+	add_subdirectory(tf2_bot_detector_winrt)
+endif()
+
 # add_subdirectory(tf2_bot_detector_updater)
 add_subdirectory(tf2_bot_detector)
 

@@ -4,6 +4,7 @@
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
 #include "Log.h"
+#include "Filesystem.h"
 
 #include <mh/concurrency/thread_pool.hpp>
 #include <mh/coroutine/future.hpp>
@@ -51,7 +52,7 @@ namespace
 	public:
 		AvatarCacheManager()
 		{
-			m_CacheDir = std::filesystem::temp_directory_path() / "TF2 Bot Detector/Steam Avatar Cache";
+			m_CacheDir = IFilesystem::Get().GetTempDir() / "Steam Avatar Cache";
 			std::filesystem::create_directories(m_CacheDir);
 			DeleteOldFiles(m_CacheDir, 24h * 7);
 		}
@@ -96,7 +97,13 @@ namespace
 		std::filesystem::path m_CacheDir;
 		mutable std::mutex m_CacheMutex;
 
-	} s_AvatarCacheManager;
+	};
+
+	static AvatarCacheManager& GetAvatarCacheManager()
+	{
+		static AvatarCacheManager s_AvatarCacheManager;
+		return s_AvatarCacheManager;
+	}
 }
 
 std::optional<duration_t> PlayerSummary::GetAccountAge() const
@@ -134,7 +141,7 @@ std::string PlayerSummary::GetAvatarURL(AvatarQuality quality) const
 
 mh::task<Bitmap> PlayerSummary::GetAvatarBitmap(std::shared_ptr<const HTTPClient> client, AvatarQuality quality) const
 {
-	return s_AvatarCacheManager.GetAvatarBitmap(client.get(), GetAvatarURL(quality), m_AvatarHash);
+	return GetAvatarCacheManager().GetAvatarBitmap(client.get(), GetAvatarURL(quality), m_AvatarHash);
 }
 
 std::string_view PlayerSummary::GetVanityURL() const

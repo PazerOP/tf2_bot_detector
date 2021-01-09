@@ -12,6 +12,7 @@
 #include <mh/text/stringops.hpp>
 #include <SDL2/SDL_messagebox.h>
 
+#include <atomic>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -36,11 +37,7 @@ namespace
 	class LogManager final : public ILogManager
 	{
 	public:
-		LogManager();
-		LogManager(const LogManager&) = delete;
-		LogManager& operator=(const LogManager&) = delete;
-
-		void Init();
+		void Init() override;
 
 		void Log(std::string msg, const LogMessageColor& color, LogSeverity severity,
 			LogVisibility visibility = LogVisibility::Default, time_point_t timestamp = tfbd_clock_t::now()) override;
@@ -59,6 +56,9 @@ namespace
 		void AddSecret(std::string value, std::string replace) override;
 
 	private:
+		bool m_IsInit = false;
+		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
+
 		std::filesystem::path m_FileName;
 		std::ofstream m_File;
 		mutable std::recursive_mutex m_LogMutex;
@@ -81,18 +81,7 @@ namespace
 
 	static LogManager& GetLogState()
 	{
-		// We need this song and dance because this initialization might be reentrant
-		// (filesystem might print log messages)
-		bool isFirstInit = false;
-		static LogManager s_LogState = [&]()
-		{
-			isFirstInit = true;
-			return LogManager{};
-		}();
-
-		if (isFirstInit)
-			s_LogState.Init();
-
+		static LogManager s_LogState;
 		return s_LogState;
 	}
 }
@@ -106,59 +95,72 @@ static constexpr LogMessageColor COLOR_DEFAULT = { 1, 1, 1, 1 };
 static constexpr LogMessageColor COLOR_WARNING = { 1, 0.5, 0, 1 };
 static constexpr LogMessageColor COLOR_ERROR = { 1, 0.25, 0, 1 };
 
-LogManager::LogManager()
-{
-}
-
 void LogManager::Init()
 {
-	::DebugLog(MH_SOURCE_LOCATION_CURRENT());
-	std::lock_guard lock(m_LogMutex);
+	assert(!m_IsInit);
 
-	const auto t = ToTM(tfbd_clock_t::now());
-	const mh::fmtstr<128> timestampStr("{}", std::put_time(&t, "%Y-%m-%d_%H-%M-%S"));
-
-	// Pick file name
+	if (!m_IsInit)
 	{
-		std::filesystem::path logPath = IFilesystem::Get().ResolvePath("logs", PathUsage::Write);
+		::DebugLog("Initializing LogManager...");
+		std::lock_guard lock(m_LogMutex);
 
-		std::error_code ec;
-		std::filesystem::create_directories(logPath, ec);
-		if (ec)
-		{
-			::LogWarning("Failed to create one or more directory in the path {}. Log output will go to stdout.",
-				logPath);
-		}
-		else
-		{
-			m_FileName = logPath / mh::fmtstr<128>("{}.log", timestampStr).view();
-		}
-	}
+		const auto t = ToTM(tfbd_clock_t::now());
+		const mh::fmtstr<128> timestampStr("{}", std::put_time(&t, "%Y-%m-%d_%H-%M-%S"));
 
-	// Try open file
-	if (!m_FileName.empty())
-	{
-		m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
-		if (!m_File.good())
-			::LogWarning("Failed to open log file {}. Log output will go to stdout only.", m_FileName);
-	}
+		// Pick file name
+		{
+			std::filesystem::path logPath = IFilesystem::Get().GetLogsDir();
 
-	{
-		auto logDir = std::filesystem::path("logs") / "console";
-		std::error_code ec;
-		std::filesystem::create_directories(logDir, ec);
-		if (ec)
-		{
-			::LogWarning("Failed to create one or more directory in the path {}. Console output will not be logged.",
-				logDir);
+			std::error_code ec;
+			std::filesystem::create_directories(logPath, ec);
+			if (ec)
+			{
+				::LogWarning("Failed to create one or more directory in the path {}. Log output will go to stdout.",
+					logPath);
+			}
+			else
+			{
+				m_FileName = logPath / mh::fmtstr<128>("{}.log", timestampStr).view();
+			}
 		}
-		else
+
+		// Try open file
+		if (!m_FileName.empty())
 		{
-			auto logPath = logDir / mh::fmtstr<128>("console_{}.log", timestampStr).view();
-			m_ConsoleLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
-			if (!m_ConsoleLogFile.good())
-				::LogWarning("Failed to open console log file {}. Console output will not be logged.", logPath);
+			m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
+			if (!m_File.good())
+			{
+				::LogWarning("Failed to open log file {}. Log output will go to stdout only.", m_FileName);
+			}
+			else
+			{
+				// Dump all log messages being held in memory to the file, if it was successfully opened
+				for (const auto& msg : m_LogMessages)
+					LogToStream(msg.m_Text, m_File, msg.m_Timestamp, true);
+
+				::DebugLog("Dumped all pending log messages to {}.", m_FileName);
+			}
 		}
+
+		{
+			auto logDir = std::filesystem::path("logs") / "console";
+			std::error_code ec;
+			std::filesystem::create_directories(logDir, ec);
+			if (ec)
+			{
+				::LogWarning("Failed to create one or more directory in the path {}. Console output will not be logged.",
+					logDir);
+			}
+			else
+			{
+				auto logPath = logDir / mh::fmtstr<128>("console_{}.log", timestampStr).view();
+				m_ConsoleLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
+				if (!m_ConsoleLogFile.good())
+					::LogWarning("Failed to open console log file {}. Console output will not be logged.", logPath);
+			}
+		}
+
+		m_IsInit = true;
 	}
 }
 
@@ -186,6 +188,8 @@ void LogManager::LogToStream(std::string msg, std::ostream& output, time_point_t
 
 void LogManager::AddSecret(std::string value, std::string replace)
 {
+	EnsureInit();
+
 	if (value.empty())
 		return;
 
@@ -305,7 +309,7 @@ void LogManager::Log(std::string msg, const LogMessageColor& color,
 	{
 		m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 
-		if (m_LogMessages.size() > MAX_LOG_MESSAGES)
+		if (m_IsInit && m_LogMessages.size() > MAX_LOG_MESSAGES)
 		{
 			m_LogMessages.erase(m_LogMessages.begin(),
 				std::next(m_LogMessages.begin(), m_LogMessages.size() - MAX_LOG_MESSAGES));
@@ -315,6 +319,8 @@ void LogManager::Log(std::string msg, const LogMessageColor& color,
 
 mh::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
 {
+	EnsureInit();
+
 	std::lock_guard lock(m_LogMutex);
 
 	size_t start = m_VisibleLogMessagesStart;
@@ -327,6 +333,8 @@ mh::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
 
 void LogManager::ClearVisibleMsgs()
 {
+	EnsureInit();
+
 	std::lock_guard lock(m_LogMutex);
 	DebugLog("Clearing visible log messages...");
 	m_VisibleLogMessagesStart = m_LogMessages.size();
@@ -334,12 +342,16 @@ void LogManager::ClearVisibleMsgs()
 
 void LogManager::LogConsoleOutput(const std::string_view& consoleOutput)
 {
+	EnsureInit();
+
 	std::lock_guard lock(m_ConsoleLogMutex);
 	m_ConsoleLogFile << consoleOutput << std::flush;
 }
 
 void LogManager::CleanupLogFiles() try
 {
+	EnsureInit();
+
 	constexpr auto MAX_LOG_LIFETIME = 24h * 7;
 	{
 		std::lock_guard lock(m_LogMutex);
@@ -356,7 +368,45 @@ catch (const std::filesystem::filesystem_error& e)
 	LogError(MH_SOURCE_LOCATION_CURRENT(), e.what());
 }
 
+void LogManager::EnsureInit(const mh::source_location& location) const
+{
+	if (!m_IsInit)
+	{
+		assert(false);
+		LogFatalError(location, "LogManager::EnsureInit failed");
+	}
+}
+
 LogMessageColor::LogMessageColor(const ImVec4& vec) :
 	LogMessageColor(vec.x, vec.y, vec.z, vec.w)
 {
 }
+
+#define LOG_DEFINITION_HELPER(name, defaultColor, severity, visibility) \
+	void name(const mh::source_location& location) \
+	{ \
+		name((defaultColor), location); \
+	} \
+	void name(const LogMessageColor& color, const std::string_view& msg, const mh::source_location& location) \
+	{ \
+		name(color, location, msg); \
+	} \
+	void name(const std::string_view& msg, const mh::source_location& location) \
+	{ \
+		name(location, msg); \
+	} \
+	void name(const LogMessageColor& color, const mh::source_location& location) \
+	{ \
+		name(color, location, std::string_view{}); \
+	} \
+
+namespace tf2_bot_detector
+{
+	LOG_DEFINITION_HELPER(Log, LogColors::DEFAULT, LogSeverity::Info, LogVisibility::Default);
+	LOG_DEFINITION_HELPER(DebugLog, LogColors::DEFAULT_DEBUG, LogSeverity::Info, LogVisibility::Debug);
+	LOG_DEFINITION_HELPER(LogWarning, LogColors::WARN, LogSeverity::Warning, LogVisibility::Default);
+	LOG_DEFINITION_HELPER(DebugLogWarning, LogColors::WARN_DEBUG, LogSeverity::Warning, LogVisibility::Debug);
+	LOG_DEFINITION_HELPER(LogError, LogColors::ERROR, LogSeverity::Error, LogVisibility::Default);
+}
+
+#undef LOG_DEFINITION_HELPER

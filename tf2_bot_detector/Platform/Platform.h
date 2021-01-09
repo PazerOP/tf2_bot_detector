@@ -23,8 +23,10 @@ namespace tf2_bot_detector
 		SteamID GetCurrentActiveSteamID();
 
 		std::filesystem::path GetCurrentExeDir();
-		std::filesystem::path GetAppDataDir();
-		std::filesystem::path GetRealAppDataDir();
+		std::filesystem::path GetRootLocalAppDataDir();
+		std::filesystem::path GetRootRoamingAppDataDir();
+		std::filesystem::path GetLegacyAppDataDir();
+		std::filesystem::path GetRootTempDataDir();
 
 		bool IsDebuggerAttached();
 
