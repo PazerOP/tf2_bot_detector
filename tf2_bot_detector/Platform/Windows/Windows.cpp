@@ -102,18 +102,6 @@ namespace tf2_bot_detector
 	}
 }
 
-std::filesystem::path tf2_bot_detector::Platform::GetRealAppDataDir()
-{
-	const auto lad = GetKnownFolderPath(FOLDERID_LocalAppData);
-
-	const auto packageAppDataDir = lad / "Packages" / GetCurrentPackageFamilyName() / "LocalCache" / "Roaming";
-
-	if (std::filesystem::exists(packageAppDataDir))
-		return packageAppDataDir;
-	else
-		return GetAppDataDir();
-}
-
 namespace
 {
 	class FallbackWinRTInterface final : public tf2_bot_detector::WinRT
@@ -209,12 +197,28 @@ std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
 	return std::filesystem::path(path, path + length).remove_filename();
 }
 
-std::filesystem::path tf2_bot_detector::Platform::GetAppDataDir()
+std::filesystem::path tf2_bot_detector::Platform::GetRootLocalAppDataDir()
 {
-	return GetKnownFolderPath(FOLDERID_RoamingAppData);
+#if 0
+	const auto lad = GetKnownFolderPath(FOLDERID_LocalAppData);
+
+	const auto packageAppDataDir = lad / "Packages" / GetCurrentPackageFamilyName() / "LocalCache" / "Roaming";
+
+	if (std::filesystem::exists(packageAppDataDir))
+		return packageAppDataDir;
+	else
+		return GetAppDataDir();
+#else
+	return GetWinRTInterface()->GetLocalAppDataDir();
+#endif
 }
 
-std::filesystem::path tf2_bot_detector::Platform::GetRealTempDataDir()
+std::filesystem::path tf2_bot_detector::Platform::GetRootRoamingAppDataDir()
+{
+	return GetWinRTInterface()->GetRoamingAppDataDir();
+}
+
+std::filesystem::path tf2_bot_detector::Platform::GetRootTempDataDir()
 {
 	return GetWinRTInterface()->GetTempDir();
 }

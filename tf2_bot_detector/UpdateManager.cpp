@@ -246,7 +246,7 @@ namespace
 		bool CanReplaceUpdateCheckState() const;
 
 		const std::filesystem::path DOWNLOAD_DIR_ROOT =
-			IFilesystem::Get().GetRealTempDataDir() / "Portable Updates";
+			IFilesystem::Get().GetTempDir() / "Portable Updates";
 
 		void CleanupOldUpdates() const;
 

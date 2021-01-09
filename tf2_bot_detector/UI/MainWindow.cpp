@@ -438,22 +438,22 @@ void MainWindow::PrintDebugInfo()
 void MainWindow::GenerateDebugReport() try
 {
 	Log("Generating debug_report.zip...");
-	const auto dbgReportLocation = IFilesystem::Get().ResolvePath("debug_report.zip", PathUsage::Write);
+	const auto dbgReportLocation = IFilesystem::Get().ResolvePath("debug_report.zip", PathUsage::WriteLocal);
 
 	{
 		using namespace libzippp;
 		ZipArchive archive(dbgReportLocation.string());
 		archive.open(ZipArchive::New);
 
-		const auto mutableDir = IFilesystem::Get().GetMutableDataDir();
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(mutableDir / "logs"))
+		const auto logsDir = IFilesystem::Get().GetLogsDir();
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(logsDir))
 		{
 			if (!entry.is_regular_file())
 				continue;
 
 			const auto& path = entry.path();
 
-			if (archive.addFile(std::filesystem::relative(path, mutableDir).string(), path.string()))
+			if (archive.addFile(std::filesystem::relative(path, logsDir / "..").string(), path.string()))
 				Log("Added file to debug report: {}", path);
 			else
 				LogWarning("Failed to add file to debug report: {}", path);
@@ -617,9 +617,9 @@ void MainWindow::OnDrawMenuBar()
 	if (ImGui::BeginMenu("File"))
 	{
 		if (ImGui::MenuItem("Open Config Folder"))
-			Shell::ExploreTo(IFilesystem::Get().GetRealConfigDir());
+			Shell::ExploreTo(IFilesystem::Get().GetConfigDir());
 		if (ImGui::MenuItem("Open Logs Folder"))
-			Shell::ExploreTo(IFilesystem::Get().GetRealLogsDir());
+			Shell::ExploreTo(IFilesystem::Get().GetLogsDir());
 
 		ImGui::Separator();
 

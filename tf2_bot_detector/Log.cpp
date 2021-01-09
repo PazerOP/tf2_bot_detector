@@ -109,7 +109,7 @@ void LogManager::Init()
 
 		// Pick file name
 		{
-			std::filesystem::path logPath = IFilesystem::Get().ResolvePath("logs", PathUsage::Write);
+			std::filesystem::path logPath = IFilesystem::Get().GetLogsDir();
 
 			std::error_code ec;
 			std::filesystem::create_directories(logPath, ec);

@@ -29,7 +29,7 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 	if (auto path = mh::format("cfg/{}.json", basename); IFilesystem::Get().Exists(path))
 		retVal.m_User = path;
 
-	if (const auto cfg = IFilesystem::Get().GetMutableDataDir() / std::filesystem::path("cfg");
+	if (const auto cfg = IFilesystem::Get().GetRoamingAppDataDir() / std::filesystem::path("cfg");
 		std::filesystem::is_directory(cfg))
 	{
 		try
@@ -58,7 +58,7 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 
 static void SaveJSONToFile(const std::filesystem::path& filename, const nlohmann::json& json)
 {
-	IFilesystem::Get().WriteFile(filename, json.dump(1, '\t', true, nlohmann::detail::error_handler_t::ignore) << '\n');
+	IFilesystem::Get().WriteFile(filename, json.dump(1, '\t', true, nlohmann::detail::error_handler_t::ignore) << '\n', PathUsage::WriteRoaming);
 }
 
 static ConfigSchemaInfo LoadAndValidateSchema(const ConfigFileBase& config, const nlohmann::json& json)
@@ -217,7 +217,7 @@ static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept
 	std::filesystem::path backupPath;
 	for (size_t i = 1; ; i++)
 	{
-		backupPath = fs.ResolvePath(filename, PathUsage::Write).remove_filename();
+		backupPath = fs.ResolvePath(filename, PathUsage::WriteLocal).remove_filename();
 		backupPath /= mh::format("{}_BACKUP_{}{}", baseFilename.string(), i, extension.string());
 
 		if (!std::filesystem::exists(backupPath))

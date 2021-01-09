@@ -52,7 +52,7 @@ namespace
 	public:
 		AvatarCacheManager()
 		{
-			m_CacheDir = IFilesystem::Get().GetRealTempDataDir() / "Steam Avatar Cache";
+			m_CacheDir = IFilesystem::Get().GetTempDir() / "Steam Avatar Cache";
 			std::filesystem::create_directories(m_CacheDir);
 			DeleteOldFiles(m_CacheDir, 24h * 7);
 		}

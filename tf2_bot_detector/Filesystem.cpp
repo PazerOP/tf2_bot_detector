@@ -22,11 +22,11 @@ namespace
 
 		std::filesystem::path ResolvePath(const std::filesystem::path& path, PathUsage usage) const override;
 		std::string ReadFile(std::filesystem::path path) const override;
-		void WriteFile(std::filesystem::path path, const void* begin, const void* end) const override;
+		void WriteFile(std::filesystem::path path, const void* begin, const void* end, PathUsage usage) const override;
 
-		std::filesystem::path GetMutableDataDir() const override;
-		std::filesystem::path GetRealMutableDataDir() const override;
-		std::filesystem::path GetRealTempDataDir() const override;
+		std::filesystem::path GetLocalAppDataDir() const override;
+		std::filesystem::path GetRoamingAppDataDir() const override;
+		std::filesystem::path GetTempDir() const override;
 
 	private:
 		bool m_IsInit = false;
@@ -37,9 +37,10 @@ namespace
 		std::vector<std::filesystem::path> m_SearchPaths;
 		bool m_IsPortable;
 
-		const std::filesystem::path m_ExeDir = Platform::GetCurrentExeDir();
-		const std::filesystem::path m_WorkingDir = std::filesystem::current_path();
-		const std::filesystem::path m_AppDataDir = Platform::GetAppDataDir() / APPDATA_SUBFOLDER;
+		std::filesystem::path m_ExeDir;
+		std::filesystem::path m_WorkingDir;
+		std::filesystem::path m_LocalAppDataDir;
+		std::filesystem::path m_RoamingAppDataDir;
 		//std::filesystem::path m_MutableDataDir = ChooseMutableDataPath();
 	};
 }
@@ -61,6 +62,11 @@ void Filesystem::Init()
 		{
 			DebugLog("Initializing filesystem...");
 
+			m_ExeDir = Platform::GetCurrentExeDir();
+			m_WorkingDir = std::filesystem::current_path();
+			m_LocalAppDataDir = Platform::GetRootLocalAppDataDir() / APPDATA_SUBFOLDER;
+			m_RoamingAppDataDir = Platform::GetRootRoamingAppDataDir() / APPDATA_SUBFOLDER;
+
 			m_SearchPaths.insert(m_SearchPaths.begin(), m_ExeDir);
 
 			if (m_WorkingDir != m_ExeDir)
@@ -69,15 +75,18 @@ void Filesystem::Init()
 			if (!ResolvePath(std::filesystem::path("cfg") / NON_PORTABLE_MARKER, PathUsage::Read).empty())
 			{
 				DebugLog("Installation detected as non-portable.");
-				m_SearchPaths.insert(m_SearchPaths.begin(), m_AppDataDir);
+				m_SearchPaths.insert(m_SearchPaths.begin(), m_RoamingAppDataDir);
 				m_IsPortable = false;
 
 				// If we crash, we want our working directory to be somewhere we can write to.
-				if (std::filesystem::create_directories(m_AppDataDir))
-					DebugLog("Created {}", m_AppDataDir);
+				if (std::filesystem::create_directories(m_RoamingAppDataDir))
+					DebugLog("Created {}", m_RoamingAppDataDir);
 
-				std::filesystem::current_path(m_AppDataDir);
-				DebugLog("Set working directory to {}", m_AppDataDir);
+				if (std::filesystem::create_directories(m_LocalAppDataDir))
+					DebugLog("Created {}", m_LocalAppDataDir);
+
+				std::filesystem::current_path(m_LocalAppDataDir);
+				DebugLog("Set working directory to {}", m_LocalAppDataDir);
 			}
 			else
 			{
@@ -93,11 +102,10 @@ void Filesystem::Init()
 				DebugLog(std::move(initMsg));
 			}
 
-			DebugLog("\nMutableDataDir: {}", GetMutableDataDir());
-			DebugLog("\nRealMutableDataDir: {}", GetRealMutableDataDir());
-
-			DebugLog("\nRealTempDataDir: {}", GetRealTempDataDir());
-			std::filesystem::create_directories(GetRealTempDataDir());
+			DebugLog("\tLocalAppDataDir: {}", GetLocalAppDataDir());
+			DebugLog("\tRoamingAppDataDir: {}", GetRoamingAppDataDir());
+			DebugLog("\tTempDir: {}", GetTempDir());
+			std::filesystem::create_directories(GetTempDir());
 		}
 		catch (...)
 		{
@@ -136,9 +144,13 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 			DebugLogWarning("Unable to find {} in any search path", path);
 			return {};
 		}
-		else if (usage == PathUsage::Write)
+		else if (usage == PathUsage::WriteLocal)
 		{
-			return GetRealMutableDataDir() / path;
+			return GetLocalAppDataDir() / path;
+		}
+		else if (usage == PathUsage::WriteRoaming)
+		{
+			return GetRoamingAppDataDir() / path;
 		}
 		else
 		{
@@ -177,9 +189,9 @@ catch (...)
 	throw;
 }
 
-void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const void* end) const try
+void Filesystem::WriteFile(std::filesystem::path path, const void* begin, const void* end, PathUsage usage) const try
 {
-	path = ResolvePath(path, PathUsage::Write);
+	path = ResolvePath(path, usage);
 
 	// Create any missing directories
 	if (auto folderPath = mh::copy(path).remove_filename(); std::filesystem::create_directories(folderPath))
@@ -198,34 +210,28 @@ catch (...)
 	throw;
 }
 
-std::filesystem::path Filesystem::GetMutableDataDir() const
+std::filesystem::path Filesystem::GetLocalAppDataDir() const
 {
 	EnsureInit();
 
-	if (m_IsPortable)
-		return m_WorkingDir;
-	else
-		return m_AppDataDir;
+	return m_IsPortable ? m_WorkingDir : m_LocalAppDataDir;
 }
 
-std::filesystem::path Filesystem::GetRealMutableDataDir() const
+std::filesystem::path Filesystem::GetRoamingAppDataDir() const
 {
 	EnsureInit();
 
-	if (m_IsPortable)
-		return m_WorkingDir;
-	else
-		return Platform::GetRealAppDataDir() / APPDATA_SUBFOLDER;
+	return m_IsPortable ? m_WorkingDir : m_RoamingAppDataDir;
 }
 
-std::filesystem::path Filesystem::GetRealTempDataDir() const
+std::filesystem::path Filesystem::GetTempDir() const
 {
 	EnsureInit();
 
 	if (m_IsPortable)
 		return m_WorkingDir / "temp";
 	else
-		return Platform::GetRealTempDataDir() / "TF2 Bot Detector";
+		return Platform::GetRootTempDataDir() / "TF2 Bot Detector";
 }
 
 void Filesystem::EnsureInit(const mh::source_location& location) const
