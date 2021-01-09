@@ -102,8 +102,12 @@ void Filesystem::Init()
 				legacyPath /= APPDATA_SUBFOLDER;
 				if (std::filesystem::exists(legacyPath))
 				{
-					Log("Found legacy appdata folder {}, adding to search paths...", legacyPath);
-					m_SearchPaths.push_back(legacyPath);
+					Log("Found legacy appdata folder {}, copying to {}...", legacyPath, m_RoamingAppDataDir);
+					std::filesystem::copy(legacyPath, m_RoamingAppDataDir,
+						std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_existing);
+
+					Log("Copy complete. Deleting {}...", legacyPath);
+					std::filesystem::remove_all(legacyPath);
 				}
 			}
 
