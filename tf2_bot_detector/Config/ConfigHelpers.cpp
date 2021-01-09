@@ -29,28 +29,26 @@ auto tf2_bot_detector::GetConfigFilePaths(const std::string_view& basename) -> C
 	if (auto path = mh::format("cfg/{}.json", basename); IFilesystem::Get().Exists(path))
 		retVal.m_User = path;
 
-	if (const auto cfg = IFilesystem::Get().GetRoamingAppDataDir() / std::filesystem::path("cfg");
-		std::filesystem::is_directory(cfg))
+	constexpr std::filesystem::directory_options options =
+		std::filesystem::directory_options::skip_permission_denied | std::filesystem::directory_options::follow_directory_symlink;
+
+	try
 	{
-		try
+		for (const auto& file : IFilesystem::Get().IterateDir("cfg", false, options))
 		{
 			const std::regex filenameRegex(mh::format("{}{}", basename, R"regex(\.(?!official).*\.json)regex"),
 				std::regex::optimize | std::regex::icase);
 
-			for (const auto& file : std::filesystem::directory_iterator(cfg,
-				std::filesystem::directory_options::follow_directory_symlink | std::filesystem::directory_options::skip_permission_denied))
-			{
-				const auto path = file.path();
-				const auto filename = path.filename().string();
-				if (std::regex_match(filename.begin(), filename.end(), filenameRegex))
-					retVal.m_Others.push_back(cfg / filename);
-			}
+			const auto path = file.path();
+			const auto filename = path.filename().string();
+			if (std::regex_match(filename.begin(), filename.end(), filenameRegex))
+				retVal.m_Others.push_back(path);
 		}
-		catch (const std::filesystem::filesystem_error& e)
-		{
-			LogException(MH_SOURCE_LOCATION_CURRENT(), e,
-				"Failed to gather names matching {}.*.json in {}", basename, cfg);
-		}
+	}
+	catch (const std::filesystem::filesystem_error& e)
+	{
+		LogException(MH_SOURCE_LOCATION_CURRENT(), e,
+			"Failed to gather names matching {}.*.json in cfg", basename);
 	}
 
 	return retVal;

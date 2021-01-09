@@ -42,6 +42,9 @@ namespace tf2_bot_detector
 		virtual std::string ReadFile(std::filesystem::path path) const = 0;
 		virtual void WriteFile(std::filesystem::path path, const void* begin, const void* end, PathUsage usage) const = 0;
 
+		virtual mh::generator<std::filesystem::directory_entry> IterateDir(std::filesystem::path path, bool recursive,
+			std::filesystem::directory_options options = std::filesystem::directory_options::none) const = 0;
+
 		void WriteFile(const std::filesystem::path& path, const std::string_view& data, PathUsage usage) const
 		{
 			return WriteFile(path, data.data(), data.data() + data.size(), usage);

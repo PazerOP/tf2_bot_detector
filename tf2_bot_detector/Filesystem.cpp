@@ -28,6 +28,9 @@ namespace
 		std::filesystem::path GetRoamingAppDataDir() const override;
 		std::filesystem::path GetTempDir() const override;
 
+		mh::generator<std::filesystem::directory_entry> IterateDir(std::filesystem::path path, bool recursive,
+			std::filesystem::directory_options options) const override;
+
 	private:
 		bool m_IsInit = false;
 		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
@@ -251,4 +254,31 @@ void Filesystem::EnsureInit(const mh::source_location& location) const
 		assert(false);
 		LogFatalError(location, "Filesystem::EnsureInit failed");
 	}
+}
+
+template<typename TIter>
+static mh::generator<std::filesystem::directory_entry> IterateDirImpl(
+	const std::vector<std::filesystem::path>& searchPaths, std::filesystem::path path, std::filesystem::directory_options options)
+{
+	for (std::filesystem::path searchPath : searchPaths)
+	{
+		searchPath /= path;
+
+		if (std::filesystem::exists(searchPath))
+		{
+			for (const std::filesystem::directory_entry& entry : TIter(searchPath, options))
+				co_yield entry;
+		}
+	}
+}
+
+mh::generator<std::filesystem::directory_entry> Filesystem::IterateDir(std::filesystem::path path, bool recursive,
+	std::filesystem::directory_options options) const
+{
+	assert(!path.is_absolute());
+
+	if (recursive)
+		return IterateDirImpl<std::filesystem::recursive_directory_iterator>(m_SearchPaths, std::move(path), options);
+	else
+		return IterateDirImpl<std::filesystem::directory_iterator>(m_SearchPaths, std::move(path), options);
 }
