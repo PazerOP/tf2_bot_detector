@@ -889,7 +889,7 @@ void DiscordState::Update()
 		if (auto result = discord::Core::Create(730945386390224976, DiscordCreateFlags_NoRequireDiscord, &core);
 			result != discord::Result::Ok)
 		{
-			LogError("Failed to initialize Discord Game SDK: {}", mh::enum_fmt(result));
+			DebugLogWarning("Failed to initialize Discord Game SDK: {}", mh::enum_fmt(result));
 		}
 		else
 		{
@@ -898,7 +898,7 @@ void DiscordState::Update()
 			core->SetLogHook(discord::LogLevel::Debug, &DiscordLogHookFunc);
 
 			if (auto result = m_Core->ActivityManager().RegisterSteam(440); result != discord::Result::Ok)
-				LogError("Failed to register discord integration as steam appid 440: {}", mh::enum_fmt(result));
+				DebugLogWarning("Failed to register discord integration as steam appid 440: {}", mh::enum_fmt(result));
 		}
 	}
 
