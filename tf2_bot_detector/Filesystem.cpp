@@ -2,6 +2,7 @@
 #include "Log.h"
 #include "Platform/Platform.h"
 
+#include <mh/concurrency/main_thread.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/utility.hpp>
@@ -15,7 +16,7 @@ namespace
 	class Filesystem final : public IFilesystem
 	{
 	public:
-		Filesystem();
+		void Init() override;
 
 		mh::generator<std::filesystem::path> GetSearchPaths() const override;
 
@@ -28,6 +29,9 @@ namespace
 		std::filesystem::path GetRealTempDataDir() const override;
 
 	private:
+		bool m_IsInit = false;
+		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
+
 		static constexpr char NON_PORTABLE_MARKER[] = ".non_portable";
 		static constexpr char APPDATA_SUBFOLDER[] = "TF2 Bot Detector";
 		std::vector<std::filesystem::path> m_SearchPaths;
@@ -38,83 +42,68 @@ namespace
 		const std::filesystem::path m_AppDataDir = Platform::GetAppDataDir() / APPDATA_SUBFOLDER;
 		//std::filesystem::path m_MutableDataDir = ChooseMutableDataPath();
 	};
-
-	static IFilesystem::InitStatus s_FSInitStatus = IFilesystem::InitStatus::Uninitialized;
 }
 
 IFilesystem& IFilesystem::Get()
 {
-	static Filesystem s_Filesystem = []() -> Filesystem
-	{
-		struct Helper
-		{
-			Helper()
-			{
-				s_FSInitStatus = IFilesystem::InitStatus::Initializing;
-			}
-			~Helper()
-			{
-				s_FSInitStatus = IFilesystem::InitStatus::Initialized;
-			}
-
-		} helper;
-
-		return Filesystem{};
-	}();
-
+	static Filesystem s_Filesystem;
 	return s_Filesystem;
 }
 
-IFilesystem::InitStatus IFilesystem::GetInitStatus()
+void Filesystem::Init()
 {
-	return s_FSInitStatus;
-}
+	assert(mh::is_main_thread());
 
-Filesystem::Filesystem() try
-{
-	DebugLog("Initializing filesystem...");
-
-	m_SearchPaths.insert(m_SearchPaths.begin(), m_ExeDir);
-
-	if (m_WorkingDir != m_ExeDir)
-		m_SearchPaths.insert(m_SearchPaths.begin(), m_WorkingDir);
-
-	if (!ResolvePath(std::filesystem::path("cfg") / NON_PORTABLE_MARKER, PathUsage::Read).empty())
+	if (!m_IsInit)
 	{
-		DebugLog("Installation detected as non-portable.");
-		m_SearchPaths.insert(m_SearchPaths.begin(), m_AppDataDir);
-		m_IsPortable = false;
+		m_IsInit = true;
+		try
+		{
+			DebugLog("Initializing filesystem...");
 
-		// If we crash, we want our working directory to be somewhere we can write to.
-		if (std::filesystem::create_directories(m_AppDataDir))
-			DebugLog("Created {}", m_AppDataDir);
+			m_SearchPaths.insert(m_SearchPaths.begin(), m_ExeDir);
 
-		std::filesystem::current_path(m_AppDataDir);
-		DebugLog("Set working directory to {}", m_AppDataDir);
+			if (m_WorkingDir != m_ExeDir)
+				m_SearchPaths.insert(m_SearchPaths.begin(), m_WorkingDir);
+
+			if (!ResolvePath(std::filesystem::path("cfg") / NON_PORTABLE_MARKER, PathUsage::Read).empty())
+			{
+				DebugLog("Installation detected as non-portable.");
+				m_SearchPaths.insert(m_SearchPaths.begin(), m_AppDataDir);
+				m_IsPortable = false;
+
+				// If we crash, we want our working directory to be somewhere we can write to.
+				if (std::filesystem::create_directories(m_AppDataDir))
+					DebugLog("Created {}", m_AppDataDir);
+
+				std::filesystem::current_path(m_AppDataDir);
+				DebugLog("Set working directory to {}", m_AppDataDir);
+			}
+			else
+			{
+				DebugLog("Installation detected as portable.");
+				m_IsPortable = true;
+			}
+
+			{
+				std::string initMsg = "Filesystem initialized. Search paths:";
+				for (const auto& searchPath : m_SearchPaths)
+					initMsg << "\n\t" << searchPath;
+
+				DebugLog(std::move(initMsg));
+			}
+
+			DebugLog("\nMutableDataDir: {}", GetMutableDataDir());
+			DebugLog("\nRealMutableDataDir: {}", GetRealMutableDataDir());
+
+			DebugLog("\nRealTempDataDir: {}", GetRealTempDataDir());
+			std::filesystem::create_directories(GetRealTempDataDir());
+		}
+		catch (...)
+		{
+			LogFatalException("Failed to initialize filesystem");
+		}
 	}
-	else
-	{
-		DebugLog("Installation detected as portable.");
-		m_IsPortable = true;
-	}
-
-	{
-		std::string initMsg = "Filesystem initialized. Search paths:";
-		for (const auto& searchPath : m_SearchPaths)
-			initMsg << "\n\t" << searchPath;
-
-		DebugLog(std::move(initMsg));
-	}
-
-	DebugLog("\nMutableDataDir: {}", GetMutableDataDir());
-	DebugLog("\nRealMutableDataDir: {}", GetRealMutableDataDir());
-
-	DebugLog("\nRealTempDataDir: {}", GetRealTempDataDir());
-	std::filesystem::create_directories(GetRealTempDataDir());
-}
-catch (...)
-{
-	LogFatalException("Failed to initialize filesystem");
 }
 
 mh::generator<std::filesystem::path> Filesystem::GetSearchPaths() const
@@ -127,6 +116,8 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 {
 	if (path.is_absolute())
 		return path;
+
+	EnsureInit();
 
 	auto retVal = std::invoke([&]() -> std::filesystem::path
 	{
@@ -209,6 +200,8 @@ catch (...)
 
 std::filesystem::path Filesystem::GetMutableDataDir() const
 {
+	EnsureInit();
+
 	if (m_IsPortable)
 		return m_WorkingDir;
 	else
@@ -217,6 +210,8 @@ std::filesystem::path Filesystem::GetMutableDataDir() const
 
 std::filesystem::path Filesystem::GetRealMutableDataDir() const
 {
+	EnsureInit();
+
 	if (m_IsPortable)
 		return m_WorkingDir;
 	else
@@ -225,8 +220,19 @@ std::filesystem::path Filesystem::GetRealMutableDataDir() const
 
 std::filesystem::path Filesystem::GetRealTempDataDir() const
 {
+	EnsureInit();
+
 	if (m_IsPortable)
 		return m_WorkingDir / "temp";
 	else
 		return Platform::GetRealTempDataDir() / "TF2 Bot Detector";
+}
+
+void Filesystem::EnsureInit(const mh::source_location& location) const
+{
+	if (!m_IsInit)
+	{
+		assert(false);
+		LogFatalError(location, "Filesystem::EnsureInit failed");
+	}
 }

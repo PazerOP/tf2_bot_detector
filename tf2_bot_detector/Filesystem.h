@@ -25,13 +25,7 @@ namespace tf2_bot_detector
 
 		static IFilesystem& Get();
 
-		enum class InitStatus
-		{
-			Uninitialized,
-			Initializing,
-			Initialized,
-		};
-		static InitStatus GetInitStatus();
+		virtual void Init() = 0;
 
 		virtual mh::generator<std::filesystem::path> GetSearchPaths() const = 0;
 

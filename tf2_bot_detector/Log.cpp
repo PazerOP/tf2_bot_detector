@@ -37,9 +37,7 @@ namespace
 	class LogManager final : public ILogManager
 	{
 	public:
-		LogManager();
-		LogManager(const LogManager&) = delete;
-		LogManager& operator=(const LogManager&) = delete;
+		void Init() override;
 
 		void Log(std::string msg, const LogMessageColor& color, LogSeverity severity,
 			LogVisibility visibility = LogVisibility::Default, time_point_t timestamp = tfbd_clock_t::now()) override;
@@ -57,10 +55,9 @@ namespace
 
 		void AddSecret(std::string value, std::string replace) override;
 
-		bool TryInit();
-
 	private:
-		std::atomic_bool m_InitOnceFlag;
+		bool m_IsInit = false;
+		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
 
 		std::filesystem::path m_FileName;
 		std::ofstream m_File;
@@ -85,7 +82,6 @@ namespace
 	static LogManager& GetLogState()
 	{
 		static LogManager s_LogState;
-		s_LogState.TryInit();
 		return s_LogState;
 	}
 }
@@ -99,19 +95,13 @@ static constexpr LogMessageColor COLOR_DEFAULT = { 1, 1, 1, 1 };
 static constexpr LogMessageColor COLOR_WARNING = { 1, 0.5, 0, 1 };
 static constexpr LogMessageColor COLOR_ERROR = { 1, 0.25, 0, 1 };
 
-LogManager::LogManager()
+void LogManager::Init()
 {
-}
+	assert(!m_IsInit);
 
-bool LogManager::TryInit()
-{
-	if (IFilesystem::GetInitStatus() != IFilesystem::InitStatus::Initialized)
-		return false;
-
-	if (bool expected = false;
-		m_InitOnceFlag.compare_exchange_strong(expected, true))
+	if (!m_IsInit)
 	{
-		::DebugLog(MH_SOURCE_LOCATION_CURRENT());
+		::DebugLog("Initializing LogManager...");
 		std::lock_guard lock(m_LogMutex);
 
 		const auto t = ToTM(tfbd_clock_t::now());
@@ -139,7 +129,17 @@ bool LogManager::TryInit()
 		{
 			m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
 			if (!m_File.good())
+			{
 				::LogWarning("Failed to open log file {}. Log output will go to stdout only.", m_FileName);
+			}
+			else
+			{
+				// Dump all log messages being held in memory to the file, if it was successfully opened
+				for (const auto& msg : m_LogMessages)
+					LogToStream(msg.m_Text, m_File, msg.m_Timestamp, true);
+
+				::DebugLog("Dumped all pending log messages to {}.", m_FileName);
+			}
 		}
 
 		{
@@ -160,11 +160,7 @@ bool LogManager::TryInit()
 			}
 		}
 
-		return true;
-	}
-	else
-	{
-		return false;
+		m_IsInit = true;
 	}
 }
 
@@ -192,6 +188,8 @@ void LogManager::LogToStream(std::string msg, std::ostream& output, time_point_t
 
 void LogManager::AddSecret(std::string value, std::string replace)
 {
+	EnsureInit();
+
 	if (value.empty())
 		return;
 
@@ -311,7 +309,7 @@ void LogManager::Log(std::string msg, const LogMessageColor& color,
 	{
 		m_LogMessages.push_back({ timestamp, std::move(msg), { color.r, color.g, color.b, color.a } });
 
-		if (m_LogMessages.size() > MAX_LOG_MESSAGES)
+		if (m_IsInit && m_LogMessages.size() > MAX_LOG_MESSAGES)
 		{
 			m_LogMessages.erase(m_LogMessages.begin(),
 				std::next(m_LogMessages.begin(), m_LogMessages.size() - MAX_LOG_MESSAGES));
@@ -321,6 +319,8 @@ void LogManager::Log(std::string msg, const LogMessageColor& color,
 
 mh::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
 {
+	EnsureInit();
+
 	std::lock_guard lock(m_LogMutex);
 
 	size_t start = m_VisibleLogMessagesStart;
@@ -333,6 +333,8 @@ mh::generator<const LogMessage&> LogManager::GetVisibleMsgs() const
 
 void LogManager::ClearVisibleMsgs()
 {
+	EnsureInit();
+
 	std::lock_guard lock(m_LogMutex);
 	DebugLog("Clearing visible log messages...");
 	m_VisibleLogMessagesStart = m_LogMessages.size();
@@ -340,12 +342,16 @@ void LogManager::ClearVisibleMsgs()
 
 void LogManager::LogConsoleOutput(const std::string_view& consoleOutput)
 {
+	EnsureInit();
+
 	std::lock_guard lock(m_ConsoleLogMutex);
 	m_ConsoleLogFile << consoleOutput << std::flush;
 }
 
 void LogManager::CleanupLogFiles() try
 {
+	EnsureInit();
+
 	constexpr auto MAX_LOG_LIFETIME = 24h * 7;
 	{
 		std::lock_guard lock(m_LogMutex);
@@ -360,6 +366,15 @@ void LogManager::CleanupLogFiles() try
 catch (const std::filesystem::filesystem_error& e)
 {
 	LogError(MH_SOURCE_LOCATION_CURRENT(), e.what());
+}
+
+void LogManager::EnsureInit(const mh::source_location& location) const
+{
+	if (!m_IsInit)
+	{
+		assert(false);
+		LogFatalError(location, "LogManager::EnsureInit failed");
+	}
 }
 
 LogMessageColor::LogMessageColor(const ImVec4& vec) :

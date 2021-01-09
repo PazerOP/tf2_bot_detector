@@ -71,6 +71,8 @@ namespace tf2_bot_detector
 
 		static ILogManager& GetInstance();
 
+		virtual void Init() = 0;
+
 		virtual void Log(std::string msg, const LogMessageColor& color,
 			LogSeverity severity, LogVisibility visibility,
 			time_point_t timestamp = clock_t::now()) = 0;
