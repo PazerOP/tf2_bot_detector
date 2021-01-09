@@ -27,9 +27,7 @@ if (WIN32)
 	)
 
 	add_subdirectory(../tf2_bot_detector_winrt "${PROJECT_BINARY_DIR}/tf2_bot_detector_winrt")
-	target_link_libraries(tf2_bot_detector_updater PUBLIC
-		tf2_bot_detector::winrt
-	)
+	INCLUDE_TF2BD_WINRT(tf2_bot_detector_updater)
 endif()
 
 target_compile_features(tf2_bot_detector_updater PUBLIC cxx_std_20)

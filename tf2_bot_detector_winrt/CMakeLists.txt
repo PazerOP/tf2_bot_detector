@@ -56,14 +56,17 @@ function(Include_TF2BD_WinRT _target)
 
 	# Copy DLL
 	add_custom_command(
-		TARGET tf2_bot_detector POST_BUILD
+		TARGET ${_target} POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:tf2_bot_detector_winrt> $<TARGET_FILE_DIR:${_target}>
 	)
 
-	# Copy PDB
-	add_custom_command(
-		TARGET tf2_bot_detector POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_PDB_FILE:tf2_bot_detector_winrt> $<TARGET_FILE_DIR:${_target}>
-	)
+	get_target_property(TF2BD_WINRT_TARGET_TYPE tf2_bot_detector_winrt TYPE)
+	if (NOT TF2BD_WINRT_TARGET_TYPE STREQUAL "STATIC_LIBRARY")
+		# Copy PDB
+		add_custom_command(
+			TARGET ${_target} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_PDB_FILE:tf2_bot_detector_winrt> $<TARGET_FILE_DIR:${_target}>
+		)
+	endif()
 
 endfunction()
