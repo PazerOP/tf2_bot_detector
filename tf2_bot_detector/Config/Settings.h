@@ -150,6 +150,9 @@ namespace tf2_bot_detector
 		void ValidateSchema(const ConfigSchemaInfo& schema) const override;
 		void Deserialize(const nlohmann::json& json) override;
 		void Serialize(nlohmann::json& json) const override;
+		void PostLoad(bool deserialized) override;
+
+		void AddDefaultGotoProfileSites();
 
 		mutable std::shared_ptr<HTTPClient> m_HTTPClient;
 	};

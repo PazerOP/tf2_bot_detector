@@ -242,6 +242,15 @@ void Settings::ValidateSchema(const ConfigSchemaInfo& schema) const
 		throw std::runtime_error(mh::format("Schema must be version {} (current version {})", SETTINGS_SCHEMA_VERSION, schema.m_Version));
 }
 
+void Settings::AddDefaultGotoProfileSites()
+{
+	m_GotoProfileSites.push_back({ "Steam Community", "https://steamcommunity.com/profiles/%SteamID64%" });
+	m_GotoProfileSites.push_back({ "logs.tf", "https://logs.tf/profile/%SteamID64%" });
+	m_GotoProfileSites.push_back({ "RGL", "https://rgl.gg/Public/PlayerProfile.aspx?p=%SteamID64%" });
+	m_GotoProfileSites.push_back({ "SteamRep", "https://steamrep.com/profiles/%SteamID64%" });
+	m_GotoProfileSites.push_back({ "UGC League", "https://www.ugcleague.com/players_page.cfm?player_id=%SteamID64%" });
+}
+
 void Settings::Deserialize(const nlohmann::json& json)
 {
 	if (auto found = json.find("general"); found != json.end())
@@ -276,15 +285,15 @@ void Settings::Deserialize(const nlohmann::json& json)
 	try_get_to_defaulted(json, m_Discord, "discord");
 	try_get_to_defaulted(json, m_Theme, "theme");
 	try_get_to_defaulted(json, m_TF2Interface, "tf2_interface");
+
 	if (!try_get_to_defaulted(json, m_GotoProfileSites, "goto_profile_sites"))
-	{
-		// Some defaults
-		m_GotoProfileSites.push_back({ "Steam Community", "https://steamcommunity.com/profiles/%SteamID64%" });
-		m_GotoProfileSites.push_back({ "logs.tf", "https://logs.tf/profile/%SteamID64%" });
-		m_GotoProfileSites.push_back({ "RGL", "https://rgl.gg/Public/PlayerProfile.aspx?p=%SteamID64%" });
-		m_GotoProfileSites.push_back({ "SteamRep", "https://steamrep.com/profiles/%SteamID64%" });
-		m_GotoProfileSites.push_back({ "UGC League", "https://www.ugcleague.com/players_page.cfm?player_id=%SteamID64%" });
-	}
+		AddDefaultGotoProfileSites();
+}
+
+void Settings::PostLoad(bool deserialized)
+{
+	if (!deserialized)
+		AddDefaultGotoProfileSites();
 }
 
 void Settings::Serialize(nlohmann::json& json) const

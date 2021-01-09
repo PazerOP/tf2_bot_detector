@@ -38,6 +38,7 @@ namespace tf2_bot_detector
 		SerializeFailed,
 		SerializedSchemaValidationFailed,
 		WriteFileFailed,
+		PostLoadFailed,
 	};
 	const std::error_category& ConfigErrorCategory();
 	std::error_condition make_error_condition(ConfigErrorType e);
@@ -97,6 +98,9 @@ namespace tf2_bot_detector
 
 		std::optional<ConfigSchemaInfo> m_Schema;
 		std::string m_FileName; // Name of the file this was loaded from
+
+	protected:
+		virtual void PostLoad(bool deserialized) {}
 
 	private:
 		mh::task<std::error_condition> LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const HTTPClient> client);
@@ -264,6 +268,7 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::ConfigErrorType)
 	MH_ENUM_REFLECT_VALUE(SerializeFailed)
 	MH_ENUM_REFLECT_VALUE(SerializedSchemaValidationFailed)
 	MH_ENUM_REFLECT_VALUE(WriteFileFailed)
+	MH_ENUM_REFLECT_VALUE(PostLoadFailed)
 MH_ENUM_REFLECT_END()
 
 namespace std
