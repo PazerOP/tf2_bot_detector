@@ -12,6 +12,7 @@
 #include <mh/text/stringops.hpp>
 #include <SDL2/SDL_messagebox.h>
 
+#include <atomic>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -40,8 +41,6 @@ namespace
 		LogManager(const LogManager&) = delete;
 		LogManager& operator=(const LogManager&) = delete;
 
-		void Init();
-
 		void Log(std::string msg, const LogMessageColor& color, LogSeverity severity,
 			LogVisibility visibility = LogVisibility::Default, time_point_t timestamp = tfbd_clock_t::now()) override;
 		void LogToStream(std::string msg, std::ostream& output, time_point_t timestamp = tfbd_clock_t::now(), bool skipScrub = false) const;
@@ -58,7 +57,11 @@ namespace
 
 		void AddSecret(std::string value, std::string replace) override;
 
+		bool TryInit();
+
 	private:
+		std::atomic_bool m_InitOnceFlag;
+
 		std::filesystem::path m_FileName;
 		std::ofstream m_File;
 		mutable std::recursive_mutex m_LogMutex;
@@ -81,18 +84,8 @@ namespace
 
 	static LogManager& GetLogState()
 	{
-		// We need this song and dance because this initialization might be reentrant
-		// (filesystem might print log messages)
-		bool isFirstInit = false;
-		static LogManager s_LogState = [&]()
-		{
-			isFirstInit = true;
-			return LogManager{};
-		}();
-
-		if (isFirstInit)
-			s_LogState.Init();
-
+		static LogManager s_LogState;
+		s_LogState.TryInit();
 		return s_LogState;
 	}
 }
@@ -110,55 +103,68 @@ LogManager::LogManager()
 {
 }
 
-void LogManager::Init()
+bool LogManager::TryInit()
 {
-	::DebugLog(MH_SOURCE_LOCATION_CURRENT());
-	std::lock_guard lock(m_LogMutex);
+	if (IFilesystem::GetInitStatus() != IFilesystem::InitStatus::Initialized)
+		return false;
 
-	const auto t = ToTM(tfbd_clock_t::now());
-	const mh::fmtstr<128> timestampStr("{}", std::put_time(&t, "%Y-%m-%d_%H-%M-%S"));
-
-	// Pick file name
+	if (bool expected = false;
+		m_InitOnceFlag.compare_exchange_strong(expected, true))
 	{
-		std::filesystem::path logPath = IFilesystem::Get().ResolvePath("logs", PathUsage::Write);
+		::DebugLog(MH_SOURCE_LOCATION_CURRENT());
+		std::lock_guard lock(m_LogMutex);
 
-		std::error_code ec;
-		std::filesystem::create_directories(logPath, ec);
-		if (ec)
+		const auto t = ToTM(tfbd_clock_t::now());
+		const mh::fmtstr<128> timestampStr("{}", std::put_time(&t, "%Y-%m-%d_%H-%M-%S"));
+
+		// Pick file name
 		{
-			::LogWarning("Failed to create one or more directory in the path {}. Log output will go to stdout.",
-				logPath);
+			std::filesystem::path logPath = IFilesystem::Get().ResolvePath("logs", PathUsage::Write);
+
+			std::error_code ec;
+			std::filesystem::create_directories(logPath, ec);
+			if (ec)
+			{
+				::LogWarning("Failed to create one or more directory in the path {}. Log output will go to stdout.",
+					logPath);
+			}
+			else
+			{
+				m_FileName = logPath / mh::fmtstr<128>("{}.log", timestampStr).view();
+			}
 		}
-		else
+
+		// Try open file
+		if (!m_FileName.empty())
 		{
-			m_FileName = logPath / mh::fmtstr<128>("{}.log", timestampStr).view();
+			m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
+			if (!m_File.good())
+				::LogWarning("Failed to open log file {}. Log output will go to stdout only.", m_FileName);
 		}
+
+		{
+			auto logDir = std::filesystem::path("logs") / "console";
+			std::error_code ec;
+			std::filesystem::create_directories(logDir, ec);
+			if (ec)
+			{
+				::LogWarning("Failed to create one or more directory in the path {}. Console output will not be logged.",
+					logDir);
+			}
+			else
+			{
+				auto logPath = logDir / mh::fmtstr<128>("console_{}.log", timestampStr).view();
+				m_ConsoleLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
+				if (!m_ConsoleLogFile.good())
+					::LogWarning("Failed to open console log file {}. Console output will not be logged.", logPath);
+			}
+		}
+
+		return true;
 	}
-
-	// Try open file
-	if (!m_FileName.empty())
+	else
 	{
-		m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
-		if (!m_File.good())
-			::LogWarning("Failed to open log file {}. Log output will go to stdout only.", m_FileName);
-	}
-
-	{
-		auto logDir = std::filesystem::path("logs") / "console";
-		std::error_code ec;
-		std::filesystem::create_directories(logDir, ec);
-		if (ec)
-		{
-			::LogWarning("Failed to create one or more directory in the path {}. Console output will not be logged.",
-				logDir);
-		}
-		else
-		{
-			auto logPath = logDir / mh::fmtstr<128>("console_{}.log", timestampStr).view();
-			m_ConsoleLogFile = std::ofstream(logPath, std::ofstream::ate | std::ofstream::binary);
-			if (!m_ConsoleLogFile.good())
-				::LogWarning("Failed to open console log file {}. Console output will not be logged.", logPath);
-		}
+		return false;
 	}
 }
 

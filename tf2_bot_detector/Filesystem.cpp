@@ -38,12 +38,36 @@ namespace
 		const std::filesystem::path m_AppDataDir = Platform::GetAppDataDir() / APPDATA_SUBFOLDER;
 		//std::filesystem::path m_MutableDataDir = ChooseMutableDataPath();
 	};
+
+	static IFilesystem::InitStatus s_FSInitStatus = IFilesystem::InitStatus::Uninitialized;
 }
 
 IFilesystem& IFilesystem::Get()
 {
-	static Filesystem s_Filesystem;
+	static Filesystem s_Filesystem = []() -> Filesystem
+	{
+		struct Helper
+		{
+			Helper()
+			{
+				s_FSInitStatus = IFilesystem::InitStatus::Initializing;
+			}
+			~Helper()
+			{
+				s_FSInitStatus = IFilesystem::InitStatus::Initialized;
+			}
+
+		} helper;
+
+		return Filesystem{};
+	}();
+
 	return s_Filesystem;
+}
+
+IFilesystem::InitStatus IFilesystem::GetInitStatus()
+{
+	return s_FSInitStatus;
 }
 
 Filesystem::Filesystem() try
@@ -81,6 +105,12 @@ Filesystem::Filesystem() try
 
 		DebugLog(std::move(initMsg));
 	}
+
+	DebugLog("\nMutableDataDir: {}", GetMutableDataDir());
+	DebugLog("\nRealMutableDataDir: {}", GetRealMutableDataDir());
+
+	DebugLog("\nRealTempDataDir: {}", GetRealTempDataDir());
+	std::filesystem::create_directories(GetRealTempDataDir());
 }
 catch (...)
 {

@@ -129,7 +129,7 @@ namespace
 		}
 		std::filesystem::path GetTempDir() const override
 		{
-			return std::filesystem::temp_directory_path() / "TF2 Bot Detector";
+			return std::filesystem::temp_directory_path();
 		}
 	};
 }
