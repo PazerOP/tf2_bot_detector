@@ -416,3 +416,57 @@ jobs:
         if-no-files-found: error
         name: ${{ steps.msixbundle_name.outputs.value }}
         path: "msix/${{ steps.msixbundle_name.outputs.value }}"
+
+
+  release_artifacts:
+    runs-on: ubuntu-latest
+    needs: [config, updater, msixbundle]
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        path: .
+
+    - uses: actions/upload-artifact@v2
+      with:
+        if-no-files-found: error
+        name: release_artifacts_all
+        path: "*"
+
+    - name: Fixup folder structure and zip
+      run: |
+        # just print everything
+        ls -la
+
+        echo "Removing all debug stuff..."
+        find . -name '*_Debug*' -maxdepth 1 | xargs rm -rv
+
+        echo "Removing all smartscreen stuff..."
+        find . -name 'smartscreen_*' -maxdepth 1 | xargs rm -rv
+
+        echo "Removing all .msix (NOT .msixbundle) stuff..."
+        find . -name '*.msix' -maxdepth 1 | xargs rm -rv
+
+        echo "Moving msixbundles to top level folder..."
+        mkdir msixbundle_container
+        find . -name '*.msixbundle' -type f | xargs mv -t msixbundle_container
+        find . -name '*.msixbundle' -type d | xargs rm -rv
+        ls msixbundle_container/* | xargs mv -t .
+        rm -rv msixbundle_container
+
+        for folder in `find . -maxdepth 1 -path './*' -type d`; do
+          echo "Zipping $folder..."
+          cd "$folder"
+          zip -9 -r "../$folder.zip" .
+          cd ../
+          rm -rv "$folder"
+        done
+
+        # print everything again
+        ls -la
+
+    - uses: actions/upload-artifact@v2
+      with:
+        if-no-files-found: error
+        name: release_artifacts
+        path: "*"
+
