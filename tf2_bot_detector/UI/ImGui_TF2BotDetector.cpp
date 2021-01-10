@@ -35,12 +35,16 @@ namespace
 	};
 }
 
-void ImGui::TextRightAligned(const std::string_view& text, float offsetX)
+void ImGui::TextRightAligned(const std::string_view& text, float offsetX) //This function will right-align certain text by a certain offset. 
 {
-	const auto textSize = ImGui::CalcTextSize(text.data(), text.data() + text.size());
+	//Because everyone has a different size monitor/display,
+	//this function calcualtes your text size and the column width dynamically based on your detected system
+	//graphics. Once it has these it uses a 'cursor' to properly place the right aligned text. 
 
-	float cursorPosX = ImGui::GetCursorPosX();
-	cursorPosX += ImGui::GetColumnWidth();// ImGui::GetContentRegionAvail().x;
+	const auto textSize = ImGui::CalcTextSize(text.data(), text.data() + text.size()); //calculates the text size 
+
+	float cursorPosX = ImGui::GetCursorPosX(); //grabs your cursor position
+	cursorPosX += ImGui::GetColumnWidth();// ImGui::GetContentRegionAvail().x; //
 	cursorPosX -= textSize.x;
 	cursorPosX -= 2 * ImGui::GetStyle().ItemSpacing.x;
 	cursorPosX -= offsetX;
@@ -49,7 +53,7 @@ void ImGui::TextRightAligned(const std::string_view& text, float offsetX)
 	ImGui::TextFmt(text);
 }
 
-void ImGui::TextRightAlignedF(const char* fmt, ...)
+void ImGui::TextRightAlignedF(const char* fmt, ...) //formats right aligned text with the fmt argument
 {
 	std::va_list ap, ap2;
 	va_start(ap, fmt);
@@ -256,7 +260,6 @@ static bool OverrideControl(const std::string_view& overrideLabel, T& overrideVa
 			retVal = true;
 		}
 	}
-
 	return retVal;
 }
 
