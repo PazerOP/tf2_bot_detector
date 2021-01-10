@@ -416,3 +416,14 @@ jobs:
         if-no-files-found: error
         name: ${{ steps.msixbundle_name.outputs.value }}
         path: "msix/${{ steps.msixbundle_name.outputs.value }}"
+
+
+  release_package:
+    runs-on: ubuntu-latest
+    needs: [config, updater, msixbundle]
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        path: artifacts
+
+    - run: ls -laR
