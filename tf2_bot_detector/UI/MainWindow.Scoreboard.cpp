@@ -411,6 +411,16 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 					if (ImGui::MenuItem(item.m_Name.c_str()))
 						Shell::OpenURL(item.CreateProfileURL(player));
 				}
+
+				if (m_Settings.m_GotoProfileSites.size() > 1)
+				{
+					ImGui::Separator();
+					if (ImGui::MenuItem("Open All"))
+					{
+						for (const auto& item : m_Settings.m_GotoProfileSites)
+							Shell::OpenURL(item.CreateProfileURL(player));
+					}
+				}
 			}
 			else
 			{
