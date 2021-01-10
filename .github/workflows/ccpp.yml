@@ -440,9 +440,11 @@ jobs:
         find . -name '*.msix' -maxdepth 1 | xargs rm -rv
 
         # rename msixbundle folder to msixbundle_container
+        mkdir msixbundle_container
         mv *.msixbundle msixbundle_container
         # move contents of msixbundle_container into top level folder
         mv msixbundle_container/* msixbundle_container/.* .
+        rmdir msixbundle_container
 
         # print everything again
         ls -la
