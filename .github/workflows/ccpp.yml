@@ -418,12 +418,38 @@ jobs:
         path: "msix/${{ steps.msixbundle_name.outputs.value }}"
 
 
-  release_package:
+  release_artifacts:
     runs-on: ubuntu-latest
     needs: [config, updater, msixbundle]
     steps:
     - uses: actions/download-artifact@v2
       with:
-        path: artifacts
+        path: .
 
-    - run: ls -laR
+    - run: |
+        # just print everything
+        ls -la
+
+        # remove all debug stuff
+        find . -name '*_Debug' -delete
+
+        # remove all smartscreen stuff
+        find . -name 'smartscreen_*' -delete
+
+        # remove all .msix (NOT .msixbundle) stuff
+        find . -name '*.msix' -delete
+
+        # rename msixbundle folder to msixbundle_container
+        mv *.msixbundle msixbundle_container
+        # move contents of msixbundle_container into top level folder
+        mv msixbundle_container/* msixbundle_container/.* .
+
+        # print everything again
+        ls -la
+
+    - uses: actions/upload-artifacts@v2
+      with:
+        if-no-files-found: error
+        name: release_artifacts
+        path: "*"
+
