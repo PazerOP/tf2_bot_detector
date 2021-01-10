@@ -398,8 +398,16 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 		ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
 
 		const auto steamID = player.GetSteamID();
-		if (ImGui::MenuItem("Copy SteamID", nullptr, false, steamID.IsValid()))
-			ImGui::SetClipboardText(steamID.str().c_str());
+		if (ImGui::BeginMenu("Copy"))
+		{
+			if (ImGui::MenuItem("In-game Name"))
+				ImGui::SetClipboardText(player.GetNameUnsafe().c_str());
+
+			if (ImGui::MenuItem("Steam ID", nullptr, false, steamID.IsValid()))
+				ImGui::SetClipboardText(steamID.str().c_str());
+
+			ImGui::EndMenu();
+		}
 
 		if (ImGui::BeginMenu("Go To"))
 		{
