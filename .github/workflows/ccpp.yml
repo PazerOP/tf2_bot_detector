@@ -447,7 +447,7 @@ jobs:
         # print everything again
         ls -la
 
-    - uses: actions/upload-artifacts@v2
+    - uses: actions/upload-artifact@v2
       with:
         if-no-files-found: error
         name: release_artifacts
