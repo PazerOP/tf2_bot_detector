@@ -431,13 +431,13 @@ jobs:
         ls -la
 
         # remove all debug stuff
-        find . -name '*_Debug' -delete
+        find . -name '*_Debug' -exec rm -rv {}
 
         # remove all smartscreen stuff
-        find . -name 'smartscreen_*' -delete
+        find . -name 'smartscreen_*' -exec rm -rv {}
 
         # remove all .msix (NOT .msixbundle) stuff
-        find . -name '*.msix' -delete
+        find . -name '*.msix' -exec rm -rv {}
 
         # rename msixbundle folder to msixbundle_container
         mv *.msixbundle msixbundle_container
