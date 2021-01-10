@@ -453,7 +453,7 @@ jobs:
         ls msixbundle_container/* | xargs mv -t .
         rm -rv msixbundle_container
 
-        for folder in `find . -not -path '*/\.*' -maxdepth 1 -type d`; do
+        for folder in `find . -maxdepth 1 -path './*' -type d`; do
           echo "Zipping $folder..."
           cd "$folder"
           zip -9 -r "../$folder.zip" .
