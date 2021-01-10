@@ -426,25 +426,40 @@ jobs:
       with:
         path: .
 
-    - run: |
+    - uses: actions/upload-artifact@v2
+      with:
+        if-no-files-found: error
+        name: release_artifacts_all
+        path: "*"
+
+    - name: Fixup folder structure and zip
+      run: |
         # just print everything
         ls -la
 
-        # remove all debug stuff
-        find . -name '*_Debug' -maxdepth 1 | xargs rm -rv
+        echo Removing all debug stuff...
+        find . -name '*_Debug*' -maxdepth 1 | xargs rm -rv
 
-        # remove all smartscreen stuff
+        echo Removing all smartscreen stuff...
         find . -name 'smartscreen_*' -maxdepth 1 | xargs rm -rv
 
-        # remove all .msix (NOT .msixbundle) stuff
+        echo Removing all .msix (NOT .msixbundle) stuff...
         find . -name '*.msix' -maxdepth 1 | xargs rm -rv
 
-        # rename msixbundle folder to msixbundle_container
+        echo Moving msixbundles to top level folder...
         mkdir msixbundle_container
-        mv *.msixbundle msixbundle_container
-        # move contents of msixbundle_container into top level folder
-        mv msixbundle_container/* .
-        rmdir msixbundle_container
+        find . -name '*.msixbundle' -type f | xargs mv -t msixbundle_container
+        find . -name '*.msixbundle' -type d | xargs rm -rv
+        ls msixbundle_container/* | xargs mv -t .
+        rm -rv msixbundle_container
+
+        for folder in `find . -maxdepth 1 -type d`; do
+          echo Zipping $folder...
+          cd "$folder"
+          zip -9 -r "../$folder.zip" .
+          cd ../
+          rm -rv "$folder"
+        done
 
         # print everything again
         ls -la
