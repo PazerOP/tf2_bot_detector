@@ -3,9 +3,6 @@
 #include "Clock.h"
 #include "Log.h"
 
-#include <mh/future.hpp>
-
-#include <future>
 #include <mutex>
 #include <unordered_set>
 

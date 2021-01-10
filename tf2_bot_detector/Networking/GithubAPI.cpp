@@ -11,7 +11,6 @@
 #include <nlohmann/json.hpp>
 
 #include <chrono>
-#include <future>
 #include <iomanip>
 #include <optional>
 #include <stdio.h>
