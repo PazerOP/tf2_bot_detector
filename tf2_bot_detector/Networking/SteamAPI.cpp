@@ -36,13 +36,9 @@ namespace
 	{
 		auto clientPtr = client.shared_from_this();
 
-		DebugLog("[SteamAPI] HTTP GET {}", url);
-
 		SteamAPITask retVal;
 		retVal.m_RequestURL = url;
 		retVal.m_Response = co_await clientPtr->GetStringAsync(url);
-
-		DebugLog("[SteamAPI] HTTP GET (done) {}", url);
 
 		co_return retVal;
 	}

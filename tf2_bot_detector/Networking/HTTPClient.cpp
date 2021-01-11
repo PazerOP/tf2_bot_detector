@@ -94,6 +94,8 @@ std::string HTTPClientImpl::GetString(const URL& url) const try
 		{ "User-Agent", "curl/7.58.0" }
 	};
 
+	DebugLog("HTTP GET: {}", url);
+
 	auto response = client.Get(url.m_Path.c_str(), headers);
 	if (!response)
 		throw http_error(response.error(), mh::format("Failed to HTTP GET {}", url));
@@ -109,6 +111,21 @@ catch (...)
 	throw;
 }
 
+static duration_t GetMinRequestInterval(const URL& url)
+{
+	if (url.m_Host.ends_with("akamaihd.net") ||
+		url.m_Host.ends_with("steamstatic.com"))
+	{
+		return 50ms;
+	}
+	else if (url.m_Host == "api.steampowered.com")
+	{
+		return 100ms;
+	}
+
+	return 500ms;
+}
+
 mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 {
 	auto self = shared_from_this(); // Make sure we don't vanish
@@ -118,11 +135,11 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 	using throttle_time_t = mh::thread_pool::clock_t::time_point;
 	throttle_time_t throttleTime{};
 	{
+		const duration_t MIN_INTERVAL = GetMinRequestInterval(url);
+
 		static std::mutex s_ThrottleMutex;
 		static std::map<std::string, throttle_time_t> s_ThrottleDomains;
 		std::lock_guard lock(s_ThrottleMutex);
-
-		constexpr duration_t MIN_INTERVAL = 500ms;
 
 		auto now = mh::thread_pool::clock_t::now();
 
