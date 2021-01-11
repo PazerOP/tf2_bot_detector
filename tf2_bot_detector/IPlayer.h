@@ -25,6 +25,11 @@ namespace tf2_bot_detector
 		struct PlayerBans;
 	}
 
+	namespace LogsTFAPI
+	{
+		struct PlayerLogsInfo;
+	}
+
 	struct PlayerScores
 	{
 		uint16_t m_Kills = 0;
@@ -50,9 +55,9 @@ namespace tf2_bot_detector
 		std::string GetNameSafe() const;
 
 		virtual SteamID GetSteamID() const = 0;
-		virtual const mh::expected<SteamAPI::PlayerSummary, std::error_condition>& GetPlayerSummary() const = 0;
-		virtual const mh::expected<SteamAPI::PlayerBans, std::error_condition>& GetPlayerBans() const = 0;
-		virtual mh::expected<duration_t, std::error_condition> GetTF2Playtime() const = 0;
+		virtual const mh::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const = 0;
+		virtual const mh::expected<SteamAPI::PlayerBans>& GetPlayerBans() const = 0;
+		virtual mh::expected<duration_t> GetTF2Playtime() const = 0;
 		virtual bool IsFriend() const = 0;
 		virtual std::optional<UserID_t> GetUserID() const = 0;
 
@@ -71,6 +76,8 @@ namespace tf2_bot_detector
 		// between ages of surrounding public steam profiles.
 		virtual std::optional<time_point_t> GetEstimatedAccountCreationTime() const = 0;
 		std::optional<duration_t> GetEstimatedAccountAge() const;
+
+		virtual const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const = 0;
 
 		// The time that this player has been in the "active" state.
 		virtual duration_t GetActiveTime() const = 0;

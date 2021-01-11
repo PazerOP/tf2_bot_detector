@@ -84,6 +84,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"Networking/HTTPClient.cpp"
 	"Networking/HTTPHelpers.h"
 	"Networking/HTTPHelpers.cpp"
+	"Networking/LogsTFAPI.cpp"
+	"Networking/LogsTFAPI.h"
 	"Networking/NetworkHelpers.h"
 	"Networking/NetworkHelpers.cpp"
 	"Networking/SteamAPI.h"

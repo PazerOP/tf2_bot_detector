@@ -91,6 +91,10 @@ namespace
 		{
 			throw mh::not_implemented_error();
 		}
+		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override
+		{
+			throw mh::not_implemented_error();
+		}
 	};
 }
 

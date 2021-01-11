@@ -5,6 +5,7 @@
 #include "BaseTextures.h"
 #include "IPlayer.h"
 #include "Networking/SteamAPI.h"
+#include "Networking/LogsTFAPI.h"
 #include "TextureManager.h"
 
 #include <mh/math/interpolation.hpp>
@@ -779,6 +780,29 @@ static void PrintPlayerPlaytime(const IPlayer& player)
 			});
 }
 
+static void PrintPlayerLogsCount(const IPlayer& player)
+{
+	ImGui::TextFmt("       Logs.TF : ");
+	ImGui::SameLineNoPad();
+
+	player.GetLogsInfo()
+		.or_else([&](std::error_condition err)
+			{
+				if (err == std::errc::operation_in_progress)
+				{
+					ImGui::PacifierText();
+				}
+				else
+				{
+					ImGui::TextFmt(COLOR_RED, "{}", err);
+				}
+			})
+		.map([&](const LogsTFAPI::PlayerLogsInfo& info)
+			{
+				ImGui::TextFmt("{} logs", info.m_LogsCount);
+			});
+}
+
 void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult,
 	const PlayerMarks& playerAttribs)
 {
@@ -823,6 +847,7 @@ void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamSh
 	PrintPlayerSummary(player);
 	PrintPlayerBans(player);
 	PrintPlayerPlaytime(player);
+	PrintPlayerLogsCount(player);
 
 	ImGui::NewLine();
 

@@ -408,5 +408,22 @@ namespace tf2_bot_detector
 	LOG_DEFINITION_HELPER(DebugLogWarning, LogColors::WARN_DEBUG, LogSeverity::Warning, LogVisibility::Debug);
 	LOG_DEFINITION_HELPER(LogError, LogColors::ERROR, LogSeverity::Error, LogVisibility::Default);
 }
+#undef LOG_DEFINITION_HELPER
 
+#define LOG_DEFINITION_HELPER(name, severity, visibility) \
+	void name(const mh::source_location& location) \
+	{ \
+		name(location, std::string_view{}); \
+	} \
+	void name(const std::exception& e, const mh::source_location& location) \
+	{ \
+		name(location, e, std::string_view{}); \
+	}
+
+namespace tf2_bot_detector
+{
+	LOG_DEFINITION_HELPER(DebugLogException, LogSeverity::Error, LogVisibility::Debug);
+	LOG_DEFINITION_HELPER(LogException, LogSeverity::Error, LogVisibility::Default);
+	LOG_DEFINITION_HELPER(LogFatalException, LogSeverity::Fatal, LogVisibility::Default);
+}
 #undef LOG_DEFINITION_HELPER

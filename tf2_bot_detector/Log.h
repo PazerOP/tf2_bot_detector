@@ -199,15 +199,17 @@ namespace tf2_bot_detector
 	} \
 	\
 	template<typename... TArgs> \
-	attr void name(const mh::source_location& location, const std::string_view& fmtStr = {}, const TArgs&... args) \
+	attr void name(const mh::source_location& location, const std::string_view& fmtStr, const TArgs&... args) \
 	{ \
 		name(location, std::current_exception(), fmtStr, args...); \
 	} \
 	template<typename... TArgs> \
-	attr void name(const detail::log_h::src_location_wrapper& fmtStr = {}, const TArgs&... args) \
+	attr void name(const detail::log_h::src_location_wrapper& fmtStr, const TArgs&... args) \
 	{ \
 		name(fmtStr.m_Location, fmtStr.m_Value, args...); \
-	}
+	} \
+	attr void name(MH_SOURCE_LOCATION_AUTO(location)); \
+	attr void name(const std::exception& e, MH_SOURCE_LOCATION_AUTO(location));
 
 	LOG_DEFINITION_HELPER(DebugLogException, , LogSeverity::Error, LogVisibility::Debug);
 	LOG_DEFINITION_HELPER(LogException, , LogSeverity::Error, LogVisibility::Default);

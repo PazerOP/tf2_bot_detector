@@ -8,6 +8,7 @@
 #include "GameData/UserMessageType.h"
 #include "Networking/HTTPHelpers.h"
 #include "Networking/SteamAPI.h"
+#include "Networking/LogsTFAPI.h"
 #include "Util/RegexUtils.h"
 #include "Util/TextUtils.h"
 #include "BatchedAction.h"
@@ -21,6 +22,7 @@
 #include <mh/concurrency/dispatcher.hpp>
 #include <mh/concurrency/main_thread.hpp>
 #include <mh/concurrency/thread_pool.hpp>
+#include <mh/concurrency/thread_sentinel.hpp>
 #include <mh/future.hpp>
 #include <mh/coroutine/future.hpp>
 
@@ -62,6 +64,7 @@ namespace
 		duration_t GetActiveTime() const override;
 
 		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override;
+		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override;
 
 		PlayerScores m_Scores{};
 		TFTeam m_Team{};
@@ -80,7 +83,12 @@ namespace
 		const std::any* FindDataStorage(const std::type_index& type) const override;
 		std::any& GetOrCreateDataStorage(const std::type_index& type) override;
 
+		std::shared_ptr<Player> shared_from_this() { return std::static_pointer_cast<Player>(IPlayer::shared_from_this()); }
+		std::shared_ptr<const Player> shared_from_this() const { return std::static_pointer_cast<const Player>(IPlayer::shared_from_this()); }
+
 	private:
+		mh::thread_sentinel m_Sentinel;
+
 		WorldState* m_World = nullptr;
 		PlayerStatus m_Status{};
 
@@ -90,6 +98,7 @@ namespace
 		time_point_t m_LastPingUpdateTime{};
 
 		mutable std::variant<mh::task<duration_t>, std::error_condition> m_TF2Playtime;
+		mutable mh::expected<LogsTFAPI::PlayerLogsInfo> m_LogsInfo = ErrorCode::LazyValueUninitialized;
 	};
 
 	class WorldState final : public IWorldState, BaseConsoleLineListener
@@ -948,8 +957,64 @@ const mh::expected<SteamAPI::PlayerBans, std::error_condition>& Player::GetPlaye
 	return m_PlayerSteamBans;
 }
 
+const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
+{
+	m_Sentinel.check();
+
+	if (m_LogsInfo == ErrorCode::LazyValueUninitialized ||
+		m_LogsInfo == ErrorCode::InternetConnectivityDisabled)
+	{
+		auto client = m_World->GetSettings().GetHTTPClient();
+
+		if (!client)
+		{
+			m_LogsInfo = ErrorCode::InternetConnectivityDisabled;
+		}
+		else
+		{
+			m_LogsInfo = std::errc::operation_in_progress;
+
+			auto sharedThis = shared_from_this();
+
+			mh::make_lambda_task([sharedThis, client]() -> mh::task<>
+			{
+				try
+				{
+					mh::expected<LogsTFAPI::PlayerLogsInfo> result;
+					try
+					{
+						result = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, sharedThis->GetSteamID());
+					}
+					catch (const std::system_error& e)
+					{
+						DebugLogException(e);
+						result = e.code().default_error_condition();
+					}
+					catch (...)
+					{
+						LogException();
+						result = ErrorCode::UnknownError;
+					}
+
+					co_await g_Dispatcher.co_dispatch();  // switch to main thread
+
+					sharedThis->m_LogsInfo = result;
+				}
+				catch (...)
+				{
+					LogException();
+				}
+			});
+		}
+	}
+
+	return m_LogsInfo;
+}
+
 mh::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
 {
+	m_Sentinel.check();
+
 	if (auto future = std::get_if<mh::task<duration_t>>(&m_TF2Playtime))
 	{
 		if (!future->valid())
