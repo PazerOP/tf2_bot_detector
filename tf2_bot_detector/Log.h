@@ -30,6 +30,11 @@ namespace tf2_bot_detector
 		float g = 1;
 		float b = 1;
 		float a = 1;
+
+		[[nodiscard]] constexpr LogMessageColor WithAlpha(float newAlpha) const
+		{
+			return LogMessageColor(*this, newAlpha);
+		}
 	};
 
 	struct LogMessage
@@ -43,11 +48,13 @@ namespace tf2_bot_detector
 	{
 		constexpr float DEBUG_ALPHA = float(2.0 / 3.0);
 		constexpr LogMessageColor DEFAULT = { 1, 1, 1, 1 };
-		constexpr LogMessageColor DEFAULT_DEBUG = { DEFAULT, DEBUG_ALPHA };
+		constexpr LogMessageColor DEFAULT_DEBUG = DEFAULT.WithAlpha(DEBUG_ALPHA);
 		constexpr LogMessageColor WARN = { 1, 1, 0, 1 };
-		constexpr LogMessageColor WARN_DEBUG = { WARN, DEBUG_ALPHA };
+		constexpr LogMessageColor WARN_DEBUG = WARN.WithAlpha(DEBUG_ALPHA);
 #undef ERROR
 		constexpr LogMessageColor ERROR = { 1, 0.25, 0, 1 };
+
+		constexpr LogMessageColor EXCEPTION = { 1, 0, 0.5f, 1 };
 	}
 
 	enum class LogSeverity

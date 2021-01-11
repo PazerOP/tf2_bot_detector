@@ -19,6 +19,7 @@
 #include "Config/AccountAges.h"
 #include "GlobalDispatcher.h"
 
+#include <mh/algorithm/algorithm.hpp>
 #include <mh/concurrency/dispatcher.hpp>
 #include <mh/concurrency/main_thread.hpp>
 #include <mh/concurrency/thread_pool.hpp>
@@ -37,69 +38,7 @@ using namespace tf2_bot_detector;
 
 namespace
 {
-	class WorldState;
-
-	class Player final : public IPlayer
-	{
-	public:
-		Player(WorldState& world, SteamID id);
-
-		using IPlayer::GetWorld;
-		const IWorldState& GetWorld() const override;
-		const LobbyMember* GetLobbyMember() const override;
-		std::string GetNameUnsafe() const override { return m_Status.m_Name; }
-		SteamID GetSteamID() const override { return m_Status.m_SteamID; }
-		PlayerStatusState GetConnectionState() const override { return m_Status.m_State; }
-		std::optional<UserID_t> GetUserID() const override;
-		TFTeam GetTeam() const override { return m_Team; }
-		time_point_t GetConnectionTime() const override { return m_Status.m_ConnectionTime; }
-		duration_t GetConnectedTime() const override;
-		const PlayerScores& GetScores() const override { return m_Scores; }
-		uint16_t GetPing() const override { return m_Status.m_Ping; }
-		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
-		const mh::expected<SteamAPI::PlayerSummary, std::error_condition>& GetPlayerSummary() const override;
-		const mh::expected<SteamAPI::PlayerBans, std::error_condition>& GetPlayerBans() const override;
-		mh::expected<duration_t, std::error_condition> GetTF2Playtime() const override;
-		bool IsFriend() const override;
-		duration_t GetActiveTime() const override;
-
-		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override;
-		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override;
-
-		PlayerScores m_Scores{};
-		TFTeam m_Team{};
-
-		uint8_t m_ClientIndex{};
-		mutable mh::expected<SteamAPI::PlayerSummary, std::error_condition> m_PlayerSummary = ErrorCode::LazyValueUninitialized;
-		mutable mh::expected<SteamAPI::PlayerBans, std::error_condition> m_PlayerSteamBans = ErrorCode::LazyValueUninitialized;
-
-		void SetStatus(PlayerStatus status, time_point_t timestamp);
-		const PlayerStatus& GetStatus() const { return m_Status; }
-
-		void SetPing(uint16_t ping, time_point_t timestamp);
-
-	protected:
-		std::map<std::type_index, std::any> m_UserData;
-		const std::any* FindDataStorage(const std::type_index& type) const override;
-		std::any& GetOrCreateDataStorage(const std::type_index& type) override;
-
-		std::shared_ptr<Player> shared_from_this() { return std::static_pointer_cast<Player>(IPlayer::shared_from_this()); }
-		std::shared_ptr<const Player> shared_from_this() const { return std::static_pointer_cast<const Player>(IPlayer::shared_from_this()); }
-
-	private:
-		mh::thread_sentinel m_Sentinel;
-
-		WorldState* m_World = nullptr;
-		PlayerStatus m_Status{};
-
-		time_point_t m_LastStatusActiveBegin{};
-
-		time_point_t m_LastStatusUpdateTime{};
-		time_point_t m_LastPingUpdateTime{};
-
-		mutable std::variant<mh::task<duration_t>, std::error_condition> m_TF2Playtime;
-		mutable mh::expected<LogsTFAPI::PlayerLogsInfo> m_LogsInfo = ErrorCode::LazyValueUninitialized;
-	};
+	class Player;
 
 	class WorldState final : public IWorldState, BaseConsoleLineListener
 	{
@@ -242,6 +181,72 @@ namespace
 			for (IWorldEventListener* listener : m_EventListeners)
 				(listener->*func)(std::forward<TArgs2>(args)...);
 		}
+	};
+
+	class Player final : public IPlayer
+	{
+	public:
+		Player(WorldState& world, SteamID id);
+
+		WorldState& GetWorld() override { return static_cast<WorldState&>(IPlayer::GetWorld()); }
+		const WorldState& GetWorld() const override;
+		const LobbyMember* GetLobbyMember() const override;
+		std::string GetNameUnsafe() const override { return m_Status.m_Name; }
+		SteamID GetSteamID() const override { return m_Status.m_SteamID; }
+		PlayerStatusState GetConnectionState() const override { return m_Status.m_State; }
+		std::optional<UserID_t> GetUserID() const override;
+		TFTeam GetTeam() const override { return m_Team; }
+		time_point_t GetConnectionTime() const override { return m_Status.m_ConnectionTime; }
+		duration_t GetConnectedTime() const override;
+		const PlayerScores& GetScores() const override { return m_Scores; }
+		uint16_t GetPing() const override { return m_Status.m_Ping; }
+		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
+		const mh::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const override;
+		const mh::expected<SteamAPI::PlayerBans>& GetPlayerBans() const override;
+		mh::expected<duration_t> GetTF2Playtime() const override;
+		bool IsFriend() const override;
+		duration_t GetActiveTime() const override;
+
+		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override;
+		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override;
+
+		PlayerScores m_Scores{};
+		TFTeam m_Team{};
+
+		uint8_t m_ClientIndex{};
+		mutable mh::expected<SteamAPI::PlayerSummary> m_PlayerSummary = ErrorCode::LazyValueUninitialized;
+		mutable mh::expected<SteamAPI::PlayerBans> m_PlayerSteamBans = ErrorCode::LazyValueUninitialized;
+
+		void SetStatus(PlayerStatus status, time_point_t timestamp);
+		const PlayerStatus& GetStatus() const { return m_Status; }
+
+		void SetPing(uint16_t ping, time_point_t timestamp);
+
+	protected:
+		std::map<std::type_index, std::any> m_UserData;
+		const std::any* FindDataStorage(const std::type_index& type) const override;
+		std::any& GetOrCreateDataStorage(const std::type_index& type) override;
+
+		std::shared_ptr<Player> shared_from_this() { return std::static_pointer_cast<Player>(IPlayer::shared_from_this()); }
+		std::shared_ptr<const Player> shared_from_this() const { return std::static_pointer_cast<const Player>(IPlayer::shared_from_this()); }
+
+	private:
+		mh::thread_sentinel m_Sentinel;
+
+		template<typename T, typename TFunc>
+		const mh::expected<T>& GetOrFetchDataAsync(mh::expected<T>& variable, TFunc&& updateFunc,
+			std::initializer_list<std::error_condition> silentErrors = {}) const;
+
+		WorldState* m_World = nullptr;
+		PlayerStatus m_Status{};
+
+		time_point_t m_LastStatusActiveBegin{};
+
+		time_point_t m_LastStatusUpdateTime{};
+		time_point_t m_LastPingUpdateTime{};
+
+		mutable mh::expected<duration_t> m_TF2Playtime = ErrorCode::LazyValueUninitialized;
+		mutable mh::expected<LogsTFAPI::PlayerLogsInfo> m_LogsInfo = ErrorCode::LazyValueUninitialized;
 	};
 }
 
@@ -871,9 +876,22 @@ Player& WorldState::FindOrCreatePlayer(const SteamID& id)
 {
 	Player* data;
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
+	{
 		data = found->second.get();
+	}
 	else
+	{
 		data = m_CurrentPlayerData.emplace(id, std::make_shared<Player>(*this, id)).first->second.get();
+
+		if (!GetSettings().m_LazyLoadAPIData)
+		{
+			data->GetPlayerSummary();
+			data->GetPlayerBans();
+			data->GetTF2Playtime();
+			data->GetLogsInfo();
+		}
+	}
+
 
 	assert(data->GetSteamID() == id);
 	return *data;
@@ -888,17 +906,11 @@ Player::Player(WorldState& world, SteamID id) :
 	m_World(&world)
 {
 	m_Status.m_SteamID = id;
-
-	if (!m_World->GetSettings().m_LazyLoadAPIData)
-	{
-		GetPlayerSummary();
-		GetPlayerBans();
-		GetTF2Playtime();
-	}
 }
 
-const IWorldState& Player::GetWorld() const
+const WorldState& Player::GetWorld() const
 {
+	assert(m_World);
 	return *m_World;
 }
 
@@ -935,7 +947,7 @@ duration_t Player::GetConnectedTime() const
 	return result;
 }
 
-const mh::expected<SteamAPI::PlayerSummary, std::error_condition>& Player::GetPlayerSummary() const
+const mh::expected<SteamAPI::PlayerSummary>& Player::GetPlayerSummary() const
 {
 	if (!m_PlayerSummary && m_PlayerSummary.error() == ErrorCode::LazyValueUninitialized)
 	{
@@ -946,7 +958,7 @@ const mh::expected<SteamAPI::PlayerSummary, std::error_condition>& Player::GetPl
 	return m_PlayerSummary;
 }
 
-const mh::expected<SteamAPI::PlayerBans, std::error_condition>& Player::GetPlayerBans() const
+const mh::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
 {
 	if (!m_PlayerSteamBans && m_PlayerSteamBans.error() == ErrorCode::LazyValueUninitialized)
 	{
@@ -957,38 +969,43 @@ const mh::expected<SteamAPI::PlayerBans, std::error_condition>& Player::GetPlaye
 	return m_PlayerSteamBans;
 }
 
-const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
+template<typename T, typename TFunc>
+const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&& updateFunc,
+	std::initializer_list<std::error_condition> silentErrors) const
 {
 	m_Sentinel.check();
 
-	if (m_LogsInfo == ErrorCode::LazyValueUninitialized ||
-		m_LogsInfo == ErrorCode::InternetConnectivityDisabled)
+	if (var == ErrorCode::LazyValueUninitialized ||
+		var == ErrorCode::InternetConnectivityDisabled)
 	{
 		auto client = m_World->GetSettings().GetHTTPClient();
 
 		if (!client)
 		{
-			m_LogsInfo = ErrorCode::InternetConnectivityDisabled;
+			var = ErrorCode::InternetConnectivityDisabled;
 		}
 		else
 		{
-			m_LogsInfo = std::errc::operation_in_progress;
+			var = std::errc::operation_in_progress;
 
 			auto sharedThis = shared_from_this();
 
-			mh::make_lambda_task([sharedThis, client]() -> mh::task<>
+			[](std::shared_ptr<const Player> sharedThis, std::shared_ptr<const IHTTPClient> client,
+				mh::expected<T>& var, std::vector<std::error_condition> silentErrors, TFunc updateFunc) -> mh::task<>
 			{
 				try
 				{
-					mh::expected<LogsTFAPI::PlayerLogsInfo> result;
+					mh::expected<T> result;
 					try
 					{
-						result = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, sharedThis->GetSteamID());
+						result = co_await updateFunc(sharedThis, client);
 					}
 					catch (const std::system_error& e)
 					{
-						DebugLogException(e);
 						result = e.code().default_error_condition();
+
+						if (!mh::contains(silentErrors, result.error()))
+							DebugLogException(e);
 					}
 					catch (...)
 					{
@@ -998,58 +1015,39 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 
 					co_await g_Dispatcher.co_dispatch();  // switch to main thread
 
-					sharedThis->m_LogsInfo = result;
+					var = std::move(result);
 				}
 				catch (...)
 				{
 					LogException();
 				}
-			});
+
+			}(sharedThis, client, var, silentErrors, std::move(updateFunc));
 		}
 	}
 
-	return m_LogsInfo;
+	return var;
 }
 
-mh::expected<duration_t, std::error_condition> Player::GetTF2Playtime() const
+const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 {
-	m_Sentinel.check();
+	return GetOrFetchDataAsync(m_LogsInfo,
+		[&](auto pThis, auto client) { return LogsTFAPI::GetPlayerLogsInfoAsync(client, GetSteamID()); });
+}
 
-	if (auto future = std::get_if<mh::task<duration_t>>(&m_TF2Playtime))
-	{
-		if (!future->valid())
+mh::expected<duration_t> Player::GetTF2Playtime() const
+{
+	using ErrorCode = SteamAPI::ErrorCode;
+
+	return GetOrFetchDataAsync(m_TF2Playtime,
+		[&](std::shared_ptr<const Player> pThis, std::shared_ptr<const IHTTPClient> client) -> mh::task<mh::expected<duration_t>>
 		{
-			const auto& apikey = m_World->GetSettings().GetSteamAPIKey();
-			if (apikey.empty())
-				return SteamAPI::ErrorCode::EmptyAPIKey;
+			const auto apiKey = pThis->GetWorld().GetSettings().GetSteamAPIKey();
+			if (apiKey.empty())
+				co_return ErrorCode::EmptyAPIKey;
 
-			auto client = m_World->GetSettings().GetHTTPClient();
-			if (!client)
-				return ErrorCode::InternetConnectivityDisabled;
-
-			m_TF2Playtime = SteamAPI::GetTF2PlaytimeAsync(apikey, GetSteamID(), *client);
-		}
-		else if (future->is_ready())
-		{
-			try
-			{
-				return future->get();
-			}
-			catch (const SteamAPI::SteamAPIError& e)
-			{
-				m_TF2Playtime = e.code();
-				return e.code();
-			}
-			catch (...)
-			{
-				LogException(MH_SOURCE_LOCATION_CURRENT());
-			}
-		}
-
-		return std::errc::operation_in_progress;
-	}
-
-	return std::get<std::error_condition>(m_TF2Playtime);
+			co_return co_await SteamAPI::GetTF2PlaytimeAsync(apiKey, GetSteamID(), *client);
+		}, { ErrorCode::InfoPrivate, ErrorCode::GameNotOwned });
 }
 
 bool Player::IsFriend() const

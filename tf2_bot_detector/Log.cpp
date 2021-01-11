@@ -244,7 +244,11 @@ Error source function: {})"
 void tf2_bot_detector::LogException(const mh::source_location& location, const std::exception_ptr& e,
 	LogSeverity severity, LogVisibility visibility, const std::string_view& msg)
 {
-	const mh::exception_details details(std::current_exception());
+	const mh::exception_details details(e);
+
+	LogMessageColor color = LogColors::EXCEPTION;
+	if (visibility == LogVisibility::Debug)
+		color = color.WithAlpha(LogColors::DEBUG_ALPHA);
 
 	detail::log_h::LogImpl(LogColors::ERROR, severity, visibility, location,
 		msg.empty() ? "{1}: {2}"sv : "{0}: {1}: {2}"sv, msg, details.type_name(), details.m_Message);
