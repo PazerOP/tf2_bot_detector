@@ -14,7 +14,7 @@
 
 namespace tf2_bot_detector
 {
-	class HTTPClient;
+	class IHTTPClient;
 	class Settings;
 
 	enum class ConfigFileType
@@ -88,7 +88,7 @@ namespace tf2_bot_detector
 	public:
 		virtual ~ConfigFileBase() = default;
 
-		mh::task<std::error_condition> LoadFileAsync(const std::filesystem::path& filename, std::shared_ptr<const HTTPClient> client = nullptr);
+		mh::task<std::error_condition> LoadFileAsync(const std::filesystem::path& filename, std::shared_ptr<const IHTTPClient> client = nullptr);
 		std::error_condition SaveFile(const std::filesystem::path& filename) const;
 
 		virtual void ValidateSchema(const ConfigSchemaInfo& schema) const = 0 {}
@@ -102,7 +102,7 @@ namespace tf2_bot_detector
 		virtual void PostLoad(bool deserialized) {}
 
 	private:
-		mh::task<std::error_condition> LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const HTTPClient> client);
+		mh::task<std::error_condition> LoadFileInternalAsync(std::filesystem::path filename, std::shared_ptr<const IHTTPClient> client);
 	};
 
 	class SharedConfigFileBase : public ConfigFileBase

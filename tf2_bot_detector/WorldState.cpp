@@ -16,11 +16,13 @@
 #include "Log.h"
 #include "WorldEventListener.h"
 #include "Config/AccountAges.h"
+#include "GlobalDispatcher.h"
 
 #include <mh/concurrency/dispatcher.hpp>
 #include <mh/concurrency/main_thread.hpp>
 #include <mh/concurrency/thread_pool.hpp>
 #include <mh/future.hpp>
+#include <mh/coroutine/future.hpp>
 
 #undef GetCurrentTime
 #undef max
@@ -166,8 +168,6 @@ namespace
 
 		Player& FindOrCreatePlayer(const SteamID& id);
 
-		mh::dispatcher m_UpdateDispatcher;
-
 		struct PlayerSummaryUpdateAction final :
 			BatchedAction<WorldState*, SteamID, std::vector<SteamAPI::PlayerSummary>>
 		{
@@ -260,8 +260,6 @@ void WorldState::Update()
 	m_PlayerSummaryUpdates.Update();
 	m_PlayerBansUpdates.Update();
 
-	m_UpdateDispatcher.run();
-
 	UpdateFriends();
 }
 
@@ -335,7 +333,7 @@ mh::task<> WorldState::AddConsoleOutputLine(std::string line)
 	auto parsed = IConsoleLine::ParseConsoleLine(line, GetCurrentTime());
 
 	// switch to main thread
-	co_await m_UpdateDispatcher.co_dispatch();
+	co_await g_Dispatcher.co_dispatch();
 
 	if (parsed)
 	{

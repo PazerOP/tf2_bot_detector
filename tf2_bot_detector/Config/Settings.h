@@ -18,7 +18,7 @@ namespace srcon
 
 namespace tf2_bot_detector
 {
-	class HTTPClient;
+	class IHTTPClient;
 	enum class ReleaseChannel;
 
 	void to_json(nlohmann::json& j, const ReleaseChannel& d);
@@ -93,7 +93,7 @@ namespace tf2_bot_detector
 		} m_Unsaved;
 
 		std::optional<bool> m_AllowInternetUsage;
-		std::shared_ptr<const HTTPClient> GetHTTPClient() const;
+		std::shared_ptr<const IHTTPClient> GetHTTPClient() const;
 
 		std::vector<GotoProfileSite> m_GotoProfileSites;
 
@@ -154,6 +154,6 @@ namespace tf2_bot_detector
 
 		void AddDefaultGotoProfileSites();
 
-		mutable std::shared_ptr<HTTPClient> m_HTTPClient;
+		mutable std::shared_ptr<IHTTPClient> m_HTTPClient;
 	};
 }

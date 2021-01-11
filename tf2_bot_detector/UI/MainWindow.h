@@ -99,7 +99,6 @@ namespace tf2_bot_detector
 		//void OnChatMsg(WorldState& world, const IPlayer& player, const std::string_view& msg) override;
 		//void OnUpdate(WorldState& world, bool consoleLinesUpdated) override;
 
-		mh::dispatcher m_UpdateDispatcher;
 		bool m_Paused = false;
 
 		// Gets the current timestamp, but time progresses in real time even without new messages

@@ -10,8 +10,24 @@
 #include <httplib.h>
 #pragma warning(pop)
 
+using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace tf2_bot_detector;
+
+namespace
+{
+	class HTTPClientImpl final : public IHTTPClient
+	{
+	public:
+		std::string GetString(const URL& url) const override;
+		mh::task<std::string> GetStringAsync(URL url) const override;
+
+		uint32_t GetTotalRequestCount() const override { return m_TotalRequestCount; }
+
+	private:
+		mutable std::atomic_uint32_t m_TotalRequestCount = 0;
+	};
+}
 
 namespace std
 {
@@ -65,8 +81,10 @@ namespace httplib
 	}
 }
 
-std::string HTTPClient::GetString(const URL& url) const try
+std::string HTTPClientImpl::GetString(const URL& url) const try
 {
+	++m_TotalRequestCount;
+
 	httplib::SSLClient client(url.m_Host, url.m_Port);
 	client.set_follow_location(true);
 	client.set_read_timeout(10);
@@ -91,11 +109,54 @@ catch (...)
 	throw;
 }
 
-mh::task<std::string> HTTPClient::GetStringAsync(URL url) const try
+mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 {
-	static mh::thread_pool s_HTTPThreadPool(4);
-
 	auto self = shared_from_this(); // Make sure we don't vanish
+
+	static mh::thread_pool s_HTTPThreadPool(2);
+
+	using throttle_time_t = mh::thread_pool::clock_t::time_point;
+	throttle_time_t throttleTime{};
+	{
+		static std::mutex s_ThrottleMutex;
+		static std::map<std::string, throttle_time_t> s_ThrottleDomains;
+		std::lock_guard lock(s_ThrottleMutex);
+
+		constexpr duration_t MIN_INTERVAL = 500ms;
+
+		auto now = mh::thread_pool::clock_t::now();
+
+		if (auto found = s_ThrottleDomains.find(url.m_Host);
+			found != s_ThrottleDomains.end())
+		{
+			if (now > found->second)
+			{
+				found->second = now + MIN_INTERVAL;
+			}
+			else
+			{
+				throttleTime = found->second;
+				found->second += MIN_INTERVAL;
+			}
+		}
+		else
+		{
+			s_ThrottleDomains.emplace(url.m_Host, now + MIN_INTERVAL);
+		}
+	}
+
+	if (throttleTime != throttle_time_t{})
+	{
+		const auto startTime = mh::thread_pool::clock_t::now();
+		const auto intendedSleepTime = throttleTime - startTime;
+		co_await s_HTTPThreadPool.co_delay_until(throttleTime);
+		const auto actualSleepTime = mh::thread_pool::clock_t::now() - startTime;
+
+		DebugLog(LogMessageColor(1, 0, 1), "Intended to sleep for {}ms, actually slept for {}ms",
+			std::chrono::duration_cast<std::chrono::milliseconds>(intendedSleepTime).count(),
+			std::chrono::duration_cast<std::chrono::milliseconds>(actualSleepTime).count());
+	}
+
 	co_await s_HTTPThreadPool.co_add_task();
 	co_return self->GetString(url);
 }
@@ -108,4 +169,9 @@ catch (...)
 {
 	LogException(MH_SOURCE_LOCATION_CURRENT(), "{}", url);
 	throw;
+}
+
+std::shared_ptr<IHTTPClient> tf2_bot_detector::IHTTPClient::Create()
+{
+	return std::make_shared<HTTPClientImpl>();
 }

@@ -14,7 +14,7 @@
 
 namespace tf2_bot_detector
 {
-	class HTTPClient;
+	class IHTTPClient;
 	struct BuildInfo;
 
 	inline namespace Platform
@@ -63,7 +63,7 @@ namespace tf2_bot_detector
 		};
 
 		bool CanInstallUpdate(const BuildInfo& bi);
-		mh::task<InstallUpdate::Result> BeginInstallUpdate(const BuildInfo& bi, const HTTPClient& client);
+		mh::task<InstallUpdate::Result> BeginInstallUpdate(const BuildInfo& bi, const IHTTPClient& client);
 		bool IsInstalled(); // As opposed to portable
 
 		bool NeedsElevationToWrite(const std::filesystem::path& path, bool recursive = false);

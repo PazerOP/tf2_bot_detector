@@ -9,7 +9,7 @@
 
 namespace tf2_bot_detector
 {
-	class HTTPClient;
+	class IHTTPClient;
 }
 
 namespace tf2_bot_detector::GithubAPI
@@ -42,5 +42,5 @@ namespace tf2_bot_detector::GithubAPI
 		std::optional<Release> m_Preview;
 	};
 
-	[[nodiscard]] mh::task<NewVersionResult> CheckForNewVersion(const HTTPClient& client);
+	[[nodiscard]] mh::task<NewVersionResult> CheckForNewVersion(const IHTTPClient& client);
 }

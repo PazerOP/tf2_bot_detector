@@ -229,7 +229,7 @@ std::shared_ptr<const HTTPClient> tf2_bot_detector::Settings::GetHTTPClient() co
 		return nullptr;
 
 	if (!m_HTTPClient)
-		m_HTTPClient = std::make_shared<HTTPClient>();
+		m_HTTPClient = IHTTPClient::Create();
 
 	return m_HTTPClient;
 }

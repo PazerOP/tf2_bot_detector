@@ -132,6 +132,7 @@ target_sources(tf2_bot_detector PRIVATE
 	"Filesystem.h"
 	"GenericErrors.cpp"
 	"GenericErrors.h"
+	"GlobalDispatcher.h"
 	"IPlayer.cpp"
 	"IPlayer.h"
 	"Log.cpp"

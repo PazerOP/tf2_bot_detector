@@ -17,6 +17,8 @@
 #include "UpdateManager.h"
 #include "Util/PathUtils.h"
 #include "Version.h"
+#include "GlobalDispatcher.h"
+#include "Networking/HTTPClient.h"
 
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
@@ -40,6 +42,11 @@ using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
+
+namespace tf2_bot_detector
+{
+	mh::dispatcher g_Dispatcher;
+}
 
 MainWindow::MainWindow() :
 	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
@@ -574,6 +581,11 @@ void MainWindow::OnDraw()
 		ImGui::Value("Texture Count", m_TextureManager->GetActiveTextureCount());
 
 		ImGui::TextFmt("RAM Usage: {:1.1f} MB", Platform::Processes::GetCurrentRAMUsage() / 1024.0f / 1024);
+
+		if (auto client = m_Settings.GetHTTPClient())
+			ImGui::Value("HTTP Requests", client->GetTotalRequestCount());
+		else
+			ImGui::Value("HTTP Requests", "HTTPClient Unavailable");
 	}
 #endif
 
@@ -729,7 +741,7 @@ void MainWindow::OnUpdate()
 	if (m_Paused)
 		return;
 
-	m_UpdateDispatcher.run_for(10ms);
+	g_Dispatcher.run_for(10ms);
 
 	GetWorld().Update();
 	m_UpdateManager->Update();
@@ -998,7 +1010,7 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 		{
 			avatarData = PlayerAvatarData::LoadAvatarAsync(
 				summary->GetAvatarBitmap(m_Settings.GetHTTPClient()),
-				m_UpdateDispatcher, m_TextureManager);
+				g_Dispatcher, m_TextureManager);
 		}
 		else
 		{
