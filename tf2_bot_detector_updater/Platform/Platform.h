@@ -25,6 +25,14 @@ namespace tf2_bot_detector
 		}
 
 		void RebootComputer();
+
+		enum class UpdateSystemDependenciesResult
+		{
+			Success,
+
+			RebootRequired,
+		};
+		UpdateSystemDependenciesResult UpdateSystemDependencies();
 	}
 }
 
