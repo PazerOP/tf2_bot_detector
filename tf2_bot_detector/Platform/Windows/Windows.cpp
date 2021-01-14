@@ -1,10 +1,15 @@
+#include <ntstatus.h>
+#define WIN32_NO_STATUS
+
 #include "Platform/Platform.h"
+#include "Platform/PlatformCommon.h"
 #include "Util/TextUtils.h"
 #include "Log.h"
 #include "WindowsHelpers.h"
 #include "tf2_bot_detector_winrt.h"
 
 #include <mh/error/ensure.hpp>
+#include <mh/error/exception_details.hpp>
 #include <mh/text/codecvt.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/formatters/error_code.hpp>
@@ -12,9 +17,8 @@
 
 #define WIN32_LEAN_AND_MEAN 1
 #include <Windows.h>
-#include <minappmodel.h>
 #include <Shlobj.h>
-#include <versionhelpers.h>
+#include <winternl.h>
 
 using namespace tf2_bot_detector;
 using namespace std::string_view_literals;
@@ -35,73 +39,6 @@ static std::filesystem::path GetKnownFolderPath(const KNOWNFOLDERID& id)
 	return retVal;
 }
 
-static void* GetProcAddressHelper(const wchar_t* moduleName, const char* symbolName, bool isCritical = false, MH_SOURCE_LOCATION_AUTO(location))
-{
-	if (!moduleName)
-		throw std::invalid_argument("moduleName was nullptr");
-	if (!moduleName[0])
-		throw std::invalid_argument("moduleName was empty");
-	if (!symbolName)
-		throw std::invalid_argument("symbolName was nullptr");
-	if (!symbolName[0])
-		throw std::invalid_argument("symbolName was empty");
-
-	HMODULE moduleHandle = GetModuleHandleW(moduleName);
-	if (!moduleHandle)
-	{
-		auto err = GetLastError();
-		throw std::system_error(err, std::system_category(), mh::format("Failed to GetModuleHandle({})", mh::change_encoding<char>(moduleName)));
-	}
-
-	auto address = GetProcAddress(moduleHandle, symbolName);
-	if (!address)
-	{
-		auto err = GetLastError();
-		auto ec = std::error_code(err, std::system_category());
-
-		auto msg = mh::format("{}: Failed to find function {} in {}", location, symbolName, mh::change_encoding<char>(moduleName));
-
-		if (!isCritical)
-			DebugLogWarning(location, "{}: {}", msg, ec);
-		else
-			throw std::system_error(ec, msg);
-	}
-
-	return address;
-}
-
-namespace tf2_bot_detector
-{
-	static const std::wstring& GetCurrentPackageFamilyName()
-	{
-		static const std::wstring s_CurrentPackageFamilyName = []() -> std::wstring
-		{
-			WCHAR name[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1];
-			UINT32 nameLength = UINT32(std::size(name));
-
-			using func_type = LONG(*)(UINT32* packageFamilyNameLength, PWSTR packageFamilyName);
-
-			const auto func = reinterpret_cast<func_type>(GetProcAddressHelper(L"Kernel32.dll", "GetCurrentPackageFamilyName", true));
-
-			const auto errc = func(&nameLength, name);
-
-			switch (errc)
-			{
-			case ERROR_SUCCESS:
-				return std::wstring(name, nameLength > 0 ? (nameLength - 1) : 0);
-			case APPMODEL_ERROR_NO_PACKAGE:
-				return {};
-			case ERROR_INSUFFICIENT_BUFFER:
-				throw std::runtime_error(mh::format("{}: Buffer too small", __FUNCTION__));
-			default:
-				throw std::runtime_error(mh::format("{}: Unknown error {}", __FUNCTION__, errc));
-			}
-		}();
-
-		return s_CurrentPackageFamilyName;
-	}
-}
-
 namespace
 {
 	class FallbackWinRTInterface final : public tf2_bot_detector::WinRT
@@ -119,7 +56,41 @@ namespace
 		{
 			return std::filesystem::temp_directory_path();
 		}
+		std::wstring GetCurrentPackageFamilyName() const override
+		{
+			return {};
+		}
+		const mh::exception_details_handler& GetWinRTExceptionDetailsHandler() const override
+		{
+			assert(!"This should never be called in the first place");
+
+			class Handler final : public mh::exception_details_handler
+			{
+			public:
+				bool try_handle(const std::exception_ptr& e, mh::exception_details& details) const noexcept override
+				{
+					return false;
+				}
+			} static const s_Handler;
+
+			return s_Handler;
+		}
 	};
+}
+
+static bool IsReallyWindows10OrGreater()
+{
+	using RtlGetVersionFn = NTSTATUS(*)(PRTL_OSVERSIONINFOW lpVersionInformation);
+
+	static const auto s_RtlGetVersionFn = reinterpret_cast<RtlGetVersionFn>(
+		tf2_bot_detector::Platform::GetProcAddressHelper("ntdll.dll", "RtlGetVersion", true));
+
+	RTL_OSVERSIONINFOW info{};
+	info.dwOSVersionInfoSize = sizeof(info);
+	const auto result = s_RtlGetVersionFn(&info);
+	assert(result == STATUS_SUCCESS);
+
+	return info.dwMajorVersion >= 10;
 }
 
 static const tf2_bot_detector::WinRT* GetWinRTInterface()
@@ -128,12 +99,16 @@ static const tf2_bot_detector::WinRT* GetWinRTInterface()
 	{
 		WinRTHelper()
 		{
-			constexpr wchar_t WINRT_DLL_NAME[] = L"tf2_bot_detector_winrt.dll";
-			m_Module = mh_ensure(LoadLibraryW(WINRT_DLL_NAME));
+			constexpr char WINRT_DLL_NAME[] = "tf2_bot_detector_winrt.dll";
+			m_Module = mh_ensure(LoadLibraryA(WINRT_DLL_NAME));
 
 			CreateWinRTInterfaceFn func = reinterpret_cast<CreateWinRTInterfaceFn>(GetProcAddressHelper(WINRT_DLL_NAME, "CreateWinRTInterface"));
 
 			m_WinRT.reset(func());
+
+			struct DummyType {};
+			m_ExceptionDetailsHandler = mh::exception_details::add_handler(
+				typeid(DummyType), m_WinRT->GetWinRTExceptionDetailsHandler());
 		}
 		WinRTHelper(WinRTHelper&& other) noexcept :
 			m_Module(std::exchange(other.m_Module, nullptr)),
@@ -167,19 +142,24 @@ static const tf2_bot_detector::WinRT* GetWinRTInterface()
 
 		HMODULE m_Module{};
 		std::unique_ptr<WinRT> m_WinRT;
+		mh::exception_details::handler m_ExceptionDetailsHandler;
 	};
 
-	static std::optional<WinRTHelper> s_Helper = []() -> std::optional<WinRTHelper>
+	static const tf2_bot_detector::WinRT* s_Value = []() -> const tf2_bot_detector::WinRT*
 	{
-		std::optional<WinRTHelper> helper;
-		if (IsWindows10OrGreater())
-			helper.emplace();
-
-		return std::move(helper);
+		if (IsReallyWindows10OrGreater())
+		{
+			static WinRTHelper s_Helper;
+			return s_Helper.m_WinRT.get();
+		}
+		else
+		{
+			static const FallbackWinRTInterface s_FallbackInterface;
+			return &s_FallbackInterface;
+		}
 	}();
-	static const FallbackWinRTInterface s_FallbackInterface;
 
-	return s_Helper.has_value() ? s_Helper->m_WinRT.get() : &s_FallbackInterface;
+	return s_Value;
 }
 
 std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
@@ -199,7 +179,7 @@ std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
 
 std::filesystem::path tf2_bot_detector::Platform::GetLegacyAppDataDir()
 {
-	auto packageFamilyName = GetCurrentPackageFamilyName();
+	auto packageFamilyName = GetWinRTInterface()->GetCurrentPackageFamilyName();
 	if (packageFamilyName.empty())
 		return {};
 
