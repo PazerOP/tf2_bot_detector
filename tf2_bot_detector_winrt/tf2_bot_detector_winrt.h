@@ -22,5 +22,5 @@ namespace tf2_bot_detector
 		virtual const mh::exception_details_handler& GetWinRTExceptionDetailsHandler() const = 0;
 	};
 
-	using CreateWinRTInterfaceFn = WinRT*(*)();
+	using CreateWinRTInterfaceFn = WinRT*(*)(const WinRT* fallback);
 }

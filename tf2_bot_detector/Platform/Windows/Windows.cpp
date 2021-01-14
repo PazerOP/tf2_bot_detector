@@ -97,14 +97,14 @@ static const tf2_bot_detector::WinRT* GetWinRTInterface()
 {
 	struct WinRTHelper
 	{
-		WinRTHelper()
+		WinRTHelper(const tf2_bot_detector::WinRT* fallbackInterface)
 		{
 			constexpr char WINRT_DLL_NAME[] = "tf2_bot_detector_winrt.dll";
 			m_Module = mh_ensure(LoadLibraryA(WINRT_DLL_NAME));
 
 			CreateWinRTInterfaceFn func = reinterpret_cast<CreateWinRTInterfaceFn>(GetProcAddressHelper(WINRT_DLL_NAME, "CreateWinRTInterface"));
 
-			m_WinRT.reset(func());
+			m_WinRT.reset(func(fallbackInterface));
 
 			struct DummyType {};
 			m_ExceptionDetailsHandler = mh::exception_details::add_handler(
@@ -147,14 +147,14 @@ static const tf2_bot_detector::WinRT* GetWinRTInterface()
 
 	static const tf2_bot_detector::WinRT* s_Value = []() -> const tf2_bot_detector::WinRT*
 	{
+		static const FallbackWinRTInterface s_FallbackInterface;
 		if (IsReallyWindows10OrGreater())
 		{
-			static WinRTHelper s_Helper;
+			static WinRTHelper s_Helper(&s_FallbackInterface);
 			return s_Helper.m_WinRT.get();
 		}
 		else
 		{
-			static const FallbackWinRTInterface s_FallbackInterface;
 			return &s_FallbackInterface;
 		}
 	}();
