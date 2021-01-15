@@ -20,6 +20,7 @@
 #include <mh/concurrency/dispatcher.hpp>
 #include <mh/concurrency/main_thread.hpp>
 #include <mh/concurrency/thread_pool.hpp>
+#include <mh/coroutine/future.hpp>
 #include <mh/future.hpp>
 
 #undef GetCurrentTime
