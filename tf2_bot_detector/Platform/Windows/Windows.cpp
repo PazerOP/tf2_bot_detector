@@ -39,45 +39,6 @@ static std::filesystem::path GetKnownFolderPath(const KNOWNFOLDERID& id)
 	return retVal;
 }
 
-namespace
-{
-	class FallbackWinRTInterface final : public tf2_bot_detector::WinRT
-	{
-	public:
-		std::filesystem::path GetLocalAppDataDir() const override
-		{
-			return GetKnownFolderPath(FOLDERID_LocalAppData);
-		}
-		std::filesystem::path GetRoamingAppDataDir() const override
-		{
-			return GetKnownFolderPath(FOLDERID_RoamingAppData);
-		}
-		std::filesystem::path GetTempDir() const override
-		{
-			return std::filesystem::temp_directory_path();
-		}
-		std::wstring GetCurrentPackageFamilyName() const override
-		{
-			return {};
-		}
-		const mh::exception_details_handler& GetWinRTExceptionDetailsHandler() const override
-		{
-			assert(!"This should never be called in the first place");
-
-			class Handler final : public mh::exception_details_handler
-			{
-			public:
-				bool try_handle(const std::exception_ptr& e, mh::exception_details& details) const noexcept override
-				{
-					return false;
-				}
-			} static const s_Handler;
-
-			return s_Handler;
-		}
-	};
-}
-
 static bool IsReallyWindows10OrGreater()
 {
 	using RtlGetVersionFn = NTSTATUS(*)(PRTL_OSVERSIONINFOW lpVersionInformation);
@@ -97,14 +58,14 @@ static const tf2_bot_detector::WinRT* GetWinRTInterface()
 {
 	struct WinRTHelper
 	{
-		WinRTHelper(const tf2_bot_detector::WinRT* fallbackInterface)
+		WinRTHelper()
 		{
 			constexpr char WINRT_DLL_NAME[] = "tf2_bot_detector_winrt.dll";
 			m_Module = mh_ensure(LoadLibraryA(WINRT_DLL_NAME));
 
 			CreateWinRTInterfaceFn func = reinterpret_cast<CreateWinRTInterfaceFn>(GetProcAddressHelper(WINRT_DLL_NAME, "CreateWinRTInterface"));
 
-			m_WinRT.reset(func(fallbackInterface));
+			m_WinRT.reset(func());
 
 			struct DummyType {};
 			m_ExceptionDetailsHandler = mh::exception_details::add_handler(
@@ -147,16 +108,13 @@ static const tf2_bot_detector::WinRT* GetWinRTInterface()
 
 	static const tf2_bot_detector::WinRT* s_Value = []() -> const tf2_bot_detector::WinRT*
 	{
-		static const FallbackWinRTInterface s_FallbackInterface;
 		if (IsReallyWindows10OrGreater())
 		{
-			static WinRTHelper s_Helper(&s_FallbackInterface);
+			static WinRTHelper s_Helper;
 			return s_Helper.m_WinRT.get();
 		}
-		else
-		{
-			return &s_FallbackInterface;
-		}
+
+		return nullptr;
 	}();
 
 	return s_Value;
@@ -179,24 +137,75 @@ std::filesystem::path tf2_bot_detector::Platform::GetCurrentExeDir()
 
 std::filesystem::path tf2_bot_detector::Platform::GetLegacyAppDataDir()
 {
-	auto packageFamilyName = GetWinRTInterface()->GetCurrentPackageFamilyName();
-	if (packageFamilyName.empty())
-		return {};
+	if (auto winrt = GetWinRTInterface())
+	{
+		try
+		{
+			auto packageFamilyName = GetWinRTInterface()->GetCurrentPackageFamilyName();
+			if (packageFamilyName.empty())
+				return {};
 
-	return GetKnownFolderPath(FOLDERID_LocalAppData) / "Packages" / packageFamilyName / "LocalCache" / "Roaming";
+			return GetKnownFolderPath(FOLDERID_LocalAppData) / "Packages" / packageFamilyName / "LocalCache" / "Roaming";
+		}
+		catch (...)
+		{
+			LogException();
+		}
+	}
+
+	return {};
 }
 
 std::filesystem::path tf2_bot_detector::Platform::GetRootLocalAppDataDir()
 {
-	return GetWinRTInterface()->GetLocalAppDataDir();
+	if (auto winrt = GetWinRTInterface())
+	{
+		try
+		{
+			if (winrt->IsInPackage())
+				return winrt->GetPackageLocalAppDataDir();
+		}
+		catch (...)
+		{
+			LogException();
+		}
+	}
+
+	return GetKnownFolderPath(FOLDERID_LocalAppData);
 }
 
 std::filesystem::path tf2_bot_detector::Platform::GetRootRoamingAppDataDir()
 {
-	return GetWinRTInterface()->GetRoamingAppDataDir();
+	if (auto winrt = GetWinRTInterface())
+	{
+		try
+		{
+			if (winrt->IsInPackage())
+				return winrt->GetPackageRoamingAppDataDir();
+		}
+		catch (...)
+		{
+			LogException();
+		}
+	}
+
+	return GetKnownFolderPath(FOLDERID_RoamingAppData);
 }
 
 std::filesystem::path tf2_bot_detector::Platform::GetRootTempDataDir()
 {
-	return GetWinRTInterface()->GetTempDir();
+	if (auto winrt = GetWinRTInterface())
+	{
+		try
+		{
+			if (winrt->IsInPackage())
+				return winrt->GetPackageTempDir();
+		}
+		catch (...)
+		{
+			LogException();
+		}
+	}
+
+	return std::filesystem::temp_directory_path();
 }

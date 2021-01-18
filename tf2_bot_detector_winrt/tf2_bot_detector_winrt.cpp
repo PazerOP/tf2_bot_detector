@@ -8,6 +8,7 @@
 
 #include <winrt/Windows.Storage.h>
 #include <Windows.h>
+#include <appmodel.h>
 #include <minappmodel.h>
 
 namespace
@@ -15,74 +16,50 @@ namespace
 	class WinRTImpl final : public tf2_bot_detector::WinRT
 	{
 	public:
-		WinRTImpl(const tf2_bot_detector::WinRT* fallback) : m_Fallback(fallback) {}
+		std::filesystem::path GetPackageLocalAppDataDir() const override;
+		std::filesystem::path GetPackageRoamingAppDataDir() const override;
+		std::filesystem::path GetPackageTempDir() const override;
 
-		std::filesystem::path GetLocalAppDataDir() const override;
-		std::filesystem::path GetRoamingAppDataDir() const override;
-		std::filesystem::path GetTempDir() const override;
+		bool IsInPackage() const override;
 		std::wstring GetCurrentPackageFamilyName() const override;
 
 		const mh::exception_details_handler& GetWinRTExceptionDetailsHandler() const override;
-
-	private:
-		const tf2_bot_detector::WinRT* m_Fallback{};
 	};
 
-	std::filesystem::path WinRTImpl::GetLocalAppDataDir() const try
+	std::filesystem::path WinRTImpl::GetPackageLocalAppDataDir() const
 	{
 		auto appData = winrt::Windows::Storage::ApplicationData::Current();
 		auto path = appData.LocalFolder().Path();
 		return std::filesystem::path(path.begin(), path.end());
 	}
-	catch (...)
-	{
-		if (m_Fallback)
-			return m_Fallback->GetLocalAppDataDir();
 
-		throw;
-	}
-
-	std::filesystem::path WinRTImpl::GetRoamingAppDataDir() const try
+	std::filesystem::path WinRTImpl::GetPackageRoamingAppDataDir() const
 	{
 		auto appData = winrt::Windows::Storage::ApplicationData::Current();
 		auto path = appData.RoamingFolder().Path();
 		return std::filesystem::path(path.begin(), path.end());
 	}
-	catch (...)
-	{
-		if (m_Fallback)
-			return m_Fallback->GetRoamingAppDataDir();
 
-		throw;
-	}
-
-	std::filesystem::path WinRTImpl::GetTempDir() const try
+	std::filesystem::path WinRTImpl::GetPackageTempDir() const
 	{
 		auto appData = winrt::Windows::Storage::ApplicationData::Current();
 		auto path = appData.TemporaryFolder().Path();
 		return std::filesystem::path(path.begin(), path.end());
 	}
-	catch (...)
-	{
-		if (m_Fallback)
-			return m_Fallback->GetTempDir();
 
-		throw;
+	bool WinRTImpl::IsInPackage() const
+	{
+		return !GetCurrentPackageFamilyName().empty();
 	}
 
-	std::wstring WinRTImpl::GetCurrentPackageFamilyName() const try
+	std::wstring WinRTImpl::GetCurrentPackageFamilyName() const
 	{
 		static const std::wstring s_CurrentPackageFamilyName = []() -> std::wstring
 		{
 			WCHAR name[PACKAGE_FAMILY_NAME_MAX_LENGTH + 1];
 			UINT32 nameLength = UINT32(std::size(name));
 
-			using func_type = LONG(*)(UINT32* packageFamilyNameLength, PWSTR packageFamilyName);
-
-			const auto func = reinterpret_cast<func_type>(tf2_bot_detector::Platform::GetProcAddressHelper(
-				"Kernel32.dll", "GetCurrentPackageFamilyName", true));
-
-			const auto errc = func(&nameLength, name);
+			const auto errc = ::GetCurrentPackageFamilyName(&nameLength, name);
 
 			switch (errc)
 			{
@@ -99,15 +76,8 @@ namespace
 
 		return s_CurrentPackageFamilyName;
 	}
-	catch (...)
-	{
-		if (m_Fallback)
-			return m_Fallback->GetCurrentPackageFamilyName();
 
-		throw;
-	}
-
-	const mh::exception_details_handler& WinRTImpl::GetWinRTExceptionDetailsHandler() const try
+	const mh::exception_details_handler& WinRTImpl::GetWinRTExceptionDetailsHandler() const
 	{
 		class Handler final : public mh::exception_details_handler
 		{
@@ -155,16 +125,14 @@ namespace
 
 		return s_Handler;
 	}
-	catch (...)
-	{
-		if (m_Fallback)
-			return m_Fallback->GetWinRTExceptionDetailsHandler();
-
-		throw;
-	}
 }
 
-extern "C" TF2_BOT_DETECTOR_WINRT_EXPORT tf2_bot_detector::WinRT* CreateWinRTInterface(const tf2_bot_detector::WinRT* fallback)
+extern "C" TF2_BOT_DETECTOR_WINRT_EXPORT tf2_bot_detector::WinRT* CreateWinRTInterface()
 {
-	return new WinRTImpl(fallback);
+	return new WinRTImpl();
+}
+
+static const void ValidateCreateInterfaceSignature()
+{
+	tf2_bot_detector::CreateWinRTInterfaceFn func = &CreateWinRTInterface;
 }
