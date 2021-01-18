@@ -14,6 +14,7 @@
 #include <mh/concurrency/thread_sentinel.hpp>
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/format.hpp>
+#include <mh/text/indenting_ostream.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <discord-game-sdk/core.h>
 
@@ -279,70 +280,82 @@ namespace discord
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::ActivityTimestamps& ts)
 	{
-		return os
-			<< "\n\t\tStart: " << ts.GetStart()
-			<< "\n\t\tEnd:   " << ts.GetEnd()
+		mh::indenting_ostream(os)
+			<< "\nStart: " << ts.GetStart()
+			<< "\nEnd:   " << ts.GetEnd()
 			;
+
+		return os;
 	}
 
 	template<typename CharT, typename Traits>
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::ActivityAssets& a)
 	{
-		return os
-			<< "\n\t\tLargeImage: " << std::quoted(a.GetLargeImage())
-			<< "\n\t\tLargeText:  " << std::quoted(a.GetLargeText())
-			<< "\n\t\tSmallImage: " << std::quoted(a.GetSmallImage())
-			<< "\n\t\tSmallText:  " << std::quoted(a.GetSmallText())
+		mh::indenting_ostream(os)
+			<< "\nLargeImage: " << std::quoted(a.GetLargeImage())
+			<< "\nLargeText:  " << std::quoted(a.GetLargeText())
+			<< "\nSmallImage: " << std::quoted(a.GetSmallImage())
+			<< "\nSmallText:  " << std::quoted(a.GetSmallText())
 			;
+
+		return os;
 	}
 
 	template<typename CharT, typename Traits>
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::PartySize& ps)
 	{
-		return os
-			<< "\n\t\t\tCurrent: " << ps.GetCurrentSize()
-			<< "\n\t\t\tMax:     " << ps.GetMaxSize()
+		mh::indenting_ostream(os)
+			<< "\nCurrent: " << ps.GetCurrentSize()
+			<< "\nMax:     " << ps.GetMaxSize()
 			;
+
+		return os;
 	}
 
 	template<typename CharT, typename Traits>
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::ActivityParty& p)
 	{
-		return os
-			<< "\n\t\tID:   " << std::quoted(p.GetId())
-			<< "\n\t\tSize: " << p.GetSize()
+		mh::indenting_ostream(os)
+			<< "\nID:   " << std::quoted(p.GetId())
+			<< "\nSize: " << p.GetSize()
 			;
+
+		return os;
 	}
 
 	template<typename CharT, typename Traits>
 	static std::basic_ostream<CharT, Traits>& operator<<(
 		std::basic_ostream<CharT, Traits>& os, const discord::ActivitySecrets& s)
 	{
-		return os
-			<< "\n\t\tMatch:    " << std::quoted(s.GetMatch())
-			<< "\n\t\tJoin:     " << std::quoted(s.GetJoin())
-			<< "\n\t\tSpectate: " << std::quoted(s.GetSpectate())
+		mh::indenting_ostream(os)
+			<< "\nMatch:    " << std::quoted(s.GetMatch())
+			<< "\nJoin:     " << std::quoted(s.GetJoin())
+			<< "\nSpectate: " << std::quoted(s.GetSpectate())
 			;
+
+		return os;
 	}
 
 	template<typename CharT, typename Traits>
 	static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const discord::Activity& a)
 	{
-		return os << std::boolalpha
-			<< "\n\tType:          " << mh::enum_fmt(a.GetType())
-			<< "\n\tApplicationID: " << a.GetApplicationId()
-			<< "\n\tName:          " << std::quoted(a.GetName())
-			<< "\n\tState:         " << std::quoted(a.GetState())
-			<< "\n\tDetails:       " << std::quoted(a.GetDetails())
-			<< "\n\tTimestamps:    " << a.GetTimestamps()
-			<< "\n\tAssets:        " << a.GetAssets()
-			<< "\n\tParty:         " << a.GetParty()
-			<< "\n\tSecrets:       " << a.GetSecrets()
-			<< "\n\tInstance:      " << a.GetInstance()
+		mh::indenting_ostream(os) << std::boolalpha
+			<< "\nType:          " << mh::enum_fmt(a.GetType())
+			<< "\nApplicationID: " << a.GetApplicationId()
+			<< "\nName:          " << std::quoted(a.GetName())
+			<< "\nState:         " << std::quoted(a.GetState())
+			<< "\nDetails:       " << std::quoted(a.GetDetails())
+			<< "\nTimestamps:    " << a.GetTimestamps()
+			<< "\nAssets:        " << a.GetAssets()
+			<< "\nParty:         " << a.GetParty()
+			<< "\nSecrets:       " << a.GetSecrets()
+			<< "\nInstance:      " << a.GetInstance()
 			;
+
+		return os;
 	}
 }
 
