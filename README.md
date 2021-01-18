@@ -214,7 +214,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 * [Crazy Gunman](https://github.com/CrazyGunman2C4U)
 * [camp3r101](https://github.com/camp3r101)
 * [bgausden](https://github.com/bgausden)
-* [Symthos](https://github.com/Symthos)
+* [hey xbox](https://github.com/Symthos)
 
 <!--$5-->
 * [ClusterConsultant](https://github.com/ClusterConsultant)
