@@ -105,9 +105,14 @@ std::string HTTPClientImpl::GetString(const URL& url) const try
 
 	return response->body;
 }
+catch (const http_error&)
+{
+	DebugLogException("{}", url);
+	throw;
+}
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), "{}", url);
+	LogException("{}", url);
 	throw;
 }
 
@@ -179,12 +184,12 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 }
 catch (const http_error&)
 {
-	DebugLogException(MH_SOURCE_LOCATION_CURRENT(), "{}", url);
+	DebugLogException("{}", url);
 	throw;
 }
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), "{}", url);
+	LogException("{}", url);
 	throw;
 }
 

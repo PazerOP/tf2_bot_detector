@@ -301,8 +301,18 @@ void WorldState::UpdateFriends()
 		{
 			if (e.code() == HTTPResponseCode::Unauthorized)
 			{
-				DebugLogWarning(MH_SOURCE_LOCATION_CURRENT(), "Failed to access friends list (our friends list is "
-					"private/friends only, and the Steam API is bugged)");
+				static bool s_HasWarned = false;
+				constexpr const char WARNING_MSG[] = "Failed to access our friends list (our friends list is private/friends only, and the Steam API is bugged). The tool will not be able to show who is friends with you.";
+
+				if (!s_HasWarned)
+				{
+					LogWarning(WARNING_MSG);
+					s_HasWarned = true;
+				}
+				else
+				{
+					DebugLogWarning(WARNING_MSG);
+				}
 			}
 			else
 			{
