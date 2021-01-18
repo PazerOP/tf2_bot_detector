@@ -97,17 +97,27 @@ void Filesystem::Init()
 				m_IsPortable = true;
 			}
 
-			if (auto legacyPath = Platform::GetLegacyAppDataDir(); std::filesystem::exists(legacyPath))
 			{
-				legacyPath /= APPDATA_SUBFOLDER;
-				if (std::filesystem::exists(legacyPath))
+				auto legacyPath = Platform::GetLegacyAppDataDir();
+				try
 				{
-					Log("Found legacy appdata folder {}, copying to {}...", legacyPath, m_RoamingAppDataDir);
-					std::filesystem::copy(legacyPath, m_RoamingAppDataDir,
-						std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_existing);
+					if (std::filesystem::exists(legacyPath))
+					{
+						legacyPath /= APPDATA_SUBFOLDER;
+						if (std::filesystem::exists(legacyPath))
+						{
+							Log("Found legacy appdata folder {}, copying to {}...", legacyPath, m_RoamingAppDataDir);
+							std::filesystem::copy(legacyPath, m_RoamingAppDataDir,
+								std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_existing);
 
-					Log("Copy complete. Deleting {}...", legacyPath);
-					std::filesystem::remove_all(legacyPath);
+							Log("Copy complete. Deleting {}...", legacyPath);
+							std::filesystem::remove_all(legacyPath);
+						}
+					}
+				}
+				catch (...)
+				{
+					LogException("Failed to transfer legacy appdata during filesystem init");
 				}
 			}
 

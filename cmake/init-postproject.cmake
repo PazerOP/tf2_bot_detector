@@ -93,12 +93,11 @@ if (MSVC)
 endif()
 
 if (WIN32)
-	# Restrict ourselves to Windows 7 API where possible
+	# Restrict ourselves to Windows 8.1 ("windows blue") API where possible
 	add_compile_definitions(
-		NTDDI_VERSION=NTDDI_WIN7
-		WINVER=_WIN32_WINNT_WIN7
-		_WIN32_WINNT=_WIN32_WINNT_WIN7
-		_APPMODEL_H_ # Don't allow this header file to be included
+		NTDDI_VERSION=NTDDI_WINBLUE
+		WINVER=_WIN32_WINNT_WINBLUE
+		_WIN32_WINNT=_WIN32_WINNT_WINBLUE
 	)
 
 	add_compile_options("/FISdkddkver.h")
