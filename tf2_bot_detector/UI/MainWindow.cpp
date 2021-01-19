@@ -562,10 +562,10 @@ void MainWindow::OnDraw()
 			ImGui::SetHoverTooltip("Prints out all game commands to the log.");
 		});
 
-	ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
-
 #ifdef _DEBUG
 	{
+		ImGui::Value("Time (Compensated)", to_seconds<float>(GetCurrentTimestampCompensated() - m_OpenTime));
+
 		auto leader = GetModLogic().GetBotLeader();
 		ImGui::Value("Bot Leader", leader ? mh::fmtstr<128>("{}", *leader).view() : ""sv);
 
