@@ -6776,10 +6776,40 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(2)cheemsburger gaming",
+				"time": 1611032816
+			},
+			"steamid": "[U:1:1158171313]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(3)cheemsburger gaming",
+				"time": 1611032818
+			},
+			"steamid": "[U:1:1158178118]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "(3)sniper gaming",
 				"time": 1610174972
 			},
 			"steamid": "[U:1:1158321003]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "cheemsburger gaming",
+				"time": 1611032814
+			},
+			"steamid": "[U:1:1158522681]"
 		},
 		{
 			"attributes": [
@@ -6816,6 +6846,26 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(1)shoppy.gg/@d3fc0n6",
+				"time": 1611042424
+			},
+			"steamid": "[U:1:1163241370]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)shoppy.gg/@d3fc0n6",
+				"time": 1611032779
+			},
+			"steamid": "[U:1:1163242271]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "shoppy.gg/@d3fc0n6",
 				"time": 1610173241
 			},
@@ -6846,10 +6896,60 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "Lyra Plushie",
+				"time": 1611039561
+			},
+			"steamid": "[U:1:1167645082]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "GREAT AND POWERFUL",
+				"time": 1611039563
+			},
+			"steamid": "[U:1:1167729515]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "M.A. Larson",
 				"time": 1610955740
 			},
 			"steamid": "[U:1:1167807971]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "IWTCIRD",
+				"time": 1611039499
+			},
+			"steamid": "[U:1:1167905109]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Marshmallow Butthole",
+				"time": 1611039558
+			},
+			"steamid": "[U:1:1167965733]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Candyass",
+				"time": 1611039565
+			},
+			"steamid": "[U:1:1168002593]"
 		}
 	]
 }
