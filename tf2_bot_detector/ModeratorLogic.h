@@ -44,5 +44,7 @@ namespace tf2_bot_detector
 		virtual size_t GetRuleCount() const = 0;
 
 		virtual void ReloadConfigFiles() = 0;
+
+		virtual duration_t GetTimeSinceLastVoteCalled() const = 0;
 	};
 }

@@ -586,6 +586,8 @@ void MainWindow::OnDraw()
 			ImGui::Value("HTTP Requests", client->GetTotalRequestCount());
 		else
 			ImGui::Value("HTTP Requests", "HTTPClient Unavailable");
+
+		ImGui::Value("Time Since Last Callvote", HumanDuration(GetModLogic().GetTimeSinceLastVoteCalled()));
 	}
 #endif
 
