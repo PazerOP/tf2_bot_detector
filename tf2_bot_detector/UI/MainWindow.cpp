@@ -586,8 +586,6 @@ void MainWindow::OnDraw()
 			ImGui::Value("HTTP Requests", client->GetTotalRequestCount());
 		else
 			ImGui::Value("HTTP Requests", "HTTPClient Unavailable");
-
-		ImGui::Value("Time Since Last Callvote", HumanDuration(GetModLogic().GetTimeSinceLastVoteCalled()));
 	}
 #endif
 
@@ -607,6 +605,12 @@ void MainWindow::OnDraw()
 		}
 
 		ImGui::Value("Parsed line count", parsedLineCount);
+	}
+
+	if (const auto cooldown = GetModLogic().GetVoteCooldown())
+	{
+		ImGui::ProgressBar(cooldown->GetProgress(), { -1, 0 },
+			mh::fmtstr<128>("Vote Cooldown: {}", HumanDuration(cooldown->GetRemainingDuration())).c_str());
 	}
 
 	//OnDrawServerStats();

@@ -100,7 +100,7 @@ namespace
 
 		void ReloadConfigFiles() override;
 
-		duration_t GetTimeSinceLastVoteCalled() const override { return tfbd_clock_t::now() - m_LastVoteCallTime; }
+		std::optional<VoteCooldown> GetVoteCooldown() const override;
 
 	private:
 		IWorldState* m_World = nullptr;
@@ -158,19 +158,22 @@ namespace
 		void HandleConnectedEnemyCheaters(const std::vector<Cheater>& enemyCheaters);
 		void HandleConnectingEnemyCheaters(const std::vector<Cheater>& connectingEnemyCheaters);
 
+		// Maximum duration of votes on the server, see the (development only) cvar sv_vote_timer_duration
+		static constexpr duration_t DEFAULT_VOTE_DURATION = std::chrono::seconds(15);
 		// Maximum amount of time to wait for the server to start a vote or send us a CallVoteFailed message
-		static constexpr duration_t MAX_WAIT_VOTESTATE_CALLVOTESENT = std::chrono::seconds(15);
+		static constexpr duration_t MAX_WAIT_VOTESTATE_CALLVOTESENT = std::chrono::seconds(10);
 		// Maximum amount of time to let a vote sit in one of the active states (LocalOwner/ForeignOwner) before
 		// we assume something is wrong and set ourselves back to VoteState::Inactive
-		static constexpr duration_t MAX_WAIT_VOTESTATE_VOTEACTIVE = std::chrono::seconds(45);
+		static constexpr duration_t MAX_WAIT_VOTESTATE_VOTEACTIVE = DEFAULT_VOTE_DURATION + std::chrono::seconds(10);
 		VoteState m_VoteState = VoteState::Inactive;
 		void HandleVoteStateTimeouts();
 
 		static_assert(MAX_WAIT_VOTESTATE_CALLVOTESENT < MAX_WAIT_VOTESTATE_VOTEACTIVE);
 
-		// Minimum interval between callvote commands
-		static constexpr duration_t MIN_VOTEKICK_INTERVAL = std::chrono::minutes(2);
+		// Minimum interval between callvote commands (the 150 comes from the default value of sv_vote_creation_timer)
+		static constexpr duration_t MIN_VOTEKICK_INTERVAL = std::chrono::seconds(150);
 		time_point_t m_LastVoteCallTime{}; // Last time we called a votekick on someone
+		duration_t GetTimeSinceLastCallVote() const { return tfbd_clock_t::now() - m_LastVoteCallTime; }
 
 		PlayerListJSON m_PlayerList;
 		ModerationRules m_Rules;
@@ -219,7 +222,7 @@ void ModeratorLogic::HandleVoteStateTimeouts()
 	case VoteState::LocalOwner:
 	case VoteState::SentCallVote:
 	{
-		auto elapsed = GetTimeSinceLastVoteCalled();
+		auto elapsed = GetTimeSinceLastCallVote();
 		const auto maxWaitTime = m_VoteState == VoteState::SentCallVote ? MAX_WAIT_VOTESTATE_CALLVOTESENT : MAX_WAIT_VOTESTATE_VOTEACTIVE;
 
 		if (elapsed > maxWaitTime)
@@ -391,6 +394,7 @@ void ModeratorLogic::OnUserMessageReceived(IWorldState& world, const SVCUserMess
 		switch (m_VoteState)
 		{
 		case VoteState::SentCallVote:
+			m_LastVoteCallTime = userMsg.GetTimestamp();  // Refresh the last callvote time with the timestamp from the log message
 			ChangeVoteState(VoteState::LocalOwner);
 			break;
 		case VoteState::Inactive:
@@ -465,11 +469,10 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t
 		return;
 	}
 
-	if (const auto timeSinceLastKick = GetTimeSinceLastVoteCalled();
-		timeSinceLastKick < MIN_VOTEKICK_INTERVAL)
+	if (const auto cooldown = GetVoteCooldown())
 	{
 		LogWarning("Cannot call vote: it has only been {:1.1f} seconds since our last votekick (min {:1.1f})",
-			to_seconds(timeSinceLastKick), to_seconds(MIN_VOTEKICK_INTERVAL));
+			to_seconds(cooldown->m_Elapsed), to_seconds(cooldown->m_Total));
 		return;
 	}
 
@@ -900,6 +903,18 @@ void ModeratorLogic::ReloadConfigFiles()
 	m_Rules.LoadFiles();
 }
 
+std::optional<VoteCooldown> ModeratorLogic::GetVoteCooldown() const
+{
+	const auto elapsed = GetTimeSinceLastCallVote();
+	if (elapsed > MIN_VOTEKICK_INTERVAL)
+		return std::nullopt;
+
+	VoteCooldown cd{};
+	cd.m_Elapsed = elapsed;
+	cd.m_Total = MIN_VOTEKICK_INTERVAL;
+	return cd;
+}
+
 ModeratorLogic::ModeratorLogic(IWorldState& world, const Settings& settings, IRCONActionManager& actionManager) :
 	AutoConsoleLineListener(world),
 	AutoWorldEventListener(world),
@@ -943,4 +958,17 @@ bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason, 
 	}
 
 	return true;
+}
+
+duration_t VoteCooldown::GetRemainingDuration() const
+{
+	return m_Total - m_Elapsed;
+}
+
+float VoteCooldown::GetProgress() const
+{
+	if (m_Elapsed >= m_Total)
+		return 1;
+
+	return static_cast<float>(to_seconds(m_Elapsed) / to_seconds(m_Total));
 }
