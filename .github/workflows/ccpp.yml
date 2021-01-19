@@ -226,7 +226,7 @@ jobs:
     - name: cache-vcpkg
       uses: actions/cache@v2
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-6
+        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-7
         path: |
           ${{ env.VCPKG_ROOT }}/archives
           ${{ env.VCPKG_ROOT }}/vcpkg.exe
