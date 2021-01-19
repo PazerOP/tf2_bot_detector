@@ -5516,6 +5516,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(3)shoppy.gg/@d3fc0n6",
+				"time": 1611054293
+			},
+			"steamid": "[U:1:1131066939]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "shoppy.gg/@d3fc0n6",
 				"time": 1608422311
 			},
@@ -5577,6 +5587,16 @@
 			],
 			"last_seen": {
 				"player_name": "shoppy.gg/@d3fc0n6",
+				"time": 1611054713
+			},
+			"steamid": "[U:1:1131411385]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "shoppy.gg/@d3fc0n6",
 				"time": 1610172110
 			},
 			"steamid": "[U:1:1131414867]"
@@ -5597,9 +5617,29 @@
 			],
 			"last_seen": {
 				"player_name": "(1)shoppy.gg/@d3fc0n6",
+				"time": 1611054293
+			},
+			"steamid": "[U:1:1131615046]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)shoppy.gg/@d3fc0n6",
 				"time": 1607327494
 			},
 			"steamid": "[U:1:1131617856]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(3)shoppy.gg/@d3fc0n6",
+				"time": 1611053577
+			},
+			"steamid": "[U:1:1131900787]"
 		},
 		{
 			"attributes": [
@@ -5707,7 +5747,17 @@
 			],
 			"last_seen": {
 				"player_name": "shoppy.gg/@d3fc0n6",
-				"time": 1607326506
+				"time": 1611053133
+			},
+			"steamid": "[U:1:1133279239]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)shoppy.gg/@d3fc0n6",
+				"time": 1611049459
 			},
 			"steamid": "[U:1:1133285457]"
 		},
@@ -5730,6 +5780,26 @@
 				"time": 1609995047
 			},
 			"steamid": "[U:1:1133333353]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)shoppy.gg/@d3fc0n6",
+				"time": 1611053576
+			},
+			"steamid": "[U:1:1133367883]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "shoppy.gg/@d3fc0n6",
+				"time": 1611054287
+			},
+			"steamid": "[U:1:1133401475]"
 		},
 		{
 			"attributes": [
@@ -6866,6 +6936,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(2)shoppy.gg/@d3fc0n6",
+				"time": 1611054192
+			},
+			"steamid": "[U:1:1163285396]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "shoppy.gg/@d3fc0n6",
 				"time": 1610173241
 			},
@@ -6950,6 +7030,46 @@
 				"time": 1611039565
 			},
 			"steamid": "[U:1:1168002593]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "pazer\u202c",
+				"time": 1611054494
+			},
+			"steamid": "[U:1:1168908972]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)pazer\u202c",
+				"time": 1611054494
+			},
+			"steamid": "[U:1:1168969410]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Honey tea\u202c",
+				"time": 1611054494
+			},
+			"steamid": "[U:1:1169410763]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Elder God Pot",
+				"time": 1611054934
+			},
+			"steamid": "[U:1:1171190541]"
 		}
 	]
 }
