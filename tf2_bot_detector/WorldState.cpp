@@ -288,9 +288,10 @@ void WorldState::UpdateFriends()
 
 	if (m_FriendsFuture.is_ready())
 	{
-		const auto GenericException = [](const mh::source_location& loc)
+		const auto GenericException = [this](const mh::source_location& loc)
 		{
 			LogException(loc, "Failed to update our friends list");
+			m_FriendsFuture = {};
 		};
 
 		try
