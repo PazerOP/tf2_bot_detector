@@ -545,7 +545,13 @@ namespace ImGui
 		{
 		}
 
-		Span(const std::string_view& text) : m_Value(text) {}
+		Span(const std::string_view& text)
+		{
+			if (text.size() <= fmtstr_type::max_size())
+				m_Value.emplace<fmtstr_type>(text);
+			else
+				m_Value.emplace<string_type>(text);
+		}
 		Span(const char* text) : Span(std::string_view(text)) {}
 
 		std::string_view GetView() const
