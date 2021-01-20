@@ -17,7 +17,8 @@
 		let url = tf2bd.select_download_from_release(latestRelease, triplet);
 		console.log(`Download URL: ${url}`);
 
-		window.location.href = url;
+		if (typeof(url) !== 'undefined')
+			window.location.href = url;
 	})();
 </script>
 
