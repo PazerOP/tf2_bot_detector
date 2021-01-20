@@ -54,38 +54,23 @@
 
 	window.tf2bd.select_download_from_release = function(releaseJson, triplet)
 	{
-		for (let i = 0; i < releaseJson.assets.length; i++)
+		for (let i = 0; i < releaseJson.portable.length; i++)
 		{
-			let asset = releaseJson.assets[i];
-			if (!asset.name.startsWith("tf2_bot_detector_"))
-				continue;
-
-			if (!stringContainsI(asset.name, triplet.toString()))
-				continue;
-
-			return asset.browser_download_url;
+			let release = releaseJson.portable[i];
+			if (release.os.toLowerCase() == triplet.os.toLowerCase() &&
+				release.arch.toLowerCase() == triplet.cpu.toLowerCase())
+			{
+				return release.download_url;
+			}
 		}
 	};
 
 	window.tf2bd.get_latest_release = async function(bIncludePreviews = false)
 	{
-		let currentPage = 1;
-		let releasesJson = await tf2bd.get_github_releases(currentPage);
-
-		while (releasesJson.length > 0)
-		{
-			for (let i = 0; i < releasesJson.length; i++)
-			{
-				let release = releasesJson[i];
-				if ((bIncludePreviews && release.prerelease) ||
-					(!bIncludePreviews && !release.prerelease))
-				{
-					return release;
-				}
-			}
-
-			releasesJson = await tf2bd.get_github_releases(++currentPage);
-		}
+		let type = bIncludePreviews ? "preview" : "public";
+		let response = await fetch(`https://tf2bd-util.pazer.us/AppInstaller/LatestVersion.json?type=${type}`);
+		let json = response.json();
+		return json;
 	};
 
 	window.tf2bd.get_triplet = function()

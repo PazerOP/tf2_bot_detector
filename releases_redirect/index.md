@@ -12,7 +12,7 @@
 			triplet.os = queryParams.get("os");
 
 		let latestRelease = await tf2bd.get_latest_release(queryParams.has("preview"));
-		console.log(`Latest release: ${latestRelease.name}`);
+		console.log(`Latest release: ${latestRelease.version}`);
 
 		let url = tf2bd.select_download_from_release(latestRelease, triplet);
 		console.log(`Download URL: ${url}`);
