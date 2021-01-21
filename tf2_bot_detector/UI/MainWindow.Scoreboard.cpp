@@ -398,6 +398,11 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 	{
 		ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });
 
+		// Just so we can be 100% sure of who we clicked on
+		ImGui::MenuItem(player.GetNameSafe().c_str(), nullptr, nullptr, false);
+		ImGui::MenuItem(player.GetSteamID().str().c_str(), nullptr, nullptr, false);
+		ImGui::Separator();
+
 		const auto steamID = player.GetSteamID();
 		if (ImGui::BeginMenu("Copy"))
 		{
