@@ -62,14 +62,9 @@ if (MSVC)
 		)
 	endif()
 
-	# Generate PDBs for release builds - RelWithDebInfo is NOT a Release build!
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
-	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG")
-	set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE} /DEBUG")
-	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /DEBUG")
-
 	if (CMAKE_BUILD_TYPE MATCHES "Release")
-		add_link_options(/OPT:REF /OPT:ICF)
+		add_compile_options(/Zi)
+		add_link_options(/OPT:REF /OPT:ICF /DEBUG)
 	endif()
 
 	if ((CMAKE_BUILD_TYPE MATCHES "Release"))

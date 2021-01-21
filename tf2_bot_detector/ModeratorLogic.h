@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 namespace tf2_bot_detector
 {
@@ -17,6 +18,15 @@ namespace tf2_bot_detector
 	class Settings;
 	class SteamID;
 	class IWorldState;
+
+	struct VoteCooldown
+	{
+		duration_t m_Elapsed;
+		duration_t m_Total;
+
+		duration_t GetRemainingDuration() const;
+		float GetProgress() const;
+	};
 
 	class IModeratorLogic
 	{
@@ -44,5 +54,7 @@ namespace tf2_bot_detector
 		virtual size_t GetRuleCount() const = 0;
 
 		virtual void ReloadConfigFiles() = 0;
+
+		virtual std::optional<VoteCooldown> GetVoteCooldown() const = 0;
 	};
 }
