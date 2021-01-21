@@ -249,6 +249,10 @@ void ModeratorLogic::HandleVoteStateTimeouts()
 			constexpr VoteState NEW_VOTE_STATE = VoteState::Inactive;
 			LogWarning("Lost track of vote state somehow, resetting m_VoteState to {} (was {}) after {} have elapsed",
 				mh::enum_fmt(NEW_VOTE_STATE), mh::enum_fmt(m_VoteState.GetValue()), HumanDuration(elapsed));
+
+			if (m_VoteState == VoteState::LocalOwner)
+				m_LastVoteCallTime = {};
+
 			m_VoteState = NEW_VOTE_STATE;
 		}
 		break;
