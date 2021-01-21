@@ -165,7 +165,26 @@ namespace
 		// Maximum amount of time to let a vote sit in one of the active states (LocalOwner/ForeignOwner) before
 		// we assume something is wrong and set ourselves back to VoteState::Inactive
 		static constexpr duration_t MAX_WAIT_VOTESTATE_VOTEACTIVE = DEFAULT_VOTE_DURATION + std::chrono::seconds(10);
-		VoteState m_VoteState = VoteState::Inactive;
+
+		struct VoteStateHelper
+		{
+			VoteStateHelper(VoteState state = VoteState::Inactive) :
+				m_Value(state), m_LastChangedTime(tfbd_clock_t::now())
+			{
+			}
+
+			VoteState GetValue() const { return m_Value; }
+			operator VoteState() const { return GetValue(); }
+
+			time_point_t GetLastChangedTime() const { return m_LastChangedTime; }
+			duration_t GetTimeSinceLastChanged() const { return tfbd_clock_t::now() - m_LastChangedTime; }
+
+		private:
+			time_point_t m_LastChangedTime;
+			VoteState m_Value;
+
+		} m_VoteState;
+
 		void HandleVoteStateTimeouts();
 
 		static_assert(MAX_WAIT_VOTESTATE_CALLVOTESENT < MAX_WAIT_VOTESTATE_VOTEACTIVE);
@@ -222,14 +241,14 @@ void ModeratorLogic::HandleVoteStateTimeouts()
 	case VoteState::LocalOwner:
 	case VoteState::SentCallVote:
 	{
-		auto elapsed = GetTimeSinceLastCallVote();
+		auto elapsed = m_VoteState.GetTimeSinceLastChanged();
 		const auto maxWaitTime = m_VoteState == VoteState::SentCallVote ? MAX_WAIT_VOTESTATE_CALLVOTESENT : MAX_WAIT_VOTESTATE_VOTEACTIVE;
 
 		if (elapsed > maxWaitTime)
 		{
 			constexpr VoteState NEW_VOTE_STATE = VoteState::Inactive;
 			LogWarning("Lost track of vote state somehow, resetting m_VoteState to {} (was {}) after {} have elapsed",
-				mh::enum_fmt(NEW_VOTE_STATE), mh::enum_fmt(m_VoteState), HumanDuration(elapsed));
+				mh::enum_fmt(NEW_VOTE_STATE), mh::enum_fmt(m_VoteState.GetValue()), HumanDuration(elapsed));
 			m_VoteState = NEW_VOTE_STATE;
 		}
 		break;
@@ -357,12 +376,12 @@ void ModeratorLogic::OnUserMessageReceived(IWorldState& world, const SVCUserMess
 		const auto oldVoteState = m_VoteState;
 		m_VoteState = newVoteState;
 		DebugLogWarning(VOTESTATUS_COLOR, location, "Received {}: {} -> {}", mh::enum_fmt(userMsgType),
-			mh::enum_fmt(oldVoteState), mh::enum_fmt(m_VoteState));
+			mh::enum_fmt(oldVoteState.GetValue()), mh::enum_fmt(m_VoteState.GetValue()));
 	};
 
 	const auto PrintInvalidStateWarning = [&](MH_SOURCE_LOCATION_AUTO(location))
 	{
-		LogWarning(location, "Received {} when m_VoteState was {}", mh::enum_fmt(userMsgType), mh::enum_fmt(m_VoteState));
+		LogWarning(location, "Received {} when m_VoteState was {}", mh::enum_fmt(userMsgType), mh::enum_fmt(m_VoteState.GetValue()));
 	};
 
 	switch (userMsgType)
@@ -465,7 +484,7 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t
 
 	if (m_VoteState != VoteState::Inactive)
 	{
-		LogWarning("Cannot call vote: another vote is already in progress ({})", mh::enum_fmt(m_VoteState));
+		LogWarning("Cannot call vote: another vote is already in progress ({})", mh::enum_fmt(m_VoteState.GetValue()));
 		return;
 	}
 

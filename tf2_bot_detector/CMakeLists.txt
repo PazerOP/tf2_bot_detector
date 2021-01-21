@@ -209,7 +209,7 @@ find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
 
-target_link_libraries(tf2_bot_detector PUBLIC
+target_link_libraries(tf2_bot_detector PRIVATE
 	tf2_bot_detector::common
 	imgui_desktop
 	ValveFileVDF
