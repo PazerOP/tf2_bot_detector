@@ -105,13 +105,8 @@ void MainWindow::OnDrawScoreboard()
 				ImGui::Separator();
 			}
 
-			for (int i = 0; i < 15; i++)
-			{
-				ImGuiDesktop::ScopeGuards::ID id(i);
-
-				for (IPlayer& player : m_MainState->GeneratePlayerPrintData())
-					OnDrawScoreboardRow(player);
-			}
+			for (IPlayer& player : m_MainState->GeneratePlayerPrintData())
+				OnDrawScoreboardRow(player);
 
 			ImGui::EndGroup();
 
