@@ -8,6 +8,7 @@
 #include "Networking/LogsTFAPI.h"
 #include "TextureManager.h"
 
+#include <imgui_desktop/StorageHelper.h>
 #include <mh/math/interpolation.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/formatters/error_code.hpp>
@@ -20,10 +21,11 @@ using namespace tf2_bot_detector;
 
 void MainWindow::OnDrawScoreboard()
 {
-	static float frameWidth, contentWidth, windowContentWidth, windowWidth;
-	bool forceRecalc = false;
+	const auto& style = ImGui::GetStyle();
 
-	static float contentWidthMin = 500;
+	constexpr bool forceRecalc = false;
+
+	static constexpr float contentWidthMin = 500;
 
 	// Horizontal scroller for color pickers
 	OnDrawColorPickers("ScoreboardColorPickers",
@@ -39,11 +41,12 @@ void MainWindow::OnDrawScoreboard()
 		});
 
 	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
-	//ImGui::SetNextWindowContentSize(ImVec2(500, 0));
-	if (ImGui::BeginChild("Scoreboard", { 0, ImGui::GetContentRegionAvail().y / 2 }, true, ImGuiWindowFlags_HorizontalScrollbar))
+
+	static ImGuiDesktop::Storage<float> s_ScoreboardHeightStorage;
+	const auto lastScoreboardHeight = s_ScoreboardHeightStorage.Snapshot();
+	const float minScoreboardHeight = ImGui::GetContentRegionAvail().y / 2;
+	if (ImGui::BeginChild("Scoreboard", { 0, std::max(minScoreboardHeight, lastScoreboardHeight.Get()) }, true, ImGuiWindowFlags_HorizontalScrollbar))
 	{
-		//ImGui::SetNextWindowSizeConstraints(ImVec2(500, -1), ImVec2(INFINITY, -1));
-		//if (ImGui::BeginChild("ScoreboardScrollRegion", { 0, 0 }, false, ImGuiWindowFlags_AlwaysAutoResize))
 		{
 			static ImVec2 s_LastFrameSize;
 			const bool scoreboardResized = [&]()
@@ -54,82 +57,39 @@ void MainWindow::OnDrawScoreboard()
 				return changed || forceRecalc;
 			}();
 
-			/*const auto*/ frameWidth = ImGui::GetWorkRectSize().x;
-			/*const auto*/ contentWidth = ImGui::GetContentRegionMax().x;
-			/*const auto*/ windowContentWidth = ImGui::GetWindowContentRegionWidth();
-			/*const auto*/ windowWidth = ImGui::GetWindowWidth();
+			const auto frameWidth = ImGui::GetWorkRectSize().x;
+			const auto contentWidth = ImGui::GetContentRegionMax().x;
+			const auto windowContentWidth = ImGui::GetWindowContentRegionWidth();
+			const auto windowWidth = ImGui::GetWindowWidth();
+			ImGui::BeginGroup();
 			ImGui::Columns(7, "PlayersColumns");
 
 			// Columns setup
 			{
 				float nameColumnWidth = frameWidth;
-				// UserID header and column setup
+
+				const auto AddColumnHeader = [&](const char* name, float widthOverride = -1)
 				{
-					ImGui::TextFmt("User ID");
+					ImGui::TextFmt(name);
 					if (scoreboardResized)
 					{
-						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
+						const float width = widthOverride > 0 ? widthOverride : (ImGui::GetItemRectSize().x + style.ItemSpacing.x * 2);
 						nameColumnWidth -= width;
 						ImGui::SetColumnWidth(-1, width);
 					}
 
 					ImGui::NextColumn();
-				}
+				};
+
+				AddColumnHeader("User ID");
 
 				// Name header and column setup
 				ImGui::TextFmt("Name"); ImGui::NextColumn();
 
-				// Kills header and column setup
-				{
-					ImGui::TextFmt("Kills");
-					if (scoreboardResized)
-					{
-						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
-						nameColumnWidth -= width;
-						ImGui::SetColumnWidth(-1, width);
-					}
-
-					ImGui::NextColumn();
-				}
-
-				// Deaths header and column setup
-				{
-					ImGui::TextFmt("Deaths");
-					if (scoreboardResized)
-					{
-						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
-						nameColumnWidth -= width;
-						ImGui::SetColumnWidth(-1, width);
-					}
-
-					ImGui::NextColumn();
-				}
-
-				// Connection time header and column setup
-				{
-					ImGui::TextFmt("Time");
-					if (scoreboardResized)
-					{
-						const float width = 60;
-						nameColumnWidth -= width;
-						ImGui::SetColumnWidth(-1, width);
-					}
-
-					ImGui::NextColumn();
-				}
-
-				// Ping
-				{
-					ImGui::TextFmt("Ping");
-					if (scoreboardResized)
-					{
-						const float width = ImGui::GetItemRectSize().x + ImGui::GetStyle().ItemSpacing.x * 2;
-						nameColumnWidth -= width;
-						ImGui::SetColumnWidth(-1, width);
-					}
-
-					ImGui::NextColumn();
-				}
+				AddColumnHeader("Kills");
+				AddColumnHeader("Deaths");
+				AddColumnHeader("Time", 60);
+				AddColumnHeader("Ping");
 
 				// SteamID header and column setup
 				{
@@ -137,7 +97,7 @@ void MainWindow::OnDrawScoreboard()
 					if (scoreboardResized)
 					{
 						nameColumnWidth -= 100;// +ImGui::GetStyle().ItemSpacing.x * 2;
-						ImGui::SetColumnWidth(1, std::max(10.0f, nameColumnWidth - ImGui::GetStyle().ItemSpacing.x * 2));
+						ImGui::SetColumnWidth(1, std::max(10.0f, nameColumnWidth - style.ItemSpacing.x * 2));
 					}
 
 					ImGui::NextColumn();
@@ -145,10 +105,28 @@ void MainWindow::OnDrawScoreboard()
 				ImGui::Separator();
 			}
 
-			for (IPlayer& player : m_MainState->GeneratePlayerPrintData())
-				OnDrawScoreboardRow(player);
+			for (int i = 0; i < 15; i++)
+			{
+				ImGuiDesktop::ScopeGuards::ID id(i);
+
+				for (IPlayer& player : m_MainState->GeneratePlayerPrintData())
+					OnDrawScoreboardRow(player);
+			}
+
+			ImGui::EndGroup();
+
+			// Save the height of the scoreboard contents so we can resize to fit it next frame
+			{
+				float height = ImGui::GetItemRectSize().y;
+				height += style.WindowPadding.y * 2;
+
+				// Is the horizontal scrollbar visible?
+				if (windowContentWidth < contentWidthMin)
+					height += style.ScrollbarSize;
+
+				lastScoreboardHeight = height;
+			}
 		}
-		//ImGui::EndChild();
 	}
 
 	ImGui::EndChild();
