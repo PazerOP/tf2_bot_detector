@@ -53,6 +53,7 @@ namespace tf2_bot_detector
 		{
 			{ "colors", d.m_Colors },
 			{ "global_scale", d.m_GlobalScale },
+			{ "font_temp", d.m_Font },
 		};
 	}
 
@@ -87,6 +88,7 @@ namespace tf2_bot_detector
 	{
 		d.m_Colors = j.at("colors");
 		try_get_to_defaulted(j, d, &Settings::Theme::m_GlobalScale, "global_scale");
+		try_get_to_defaulted(j, d, &Settings::Theme::m_Font, "font_temp");
 	}
 
 	void from_json(const nlohmann::json& j, GotoProfileSite& d)
@@ -129,6 +131,32 @@ void GeneralSettings::SetSteamAPIKey(std::string key)
 {
 	ILogManager::GetInstance().AddSecret(key, mh::format("<STEAM_API_KEY:{}>", key.size()));
 	m_SteamAPIKey = std::move(key);
+}
+
+void tf2_bot_detector::to_json(nlohmann::json& j, const Font& d)
+{
+	switch (d)
+	{
+	case Font::ProggyTiny_10px:   j = "proggy_tiny_10px"; break;
+	case Font::ProggyTiny_20px:   j = "proggy_tiny_20px"; break;
+	case Font::ProggyClean_13px:  j = "proggy_clean_13px"; break;
+	case Font::ProggyClean_26px:  j = "proggy_clean_26px"; break;
+	}
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, Font& d)
+{
+	auto value = mh::tolower(j.get<std::string_view>());
+	if (value == "proggy_tiny_10px")
+		d = Font::ProggyTiny_10px;
+	else if (value == "proggy_tiny_20px")
+		d = Font::ProggyTiny_20px;
+	else if (value == "proggy_clean_13px")
+		d = Font::ProggyClean_13px;
+	else if (value == "proggy_clean_26px")
+		d = Font::ProggyClean_26px;
+	else
+		throw std::invalid_argument(mh::format("{}: Unknown font {}", mh::source_location::current(), std::quoted(value)));
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const ReleaseChannel& d)

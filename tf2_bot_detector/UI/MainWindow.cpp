@@ -61,20 +61,61 @@ MainWindow::MainWindow() :
 	GetWorld().AddConsoleLineListener(this);
 	GetWorld().AddWorldEventListener(this);
 
+	SetupFonts();
 	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
+	ImGui::GetIO().FontDefault = GetFontPointer(m_Settings.m_Theme.m_Font);
 
 	PrintDebugInfo();
 
 	m_OpenTime = clock_t::now();
 
+
 	GetActionManager().AddPeriodicActionGenerator<StatusUpdateActionGenerator>();
 	GetActionManager().AddPeriodicActionGenerator<ConfigActionGenerator>();
 	GetActionManager().AddPeriodicActionGenerator<LobbyDebugActionGenerator>();
-	//m_ActionManager.AddPiggybackAction<GenericCommandAction>("net_status");
 }
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::SetupFonts()
+{
+	// Add ProggyClean.ttf 24px (200%) and ProggyTiny 10px
+
+	ImFontConfig config{};
+	config.OversampleV = config.OversampleH = 1; // Bitmap fonts look bad with oversampling
+
+	m_ProggyTiny10Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+		IFilesystem::Get().ResolvePath("fonts/ProggyTiny.ttf", PathUsage::Read).string().c_str(),
+		10, &config);
+
+	m_ProggyTiny20Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+		IFilesystem::Get().ResolvePath("fonts/ProggyTiny.ttf", PathUsage::Read).string().c_str(),
+		20, &config);
+
+	config.GlyphOffset.y = 1;
+	m_ProggyClean26Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+		IFilesystem::Get().ResolvePath("fonts/ProggyClean.ttf", PathUsage::Read).string().c_str(),
+		26, &config);
+}
+
+ImFont* MainWindow::GetFontPointer(Font f)
+{
+	const auto defaultFont = ImGui::GetIO().Fonts->Fonts[0];
+	switch (f)
+	{
+	default:
+		LogError("Unknown font {}", mh::enum_fmt(f));
+	case Font::ProggyClean_13px:
+		return defaultFont;
+	case Font::ProggyClean_26px:
+		return m_ProggyClean26Font ? m_ProggyClean26Font : defaultFont;
+	case Font::ProggyTiny_10px:
+		return m_ProggyTiny10Font ? m_ProggyTiny10Font : defaultFont;
+	case Font::ProggyTiny_20px:
+		return m_ProggyTiny20Font ? m_ProggyTiny20Font : defaultFont;
+	}
 }
 
 void MainWindow::OnDrawColorPicker(const char* name, std::array<float, 4>& color)
@@ -298,12 +339,47 @@ void MainWindow::OnDrawSettingsPopup()
 				m_Settings.m_Theme.m_GlobalScale = fontGlobalScale = 1;
 				m_Settings.SaveFile();
 			}
-			ImGui::SameLine();
-			if (ImGui::SliderFloat("Global UI Scale", &fontGlobalScale, 0.75f, 2.0f,
+			ImGui::SameLineNoPad();
+			if (ImGui::SliderFloat("Global UI Scale", &fontGlobalScale, 0.5f, 2.0f,
 				"%1.2f", ImGuiSliderFlags_AlwaysClamp))
 			{
 				m_Settings.m_Theme.m_GlobalScale = fontGlobalScale;
 				m_Settings.SaveFile();
+			}
+
+			const auto GetFontComboString = [](Font f)
+			{
+				switch (f)
+				{
+				case Font::ProggyClean_13px: return "Proggy Clean, 13px";
+				case Font::ProggyClean_26px: return "Proggy Clean, 26px";
+				case Font::ProggyTiny_10px:  return "Proggy Tiny, 10px";
+				case Font::ProggyTiny_20px:  return "Proggy Tiny, 20px";
+				}
+			};
+
+			if (ImGui::BeginCombo("Font", GetFontComboString(m_Settings.m_Theme.m_Font)))
+			{
+				const auto FontSelectable = [&](Font f, ImFont* fontPtr)
+				{
+					if (!fontPtr)
+						return;
+
+					if (ImGui::Selectable(GetFontComboString(f), m_Settings.m_Theme.m_Font == f))
+					{
+						//static bool s_HasPushedFont
+						ImGui::GetIO().FontDefault = fontPtr;
+						m_Settings.m_Theme.m_Font = f;
+						m_Settings.SaveFile();
+					}
+				};
+
+				FontSelectable(Font::ProggyTiny_10px, m_ProggyTiny10Font);
+				FontSelectable(Font::ProggyTiny_20px, m_ProggyTiny20Font);
+				FontSelectable(Font::ProggyClean_13px, ImGui::GetIO().Fonts->Fonts[0]);
+				FontSelectable(Font::ProggyClean_26px, m_ProggyClean26Font);
+
+				ImGui::EndCombo();
 			}
 
 			ImGui::TreePop();

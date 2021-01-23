@@ -26,6 +26,7 @@
 #include <optional>
 #include <vector>
 
+struct ImFont;
 struct ImVec4;
 
 namespace tf2_bot_detector
@@ -88,6 +89,12 @@ namespace tf2_bot_detector
 
 		bool IsTimeEven() const;
 		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
+
+		void SetupFonts();
+		ImFont* GetFontPointer(Font f);
+		ImFont* m_ProggyTiny10Font{};
+		ImFont* m_ProggyTiny20Font{};
+		ImFont* m_ProggyClean26Font{};
 
 		// IConsoleLineListener
 		void OnConsoleLineParsed(IWorldState& world, IConsoleLine& line) override;

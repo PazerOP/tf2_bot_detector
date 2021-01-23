@@ -18,6 +18,17 @@ namespace srcon
 
 namespace tf2_bot_detector
 {
+	enum class Font
+	{
+		ProggyTiny_10px,
+		ProggyClean_13px,
+		ProggyTiny_20px,
+		ProggyClean_26px,
+	};
+
+	void to_json(nlohmann::json& j, const Font& d);
+	void from_json(const nlohmann::json& j, Font& d);
+
 	class IHTTPClient;
 	enum class ReleaseChannel;
 
@@ -113,6 +124,7 @@ namespace tf2_bot_detector
 		struct Theme
 		{
 			float m_GlobalScale = 1.0f;
+			Font m_Font = Font::ProggyClean_13px;
 
 			struct Colors
 			{
@@ -159,3 +171,10 @@ namespace tf2_bot_detector
 		mutable std::shared_ptr<IHTTPClient> m_HTTPClient;
 	};
 }
+
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Font)
+	MH_ENUM_REFLECT_VALUE(ProggyTiny_10px)
+	MH_ENUM_REFLECT_VALUE(ProggyClean_13px)
+	MH_ENUM_REFLECT_VALUE(ProggyTiny_20px)
+	MH_ENUM_REFLECT_VALUE(ProggyClean_26px)
+MH_ENUM_REFLECT_END()
