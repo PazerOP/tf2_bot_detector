@@ -12,7 +12,18 @@ duration_t IPlayer::GetTimeSinceLastStatusUpdate() const
 std::optional<duration_t> IPlayer::GetEstimatedAccountAge() const
 {
 	if (auto timePoint = GetEstimatedAccountCreationTime())
-		return clock_t::now() - *timePoint;
+	{
+		auto age = clock_t::now() - *timePoint;
+
+		if (age.count() < 0)
+		{
+			DebugLogWarning("{}: account creation time age = {}, timePoint = {}", *this, age.count(),
+				timePoint->time_since_epoch().count());
+			return std::nullopt;
+		}
+
+		return age;
+	}
 
 	return std::nullopt;
 }
