@@ -293,7 +293,13 @@ void MainWindow::OnDrawSettingsPopup()
 		if (ImGui::TreeNode("UI"))
 		{
 			float& fontGlobalScale = ImGui::GetIO().FontGlobalScale;
-			if (ImGui::SliderFloat("Global UI Scale", &fontGlobalScale, 1.0f, 2.0f,
+			if (ImGui::Button("Reset"))
+			{
+				m_Settings.m_Theme.m_GlobalScale = fontGlobalScale = 1;
+				m_Settings.SaveFile();
+			}
+			ImGui::SameLine();
+			if (ImGui::SliderFloat("Global UI Scale", &fontGlobalScale, 0.75f, 2.0f,
 				"%1.2f", ImGuiSliderFlags_AlwaysClamp))
 			{
 				m_Settings.m_Theme.m_GlobalScale = fontGlobalScale;
