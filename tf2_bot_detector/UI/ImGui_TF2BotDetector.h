@@ -5,6 +5,7 @@
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <mh/raii/scope_exit.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/types/disable_copy_move.hpp>

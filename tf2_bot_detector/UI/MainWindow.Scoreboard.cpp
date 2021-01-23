@@ -26,6 +26,7 @@ void MainWindow::OnDrawScoreboard()
 	constexpr bool forceRecalc = false;
 
 	static constexpr float contentWidthMin = 500;
+	float contentWidthMinOuter = contentWidthMin + style.WindowPadding.x * 2;
 
 	// Horizontal scroller for color pickers
 	OnDrawColorPickers("ScoreboardColorPickers",
@@ -40,7 +41,11 @@ void MainWindow::OnDrawScoreboard()
 			{ "Racist", m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG },
 		});
 
-	ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
+	const auto availableSpaceOuter = ImGui::GetContentRegionAvail();
+
+	//ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
+	if (availableSpaceOuter.x < contentWidthMinOuter)
+		ImGui::SetNextWindowContentSize(ImVec2{ contentWidthMin, -1 });
 
 	static ImGuiDesktop::Storage<float> s_ScoreboardHeightStorage;
 	const auto lastScoreboardHeight = s_ScoreboardHeightStorage.Snapshot();
@@ -57,8 +62,6 @@ void MainWindow::OnDrawScoreboard()
 				return changed || forceRecalc;
 			}();
 
-			const auto frameWidth = ImGui::GetWorkRectSize().x;
-			const auto contentWidth = ImGui::GetContentRegionMax().x;
 			const auto windowContentWidth = ImGui::GetWindowContentRegionWidth();
 			const auto windowWidth = ImGui::GetWindowWidth();
 			ImGui::BeginGroup();
@@ -66,7 +69,7 @@ void MainWindow::OnDrawScoreboard()
 
 			// Columns setup
 			{
-				float nameColumnWidth = frameWidth;
+				float nameColumnWidth = windowContentWidth;
 
 				const auto AddColumnHeader = [&](const char* name, float widthOverride = -1)
 				{
