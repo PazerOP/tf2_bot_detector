@@ -351,6 +351,9 @@ void MainWindow::OnDrawSettingsPopup()
 			{
 				switch (f)
 				{
+				default:
+					LogError("Unknown font {}", mh::enum_fmt(f));
+					[[fallthrough]];
 				case Font::ProggyClean_13px: return "Proggy Clean, 13px";
 				case Font::ProggyClean_26px: return "Proggy Clean, 26px";
 				case Font::ProggyTiny_10px:  return "Proggy Tiny, 10px";
