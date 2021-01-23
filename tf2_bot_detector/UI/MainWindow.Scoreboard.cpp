@@ -208,7 +208,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 
 	// player names column
 	{
-		static constexpr bool DEBUG_ALWAYS_DRAW_ICONS = true;
+		static constexpr bool DEBUG_ALWAYS_DRAW_ICONS = false;
 
 		const auto columnEndX = ImGui::GetCursorPosX() - ImGui::GetStyle().ItemSpacing.x + ImGui::GetColumnWidth();
 
