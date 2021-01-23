@@ -1,14 +1,23 @@
 #include "TextureManager.h"
 #include "Bitmap.h"
 
+#if 0
+#define GLBINDING_AVAILABLE 1
 #include <glbinding-aux/ContextInfo.h>
 #include <glbinding/gl21/gl.h>
 #include <glbinding/gl21ext/gl.h>
 #include <glbinding/gl30/gl.h>
+using namespace gl21;
+#else
+#include <Windows.h>
+#include <gl/GL.h>
+#endif
 #include <mh/concurrency/thread_sentinel.hpp>
 #include <mh/memory/unique_object.hpp>
 
-using namespace gl21;
+#include <array>
+#include <set>
+
 using namespace tf2_bot_detector;
 
 namespace
@@ -62,15 +71,19 @@ namespace
 		std::shared_ptr<ITexture> CreateTexture(const Bitmap& bitmap, const TextureSettings& settings) override;
 		size_t GetActiveTextureCount() const override { return m_Textures.size(); }
 
+#ifdef GLBINDING_AVAILABLE
 		bool HasExtension(GLextension ext) const { return GetExtensions().contains(ext); }
 		const std::set<GLextension>& GetExtensions() const { return m_Extensions; }
 
 		const glbinding::Version& GetContextVersion() const { return m_ContextVersion; }
+#endif
 
 	private:
+#ifdef GLBINDING_AVAILABLE
 		glbinding::Version m_ContextVersion{};
-
 		const std::set<GLextension> m_Extensions = glbinding::aux::ContextInfo::extensions();
+#endif
+
 		uint64_t m_FrameCount{};
 		std::vector<std::shared_ptr<Texture>> m_Textures;
 		mh::thread_sentinel m_Sentinel;
@@ -84,7 +97,9 @@ std::shared_ptr<ITextureManager> tf2_bot_detector::ITextureManager::Create()
 
 TextureManager::TextureManager()
 {
+#ifdef GLBINDING_AVAILABLE
 	m_ContextVersion = glbinding::aux::ContextInfo::version();
+#endif
 }
 
 void TextureManager::EndFrame()
@@ -140,6 +155,8 @@ Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const Text
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, bitmap.GetWidth(), bitmap.GetHeight(), 0,
 		sourceFormat, sourceType, bitmap.GetData());
 
+
+#ifdef GLBINDING_AVAILABLE
 	if (manager.HasExtension(GLextension::GL_ARB_texture_swizzle))
 	{
 		using namespace gl21ext;
@@ -150,12 +167,15 @@ Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const Text
 		using namespace gl21ext;
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA_EXT, swizzle.data());
 	}
+#endif
 
+#ifdef GLBINDING_AVAILABLE
 	if (m_Settings.m_EnableMips && manager.GetContextVersion() >= glbinding::Version(3, 0))
 	{
 		gl30::glGenerateMipmap(GL_TEXTURE_2D);
 	}
 	else
+#endif
 	{
 		// just disable mipmaps
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
