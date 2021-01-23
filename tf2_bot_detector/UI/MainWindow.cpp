@@ -61,6 +61,8 @@ MainWindow::MainWindow() :
 	GetWorld().AddConsoleLineListener(this);
 	GetWorld().AddWorldEventListener(this);
 
+	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
+
 	PrintDebugInfo();
 
 	m_OpenTime = clock_t::now();
@@ -284,6 +286,19 @@ void MainWindow::OnDrawSettingsPopup()
 						m_Settings.SaveFile();
 					}
 				}, "Requires \"Allow internet connectivity\"");
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("UI"))
+		{
+			float& fontGlobalScale = ImGui::GetIO().FontGlobalScale;
+			if (ImGui::SliderFloat("Global UI Scale", &fontGlobalScale, 1.0f, 2.0f,
+				"%1.2f", ImGuiSliderFlags_AlwaysClamp))
+			{
+				m_Settings.m_Theme.m_GlobalScale = fontGlobalScale;
+				m_Settings.SaveFile();
+			}
 
 			ImGui::TreePop();
 		}

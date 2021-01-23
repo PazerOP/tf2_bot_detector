@@ -112,6 +112,8 @@ namespace tf2_bot_detector
 
 		struct Theme
 		{
+			float m_GlobalScale = 1.0f;
+
 			struct Colors
 			{
 				std::array<float, 4> m_ScoreboardCheaterBG = { 1, 0, 1, 1 };

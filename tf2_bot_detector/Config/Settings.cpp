@@ -51,7 +51,8 @@ namespace tf2_bot_detector
 	{
 		j =
 		{
-			{ "colors", d.m_Colors }
+			{ "colors", d.m_Colors },
+			{ "global_scale", d.m_GlobalScale },
 		};
 	}
 
@@ -85,6 +86,7 @@ namespace tf2_bot_detector
 	void from_json(const nlohmann::json& j, Settings::Theme& d)
 	{
 		d.m_Colors = j.at("colors");
+		try_get_to_defaulted(j, d, &Settings::Theme::m_GlobalScale, "global_scale");
 	}
 
 	void from_json(const nlohmann::json& j, GotoProfileSite& d)

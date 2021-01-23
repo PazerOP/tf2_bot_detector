@@ -22,6 +22,7 @@ using namespace tf2_bot_detector;
 void MainWindow::OnDrawScoreboard()
 {
 	const auto& style = ImGui::GetStyle();
+	const auto currentFontScale = ImGui::GetCurrentFontScale();
 
 	constexpr bool forceRecalc = false;
 
@@ -76,7 +77,13 @@ void MainWindow::OnDrawScoreboard()
 					ImGui::TextFmt(name);
 					if (scoreboardResized)
 					{
-						const float width = widthOverride > 0 ? widthOverride : (ImGui::GetItemRectSize().x + style.ItemSpacing.x * 2);
+						float width;
+
+						if (widthOverride > 0)
+							width = widthOverride * currentFontScale;
+						else
+							width = (ImGui::GetItemRectSize().x + style.ItemSpacing.x * 2);
+
 						nameColumnWidth -= width;
 						ImGui::SetColumnWidth(-1, width);
 					}
@@ -99,7 +106,7 @@ void MainWindow::OnDrawScoreboard()
 					ImGui::TextFmt("Steam ID");
 					if (scoreboardResized)
 					{
-						nameColumnWidth -= 100;// +ImGui::GetStyle().ItemSpacing.x * 2;
+						nameColumnWidth -= 100 * currentFontScale;// +ImGui::GetStyle().ItemSpacing.x * 2;
 						ImGui::SetColumnWidth(1, std::max(10.0f, nameColumnWidth - style.ItemSpacing.x * 2));
 					}
 
@@ -201,7 +208,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 
 	// player names column
 	{
-		static constexpr bool DEBUG_ALWAYS_DRAW_ICONS = false;
+		static constexpr bool DEBUG_ALWAYS_DRAW_ICONS = true;
 
 		const auto columnEndX = ImGui::GetCursorPosX() - ImGui::GetStyle().ItemSpacing.x + ImGui::GetColumnWidth();
 
@@ -289,12 +296,14 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 			// Move it up very slightly so it looks centered in these tiny rows
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2);
 
+			const float iconSize = 16 * ImGui::GetCurrentFontScale();
+
 			const auto spacing = ImGui::GetStyle().ItemSpacing.x;
-			ImGui::SetCursorPosX(columnEndX - (16 + spacing) * icons.size());
+			ImGui::SetCursorPosX(columnEndX - (iconSize + spacing) * icons.size());
 
 			for (size_t i = 0; i < icons.size(); i++)
 			{
-				ImGui::Image(icons[i].m_Texture, { 16, 16 }, { 0, 0 }, { 1, 1 }, icons[i].m_Color);
+				ImGui::Image(icons[i].m_Texture, { iconSize, iconSize }, { 0, 0 }, { 1, 1 }, icons[i].m_Color);
 
 				ImGuiDesktop::ScopeGuards::TextColor color({ 1, 1, 1, 1 });
 				if (ImGui::SetHoverTooltip(icons[i].m_Tooltip))

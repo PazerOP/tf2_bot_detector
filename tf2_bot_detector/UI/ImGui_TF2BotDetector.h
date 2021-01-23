@@ -183,6 +183,8 @@ namespace ImGui
 
 	inline void SameLineNoPad() { ImGui::SameLine(0, 0); }
 
+	float GetCurrentFontScale();
+
 	void PacifierText();
 }
 

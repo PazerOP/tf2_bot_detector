@@ -610,6 +610,12 @@ void ImGui::PopDisabled()
 	ImGui::PopItemFlag();
 }
 
+float ImGui::GetCurrentFontScale()
+{
+	ImGuiContext& g = *GImGui;
+	return (g.FontSize * g.IO.FontGlobalScale) / g.FontBaseSize;
+}
+
 void ImGui::PacifierText()
 {
 	ImGui::TextFmt("Loading..."sv);
