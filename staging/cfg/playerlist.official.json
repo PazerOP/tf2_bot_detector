@@ -6787,6 +6787,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "pot",
+				"time": 1611388293
+			},
+			"steamid": "[U:1:1141703973]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "shoppy.gg/@d3fc0n6",
 				"time": 1607327475
 			},
@@ -7201,6 +7211,53 @@
 				"time": 1611054934
 			},
 			"steamid": "[U:1:1171190541]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"time": 1611388291
+			},
+			"steamid": "[U:1:1172118271]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Elder God pot",
+				"time": 1611388283
+			},
+			"steamid": "[U:1:1172140695]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)Elder God pot",
+				"time": 1611388285
+			},
+			"steamid": "[U:1:1172283818]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"time": 1611388289
+			},
+			"steamid": "[U:1:1172292252]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"time": 1611388288
+			},
+			"steamid": "[U:1:1172789970]"
 		}
 	]
 }
