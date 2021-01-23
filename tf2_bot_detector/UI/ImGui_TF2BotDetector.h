@@ -5,7 +5,6 @@
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui.h>
-#include <imgui_internal.h>
 #include <mh/raii/scope_exit.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/types/disable_copy_move.hpp>
@@ -145,6 +144,9 @@ namespace ImGui
 		return false;
 	}
 
+	void PushDisabled();  // NOTE: Use EnabledSwitch instead
+	void PopDisabled();   // NOTE: Use EnabledSwitch instead
+
 	template<typename TFunc>
 	inline void EnabledSwitch(bool enabled, TFunc&& func, const std::string_view& disabledTooltip = {})
 	{
@@ -160,14 +162,14 @@ namespace ImGui
 			ImGui::BeginGroup();
 			{
 				ImGuiDesktop::ScopeGuards::GlobalAlpha globalAlpha(0.65f);
-				ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+				ImGui::PushDisabled();
 
 				if constexpr (std::is_invocable_v<TFunc, bool>)
 					func(false);
 				else
 					func();
 
-				ImGui::PopItemFlag();
+				ImGui::PopDisabled();
 			}
 			ImGui::EndGroup();
 

@@ -9,6 +9,7 @@
 #include "Version.h"
 #include "ReleaseChannel.h"
 
+#include <imgui_internal.h>
 #include <imgui_desktop/ScopeGuards.h>
 #include <mh/memory/cached_variable.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -597,6 +598,16 @@ ImVec2 ImGui::CalcButtonSize(const char* label)
 void ImGui::Value(const char* prefix, double v, const char* float_format)
 {
 	return Value(prefix, float(v), float_format);
+}
+
+void ImGui::PushDisabled()
+{
+	ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+}
+
+void ImGui::PopDisabled()
+{
+	ImGui::PopItemFlag();
 }
 
 void ImGui::PacifierText()
