@@ -4,7 +4,6 @@
 	"dependencies": [
 		"sdl2",
 		"openssl",
-		"glbinding",
 		"cpp-httplib",
 		"libzippp",
 		"fmt",

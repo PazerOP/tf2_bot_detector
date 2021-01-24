@@ -1,7 +1,7 @@
 #include "TextureManager.h"
 #include "Bitmap.h"
 
-#if 0
+#if IMGUI_USE_GLBINDING
 #define GLBINDING_AVAILABLE 1
 #include <glbinding-aux/ContextInfo.h>
 #include <glbinding/gl21/gl.h>
@@ -71,7 +71,7 @@ namespace
 		std::shared_ptr<ITexture> CreateTexture(const Bitmap& bitmap, const TextureSettings& settings) override;
 		size_t GetActiveTextureCount() const override { return m_Textures.size(); }
 
-#ifdef GLBINDING_AVAILABLE
+#ifdef IMGUI_USE_GLBINDING
 		bool HasExtension(GLextension ext) const { return GetExtensions().contains(ext); }
 		const std::set<GLextension>& GetExtensions() const { return m_Extensions; }
 
@@ -79,7 +79,7 @@ namespace
 #endif
 
 	private:
-#ifdef GLBINDING_AVAILABLE
+#ifdef IMGUI_USE_GLBINDING
 		glbinding::Version m_ContextVersion{};
 		const std::set<GLextension> m_Extensions = glbinding::aux::ContextInfo::extensions();
 #endif
@@ -97,7 +97,7 @@ std::shared_ptr<ITextureManager> tf2_bot_detector::ITextureManager::Create()
 
 TextureManager::TextureManager()
 {
-#ifdef GLBINDING_AVAILABLE
+#ifdef IMGUI_USE_GLBINDING
 	m_ContextVersion = glbinding::aux::ContextInfo::version();
 #endif
 }
@@ -156,7 +156,7 @@ Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const Text
 		sourceFormat, sourceType, bitmap.GetData());
 
 
-#ifdef GLBINDING_AVAILABLE
+#ifdef IMGUI_USE_GLBINDING
 	if (manager.HasExtension(GLextension::GL_ARB_texture_swizzle))
 	{
 		using namespace gl21ext;
@@ -169,7 +169,7 @@ Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const Text
 	}
 #endif
 
-#ifdef GLBINDING_AVAILABLE
+#ifdef IMGUI_USE_GLBINDING
 	if (m_Settings.m_EnableMips && manager.GetContextVersion() >= glbinding::Version(3, 0))
 	{
 		gl30::glGenerateMipmap(GL_TEXTURE_2D);
