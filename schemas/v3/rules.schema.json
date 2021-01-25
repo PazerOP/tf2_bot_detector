@@ -78,6 +78,11 @@
 								"minItems": 1,
 								"$ref": "./shared.schema.json#/definitions/tfbd_player_attributes_array"
 							},
+							"transient_mark": {
+								"description": "What attributes to apply to the player, only for the current session. Does not save.",
+								"minItems": 1,
+								"$ref": "./shared.schema.json#/definitions/tfbd_player_attributes_array"
+							},
 							"unmark": {
 								"description": "What attributes to remove from the player.",
 								"minItems": 1,
