@@ -297,6 +297,7 @@ void Settings::Deserialize(const nlohmann::json& json)
 		try_get_to_defaulted(*found, m_AutoChatWarningsConnecting, "auto_chat_warnings_connecting", DEFAULTS.m_AutoChatWarningsConnecting);
 		try_get_to_defaulted(*found, m_AutoVotekick, "auto_votekick", DEFAULTS.m_AutoVotekick);
 		try_get_to_defaulted(*found, m_AutoVotekickDelay, "auto_votekick_delay", DEFAULTS.m_AutoVotekickDelay);
+		try_get_to_defaulted(*found, m_ChatWarningInterval, "chat_warning_interval", DEFAULTS.m_ChatWarningInterval);
 		try_get_to_defaulted(*found, m_AutoMark, "auto_mark", DEFAULTS.m_AutoMark);
 		try_get_to_defaulted(*found, m_LazyLoadAPIData, "lazy_load_api_data", DEFAULTS.m_LazyLoadAPIData);
 

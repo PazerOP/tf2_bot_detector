@@ -61,6 +61,7 @@ namespace tf2_bot_detector
 		bool m_AutoChatWarningsConnecting = false;
 		bool m_AutoVotekick = true;
 		float m_AutoVotekickDelay = 15;
+		float m_ChatWarningInterval = 20;
 		bool m_AutoMark = true;
 
 		bool m_SleepWhenUnfocused = true;
@@ -72,6 +73,7 @@ namespace tf2_bot_detector
 		std::optional<ReleaseChannel> m_ReleaseChannel;
 
 		constexpr auto GetAutoVotekickDelay() const { return std::chrono::duration<float>(m_AutoVotekickDelay); }
+		constexpr auto GetChatWarningInterval() const { return std::chrono::milliseconds((int)(m_ChatWarningInterval * 1000)); }
 
 		const std::string& GetSteamAPIKey() const { return m_SteamAPIKey; }
 		void SetSteamAPIKey(std::string key);
