@@ -271,7 +271,7 @@
 					"cheater"
 				]
 			},
-			"description": "braaap",
+			"description": "braaaap",
 			"triggers": {
 				"username_text_match": {
 					"case_sensitive": false,
