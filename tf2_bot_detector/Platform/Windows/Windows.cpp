@@ -41,7 +41,7 @@ static std::filesystem::path GetKnownFolderPath(const KNOWNFOLDERID& id)
 
 static bool IsReallyWindows10OrGreater()
 {
-	using RtlGetVersionFn = NTSTATUS(*)(PRTL_OSVERSIONINFOW lpVersionInformation);
+	using RtlGetVersionFn = NTSTATUS(WINAPI*)(PRTL_OSVERSIONINFOW lpVersionInformation);
 
 	static const auto s_RtlGetVersionFn = reinterpret_cast<RtlGetVersionFn>(
 		tf2_bot_detector::Platform::GetProcAddressHelper("ntdll.dll", "RtlGetVersion", true));

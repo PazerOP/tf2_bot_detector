@@ -16,7 +16,7 @@ bool tf2_bot_detector::Platform::IsInstalled()
 {
 	static const bool s_IsInstalled = []() -> bool
 	{
-		using func_type = LONG(*)(UINT32* packageFullNameLength, PWSTR packageFullName);
+		using func_type = LONG(WINAPI*)(UINT32* packageFullNameLength, PWSTR packageFullName);
 		constexpr const char FUNC_NAME[] = "GetCurrentPackageFullName";
 		constexpr const char MODULE_NAME[] = "Kernel32.dll";
 
