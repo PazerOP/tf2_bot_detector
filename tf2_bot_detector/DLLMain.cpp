@@ -6,6 +6,7 @@
 #include "Log.h"
 #include "Filesystem.h"
 
+#include <imgui_desktop/Application.h>
 #include <mh/text/string_insertion.hpp>
 
 #ifdef WIN32
@@ -24,9 +25,9 @@ namespace tf2_bot_detector
 	bool g_SkipOpenTF2Check = false;
 #endif
 
-	static void ImGuiDesktopLogFunc(const std::string_view& msg)
+	static void ImGuiDesktopLogFunc(const std::string_view& msg, const mh::source_location& location)
 	{
-		DebugLog("[ImGuiDesktop] "s << msg);
+		DebugLog(location, "[ImGuiDesktop] {}", msg);
 	}
 }
 
@@ -95,14 +96,17 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 
 	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
 
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Initializing MainWindow...");
-	tf2_bot_detector::MainWindow window;
+	DebugLog("Initializing ImGuiDesktop::Application...");
+	ImGuiDesktop::Application app;
 
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Entering event loop...");
-	while (!window.ShouldClose())
-		window.Update();
+	DebugLog("Initializing MainWindow...");
+	app.AddManagedWindow(std::make_unique<tf2_bot_detector::MainWindow>(app));
 
-	DebugLog(MH_SOURCE_LOCATION_CURRENT(), "Graceful shutdown");
+	DebugLog("Entering event loop...");
+	while (!app.ShouldQuit())
+		app.Update();
+
+	DebugLog("Graceful shutdown");
 	return 0;
 }
 

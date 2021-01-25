@@ -2,7 +2,7 @@
 #include "Log.h"
 #include "Platform/Platform.h"
 
-#include <mh/concurrency/main_thread.hpp>
+#include <mh/concurrency/thread_sentinel.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/utility.hpp>
@@ -40,6 +40,8 @@ namespace
 		std::vector<std::filesystem::path> m_SearchPaths;
 		bool m_IsPortable;
 
+		mh::thread_sentinel m_Sentinel;
+
 		std::filesystem::path m_ExeDir;
 		std::filesystem::path m_WorkingDir;
 		std::filesystem::path m_LocalAppDataDir;
@@ -56,7 +58,7 @@ IFilesystem& IFilesystem::Get()
 
 void Filesystem::Init()
 {
-	assert(mh::is_main_thread());
+	m_Sentinel.check();
 
 	if (!m_IsInit)
 	{

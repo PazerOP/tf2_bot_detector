@@ -358,7 +358,7 @@ mh::task<> WorldState::AddConsoleOutputLine(std::string line)
 	auto parsed = IConsoleLine::ParseConsoleLine(line, GetCurrentTime());
 
 	// switch to main thread
-	co_await g_Dispatcher.co_dispatch();
+	co_await GetDispatcher().co_dispatch();
 
 	if (parsed)
 	{
@@ -1024,7 +1024,7 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 						result = ErrorCode::UnknownError;
 					}
 
-					co_await g_Dispatcher.co_dispatch();  // switch to main thread
+					co_await GetDispatcher().co_dispatch();  // switch to main thread
 
 					var = std::move(result);
 				}

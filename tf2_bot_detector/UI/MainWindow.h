@@ -20,7 +20,6 @@
 #include "TFConstants.h"
 
 #include <imgui_desktop/Window.h>
-#include <mh/concurrency/dispatcher.hpp>
 #include <mh/error/expected.hpp>
 
 #include <optional>
@@ -37,14 +36,18 @@ namespace tf2_bot_detector
 	class ITexture;
 	class ITextureManager;
 	class IUpdateManager;
+	class SettingsWindow;
 
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener, BaseWorldEventListener
 	{
 	public:
-		MainWindow();
+		explicit MainWindow(ImGuiDesktop::Application& app);
 		~MainWindow();
 
+		ImFont* GetFontPointer(Font f) const;
+
 	private:
+		void OnImGuiInit() override;
 		void OnDraw() override;
 		void OnEndFrame() override;
 		void OnDrawMenuBar() override;
@@ -68,9 +71,7 @@ namespace tf2_bot_detector
 		void OnDrawAppLog();
 		const void* m_LastLogMessage = nullptr;
 
-		void OnDrawSettingsPopup();
-		bool m_SettingsPopupOpen = false;
-		void OpenSettingsPopup() { m_SettingsPopupOpen = true; }
+		void OpenSettingsPopup();
 
 		void OnDrawUpdateCheckPopup();
 		bool m_UpdateCheckPopupOpen = false;
@@ -91,7 +92,6 @@ namespace tf2_bot_detector
 		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
 
 		void SetupFonts();
-		ImFont* GetFontPointer(Font f);
 		ImFont* m_ProggyTiny10Font{};
 		ImFont* m_ProggyTiny20Font{};
 		ImFont* m_ProggyClean26Font{};
@@ -152,6 +152,7 @@ namespace tf2_bot_detector
 		time_point_t m_LastServerPingSample{};
 
 		Settings m_Settings;
+		std::unique_ptr<SettingsWindow> m_SettingsWindow;
 
 		std::unique_ptr<IUpdateManager> m_UpdateManager;
 

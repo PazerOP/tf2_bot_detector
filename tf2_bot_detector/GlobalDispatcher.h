@@ -4,5 +4,5 @@
 
 namespace tf2_bot_detector
 {
-	extern mh::dispatcher g_Dispatcher;
+	mh::dispatcher& GetDispatcher();
 }

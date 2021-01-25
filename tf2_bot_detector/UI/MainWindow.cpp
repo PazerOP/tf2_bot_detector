@@ -19,7 +19,9 @@
 #include "Version.h"
 #include "GlobalDispatcher.h"
 #include "Networking/HTTPClient.h"
+#include "SettingsWindow.h"
 
+#include <imgui_desktop/Application.h>
 #include <imgui_desktop/ScopeGuards.h>
 #include <imgui_desktop/ImGuiHelpers.h>
 #include <imgui.h>
@@ -45,34 +47,38 @@ using namespace std::string_view_literals;
 
 namespace tf2_bot_detector
 {
-	mh::dispatcher g_Dispatcher;
+	mh::dispatcher& GetDispatcher()
+	{
+		static mh::dispatcher s_Dispatcher;
+		return s_Dispatcher;
+	}
 }
 
-MainWindow::MainWindow() :
-	ImGuiDesktop::Window(800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
+MainWindow::MainWindow(ImGuiDesktop::Application& app) :
+	ImGuiDesktop::Window(app, 800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
 	m_WorldState(IWorldState::Create(m_Settings)),
 	m_ActionManager(IRCONActionManager::Create(m_Settings, GetWorld())),
 	m_TextureManager(ITextureManager::Create()),
 	m_BaseTextures(IBaseTextures::Create(*m_TextureManager)),
 	m_UpdateManager(IUpdateManager::Create(m_Settings))
 {
+	SetIsPrimaryAppWindow(true);
+	ShowWindow();
+
 	ILogManager::GetInstance().CleanupLogFiles();
 
 	GetWorld().AddConsoleLineListener(this);
 	GetWorld().AddWorldEventListener(this);
 
-	SetupFonts();
-	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
-	ImGui::GetIO().FontDefault = GetFontPointer(m_Settings.m_Theme.m_Font);
-
 	PrintDebugInfo();
 
 	m_OpenTime = clock_t::now();
 
-
 	GetActionManager().AddPeriodicActionGenerator<StatusUpdateActionGenerator>();
 	GetActionManager().AddPeriodicActionGenerator<ConfigActionGenerator>();
 	GetActionManager().AddPeriodicActionGenerator<LobbyDebugActionGenerator>();
+
+	//app.AddManagedWindow(std::make_unique<SettingsWindow>(app, m_Settings));
 }
 
 MainWindow::~MainWindow()
@@ -86,21 +92,38 @@ void MainWindow::SetupFonts()
 	ImFontConfig config{};
 	config.OversampleV = config.OversampleH = 1; // Bitmap fonts look bad with oversampling
 
-	m_ProggyTiny10Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-		IFilesystem::Get().ResolvePath("fonts/ProggyTiny.ttf", PathUsage::Read).string().c_str(),
-		10, &config);
+	if (!m_ProggyTiny10Font)
+	{
+		m_ProggyTiny10Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+			IFilesystem::Get().ResolvePath("fonts/ProggyTiny.ttf", PathUsage::Read).string().c_str(),
+			10, &config);
+	}
 
-	m_ProggyTiny20Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-		IFilesystem::Get().ResolvePath("fonts/ProggyTiny.ttf", PathUsage::Read).string().c_str(),
-		20, &config);
+	if (!m_ProggyTiny20Font)
+	{
+		m_ProggyTiny20Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+			IFilesystem::Get().ResolvePath("fonts/ProggyTiny.ttf", PathUsage::Read).string().c_str(),
+			20, &config);
+	}
 
-	config.GlyphOffset.y = 1;
-	m_ProggyClean26Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-		IFilesystem::Get().ResolvePath("fonts/ProggyClean.ttf", PathUsage::Read).string().c_str(),
-		26, &config);
+	if (!m_ProggyClean26Font)
+	{
+		config.GlyphOffset.y = 1;
+		m_ProggyClean26Font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+			IFilesystem::Get().ResolvePath("fonts/ProggyClean.ttf", PathUsage::Read).string().c_str(),
+			26, &config);
+	}
 }
 
-ImFont* MainWindow::GetFontPointer(Font f)
+void MainWindow::OnImGuiInit()
+{
+	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
+	ImGui::GetIO().FontDefault = GetFontPointer(m_Settings.m_Theme.m_Font);
+
+	SetupFonts();
+}
+
+ImFont* MainWindow::GetFontPointer(Font f) const
 {
 	const auto defaultFont = ImGui::GetIO().Fonts->Fonts[0];
 	switch (f)
@@ -203,198 +226,12 @@ void MainWindow::OnDrawAppLog()
 		});
 }
 
-void MainWindow::OnDrawSettingsPopup()
+void MainWindow::OpenSettingsPopup()
 {
-	static constexpr char POPUP_NAME[] = "Settings##Popup";
-
-	static bool s_Open = false;
-	if (m_SettingsPopupOpen)
-	{
-		m_SettingsPopupOpen = false;
-		ImGui::OpenPopup(POPUP_NAME);
-		s_Open = true;
-	}
-
-	ImGui::SetNextWindowSize({ 400, 400 }, ImGuiCond_Once);
-	if (ImGui::BeginPopupModal(POPUP_NAME, &s_Open, ImGuiWindowFlags_HorizontalScrollbar))
-	{
-		if (ImGui::TreeNode("Autodetected Settings Overrides"))
-		{
-			// Steam dir
-			if (InputTextSteamDirOverride("Steam directory", m_Settings.m_SteamDirOverride, true))
-				m_Settings.SaveFile();
-
-			// TF game dir override
-			if (InputTextTFDirOverride("tf directory", m_Settings.m_TFDirOverride, FindTFDir(m_Settings.GetSteamDir()), true))
-				m_Settings.SaveFile();
-
-			// Local steamid
-			if (InputTextSteamIDOverride("My Steam ID", m_Settings.m_LocalSteamIDOverride, true))
-				m_Settings.SaveFile();
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Logging"))
-		{
-#ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
-			if (ImGui::Checkbox("Discord Rich Presence", &m_Settings.m_Logging.m_DiscordRichPresence))
-				m_Settings.SaveFile();
-#endif
-			if (ImGui::Checkbox("RCON Packets", &m_Settings.m_Logging.m_RCONPackets))
-				m_Settings.SaveFile();
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Moderation"))
-		{
-			// Auto temp mute
-			{
-				if (ImGui::Checkbox("Auto temp mute", &m_Settings.m_AutoTempMute))
-					m_Settings.SaveFile();
-				ImGui::SetHoverTooltip("Automatically, temporarily mute ingame chat messages if we think someone else in the server is running the tool.");
-			}
-
-			// Auto votekick delay
-			{
-				if (ImGui::SliderFloat("Auto votekick delay", &m_Settings.m_AutoVotekickDelay, 0, 30, "%1.1f seconds"))
-					m_Settings.SaveFile();
-				ImGui::SetHoverTooltip("Delay between a player being registered as fully connected and us expecting them to be ready to vote on an issue.\n\n"
-					"This is needed because players can't vote until they have joined a team and picked a class. If we call a vote before enough people are ready, it might fail.");
-			}
-
-			// Send warnings for connecting cheaters
-			{
-				if (ImGui::Checkbox("Chat message warnings for connecting cheaters", &m_Settings.m_AutoChatWarningsConnecting))
-					m_Settings.SaveFile();
-
-				ImGui::SetHoverTooltip("Automatically sends a chat message if a cheater has joined the lobby,"
-					" but is not yet in the game. Only has an effect if \"Enable Chat Warnings\""
-					" is enabled (upper left of main window).\n"
-					"\n"
-					"Looks like: \"Heads up! There are N known cheaters joining the other team! Names unknown until they fully join.\"");
-			}
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Performance"))
-		{
-			// Sleep when unfocused
-			{
-				if (ImGui::Checkbox("Sleep when unfocused", &m_Settings.m_SleepWhenUnfocused))
-					m_Settings.SaveFile();
-				ImGui::SetHoverTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
-			}
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Service Integrations"))
-		{
-			if (ImGui::Checkbox("Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
-				m_Settings.SaveFile();
-
-#ifdef _DEBUG
-			if (ImGui::Checkbox("Lazy Load API Data", &m_Settings.m_LazyLoadAPIData))
-				m_Settings.SaveFile();
-			ImGui::SetHoverTooltip("If enabled, waits until data is actually needed by the UI before requesting it, saving system resources. Otherwise, instantly loads all data from integration APIs as soon as a player joins the server.");
-#endif
-
-			if (bool allowInternet = m_Settings.m_AllowInternetUsage.value_or(false);
-				ImGui::Checkbox("Allow internet connectivity", &allowInternet))
-			{
-				m_Settings.m_AllowInternetUsage = allowInternet;
-				m_Settings.SaveFile();
-			}
-
-			ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
-				{
-					ImGui::NewLine();
-					if (std::string key = m_Settings.GetSteamAPIKey();
-						InputTextSteamAPIKey("Steam API Key", key, true))
-					{
-						m_Settings.SetSteamAPIKey(key);
-						m_Settings.SaveFile();
-					}
-					ImGui::NewLine();
-
-					if (auto mode = enabled ? m_Settings.m_ReleaseChannel : ReleaseChannel::None;
-						Combo("Automatic update checking", mode))
-					{
-						m_Settings.m_ReleaseChannel = mode;
-						m_Settings.SaveFile();
-					}
-				}, "Requires \"Allow internet connectivity\"");
-
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("UI"))
-		{
-			float& fontGlobalScale = ImGui::GetIO().FontGlobalScale;
-			if (ImGui::Button("Reset"))
-			{
-				m_Settings.m_Theme.m_GlobalScale = fontGlobalScale = 1;
-				m_Settings.SaveFile();
-			}
-			ImGui::SameLineNoPad();
-			if (ImGui::SliderFloat("Global UI Scale", &fontGlobalScale, 0.5f, 2.0f,
-				"%1.2f", ImGuiSliderFlags_AlwaysClamp))
-			{
-				m_Settings.m_Theme.m_GlobalScale = fontGlobalScale;
-				m_Settings.SaveFile();
-			}
-
-			const auto GetFontComboString = [](Font f)
-			{
-				switch (f)
-				{
-				default:
-					LogError("Unknown font {}", mh::enum_fmt(f));
-					[[fallthrough]];
-				case Font::ProggyClean_13px: return "Proggy Clean, 13px";
-				case Font::ProggyClean_26px: return "Proggy Clean, 26px";
-				case Font::ProggyTiny_10px:  return "Proggy Tiny, 10px";
-				case Font::ProggyTiny_20px:  return "Proggy Tiny, 20px";
-				}
-			};
-
-			if (ImGui::BeginCombo("Font", GetFontComboString(m_Settings.m_Theme.m_Font)))
-			{
-				const auto FontSelectable = [&](Font f, ImFont* fontPtr)
-				{
-					if (!fontPtr)
-						return;
-
-					if (ImGui::Selectable(GetFontComboString(f), m_Settings.m_Theme.m_Font == f))
-					{
-						//static bool s_HasPushedFont
-						ImGui::GetIO().FontDefault = fontPtr;
-						m_Settings.m_Theme.m_Font = f;
-						m_Settings.SaveFile();
-					}
-				};
-
-				FontSelectable(Font::ProggyTiny_10px, m_ProggyTiny10Font);
-				FontSelectable(Font::ProggyTiny_20px, m_ProggyTiny20Font);
-				FontSelectable(Font::ProggyClean_13px, ImGui::GetIO().Fonts->Fonts[0]);
-				FontSelectable(Font::ProggyClean_26px, m_ProggyClean26Font);
-
-				ImGui::EndCombo();
-			}
-
-			ImGui::TreePop();
-		}
-
-		ImGui::NewLine();
-
-		if (AutoLaunchTF2Checkbox(m_Settings.m_AutoLaunchTF2))
-			m_Settings.SaveFile();
-
-		ImGui::EndPopup();
-	}
+	if (!m_SettingsWindow)
+		m_SettingsWindow = std::make_unique<SettingsWindow>(GetApplication(), m_Settings, *this);
+	else
+		m_SettingsWindow->RaiseWindow();
 }
 
 void MainWindow::OnDrawUpdateCheckPopup()
@@ -614,7 +451,11 @@ void MainWindow::OnDrawServerStats()
 
 void MainWindow::OnDraw()
 {
-	OnDrawSettingsPopup();
+	ImGui::GetIO().FontDefault = GetFontPointer(m_Settings.m_Theme.m_Font);
+
+	if (m_SettingsWindow && m_SettingsWindow->ShouldClose())
+		m_SettingsWindow.reset();
+
 	OnDrawUpdateCheckPopup();
 	OnDrawAboutPopup();
 
@@ -847,7 +688,7 @@ void MainWindow::OnUpdate()
 	if (m_Paused)
 		return;
 
-	g_Dispatcher.run_for(10ms);
+	GetDispatcher().run_for(10ms);
 
 	GetWorld().Update();
 	m_UpdateManager->Update();
@@ -1116,7 +957,7 @@ mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGet
 		{
 			avatarData = PlayerAvatarData::LoadAvatarAsync(
 				summary->GetAvatarBitmap(m_Settings.GetHTTPClient()),
-				g_Dispatcher, m_TextureManager);
+				GetDispatcher(), m_TextureManager);
 		}
 		else
 		{

@@ -2,6 +2,7 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
+#include <mh/memory/cached_variable.hpp>
 #include <mh/error/ensure.hpp>
 #include <mh/text/codecvt.hpp>
 #include <mh/text/formatters/error_code.hpp>
@@ -221,26 +222,31 @@ std::shared_future<std::vector<std::string>> tf2_bot_detector::Processes::GetTF2
 
 bool tf2_bot_detector::Processes::IsSteamRunning()
 {
-	const SafeHandle snapshot(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
+	static mh::cached_variable m_CachedValue(std::chrono::seconds(1), []() -> bool
+		{
+			const SafeHandle snapshot(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
 
-	PROCESSENTRY32 entry{};
-	entry.dwSize = sizeof(entry);
+			PROCESSENTRY32 entry{};
+			entry.dwSize = sizeof(entry);
 
-	if (!Process32First(snapshot.get(), &entry))
-	{
-		auto error = GetLastErrorCode();
-		LogError("Failed to enumerate processes: {}", error);
-		return false;
-	}
+			if (!Process32First(snapshot.get(), &entry))
+			{
+				auto error = GetLastErrorCode();
+				LogError("Failed to enumerate processes: {}", error);
+				return false;
+			}
 
-	do
-	{
-		if (!_stricmp(entry.szExeFile, "Steam.exe"))
-			return true;
+			do
+			{
+				if (!_stricmp(entry.szExeFile, "Steam.exe"))
+					return true;
 
-	} while (Process32Next(snapshot.get(), &entry));
+			} while (Process32Next(snapshot.get(), &entry));
 
-	return false;
+			return false;
+		});
+
+	return m_CachedValue.get();
 }
 
 void tf2_bot_detector::Processes::RequireTF2NotRunning()
