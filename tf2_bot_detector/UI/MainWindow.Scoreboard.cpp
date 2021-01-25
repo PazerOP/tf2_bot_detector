@@ -458,7 +458,7 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 
 				if (ImGui::MenuItem(mh::fmtstr<512>("{}", mh::enum_fmt(attr)).c_str(), nullptr, existingMarked))
 				{
-					if (modLogic.SetPlayerAttribute(player, attr, !existingMarked))
+					if (modLogic.SetPlayerAttribute(player, attr, AttributePersistence::Saved, !existingMarked))
 						Log("Manually marked {}{} {}", player, (existingMarked ? " NOT" : ""), mh::enum_fmt(attr));
 				}
 			}

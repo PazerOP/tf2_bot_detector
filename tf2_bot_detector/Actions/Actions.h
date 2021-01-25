@@ -4,6 +4,7 @@
 #include "ICommandSource.h"
 
 #include <mh/reflection/enum.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <cassert>
 #include <cstdint>
@@ -60,6 +61,9 @@ namespace tf2_bot_detector
 		Idle,
 		Scamming,
 	};
+
+	void to_json(nlohmann::json& j, const KickReason& d);
+	void from_json(const nlohmann::json& j, KickReason& d);
 
 	class KickAction final : public GenericCommandAction
 	{

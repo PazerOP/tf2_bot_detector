@@ -2,6 +2,7 @@
 
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
+#include <nlohmann/json.hpp>
 
 #include <iomanip>
 #include <ostream>
@@ -94,4 +95,31 @@ std::string ChatMessageAction::ScrubMessage(std::string msg)
 void LobbyUpdateAction::WriteCommands(ICommandWriter& writer) const
 {
 	writer.Write("tf_lobby_debug");
+}
+
+void tf2_bot_detector::to_json(nlohmann::json& j, const KickReason& d)
+{
+	switch (d)
+	{
+	case KickReason::Other:     j = "other";     break;
+	case KickReason::Cheating:  j = "cheating";  break;
+	case KickReason::Idle:      j = "idle";      break;
+	case KickReason::Scamming:  j = "scamming";  break;
+	}
+}
+
+void tf2_bot_detector::from_json(const nlohmann::json& j, KickReason& d)
+{
+	const auto value = j.get<std::string_view>();
+
+	if (value == "other")
+		d = KickReason::Other;
+	else if (value == "cheating")
+		d = KickReason::Cheating;
+	else if (value == "idle")
+		d = KickReason::Idle;
+	else if (value == "scamming")
+		d = KickReason::Scamming;
+	else
+		throw std::invalid_argument(mh::format("{}: unexpected value {}", MH_SOURCE_LOCATION_CURRENT(), std::quoted(value)));
 }

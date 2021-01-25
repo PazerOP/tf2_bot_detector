@@ -62,7 +62,7 @@ namespace tf2_bot_detector
 		j = nlohmann::json
 		{
 			{ "steamid", d.GetSteamID() },
-			{ "attributes", d.m_Attributes }
+			{ "attributes", d.m_SavedAttributes }
 		};
 
 		if (d.m_LastSeen)
@@ -106,7 +106,7 @@ namespace tf2_bot_detector
 		d.m_Time = clock::time_point(seconds(j.at("time").get<seconds::rep>()));
 		d.m_PlayerName = j.value("player_name", "");
 	}
-	void from_json(const nlohmann::json& j, PlayerListData& d)
+	void from_json(const nlohmann::json& j, PlayerListData& d) try
 	{
 		if (SteamID sid = j.at("steamid"); d.GetSteamID() != sid)
 		{
@@ -114,12 +114,17 @@ namespace tf2_bot_detector
 				<< d.GetSteamID() << ") and json SteamID (" << sid << ')');
 		}
 
-		d.m_Attributes = j.at("attributes").get<PlayerAttributesList>();
+		d.m_SavedAttributes = j.at("attributes").get<PlayerAttributesList>();
 
 		if (auto lastSeen = j.find("last_seen"); lastSeen != j.end())
 			lastSeen->get_to(d.m_LastSeen.emplace());
 
 		try_get_to_defaulted(j, d.m_Proof, "proof");
+	}
+	catch (...)
+	{
+		LogException();
+		throw;
 	}
 }
 auto PlayerListData::LastSeen::Latest(const std::optional<LastSeen>& lhs, const std::optional<LastSeen>& rhs)
@@ -178,7 +183,7 @@ void PlayerListJSON::PlayerListFile::Serialize(nlohmann::json& json) const
 
 	for (const auto& pair : m_Players)
 	{
-		if (pair.second.m_Attributes.empty())
+		if (pair.second.m_SavedAttributes.empty())
 			continue;
 
 		players.push_back(pair.second);
@@ -247,10 +252,10 @@ auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
 }
 
 auto PlayerListJSON::FindPlayerAttributes(const SteamID& id) const ->
-	mh::generator<std::pair<const ConfigFileName&, const PlayerAttributesList&>>
+	mh::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
 {
 	for (auto& [fileName, found] : FindPlayerData(id))
-		co_yield { fileName, found.m_Attributes };
+		co_yield { fileName, found.GetAttributes() };
 }
 
 PlayerMarks PlayerListJSON::GetPlayerAttributes(const SteamID& id) const
@@ -303,7 +308,7 @@ ModifyPlayerResult PlayerListJSON::ModifyPlayer(const SteamID& id,
 		// will get moved back over to the local list in OnPlayerDataChanged
 		const PlayerListData& localPlayer = m_CFGGroup.GetLocalList().GetOrAddPlayer(id);
 		assert(&localPlayer != &defaultMutableDataRef);
-		defaultMutableData.m_Attributes |= localPlayer.m_Attributes;
+		defaultMutableData.m_SavedAttributes |= localPlayer.m_SavedAttributes;
 	}
 
 	const auto action = func(defaultMutableData);
@@ -333,12 +338,12 @@ ModifyPlayerAction PlayerListJSON::OnPlayerDataChanged(PlayerListData& data)
 		PlayerListData& localData = m_CFGGroup.GetLocalList().GetOrAddPlayer(data.GetSteamID());
 		if (&data != &localData)
 		{
-			const auto oldSuspicious = localData.m_Attributes.HasAttribute(PlayerAttribute::Suspicious);
-			const auto newSuspicious = data.m_Attributes.HasAttribute(PlayerAttribute::Suspicious);
+			const auto oldSuspicious = localData.m_SavedAttributes.HasAttribute(PlayerAttribute::Suspicious);
+			const auto newSuspicious = data.m_SavedAttributes.HasAttribute(PlayerAttribute::Suspicious);
 			if (newSuspicious != oldSuspicious)
 			{
-				data.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, false);
-				localData.m_Attributes.SetAttribute(PlayerAttribute::Suspicious, newSuspicious);
+				data.m_SavedAttributes.SetAttribute(PlayerAttribute::Suspicious, false);
+				localData.m_SavedAttributes.SetAttribute(PlayerAttribute::Suspicious, newSuspicious);
 				localData.m_LastSeen = PlayerListData::LastSeen::Latest(localData.m_LastSeen, data.m_LastSeen);
 				retVal = ModifyPlayerAction::Modified;
 			}

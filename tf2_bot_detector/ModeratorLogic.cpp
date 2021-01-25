@@ -78,7 +78,7 @@ namespace
 		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const override;
 		bool InitiateVotekick(const IPlayer& player, KickReason reason, const PlayerMarks* marks = nullptr) override;
 
-		bool SetPlayerAttribute(const IPlayer& id, PlayerAttribute markType, bool set = true) override;
+		bool SetPlayerAttribute(const IPlayer& id, PlayerAttribute markType, AttributePersistence persistence, bool set = true) override;
 
 		std::optional<LobbyMemberTeam> TryGetMyTeam() const;
 		TeamShareResult GetTeamShareResult(const SteamID& id) const override;
@@ -270,12 +270,17 @@ void ModeratorLogic::OnRuleMatch(const ModerationRule& rule, const IPlayer& play
 {
 	for (PlayerAttribute attribute : rule.m_Actions.m_Mark)
 	{
-		if (SetPlayerAttribute(player, attribute))
+		if (SetPlayerAttribute(player, attribute, AttributePersistence::Saved))
 			Log("Marked {} with {:v} due to rule match with {}", player, mh::enum_fmt(attribute), std::quoted(rule.m_Description));
+	}
+	for (PlayerAttribute attribute : rule.m_Actions.m_TransientMark)
+	{
+		if (SetPlayerAttribute(player, attribute, AttributePersistence::Transient))
+			Log("[TRANSIENT] Marked {} with {:v} due to rule match with {}", player, mh::enum_fmt(attribute), std::quoted(rule.m_Description));
 	}
 	for (PlayerAttribute attribute : rule.m_Actions.m_Unmark)
 	{
-		if (SetPlayerAttribute(player, attribute, false))
+		if (SetPlayerAttribute(player, attribute, AttributePersistence::Saved, false))
 			Log("Unmarked {} with {:v} due to rule match with {}", player, mh::enum_fmt(attribute), std::quoted(rule.m_Description));
 	}
 }
@@ -822,15 +827,24 @@ void ModeratorLogic::ProcessPlayerActions()
 	HandleFriendlyCheaters(totalFriendlyPlayers, connectedFriendlyPlayers, friendlyCheaters);
 }
 
-bool ModeratorLogic::SetPlayerAttribute(const IPlayer& player, PlayerAttribute attribute, bool set)
+bool ModeratorLogic::SetPlayerAttribute(const IPlayer& player, PlayerAttribute attribute, AttributePersistence persistence, bool set)
 {
 	bool attributeChanged = false;
 
 	m_PlayerList.ModifyPlayer(player.GetSteamID(), [&](PlayerListData& data)
 		{
-			attributeChanged = data.m_Attributes.HasAttribute(attribute) != set;
+			PlayerAttributesList& attribs = [&]() -> PlayerAttributesList&
+			{
+				switch (persistence)
+				{
+				case AttributePersistence::Saved:      return data.m_SavedAttributes;
+				case AttributePersistence::Transient:  return data.m_TransientAttributes;
+				}
 
-			data.m_Attributes.SetAttribute(attribute, set);
+				throw std::invalid_argument(mh::format("{}", MH_SOURCE_LOCATION_CURRENT()));
+			}();
+
+			attributeChanged = attribs.SetAttribute(attribute, set);
 
 			if (!data.m_LastSeen)
 				data.m_LastSeen.emplace();

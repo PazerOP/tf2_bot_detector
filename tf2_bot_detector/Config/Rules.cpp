@@ -89,6 +89,8 @@ namespace tf2_bot_detector
 	{
 		if (!d.m_Mark.empty())
 			j["mark"] = d.m_Mark;
+		if (!d.m_TransientMark.empty())
+			j["transient_mark"] = d.m_TransientMark;
 		if (!d.m_Unmark.empty())
 			j["unmark"] = d.m_Unmark;
 	}
@@ -179,6 +181,7 @@ namespace tf2_bot_detector
 	void from_json(const nlohmann::json& j, ModerationRule::Actions& d)
 	{
 		try_get_to_defaulted(j, d.m_Mark, "mark");
+		try_get_to_defaulted(j, d.m_TransientMark, "transient_mark");
 		try_get_to_defaulted(j, d.m_Unmark, "unmark");
 	}
 

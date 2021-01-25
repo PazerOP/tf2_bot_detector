@@ -28,6 +28,12 @@ namespace tf2_bot_detector
 		float GetProgress() const;
 	};
 
+	enum class AttributePersistence
+	{
+		Saved,
+		Transient,
+	};
+
 	class IModeratorLogic
 	{
 	public:
@@ -41,7 +47,7 @@ namespace tf2_bot_detector
 
 		virtual PlayerMarks GetPlayerAttributes(const SteamID& id) const = 0;
 		virtual PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const = 0;
-		virtual bool SetPlayerAttribute(const IPlayer& player, PlayerAttribute markType, bool set = true) = 0;
+		virtual bool SetPlayerAttribute(const IPlayer& player, PlayerAttribute markType, AttributePersistence persistence, bool set = true) = 0;
 
 		virtual TeamShareResult GetTeamShareResult(const SteamID& id) const = 0;
 

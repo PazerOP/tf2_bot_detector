@@ -79,7 +79,9 @@ namespace tf2_bot_detector
 
 		constexpr SteamID GetSteamID() const { return m_SteamID; }
 
-		PlayerAttributesList m_Attributes;
+		PlayerAttributesList m_SavedAttributes;
+		PlayerAttributesList m_TransientAttributes;
+		PlayerAttributesList GetAttributes() const { return m_SavedAttributes | m_TransientAttributes; }
 
 		struct LastSeen
 		{
@@ -102,6 +104,7 @@ namespace tf2_bot_detector
 		bool operator==(const PlayerListData&) const;
 
 	private:
+
 		SteamID m_SteamID;
 	};
 
@@ -162,7 +165,7 @@ namespace tf2_bot_detector
 
 		mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 			FindPlayerData(const SteamID& id) const;
-		mh::generator<std::pair<const ConfigFileName&, const PlayerAttributesList&>>
+		mh::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
 			FindPlayerAttributes(const SteamID& id) const;
 		PlayerMarks GetPlayerAttributes(const SteamID& id) const;
 		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const;
