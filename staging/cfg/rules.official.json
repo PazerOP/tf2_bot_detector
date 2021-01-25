@@ -254,13 +254,30 @@
 					"cheater"
 				]
 			},
-			"description": "braaap",
+			"description": "shoppy.gg/@d3fc0n6",
 			"triggers": {
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
 						"shoppy.gg/@d3fc0n6"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "braaap",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "regex",
+					"patterns": [
+						"braaaap \\d+"
 					]
 				}
 			}
@@ -295,6 +312,24 @@
 					"mode": "ends_with",
 					"patterns": [
 						"\u200f"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"transient_mark": [
+					"cheater"
+				]
+			},
+			"description": "Generic name-stealing bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"\u200f",
+						"\u202c"
 					]
 				}
 			}
