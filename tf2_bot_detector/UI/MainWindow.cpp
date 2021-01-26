@@ -460,6 +460,7 @@ void MainWindow::OnDrawServerStats()
 void MainWindow::OnDraw()
 {
 	ImGui::GetIO().FontDefault = GetFontPointer(m_Settings.m_Theme.m_Font);
+	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
 
 	if (m_SettingsWindow && m_SettingsWindow->ShouldClose())
 		m_SettingsWindow.reset();
