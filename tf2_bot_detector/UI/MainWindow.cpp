@@ -481,7 +481,11 @@ void MainWindow::OnDraw()
 	if (!m_MainState)
 		return;
 
-	ImGui::Columns(2, "MainWindowSplit");
+	const auto& mainWindowState = m_Settings.m_UIState.m_MainWindow;
+	const bool columnsEnabled = (mainWindowState.m_ChatEnabled && (mainWindowState.m_AppLogEnabled || mainWindowState.m_ScoreboardEnabled));
+
+	if (columnsEnabled)
+		ImGui::Columns(2, "MainWindowSplit");
 
 	ImGui::HorizontalScrollBox("SettingsScroller", [&]
 		{
@@ -564,13 +568,47 @@ void MainWindow::OnDraw()
 	}
 
 	//OnDrawServerStats();
-	OnDrawChat();
+	if (mainWindowState.m_ChatEnabled)
+		OnDrawChat();
 
-	ImGui::NextColumn();
+	if (columnsEnabled)
+		ImGui::NextColumn();
 
-	OnDrawScoreboard();
-	OnDrawAppLog();
-	ImGui::NextColumn();
+	if (mainWindowState.m_ScoreboardEnabled)
+		OnDrawScoreboard();
+	if (mainWindowState.m_AppLogEnabled)
+		OnDrawAppLog();
+
+	if (columnsEnabled)
+		ImGui::Columns();
+
+	if (!mainWindowState.m_ChatEnabled && !mainWindowState.m_ScoreboardEnabled && !mainWindowState.m_AppLogEnabled)
+		OnDrawAllPanesDisabled();
+}
+
+void MainWindow::OnDrawAllPanesDisabled()
+{
+	ImGui::NewLine();
+	ImGui::NewLine();
+	ImGui::Text("All panes are currently disabled.");
+	ImGui::NewLine();
+
+	auto& mainWindowState = m_Settings.m_UIState.m_MainWindow;
+	if (ImGui::Button("Show Chat"))
+	{
+		mainWindowState.m_ChatEnabled = true;
+		m_Settings.SaveFile();
+	}
+	if (ImGui::Button("Show Scoreboard"))
+	{
+		mainWindowState.m_ScoreboardEnabled = true;
+		m_Settings.SaveFile();
+	}
+	if (ImGui::Button("Show App Log"))
+	{
+		mainWindowState.m_AppLogEnabled = true;
+		m_Settings.SaveFile();
+	}
 }
 
 void MainWindow::OnEndFrame()
@@ -608,6 +646,18 @@ void MainWindow::OnDrawMenuBar()
 
 		if (ImGui::MenuItem("Exit", "Alt+F4"))
 			SetShouldClose(true);
+
+		ImGui::EndMenu();
+	}
+
+	if (ImGui::BeginMenu("View"))
+	{
+		if (ImGui::MenuItem("Show Chat Log", nullptr, &m_Settings.m_UIState.m_MainWindow.m_ChatEnabled))
+			m_Settings.SaveFile();
+		if (ImGui::MenuItem("Show App Log", nullptr, &m_Settings.m_UIState.m_MainWindow.m_AppLogEnabled))
+			m_Settings.SaveFile();
+		if (ImGui::MenuItem("Show Scoreboard", nullptr, &m_Settings.m_UIState.m_MainWindow.m_ScoreboardEnabled))
+			m_Settings.SaveFile();
 
 		ImGui::EndMenu();
 	}

@@ -125,6 +125,35 @@ namespace tf2_bot_detector
 		try_get_to_defaulted(j, d.m_RCONPackets, "rcon_packets", DEFAULTS.m_RCONPackets);
 		try_get_to_defaulted(j, d.m_DiscordRichPresence, "discord_rich_presence", DEFAULTS.m_DiscordRichPresence);
 	}
+
+	void to_json(nlohmann::json& j, const Settings::UIState::MainWindow& d)
+	{
+		j =
+		{
+			{ "app_log_enabled", d.m_AppLogEnabled },
+			{ "chat_enabled", d.m_ChatEnabled },
+			{ "scoreboard_enabled", d.m_ScoreboardEnabled },
+		};
+	}
+	void from_json(const nlohmann::json& j, Settings::UIState::MainWindow& d)
+	{
+		using MainWindow = Settings::UIState::MainWindow;
+		try_get_to_defaulted(j, d, &MainWindow::m_AppLogEnabled, "app_log_enabled");
+		try_get_to_defaulted(j, d, &MainWindow::m_ChatEnabled, "chat_enabled");
+		try_get_to_defaulted(j, d, &MainWindow::m_ScoreboardEnabled, "scoreboard_enabled");
+	}
+
+	void to_json(nlohmann::json& j, const Settings::UIState& d)
+	{
+		j =
+		{
+			{ "main_window", d.m_MainWindow },
+		};
+	}
+	void from_json(const nlohmann::json& j, Settings::UIState& d)
+	{
+		try_get_to_defaulted(j, d, &Settings::UIState::m_MainWindow, "main_window");
+	}
 }
 
 void GeneralSettings::SetSteamAPIKey(std::string key)
@@ -315,6 +344,7 @@ void Settings::Deserialize(const nlohmann::json& json)
 	try_get_to_defaulted(json, m_Discord, "discord");
 	try_get_to_defaulted(json, m_Theme, "theme");
 	try_get_to_defaulted(json, m_TF2Interface, "tf2_interface");
+	try_get_to_defaulted(json, m_UIState, "ui_state");
 
 	if (!try_get_to_defaulted(json, m_GotoProfileSites, "goto_profile_sites"))
 		AddDefaultGotoProfileSites();
@@ -350,6 +380,7 @@ void Settings::Serialize(nlohmann::json& json) const
 		{ "goto_profile_sites", m_GotoProfileSites },
 		{ "discord", m_Discord },
 		{ "tf2_interface", m_TF2Interface },
+		{ "ui_state", m_UIState },
 	};
 
 	if (!m_SteamDirOverride.empty())

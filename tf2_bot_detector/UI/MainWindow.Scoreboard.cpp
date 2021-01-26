@@ -50,7 +50,7 @@ void MainWindow::OnDrawScoreboard()
 
 	static ImGuiDesktop::Storage<float> s_ScoreboardHeightStorage;
 	const auto lastScoreboardHeight = s_ScoreboardHeightStorage.Snapshot();
-	const float minScoreboardHeight = ImGui::GetContentRegionAvail().y / 2;
+	const float minScoreboardHeight = ImGui::GetContentRegionAvail().y / (m_Settings.m_UIState.m_MainWindow.m_AppLogEnabled ? 2 : 1);
 	if (ImGui::BeginChild("Scoreboard", { 0, std::max(minScoreboardHeight, lastScoreboardHeight.Get()) }, true, ImGuiWindowFlags_HorizontalScrollbar))
 	{
 		{

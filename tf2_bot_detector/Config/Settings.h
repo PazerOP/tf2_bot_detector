@@ -121,6 +121,18 @@ namespace tf2_bot_detector
 
 		} m_Discord;
 
+		struct UIState
+		{
+			struct MainWindow
+			{
+				bool m_ChatEnabled = true;
+				bool m_ScoreboardEnabled = true;
+				bool m_AppLogEnabled = true;
+
+			} m_MainWindow;
+
+		} m_UIState;
+
 		struct Theme
 		{
 			float m_GlobalScale = 1.0f;
