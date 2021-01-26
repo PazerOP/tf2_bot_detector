@@ -18,8 +18,6 @@ SettingsWindow::SettingsWindow(ImGuiDesktop::Application& app, Settings& setting
 
 void SettingsWindow::OnDraw()
 {
-	ImGui::TextFmt("Hello from the settings window");
-
 	if (ImGui::TreeNode("Autodetected Settings Overrides"))
 	{
 		// Steam dir
