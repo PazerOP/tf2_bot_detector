@@ -40,6 +40,8 @@ namespace tf2_bot_detector
 
 	class MainWindow final : public ImGuiDesktop::Window, IConsoleLineListener, BaseWorldEventListener
 	{
+		using Super = ImGuiDesktop::Window;
+
 	public:
 		explicit MainWindow(ImGuiDesktop::Application& app);
 		~MainWindow();
@@ -48,6 +50,7 @@ namespace tf2_bot_detector
 
 	private:
 		void OnImGuiInit() override;
+		void OnOpenGLInit() override;
 		void OnDraw() override;
 		void OnEndFrame() override;
 		void OnDrawMenuBar() override;

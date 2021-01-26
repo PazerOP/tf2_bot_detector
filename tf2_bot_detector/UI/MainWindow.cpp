@@ -59,7 +59,6 @@ MainWindow::MainWindow(ImGuiDesktop::Application& app) :
 	m_WorldState(IWorldState::Create(m_Settings)),
 	m_ActionManager(IRCONActionManager::Create(m_Settings, GetWorld())),
 	m_TextureManager(ITextureManager::Create()),
-	m_BaseTextures(IBaseTextures::Create(*m_TextureManager)),
 	m_UpdateManager(IUpdateManager::Create(m_Settings))
 {
 	SetIsPrimaryAppWindow(true);
@@ -117,10 +116,19 @@ void MainWindow::SetupFonts()
 
 void MainWindow::OnImGuiInit()
 {
+	Super::OnImGuiInit();
+
 	ImGui::GetIO().FontGlobalScale = m_Settings.m_Theme.m_GlobalScale;
 	ImGui::GetIO().FontDefault = GetFontPointer(m_Settings.m_Theme.m_Font);
 
 	SetupFonts();
+}
+
+void MainWindow::OnOpenGLInit()
+{
+	Super::OnOpenGLInit();
+
+	m_BaseTextures = IBaseTextures::Create(*m_TextureManager);
 }
 
 ImFont* MainWindow::GetFontPointer(Font f) const

@@ -8,6 +8,8 @@
 #include <glbinding/gl21ext/gl.h>
 #include <glbinding/gl30/gl.h>
 using namespace gl21;
+#elif IMGUI_USE_GLAD2
+#include <glad/gl.h>
 #else
 #include <Windows.h>
 #include <gl/GL.h>
@@ -124,7 +126,7 @@ Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const Text
 {
 	GLenum internalFormat{};
 	GLenum sourceFormat{};
-	std::array<GLenum, 4> swizzle{};
+	std::array<GLint, 4> swizzle{};
 	constexpr GLenum sourceType = GL_UNSIGNED_BYTE;
 	switch (bitmap.GetChannelCount())
 	{
@@ -151,28 +153,29 @@ Texture::Texture(const TextureManager& manager, const Bitmap& bitmap, const Text
 	}
 
 	glGenTextures(1, &m_Handle.reset_and_get_ref());
+	assert(m_Handle);
+
 	glBindTexture(GL_TEXTURE_2D, m_Handle);
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, bitmap.GetWidth(), bitmap.GetHeight(), 0,
 		sourceFormat, sourceType, bitmap.GetData());
 
-
-#ifdef IMGUI_USE_GLBINDING
-	if (manager.HasExtension(GLextension::GL_ARB_texture_swizzle))
+	if (GLAD_GL_ARB_texture_swizzle)
 	{
-		using namespace gl21ext;
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle.data());
 	}
-	else if (manager.HasExtension(GLextension::GL_EXT_texture_swizzle))
+	else if (GLAD_GL_EXT_texture_swizzle)
 	{
-		using namespace gl21ext;
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA_EXT, swizzle.data());
 	}
-#endif
 
-#ifdef IMGUI_USE_GLBINDING
-	if (m_Settings.m_EnableMips && manager.GetContextVersion() >= glbinding::Version(3, 0))
+#if 0
+	if (glGenerateMipmap)
 	{
-		gl30::glGenerateMipmap(GL_TEXTURE_2D);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else if (glGenerateMipmapEXT)
+	{
+		glGenerateMipmapEXT(GL_TEXTURE_2D);
 	}
 	else
 #endif
