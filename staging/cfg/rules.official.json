@@ -284,6 +284,40 @@
 		},
 		{
 			"actions": {
+				"transient_mark": [
+					"cheater"
+				]
+			},
+			"description": "cheemsburger gaming",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"cheemsburger gaming"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"transient_mark": [
+					"cheater"
+				]
+			},
+			"description": "WAMO",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "ends_with",
+					"patterns": [
+						"WAMO"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
 				"mark": [
 					"cheater"
 				]
