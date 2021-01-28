@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ConfigHelpers.h"
+#include "ModeratorLogic.h"
 #include "SteamID.h"
 
 #include <mh/coroutine/generator.hpp>
@@ -166,9 +167,10 @@ namespace tf2_bot_detector
 		mh::generator<std::pair<const ConfigFileName&, const PlayerListData&>>
 			FindPlayerData(const SteamID& id) const;
 		mh::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
-			FindPlayerAttributes(const SteamID& id) const;
+			FindPlayerAttributes(const SteamID& id, AttributePersistence persistence = AttributePersistence::Any) const;
 		PlayerMarks GetPlayerAttributes(const SteamID& id) const;
-		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const;
+		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes,
+			AttributePersistence persistence = AttributePersistence::Any) const;
 
 		ModifyPlayerResult ModifyPlayer(const SteamID& id,
 			const std::function<ModifyPlayerAction(PlayerListData& data)>& func);

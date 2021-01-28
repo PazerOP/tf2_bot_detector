@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mh/reflection/enum.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -30,8 +32,10 @@ namespace tf2_bot_detector
 
 	enum class AttributePersistence
 	{
-		Saved,
-		Transient,
+		Saved = (1 << 0),
+		Transient = (1 << 1),
+
+		Any = Saved | Transient,
 	};
 
 	class IModeratorLogic
@@ -46,7 +50,8 @@ namespace tf2_bot_detector
 		virtual bool InitiateVotekick(const IPlayer& player, KickReason reason, const PlayerMarks* marks = nullptr) = 0;
 
 		virtual PlayerMarks GetPlayerAttributes(const SteamID& id) const = 0;
-		virtual PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const = 0;
+		virtual PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes,
+			AttributePersistence persistence = AttributePersistence::Any) const = 0;
 		virtual bool SetPlayerAttribute(const IPlayer& player, PlayerAttribute markType, AttributePersistence persistence, bool set = true) = 0;
 
 		virtual TeamShareResult GetTeamShareResult(const SteamID& id) const = 0;
@@ -64,3 +69,9 @@ namespace tf2_bot_detector
 		virtual std::optional<VoteCooldown> GetVoteCooldown() const = 0;
 	};
 }
+
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::AttributePersistence)
+	MH_ENUM_REFLECT_VALUE(Saved)
+	MH_ENUM_REFLECT_VALUE(Transient)
+	MH_ENUM_REFLECT_VALUE(Any)
+MH_ENUM_REFLECT_END()

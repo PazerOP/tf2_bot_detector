@@ -251,11 +251,31 @@ auto PlayerListJSON::FindPlayerData(const SteamID& id) const ->
 	}
 }
 
-auto PlayerListJSON::FindPlayerAttributes(const SteamID& id) const ->
+auto PlayerListJSON::FindPlayerAttributes(const SteamID& id, AttributePersistence persistence) const ->
 	mh::generator<std::pair<const ConfigFileName&, PlayerAttributesList>>
 {
 	for (auto& [fileName, found] : FindPlayerData(id))
-		co_yield { fileName, found.GetAttributes() };
+	{
+		PlayerAttributesList attr;
+
+		switch (persistence)
+		{
+		default:
+			LogError("Unknown persistence {}", mh::enum_fmt(persistence));
+			[[fallthrough]];
+		case AttributePersistence::Any:
+			attr = found.GetAttributes();
+			break;
+		case AttributePersistence::Saved:
+			attr = found.m_SavedAttributes;
+			break;
+		case AttributePersistence::Transient:
+			attr = found.m_TransientAttributes;
+			break;
+		}
+
+		co_yield { fileName, attr };
+	}
 }
 
 PlayerMarks PlayerListJSON::GetPlayerAttributes(const SteamID& id) const
@@ -273,13 +293,13 @@ PlayerMarks PlayerListJSON::GetPlayerAttributes(const SteamID& id) const
 	return marks;
 }
 
-PlayerMarks PlayerListJSON::HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const
+PlayerMarks PlayerListJSON::HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes, AttributePersistence persistence) const
 {
 	if (id == m_Settings->GetLocalSteamID())
 		return {};
 
 	PlayerMarks marks;
-	for (const auto& [file, found] : FindPlayerAttributes(id))
+	for (const auto& [file, found] : FindPlayerAttributes(id, persistence))
 	{
 		auto attr = found & attributes;
 		if (attr)

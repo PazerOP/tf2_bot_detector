@@ -454,12 +454,12 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 			for (int i = 0; i < (int)PlayerAttribute::COUNT; i++)
 			{
 				const auto attr = PlayerAttribute(i);
-				const bool existingMarked = (bool)modLogic.HasPlayerAttributes(player, attr);
+				const bool existingMarked = (bool)modLogic.HasPlayerAttributes(player, attr, AttributePersistence::Saved);
 
-				if (ImGui::MenuItem(mh::fmtstr<512>("{}", mh::enum_fmt(attr)).c_str(), nullptr, existingMarked))
+				if (ImGui::MenuItem(mh::fmtstr<512>("{:v}", mh::enum_fmt(attr)).c_str(), nullptr, existingMarked))
 				{
 					if (modLogic.SetPlayerAttribute(player, attr, AttributePersistence::Saved, !existingMarked))
-						Log("Manually marked {}{} {}", player, (existingMarked ? " NOT" : ""), mh::enum_fmt(attr));
+						Log("Manually marked {}{} {:v}", player, (existingMarked ? " NOT" : ""), mh::enum_fmt(attr));
 				}
 			}
 

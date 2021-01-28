@@ -75,7 +75,7 @@ namespace
 		};
 
 		PlayerMarks GetPlayerAttributes(const SteamID& id) const override;
-		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const override;
+		PlayerMarks HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes, AttributePersistence persistence) const override;
 		bool InitiateVotekick(const IPlayer& player, KickReason reason, const PlayerMarks* marks = nullptr) override;
 
 		bool SetPlayerAttribute(const IPlayer& id, PlayerAttribute markType, AttributePersistence persistence, bool set = true) override;
@@ -837,6 +837,9 @@ bool ModeratorLogic::SetPlayerAttribute(const IPlayer& player, PlayerAttribute a
 			{
 				switch (persistence)
 				{
+				case AttributePersistence::Any:
+					LogError("Invalid AttributePersistence {}", mh::enum_fmt(persistence));
+					[[fallthrough]];
 				case AttributePersistence::Saved:      return data.m_SavedAttributes;
 				case AttributePersistence::Transient:  return data.m_TransientAttributes;
 				}
@@ -968,9 +971,9 @@ PlayerMarks ModeratorLogic::GetPlayerAttributes(const SteamID& id) const
 	return m_PlayerList.GetPlayerAttributes(id);
 }
 
-PlayerMarks ModeratorLogic::HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes) const
+PlayerMarks ModeratorLogic::HasPlayerAttributes(const SteamID& id, const PlayerAttributesList& attributes, AttributePersistence persistence) const
 {
-	return m_PlayerList.HasPlayerAttributes(id, attributes);
+	return m_PlayerList.HasPlayerAttributes(id, attributes, persistence);
 }
 
 bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason, const PlayerMarks* marks)
