@@ -650,7 +650,7 @@ void MainWindow::OnDrawMenuBar()
 		ImGui::EndMenu();
 	}
 
-	if (ImGui::BeginMenu("View"))
+	if (!isInSetupFlow && ImGui::BeginMenu("View"))
 	{
 		if (ImGui::MenuItem("Show Chat Log", nullptr, &m_Settings.m_UIState.m_MainWindow.m_ChatEnabled))
 			m_Settings.SaveFile();
