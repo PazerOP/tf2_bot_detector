@@ -45,13 +45,18 @@ void MainWindow::OnDrawScoreboard()
 	const auto availableSpaceOuter = ImGui::GetContentRegionAvail();
 
 	//ImGui::SetNextWindowContentSizeConstraints(ImVec2(contentWidthMin, -1), ImVec2(-1, -1));
+	float extraScoreboardHeight = 0;
 	if (availableSpaceOuter.x < contentWidthMinOuter)
+	{
 		ImGui::SetNextWindowContentSize(ImVec2{ contentWidthMin, -1 });
+		extraScoreboardHeight += style.ScrollbarSize;
+	}
 
 	static ImGuiDesktop::Storage<float> s_ScoreboardHeightStorage;
 	const auto lastScoreboardHeight = s_ScoreboardHeightStorage.Snapshot();
 	const float minScoreboardHeight = ImGui::GetContentRegionAvail().y / (m_Settings.m_UIState.m_MainWindow.m_AppLogEnabled ? 2 : 1);
-	if (ImGui::BeginChild("Scoreboard", { 0, std::max(minScoreboardHeight, lastScoreboardHeight.Get()) }, true, ImGuiWindowFlags_HorizontalScrollbar))
+	const auto actualScoreboardHeight = std::max(minScoreboardHeight, lastScoreboardHeight.Get()) + extraScoreboardHeight;
+	if (ImGui::BeginChild("Scoreboard", { 0, actualScoreboardHeight }, true, ImGuiWindowFlags_HorizontalScrollbar))
 	{
 		{
 			static ImVec2 s_LastFrameSize;
@@ -124,11 +129,6 @@ void MainWindow::OnDrawScoreboard()
 			{
 				float height = ImGui::GetItemRectSize().y;
 				height += style.WindowPadding.y * 2;
-
-				// Is the horizontal scrollbar visible?
-				if (windowContentWidth < contentWidthMin)
-					height += style.ScrollbarSize;
-
 				lastScoreboardHeight = height;
 			}
 		}
