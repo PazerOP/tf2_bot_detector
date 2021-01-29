@@ -15,6 +15,7 @@
 #include "WorldState.h"
 
 #include <mh/algorithm/algorithm_generic.hpp>
+#include <mh/algorithm/multi_compare.hpp>
 #include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -250,7 +251,7 @@ void ModeratorLogic::HandleVoteStateTimeouts()
 			LogWarning("Lost track of vote state somehow, resetting m_VoteState to {} (was {}) after {} have elapsed",
 				mh::enum_fmt(NEW_VOTE_STATE), mh::enum_fmt(m_VoteState.GetValue()), HumanDuration(elapsed));
 
-			if (m_VoteState == VoteState::LocalOwner)
+			if (mh::any_eq(m_VoteState, VoteState::LocalOwner, VoteState::SentCallVote))
 				m_LastVoteCallTime = {};
 
 			m_VoteState = NEW_VOTE_STATE;
