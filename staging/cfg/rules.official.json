@@ -318,6 +318,23 @@
 		},
 		{
 			"actions": {
+				"transient_mark": [
+					"cheater"
+				]
+			},
+			"description": "Zesty Jesus",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"Zesty Jesus"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
 				"mark": [
 					"cheater"
 				]
