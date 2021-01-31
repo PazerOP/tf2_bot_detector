@@ -456,6 +456,17 @@ void ModeratorLogic::OnUserMessageReceived(IWorldState& world, const SVCUserMess
 		}
 		break;
 	}
+
+	case UserMessageType::TextMsg:
+	{
+		if (userMsg.GetUserMessageBytes() == 42)
+		{
+			// Probably ClientPrint(HUD_PRINTCENTER, "#GameUI_vote_failed_vote_in_progress")
+			DebugLogWarning(VOTESTATUS_COLOR, "Possible #GameUI_vote_failed_vote_in_progress (m_VoteState = {})",
+				mh::enum_fmt(m_VoteState.GetValue()));
+		}
+		break;
+	}
 	}
 }
 
