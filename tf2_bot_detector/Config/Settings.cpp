@@ -328,6 +328,7 @@ void Settings::Deserialize(const nlohmann::json& json)
 		try_get_to_defaulted(*found, m_AutoVotekickDelay, "auto_votekick_delay", DEFAULTS.m_AutoVotekickDelay);
 		try_get_to_defaulted(*found, m_AutoMark, "auto_mark", DEFAULTS.m_AutoMark);
 		try_get_to_defaulted(*found, m_LazyLoadAPIData, "lazy_load_api_data", DEFAULTS.m_LazyLoadAPIData);
+		try_get_to_defaulted(*found, m_ConfigCompatibilityMode, "config_compatibility_mode", DEFAULTS.m_ConfigCompatibilityMode);
 
 		{
 			std::string apiKey;
@@ -375,6 +376,7 @@ void Settings::Serialize(nlohmann::json& json) const
 				{ "auto_votekick_delay", m_AutoVotekickDelay },
 				{ "auto_mark", m_AutoMark },
 				{ "lazy_load_api_data", m_LazyLoadAPIData },
+				{ "config_compatibility_mode", m_ConfigCompatibilityMode },
 			}
 		},
 		{ "goto_profile_sites", m_GotoProfileSites },

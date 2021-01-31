@@ -102,6 +102,8 @@ RCONActionManager::RCONActionManager(const Settings& settings, IWorldState& worl
 	m_Settings(settings), m_WorldState(world)
 {
 	world.AddWorldEventListener(this);
+
+	m_IsDiscardingServerCommands = settings.m_ConfigCompatibilityMode;
 }
 
 RCONActionManager::~RCONActionManager()
@@ -137,7 +139,8 @@ void RCONActionManager::AddPeriodicActionGenerator(std::unique_ptr<IPeriodicActi
 void RCONActionManager::OnLocalPlayerInitialized(IWorldState& world, bool initialized)
 {
 	m_IsDiscardingServerCommands = !initialized;
-	DebugLog("m_IsDiscardingServerCommands = "s << m_IsDiscardingServerCommands);
+	DebugLog("m_IsDiscardingServerCommands = {}, m_Settings.m_ConfigCompatibilityMode = {}",
+		m_IsDiscardingServerCommands, m_Settings.m_ConfigCompatibilityMode);
 }
 
 void RCONActionManager::ProcessRunningCommands()
@@ -190,7 +193,7 @@ void RCONActionManager::ProcessRunningCommands()
 
 bool RCONActionManager::ShouldDiscardCommand(const std::string_view& cmd) const
 {
-	if (!m_IsDiscardingServerCommands)
+	if (!m_IsDiscardingServerCommands || !m_Settings.m_ConfigCompatibilityMode)
 		return false;
 
 	static const std::unordered_set<std::string_view> s_KnownClientCommands =

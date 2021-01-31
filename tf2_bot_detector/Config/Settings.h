@@ -69,6 +69,8 @@ namespace tf2_bot_detector
 
 		bool m_LazyLoadAPIData = true;
 
+		bool m_ConfigCompatibilityMode = true;
+
 		std::optional<ReleaseChannel> m_ReleaseChannel;
 
 		constexpr auto GetAutoVotekickDelay() const { return std::chrono::duration<float>(m_AutoVotekickDelay); }

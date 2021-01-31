@@ -35,6 +35,15 @@ void SettingsWindow::OnDraw()
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("Compatibility"))
+	{
+		if (ImGui::Checkbox("Config Compatibility Mode", &m_Settings.m_ConfigCompatibilityMode))
+			m_Settings.SaveFile();
+		ImGui::SetHoverTooltip("Improves compatibility with some configs (such as mastercomfig). Resolves some strange issues with \"Issued too many commands to server\" disconnections, at the expense of delayed scoreboard updates when joining a server.");
+
+		ImGui::TreePop();
+	}
+
 	if (ImGui::TreeNode("Logging"))
 	{
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
