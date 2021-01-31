@@ -355,7 +355,7 @@ mh::task<> WorldState::AddConsoleOutputLine(std::string line)
 	// Switch to thread "pool" thread (there is only 1 thread in this particular pool)
 	co_await m_ConsoleLineParsingPool.co_add_task();
 
-	auto parsed = IConsoleLine::ParseConsoleLine(line, GetCurrentTime());
+	auto parsed = IConsoleLine::ParseConsoleLine(line, GetCurrentTime(), *this);
 
 	// switch to main thread
 	co_await GetDispatcher().co_dispatch();

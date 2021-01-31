@@ -1,10 +1,113 @@
 #include "ConsoleLog/ConsoleLines.h"
 #include "SteamID.h"
+#include "WorldState.h"
 
 #include <catch2/catch.hpp>
+#include <mh/error/not_implemented_error.hpp>
 
 using namespace std::chrono_literals;
 using namespace tf2_bot_detector;
+
+namespace
+{
+	class DummyWorldState : public IWorldState
+	{
+		// Inherited via IWorldState
+		virtual IConsoleLineListener& GetConsoleLineListenerBroadcaster() override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual void UpdateTimestamp(const ConsoleLogParser& parser) override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual void Update() override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual time_point_t GetCurrentTime() const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual time_point_t GetLastStatusUpdateTime() const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual void AddWorldEventListener(IWorldEventListener* listener) override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual void RemoveWorldEventListener(IWorldEventListener* listener) override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual void AddConsoleLineListener(IConsoleLineListener* listener) override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual void RemoveConsoleLineListener(IConsoleLineListener* listener) override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual void AddConsoleOutputChunk(const std::string_view& chunk) override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual mh::task<> AddConsoleOutputLine(std::string line) override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual std::optional<SteamID> FindSteamIDForName(const std::string_view& playerName) const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual std::optional<LobbyMemberTeam> FindLobbyMemberTeam(const SteamID& id) const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual std::optional<UserID_t> FindUserID(const SteamID& id) const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual TeamShareResult GetTeamShareResult(const SteamID& id) const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual TeamShareResult GetTeamShareResult(const SteamID& id0, const SteamID& id1) const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual TeamShareResult GetTeamShareResult(const std::optional<LobbyMemberTeam>& team0, const SteamID& id1) const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual const IPlayer* FindPlayer(const SteamID& id) const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual size_t GetApproxLobbyMemberCount() const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual mh::generator<const IPlayer&> GetLobbyMembers() const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual mh::generator<const IPlayer&> GetPlayers() const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual bool IsLocalPlayerInitialized() const override
+		{
+			throw mh::not_implemented_error();
+		}
+		virtual bool IsVoteInProgress() const override
+		{
+			throw mh::not_implemented_error();
+		}
+
+	} static s_DummyWorldState;
+}
 
 TEST_CASE("tf2bd_cl_status", "[ConsoleLines]")
 {
@@ -47,7 +150,9 @@ TEST_CASE("tf2bd_cl_status", "[ConsoleLines]")
 
 	for (const auto& test : s_StatusLineTests)
 	{
-		auto parsedLine = ServerStatusPlayerLine::TryParse(test.m_StatusLine, tfbd_clock_t::now());
+		ConsoleLineTryParseArgs args{ test.m_StatusLine, tfbd_clock_t::now(), s_DummyWorldState };
+
+		auto parsedLine = ServerStatusPlayerLine::TryParse(args);
 		REQUIRE(parsedLine);
 
 		auto parsedStatusLine = dynamic_cast<ServerStatusPlayerLine*>(parsedLine.get());

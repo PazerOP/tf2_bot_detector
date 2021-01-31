@@ -31,9 +31,9 @@ GenericConsoleLine::GenericConsoleLine(time_point_t timestamp, std::string text)
 	m_Text.shrink_to_fit();
 }
 
-std::shared_ptr<IConsoleLine> GenericConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> GenericConsoleLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
-	return std::make_shared<GenericConsoleLine>(timestamp, std::string(text));
+	return std::make_shared<GenericConsoleLine>(args.m_Timestamp, std::string(args.m_Text));
 }
 
 void GenericConsoleLine::Print(const PrintArgs& args) const
@@ -50,7 +50,7 @@ ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName,
 	m_Message.shrink_to_fit();
 }
 
-std::shared_ptr<IConsoleLine> ChatConsoleLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ChatConsoleLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	LogError(MH_SOURCE_LOCATION_CURRENT(), "This should never happen!");
 	return nullptr;
@@ -193,11 +193,11 @@ LobbyHeaderLine::LobbyHeaderLine(time_point_t timestamp, unsigned memberCount, u
 {
 }
 
-std::shared_ptr<IConsoleLine> LobbyHeaderLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> LobbyHeaderLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(CTFLobbyShared: ID:([0-9a-f]*)\s+(\d+) member\(s\), (\d+) pending)regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		unsigned memberCount, pendingCount;
 		if (!mh::from_chars(std::string_view(&*result[2].first, result[2].length()), memberCount))
@@ -205,7 +205,7 @@ std::shared_ptr<IConsoleLine> LobbyHeaderLine::TryParse(const std::string_view& 
 		if (!mh::from_chars(std::string_view(&*result[3].first, result[3].length()), pendingCount))
 			throw std::runtime_error("Failed to parse lobby pending member count");
 
-		return std::make_shared<LobbyHeaderLine>(timestamp, memberCount, pendingCount);
+		return std::make_shared<LobbyHeaderLine>(args.m_Timestamp, memberCount, pendingCount);
 	}
 
 	return nullptr;
@@ -222,11 +222,11 @@ LobbyMemberLine::LobbyMemberLine(time_point_t timestamp, const LobbyMember& lobb
 {
 }
 
-std::shared_ptr<IConsoleLine> LobbyMemberLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> LobbyMemberLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(\s+(?:(?:Member)|(Pending))\[(\d+)\] (\[.*\])\s+team = (\w+)\s+type = (\w+))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		LobbyMember member{};
 		member.m_Pending = result[1].matched;
@@ -253,7 +253,7 @@ std::shared_ptr<IConsoleLine> LobbyMemberLine::TryParse(const std::string_view& 
 		else
 			throw std::runtime_error("Unknown lobby member type");
 
-		return std::make_shared<LobbyMemberLine>(timestamp, member);
+		return std::make_shared<LobbyMemberLine>(args.m_Timestamp, member);
 	}
 
 	return nullptr;
@@ -287,7 +287,7 @@ auto IConsoleLine::GetTypeData() -> std::list<ConsoleLineTypeData>&
 	return s_List;
 }
 
-std::shared_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_view& text, time_point_t timestamp, IWorldState& world)
 {
 	auto& list = GetTypeData();
 
@@ -306,12 +306,13 @@ std::shared_ptr<IConsoleLine> IConsoleLine::ParseConsoleLine(const std::string_v
 
 	s_TotalParseCount++;
 
+	const ConsoleLineTryParseArgs args{ text, timestamp, world };
 	for (auto& data : list)
 	{
 		if (!data.m_AutoParse)
 			continue;
 
-		auto parsed = data.m_TryParseFunc(text, timestamp);
+		auto parsed = data.m_TryParseFunc(args);
 		if (!parsed)
 			continue;
 
@@ -336,11 +337,11 @@ ServerStatusPlayerLine::ServerStatusPlayerLine(time_point_t timestamp, PlayerSta
 {
 }
 
-std::shared_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(#\s+(\d+)\s+"((?:.|[\r\n])+)"\s+(\[.*\])\s+(?:(\d+):)?(\d+):(\d+)\s+(\d+)\s+(\d+)\s+(\w+)(?:\s+(\S+))?)regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		PlayerStatus status{};
 
@@ -360,7 +361,7 @@ std::shared_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string
 			from_chars_throw(result[5], connectedMins);
 			from_chars_throw(result[6], connectedSecs);
 
-			status.m_ConnectionTime = timestamp - ((connectedHours * 1h) + (connectedMins * 1min) + connectedSecs * 1s);
+			status.m_ConnectionTime = args.m_Timestamp - ((connectedHours * 1h) + (connectedMins * 1min) + connectedSecs * 1s);
 		}
 
 		from_chars_throw(result[7], status.m_Ping);
@@ -383,7 +384,7 @@ std::shared_ptr<IConsoleLine> ServerStatusPlayerLine::TryParse(const std::string
 
 		status.m_Address = result[10].str();
 
-		return std::make_shared<ServerStatusPlayerLine>(timestamp, std::move(status));
+		return std::make_shared<ServerStatusPlayerLine>(args.m_Timestamp, std::move(status));
 	}
 
 	return nullptr;
@@ -400,10 +401,10 @@ void ServerStatusPlayerLine::Print(const PrintArgs& args) const
 		s.m_Loss);
 }
 
-std::shared_ptr<IConsoleLine> ClientReachedServerSpawnLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ClientReachedServerSpawnLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
-	if (text == "Client reached server_spawn."sv)
-		return std::make_shared<ClientReachedServerSpawnLine>(timestamp);
+	if (args.m_Text == "Client reached server_spawn."sv)
+		return std::make_shared<ClientReachedServerSpawnLine>(args.m_Timestamp);
 
 	return nullptr;
 }
@@ -420,13 +421,13 @@ KillNotificationLine::KillNotificationLine(time_point_t timestamp, std::string a
 {
 }
 
-std::shared_ptr<IConsoleLine> KillNotificationLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> KillNotificationLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex((.*) killed (.*) with (.*)\.( \(crit\))?)regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
-		return std::make_shared<KillNotificationLine>(timestamp, result[1].str(),
+		return std::make_shared<KillNotificationLine>(args.m_Timestamp, result[1].str(),
 			result[2].str(), result[3].str(), result[4].matched);
 	}
 
@@ -444,14 +445,14 @@ LobbyChangedLine::LobbyChangedLine(time_point_t timestamp, LobbyChangeType type)
 {
 }
 
-std::shared_ptr<IConsoleLine> LobbyChangedLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> LobbyChangedLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
-	if (text == "Lobby created"sv)
-		return std::make_shared<LobbyChangedLine>(timestamp, LobbyChangeType::Created);
-	else if (text == "Lobby updated"sv)
-		return std::make_shared<LobbyChangedLine>(timestamp, LobbyChangeType::Updated);
-	else if (text == "Lobby destroyed"sv)
-		return std::make_shared<LobbyChangedLine>(timestamp, LobbyChangeType::Destroyed);
+	if (args.m_Text == "Lobby created"sv)
+		return std::make_shared<LobbyChangedLine>(args.m_Timestamp, LobbyChangeType::Created);
+	else if (args.m_Text == "Lobby updated"sv)
+		return std::make_shared<LobbyChangedLine>(args.m_Timestamp, LobbyChangeType::Updated);
+	else if (args.m_Text == "Lobby destroyed"sv)
+		return std::make_shared<LobbyChangedLine>(args.m_Timestamp, LobbyChangeType::Destroyed);
 
 	return nullptr;
 }
@@ -474,14 +475,14 @@ CvarlistConvarLine::CvarlistConvarLine(time_point_t timestamp, std::string name,
 {
 }
 
-std::shared_ptr<IConsoleLine> CvarlistConvarLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> CvarlistConvarLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex((\S+)\s+:\s+([-\d.]+)\s+:\s+(.+)?\s+:[\t ]+(.+)?)regex", std::regex::optimize);
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		float value;
 		from_chars_throw(result[2], value);
-		return std::make_shared<CvarlistConvarLine>(timestamp, result[1].str(), value, result[3].str(), result[4].str());
+		return std::make_shared<CvarlistConvarLine>(args.m_Timestamp, result[1].str(), value, result[3].str(), result[4].str());
 	}
 
 	return nullptr;
@@ -498,11 +499,11 @@ ServerStatusShortPlayerLine::ServerStatusShortPlayerLine(time_point_t timestamp,
 {
 }
 
-std::shared_ptr<IConsoleLine> ServerStatusShortPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerStatusShortPlayerLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(#(\d+) - (.+))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		PlayerStatusShort status{};
 
@@ -510,7 +511,7 @@ std::shared_ptr<IConsoleLine> ServerStatusShortPlayerLine::TryParse(const std::s
 		assert(status.m_ClientIndex >= 1);
 		status.m_Name = result[2].str();
 
-		return std::make_shared<ServerStatusShortPlayerLine>(timestamp, std::move(status));
+		return std::make_shared<ServerStatusShortPlayerLine>(args.m_Timestamp, std::move(status));
 	}
 
 	return nullptr;
@@ -527,11 +528,11 @@ VoiceReceiveLine::VoiceReceiveLine(time_point_t timestamp, uint8_t channel,
 {
 }
 
-std::shared_ptr<IConsoleLine> VoiceReceiveLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> VoiceReceiveLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(Voice - chan (\d+), ent (\d+), bufsize: (\d+))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		uint8_t channel;
 		from_chars_throw(result[1], channel);
@@ -542,7 +543,7 @@ std::shared_ptr<IConsoleLine> VoiceReceiveLine::TryParse(const std::string_view&
 		uint16_t bufSize;
 		from_chars_throw(result[3], bufSize);
 
-		return std::make_shared<VoiceReceiveLine>(timestamp, channel, entindex, bufSize);
+		return std::make_shared<VoiceReceiveLine>(args.m_Timestamp, channel, entindex, bufSize);
 	}
 
 	return nullptr;
@@ -559,17 +560,17 @@ ServerStatusPlayerCountLine::ServerStatusPlayerCountLine(time_point_t timestamp,
 {
 }
 
-std::shared_ptr<IConsoleLine> ServerStatusPlayerCountLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerStatusPlayerCountLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(players : (\d+) humans, (\d+) bots \((\d+) max\))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		uint8_t playerCount, botCount, maxPlayers;
 		from_chars_throw(result[1], playerCount);
 		from_chars_throw(result[2], botCount);
 		from_chars_throw(result[3], maxPlayers);
-		return std::make_shared<ServerStatusPlayerCountLine>(timestamp, playerCount, botCount, maxPlayers);
+		return std::make_shared<ServerStatusPlayerCountLine>(args.m_Timestamp, playerCount, botCount, maxPlayers);
 	}
 
 	return nullptr;
@@ -585,16 +586,16 @@ EdictUsageLine::EdictUsageLine(time_point_t timestamp, uint16_t usedEdicts, uint
 {
 }
 
-std::shared_ptr<IConsoleLine> EdictUsageLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> EdictUsageLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(edicts  : (\d+) used of (\d+) max)regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		uint16_t usedEdicts, totalEdicts;
 		from_chars_throw(result[1], usedEdicts);
 		from_chars_throw(result[2], totalEdicts);
-		return std::make_shared<EdictUsageLine>(timestamp, usedEdicts, totalEdicts);
+		return std::make_shared<EdictUsageLine>(args.m_Timestamp, usedEdicts, totalEdicts);
 	}
 
 	return nullptr;
@@ -610,15 +611,15 @@ PingLine::PingLine(time_point_t timestamp, uint16_t ping, std::string playerName
 {
 }
 
-std::shared_ptr<IConsoleLine> PingLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> PingLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex( *(\d+) ms : (.{1,32}))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		uint16_t ping;
 		from_chars_throw(result[1], ping);
-		return std::make_shared<PingLine>(timestamp, ping, result[2].str());
+		return std::make_shared<PingLine>(args.m_Timestamp, ping, result[2].str());
 	}
 
 	return nullptr;
@@ -634,18 +635,18 @@ SVCUserMessageLine::SVCUserMessageLine(time_point_t timestamp, std::string addre
 {
 }
 
-std::shared_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> SVCUserMessageLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(Msg from ((?:\d+\.\d+\.\d+\.\d+:\d+)|loopback): svc_UserMessage: type (\d+), bytes (\d+))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		uint16_t type, bytes;
 		from_chars_throw(result[2], type);
 
 		from_chars_throw(result[3], bytes);
 
-		return std::make_shared<SVCUserMessageLine>(timestamp, result[1].str(), UserMessageType(type), bytes);
+		return std::make_shared<SVCUserMessageLine>(args.m_Timestamp, result[1].str(), UserMessageType(type), bytes);
 	}
 
 	return nullptr;
@@ -678,10 +679,10 @@ void SVCUserMessageLine::Print(const PrintArgs& args) const
 		ImGui::TextFmt("Msg from {}: svc_UserMessage: type {}, bytes {}", m_Address, int(m_MsgType), m_MsgBytes);
 }
 
-std::shared_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> LobbyStatusFailedLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
-	if (text == "Failed to find lobby shared object"sv)
-		return std::make_shared<LobbyStatusFailedLine>(timestamp);
+	if (args.m_Text == "Failed to find lobby shared object"sv)
+		return std::make_shared<LobbyStatusFailedLine>(args.m_Timestamp);
 
 	return nullptr;
 }
@@ -696,17 +697,17 @@ ConfigExecLine::ConfigExecLine(time_point_t timestamp, std::string configFileNam
 {
 }
 
-std::shared_ptr<IConsoleLine> ConfigExecLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ConfigExecLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	// Success
 	constexpr auto prefix = "execing "sv;
-	if (text.starts_with(prefix))
-		return std::make_shared<ConfigExecLine>(timestamp, std::string(text.substr(prefix.size())), true);
+	if (args.m_Text.starts_with(prefix))
+		return std::make_shared<ConfigExecLine>(args.m_Timestamp, std::string(args.m_Text.substr(prefix.size())), true);
 
 	// Failure
 	static const std::regex s_Regex(R"regex('(.*)' not present; not executing\.)regex", std::regex::optimize);
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
-		return std::make_shared<ConfigExecLine>(timestamp, result[1].str(), false);
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
+		return std::make_shared<ConfigExecLine>(args.m_Timestamp, result[1].str(), false);
 
 	return nullptr;
 }
@@ -725,18 +726,18 @@ ServerStatusMapLine::ServerStatusMapLine(time_point_t timestamp, std::string map
 {
 }
 
-std::shared_ptr<IConsoleLine> ServerStatusMapLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerStatusMapLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(map     : (.*) at: ((?:-|\d)+) x, ((?:-|\d)+) y, ((?:-|\d)+) z)regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		std::array<float, 3> pos{};
 		from_chars_throw(result[2], pos[0]);
 		from_chars_throw(result[3], pos[1]);
 		from_chars_throw(result[4], pos[2]);
 
-		return std::make_shared<ServerStatusMapLine>(timestamp, result[1].str(), pos);
+		return std::make_shared<ServerStatusMapLine>(args.m_Timestamp, result[1].str(), pos);
 	}
 
 	return nullptr;
@@ -748,10 +749,10 @@ void ServerStatusMapLine::Print(const PrintArgs& args) const
 		m_Position[0], m_Position[1], m_Position[2]);
 }
 
-std::shared_ptr<IConsoleLine> TeamsSwitchedLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> TeamsSwitchedLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
-	if (text == "Teams have been switched."sv)
-		return std::make_unique<TeamsSwitchedLine>(timestamp);
+	if (args.m_Text == "Teams have been switched."sv)
+		return std::make_unique<TeamsSwitchedLine>(args.m_Timestamp);
 
 	return nullptr;
 }
@@ -775,18 +776,18 @@ ConnectingLine::ConnectingLine(time_point_t timestamp, std::string address, bool
 {
 }
 
-std::shared_ptr<IConsoleLine> ConnectingLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ConnectingLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	{
 		static const std::regex s_ConnectingRegex(R"regex(Connecting to( matchmaking server)? (.*?)(\.\.\.)?)regex", std::regex::optimize);
-		if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_ConnectingRegex))
-			return std::make_shared<ConnectingLine>(timestamp, result[2].str(), result[1].matched, false);
+		if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_ConnectingRegex))
+			return std::make_shared<ConnectingLine>(args.m_Timestamp, result[2].str(), result[1].matched, false);
 	}
 
 	{
 		static const std::regex s_RetryingRegex(R"regex(Retrying (.*)\.\.\.)regex", std::regex::optimize);
-		if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_RetryingRegex))
-			return std::make_shared<ConnectingLine>(timestamp, result[1].str(), false, true);
+		if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_RetryingRegex))
+			return std::make_shared<ConnectingLine>(args.m_Timestamp, result[1].str(), false, true);
 	}
 
 	return nullptr;
@@ -802,10 +803,10 @@ void ConnectingLine::Print(const PrintArgs& args) const
 		ImGui::TextFmt("Connecting to {}...", m_Address);
 }
 
-std::shared_ptr<IConsoleLine> HostNewGameLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> HostNewGameLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
-	if (text == "---- Host_NewGame ----"sv)
-		return std::make_shared<HostNewGameLine>(timestamp);
+	if (args.m_Text == "---- Host_NewGame ----"sv)
+		return std::make_shared<HostNewGameLine>(args.m_Timestamp);
 
 	return nullptr;
 }
@@ -820,10 +821,10 @@ PartyHeaderLine::PartyHeaderLine(time_point_t timestamp, TFParty party) :
 {
 }
 
-std::shared_ptr<IConsoleLine> PartyHeaderLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> PartyHeaderLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(TFParty:\s+ID:([0-9a-f]+)\s+(\d+) member\(s\)\s+LeaderID: (\[.*\]))regex", std::regex::optimize);
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		TFParty party{};
 
@@ -837,7 +838,7 @@ std::shared_ptr<IConsoleLine> PartyHeaderLine::TryParse(const std::string_view& 
 
 		party.m_LeaderID = SteamID(result[3].str());
 
-		return std::make_shared<PartyHeaderLine>(timestamp, std::move(party));
+		return std::make_shared<PartyHeaderLine>(args.m_Timestamp, std::move(party));
 	}
 
 	return nullptr;
@@ -849,10 +850,10 @@ void PartyHeaderLine::Print(const PrintArgs& args) const
 		m_Party.m_MemberCount, m_Party.m_LeaderID.str().c_str());
 }
 
-std::shared_ptr<IConsoleLine> GameQuitLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> GameQuitLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
-	if (text == "CTFGCClientSystem::ShutdownGC"sv)
-		return std::make_shared<GameQuitLine>(timestamp);
+	if (args.m_Text == "CTFGCClientSystem::ShutdownGC"sv)
+		return std::make_shared<GameQuitLine>(args.m_Timestamp);
 
 	return nullptr;
 }
@@ -891,12 +892,12 @@ namespace
 	};
 }
 
-std::shared_ptr<IConsoleLine> QueueStateChangeLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> QueueStateChangeLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	for (const auto& match : QUEUE_STATE_CHANGE_TYPES)
 	{
-		if (text == match.m_String)
-			return std::make_shared<QueueStateChangeLine>(timestamp, match.m_QueueType, match.m_StateChange);
+		if (args.m_Text == match.m_String)
+			return std::make_shared<QueueStateChangeLine>(args.m_Timestamp, match.m_QueueType, match.m_StateChange);
 	}
 
 	return nullptr;
@@ -920,13 +921,13 @@ InQueueLine::InQueueLine(time_point_t timestamp, TFMatchGroup queueType, time_po
 {
 }
 
-std::shared_ptr<IConsoleLine> InQueueLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> InQueueLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(
 		R"regex(    MatchGroup: (\d+)\s+Started matchmaking:\s+(.*)\s+\(\d+ seconds ago, now is (.*)\))regex",
 		std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		TFMatchGroup matchGroup = TFMatchGroup::Invalid;
 		{
@@ -952,7 +953,7 @@ std::shared_ptr<IConsoleLine> InQueueLine::TryParse(const std::string_view& text
 			}
 		}
 
-		return std::make_shared<InQueueLine>(timestamp, matchGroup, startTime);
+		return std::make_shared<InQueueLine>(args.m_Timestamp, matchGroup, startTime);
 	}
 
 	return nullptr;
@@ -981,13 +982,13 @@ ServerJoinLine::ServerJoinLine(time_point_t timestamp, std::string hostName, std
 {
 }
 
-std::shared_ptr<IConsoleLine> ServerJoinLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerJoinLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(
 		R"regex(\n(.*)\nMap: (.*)\nPlayers: (\d+) \/ (\d+)\nBuild: (\d+)\nServer Number: (\d+)\s+)regex",
 		std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		uint32_t buildNumber, serverNumber;
 		from_chars_throw(result[5], buildNumber);
@@ -997,7 +998,7 @@ std::shared_ptr<IConsoleLine> ServerJoinLine::TryParse(const std::string_view& t
 		from_chars_throw(result[3], playerCount);
 		from_chars_throw(result[4], playerMaxCount);
 
-		return std::make_shared<ServerJoinLine>(timestamp, result[1].str(), result[2].str(),
+		return std::make_shared<ServerJoinLine>(args.m_Timestamp, result[1].str(), result[2].str(),
 			playerCount, playerMaxCount, buildNumber, serverNumber);
 	}
 
@@ -1015,13 +1016,13 @@ ServerDroppedPlayerLine::ServerDroppedPlayerLine(time_point_t timestamp, std::st
 {
 }
 
-std::shared_ptr<IConsoleLine> ServerDroppedPlayerLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerDroppedPlayerLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(Dropped (.*) from server \((.*)\))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
-		return std::make_shared<ServerDroppedPlayerLine>(timestamp, result[1].str(), result[2].str());
+		return std::make_shared<ServerDroppedPlayerLine>(args.m_Timestamp, result[1].str(), result[2].str());
 	}
 
 	return nullptr;
@@ -1037,12 +1038,12 @@ ServerStatusPlayerIPLine::ServerStatusPlayerIPLine(time_point_t timestamp, std::
 {
 }
 
-std::shared_ptr<IConsoleLine> ServerStatusPlayerIPLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> ServerStatusPlayerIPLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(udp\/ip  : (.*)  \(public ip: (.*)\))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
-		return std::make_shared<ServerStatusPlayerIPLine>(timestamp, result[1].str(), result[2].str());
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
+		return std::make_shared<ServerStatusPlayerIPLine>(args.m_Timestamp, result[1].str(), result[2].str());
 
 	return nullptr;
 }
@@ -1059,14 +1060,13 @@ DifferingLobbyReceivedLine::DifferingLobbyReceivedLine(time_point_t timestamp, c
 {
 }
 
-std::shared_ptr<IConsoleLine> DifferingLobbyReceivedLine::TryParse(
-	const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> DifferingLobbyReceivedLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(
 		R"regex(Differing lobby received\. Lobby: (.*)\/Match(\d+)\/Lobby(\d+) CurrentlyAssigned: (.*)\/Match(\d+)\/Lobby(\d+) ConnectedToMatchServer: (\d+) HasLobby: (\d+) AssignedMatchEnded: (\d+))regex",
 		std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		Lobby newLobby;
 		newLobby.m_LobbyID = SteamID(result[1].str());
@@ -1083,7 +1083,7 @@ std::shared_ptr<IConsoleLine> DifferingLobbyReceivedLine::TryParse(
 		from_chars_throw(result[8], hasLobby);
 		from_chars_throw(result[9], assignedMatchEnded);
 
-		return std::make_shared<DifferingLobbyReceivedLine>(timestamp, newLobby, currentLobby,
+		return std::make_shared<DifferingLobbyReceivedLine>(args.m_Timestamp, newLobby, currentLobby,
 			connectedToMatchServer, hasLobby, assignedMatchEnded);
 	}
 

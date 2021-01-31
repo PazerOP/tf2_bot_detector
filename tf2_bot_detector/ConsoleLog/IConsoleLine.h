@@ -9,6 +9,7 @@
 namespace tf2_bot_detector
 {
 	class Settings;
+	class IWorldState;
 
 	enum class ConsoleLineType
 	{
@@ -67,6 +68,13 @@ namespace tf2_bot_detector
 		Last,
 	};
 
+	struct ConsoleLineTryParseArgs
+	{
+		std::string_view m_Text;
+		time_point_t m_Timestamp;
+		IWorldState& m_World;
+	};
+
 	class IConsoleLine : public std::enable_shared_from_this<IConsoleLine>
 	{
 	public:
@@ -82,12 +90,12 @@ namespace tf2_bot_detector
 		};
 		virtual void Print(const PrintArgs& args) const = 0;
 
-		static std::shared_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> ParseConsoleLine(const std::string_view& text, time_point_t timestamp, IWorldState& world);
 
 		time_point_t GetTimestamp() const { return m_Timestamp; }
 
 	protected:
-		using TryParseFunc = std::shared_ptr<IConsoleLine>(*)(const std::string_view& text, time_point_t timestamp);
+		using TryParseFunc = std::shared_ptr<IConsoleLine>(*)(const ConsoleLineTryParseArgs& args);
 		struct ConsoleLineTypeData
 		{
 			TryParseFunc m_TryParseFunc = nullptr;

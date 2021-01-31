@@ -17,11 +17,11 @@ SplitPacketLine::SplitPacketLine(time_point_t timestamp, SplitPacket packet) :
 {
 }
 
-std::shared_ptr<IConsoleLine> SplitPacketLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> SplitPacketLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static std::regex s_Regex(R"regex(<-- \[(.{3})\] Split packet +(\d+)\/ +(\d+) seq +(\d+) size +(\d+) mtu +(\d+) from ([0-9.:a-fA-F]+:\d+))regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		SplitPacket packet;
 
@@ -54,7 +54,7 @@ std::shared_ptr<IConsoleLine> SplitPacketLine::TryParse(const std::string_view& 
 		from_chars_throw(result[6], packet.m_MTU);
 		packet.m_Address = result[7].str();
 
-		return std::make_shared<SplitPacketLine>(timestamp, std::move(packet));
+		return std::make_shared<SplitPacketLine>(args.m_Timestamp, std::move(packet));
 	}
 
 	return nullptr;
@@ -93,11 +93,11 @@ NetStatusConfigLine::NetStatusConfigLine(time_point_t timestamp,
 {
 }
 
-std::shared_ptr<IConsoleLine> NetStatusConfigLine::TryParse(const std::string_view& text, time_point_t timestamp)
+std::shared_ptr<IConsoleLine> NetStatusConfigLine::TryParse(const ConsoleLineTryParseArgs& args)
 {
 	static const std::regex s_Regex(R"regex(- Config: (.*), (.*), (\d+) connections)regex", std::regex::optimize);
 
-	if (svmatch result; std::regex_match(text.begin(), text.end(), result, s_Regex))
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
 	{
 		const std::string_view playerModeStr(&*result[1].first, result[1].length());
 		PlayerMode playerMode;
@@ -126,7 +126,7 @@ std::shared_ptr<IConsoleLine> NetStatusConfigLine::TryParse(const std::string_vi
 		unsigned connectionCount;
 		from_chars_throw(result[3], connectionCount);
 
-		return std::make_shared<NetStatusConfigLine>(timestamp, playerMode, serverMode, connectionCount);
+		return std::make_shared<NetStatusConfigLine>(args.m_Timestamp, playerMode, serverMode, connectionCount);
 	}
 
 	return nullptr;

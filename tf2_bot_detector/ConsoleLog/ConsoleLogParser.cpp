@@ -233,7 +233,7 @@ void ConsoleLogParser::ParseChunk(striter& parseEnd, bool& linesProcessed, bool&
 
 			if (!parsed && result == ParseLineResult::Unparsed)
 			{
-				parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot());
+				parsed = IConsoleLine::ParseConsoleLine(lineStr, m_CurrentTimestamp.GetSnapshot(), *m_WorldState);
 				if (parsed && parsed->GetType() == ConsoleLineType::Chat)
 					LogError("Line was parsed as a chat message via old code path, this should never happen!");
 

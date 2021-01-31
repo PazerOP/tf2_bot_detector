@@ -24,7 +24,7 @@ namespace tf2_bot_detector
 
 	public:
 		GenericConsoleLine(time_point_t timestamp, std::string text);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Generic; }
 		bool ShouldPrint() const override { return false; }
@@ -41,7 +41,7 @@ namespace tf2_bot_detector
 	public:
 		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead,
 			bool isTeam, bool isSelf, TeamShareResult teamShare);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 		//static std::shared_ptr<ChatConsoleLine> TryParseFlexible(const std::string_view& text, time_point_t timestamp);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Chat; }
@@ -71,7 +71,7 @@ namespace tf2_bot_detector
 
 	public:
 		using ConsoleLineBase::ConsoleLineBase;
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyStatusFailed; }
 		bool ShouldPrint() const override { return false; }
@@ -84,7 +84,7 @@ namespace tf2_bot_detector
 
 	public:
 		PartyHeaderLine(time_point_t timestamp, TFParty party);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		const TFParty& GetParty() const { return m_Party; }
 
@@ -102,7 +102,7 @@ namespace tf2_bot_detector
 
 	public:
 		LobbyHeaderLine(time_point_t timestamp, unsigned memberCount, unsigned pendingCount);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		auto GetMemberCount() const { return m_MemberCount; }
 		auto GetPendingCount() const { return m_PendingCount; }
@@ -122,7 +122,7 @@ namespace tf2_bot_detector
 
 	public:
 		LobbyMemberLine(time_point_t timestamp, const LobbyMember& lobbyMember);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		const LobbyMember& GetLobbyMember() const { return m_LobbyMember; }
 
@@ -147,7 +147,7 @@ namespace tf2_bot_detector
 
 	public:
 		LobbyChangedLine(time_point_t timestamp, LobbyChangeType type);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::LobbyChanged; }
 		LobbyChangeType GetChangeType() const { return m_ChangeType; }
@@ -172,7 +172,7 @@ namespace tf2_bot_detector
 
 		DifferingLobbyReceivedLine(time_point_t timestamp, const Lobby& newLobby, const Lobby& currentLobby,
 			bool connectedToMatchServer, bool hasLobby, bool assignedMatchEnded);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::DifferingLobbyReceived; }
 		bool ShouldPrint() const override { return false; }
@@ -198,7 +198,7 @@ namespace tf2_bot_detector
 
 	public:
 		ServerStatusPlayerLine(time_point_t timestamp, PlayerStatus playerStatus);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		const PlayerStatus& GetPlayerStatus() const { return m_PlayerStatus; }
 
@@ -216,7 +216,7 @@ namespace tf2_bot_detector
 
 	public:
 		ServerStatusPlayerIPLine(time_point_t timestamp, std::string localIP, std::string publicIP);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::PlayerStatusIP; }
 		bool ShouldPrint() const override { return false; }
@@ -236,7 +236,7 @@ namespace tf2_bot_detector
 
 	public:
 		ServerStatusShortPlayerLine(time_point_t timestamp, PlayerStatusShort playerStatus);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		const PlayerStatusShort& GetPlayerStatus() const { return m_PlayerStatus; }
 
@@ -255,7 +255,7 @@ namespace tf2_bot_detector
 	public:
 		ServerStatusPlayerCountLine(time_point_t timestamp, uint8_t playerCount,
 			uint8_t botCount, uint8_t maxPlayers);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		uint8_t GetPlayerCount() const { return m_PlayerCount; }
 		uint8_t GetBotCount() const { return m_BotCount; }
@@ -277,7 +277,7 @@ namespace tf2_bot_detector
 
 	public:
 		ServerStatusMapLine(time_point_t timestamp, std::string mapName, const std::array<float, 3>& position);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		const std::string& GetMapName() const { return m_MapName; }
 		const std::array<float, 3>& GetPosition() const { return m_Position; }
@@ -297,7 +297,7 @@ namespace tf2_bot_detector
 
 	public:
 		EdictUsageLine(time_point_t timestamp, uint16_t usedEdicts, uint16_t totalEdicts);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		uint16_t GetUsedEdicts() const { return m_UsedEdicts; }
 		uint16_t GetTotalEdicts() const { return m_TotalEdicts; }
@@ -317,7 +317,7 @@ namespace tf2_bot_detector
 
 	public:
 		using ConsoleLineBase::ConsoleLineBase;
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::ClientReachedServerSpawn; }
 		bool ShouldPrint() const override { return false; }
@@ -331,7 +331,7 @@ namespace tf2_bot_detector
 	public:
 		KillNotificationLine(time_point_t timestamp, std::string attackerName,
 			std::string victimName, std::string weaponName, bool wasCrit);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		const std::string& GetVictimName() const { return m_VictimName; }
 		const std::string& GetAttackerName() const { return m_AttackerName; }
@@ -355,7 +355,7 @@ namespace tf2_bot_detector
 
 	public:
 		CvarlistConvarLine(time_point_t timestamp, std::string name, float value, std::string flagsList, std::string helpText);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		const std::string& GetConvarName() const { return m_Name; }
 		float GetConvarValue() const { return m_Value; }
@@ -379,7 +379,7 @@ namespace tf2_bot_detector
 
 	public:
 		VoiceReceiveLine(time_point_t timestamp, uint8_t channel, uint8_t entindex, uint16_t bufSize);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		uint8_t GetEntIndex() const { return m_Entindex; }
 
@@ -399,7 +399,7 @@ namespace tf2_bot_detector
 
 	public:
 		PingLine(time_point_t timestamp, uint16_t ping, std::string playerName);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Ping; }
 		bool ShouldPrint() const override { return false; }
@@ -419,7 +419,7 @@ namespace tf2_bot_detector
 
 	public:
 		SVCUserMessageLine(time_point_t timestamp, std::string address, UserMessageType type, uint16_t bytes);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::SVC_UserMessage; }
 		bool ShouldPrint() const override;
@@ -443,7 +443,7 @@ namespace tf2_bot_detector
 
 	public:
 		ConfigExecLine(time_point_t timestamp, std::string configFileName, bool success);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::ConfigExec; }
 		bool ShouldPrint() const override { return false; }
@@ -463,7 +463,7 @@ namespace tf2_bot_detector
 
 	public:
 		TeamsSwitchedLine(time_point_t timestamp) : BaseClass(timestamp) {}
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::TeamsSwitched; }
 		bool ShouldPrint() const override;
@@ -483,7 +483,7 @@ namespace tf2_bot_detector
 
 	public:
 		ConnectingLine(time_point_t timestamp, std::string address, bool isMatchmaking, bool isRetrying);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::Connecting; }
 		bool ShouldPrint() const override { return false; }
@@ -503,7 +503,7 @@ namespace tf2_bot_detector
 
 	public:
 		HostNewGameLine(time_point_t timestamp) : BaseClass(timestamp) {}
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::HostNewGame; }
 		bool ShouldPrint() const override { return false; }
@@ -516,7 +516,7 @@ namespace tf2_bot_detector
 
 	public:
 		GameQuitLine(time_point_t timestamp) : BaseClass(timestamp) {}
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::GameQuit; }
 		bool ShouldPrint() const override { return false; }
@@ -529,7 +529,7 @@ namespace tf2_bot_detector
 
 	public:
 		QueueStateChangeLine(time_point_t timestamp, TFMatchGroup queueType, TFQueueStateChange stateChange);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::QueueStateChange; }
 		bool ShouldPrint() const override { return false; }
@@ -549,7 +549,7 @@ namespace tf2_bot_detector
 
 	public:
 		InQueueLine(time_point_t timestamp, TFMatchGroup queueType, time_point_t queueStartTime);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::InQueue; }
 		bool ShouldPrint() const override { return false; }
@@ -570,7 +570,7 @@ namespace tf2_bot_detector
 	public:
 		ServerJoinLine(time_point_t timestamp, std::string hostName, std::string mapName,
 			uint8_t playerCount, uint8_t playerMaxCount, uint32_t buildNumber, uint32_t serverNumber);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::ServerJoin; }
 		bool ShouldPrint() const override { return false; }
@@ -598,7 +598,7 @@ namespace tf2_bot_detector
 
 	public:
 		ServerDroppedPlayerLine(time_point_t timestamp, std::string playerName, std::string reason);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::ServerDroppedPlayer; }
 		bool ShouldPrint() const override { return false; }

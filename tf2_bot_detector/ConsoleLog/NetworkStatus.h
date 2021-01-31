@@ -46,7 +46,7 @@ namespace tf2_bot_detector
 	public:
 		SplitPacketLine(time_point_t timestamp, SplitPacket packet);
 
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		const SplitPacket& GetSplitPacket() const { return m_Packet; }
 
@@ -76,7 +76,7 @@ namespace tf2_bot_detector
 		};
 
 		NetStatusConfigLine(time_point_t timestamp, PlayerMode playerMode, ServerMode serverMode, unsigned connectionCount);
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp);
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 
 		ConsoleLineType GetType() const override { return ConsoleLineType::NetStatusConfig; }
 		bool ShouldPrint() const override { return false; }
@@ -115,10 +115,10 @@ namespace tf2_bot_detector
 		using BaseClass = ConsoleLineBase<TSelf>;
 
 	public:
-		static std::shared_ptr<IConsoleLine> TryParse(const std::string_view& text, time_point_t timestamp)
+		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args)
 		{
-			if (float f0, f1; NetChannelDualFloatLineBase::TryParse(text, TSelf::REGEX_PATTERN, f0, f1))
-				return std::make_shared<TSelf>(timestamp, f0, f1);
+			if (float f0, f1; NetChannelDualFloatLineBase::TryParse(args.m_Text, TSelf::REGEX_PATTERN, f0, f1))
+				return std::make_shared<TSelf>(args.m_Timestamp, f0, f1);
 
 			return nullptr;
 		}
