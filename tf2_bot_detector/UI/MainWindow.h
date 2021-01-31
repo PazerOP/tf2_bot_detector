@@ -59,6 +59,7 @@ namespace tf2_bot_detector
 		void OnDrawMenuBar() override;
 		bool HasMenuBar() const override { return true; }
 		void OnDrawScoreboard();
+		void OnDrawTeamStats();
 		void OnDrawAllPanesDisabled();
 		void OnDrawScoreboardContextMenu(IPlayer& player);
 		void OnDrawScoreboardRow(IPlayer& player);
