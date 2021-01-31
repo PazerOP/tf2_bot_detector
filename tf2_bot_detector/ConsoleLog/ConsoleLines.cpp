@@ -83,10 +83,10 @@ std::shared_ptr<ChatConsoleLine> ChatConsoleLine::TryParse(const std::string_vie
 #endif
 
 template<typename TTextFunc, typename TSameLineFunc>
-static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLine::PrintArgs& args,
+static void ProcessChatMessage(const ChatConsoleLine& msgLine, const Settings::Theme& theme,
 	TTextFunc&& textFunc, TSameLineFunc&& sameLineFunc)
 {
-	auto& colorSettings = args.m_Settings.m_Theme.m_Colors;
+	auto& colorSettings = theme.m_Colors;
 	std::array<float, 4> colors{ 0.8f, 0.8f, 1.0f, 1.0f };
 
 	if (msgLine.IsSelf())
@@ -96,24 +96,24 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLin
 	else if (msgLine.GetTeamShareResult() == TeamShareResult::OppositeTeams)
 		colors = colorSettings.m_ChatLogEnemyTeamFG;
 
-	const auto PrintLHS = [&]
+	const auto PrintLHS = [&](float alphaScale = 1.0f)
 	{
 		if (msgLine.IsDead())
 		{
-			textFunc(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "*DEAD*");
+			textFunc(ImVec4(0.5f, 0.5f, 0.5f, 1.0f * alphaScale), "*DEAD*");
 			sameLineFunc();
 		}
 
 		if (msgLine.IsTeam())
 		{
-			textFunc(ImVec4(colors[0], colors[1], colors[2], colors[3] * 0.75f), "(TEAM)");
+			textFunc(ImVec4(colors[0], colors[1], colors[2], colors[3] * 0.75f * alphaScale), "(TEAM)");
 			sameLineFunc();
 		}
 
-		textFunc(colors, msgLine.GetPlayerName());
+		textFunc(ImVec4(colors[0], colors[1], colors[2], colors[3] * alphaScale), msgLine.GetPlayerName());
 		sameLineFunc();
 
-		textFunc(ImVec4(1, 1, 1, 1), ": ");
+		textFunc(ImVec4(1, 1, 1, alphaScale), ": ");
 		sameLineFunc();
 	};
 
@@ -133,8 +133,7 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLin
 		{
 			if (!firstLine)
 			{
-				ImGuiDesktop::ScopeGuards::GlobalAlpha alpha(0.5f);
-				PrintLHS();
+				PrintLHS(0.5f);
 			}
 
 			size_t nonNewlineEnd = std::min(msg.find('\n', i), msg.size());
@@ -148,9 +147,9 @@ static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLin
 
 			if (newlineEnd > nonNewlineEnd)
 			{
+				sameLineFunc();
 				textFunc(ImVec4(1, 0.5f, 0.5f, 1.0f),
 					mh::fmtstr<64>("(\\n x {})", (newlineEnd - nonNewlineEnd)).c_str());
-				sameLineFunc();
 			}
 
 			i = newlineEnd;
@@ -164,7 +163,7 @@ void ChatConsoleLine::Print(const PrintArgs& args) const
 	ImGuiDesktop::ScopeGuards::ID id(this);
 
 	ImGui::BeginGroup();
-	ProcessChatMessage(*this, args,
+	ProcessChatMessage(*this, args.m_Settings.m_Theme,
 		[](const ImVec4& color, const std::string_view& msg) { ImGui::TextFmt(color, msg); },
 		[] { ImGui::SameLine(); });
 	ImGui::EndGroup();
@@ -177,7 +176,7 @@ void ChatConsoleLine::Print(const PrintArgs& args) const
 		{
 			std::string fullText;
 
-			ProcessChatMessage(*this, args,
+			ProcessChatMessage(*this, args.m_Settings.m_Theme,
 				[&](const ImVec4&, const std::string_view& msg)
 				{
 					if (!fullText.empty())
@@ -1115,3 +1114,37 @@ void DifferingLobbyReceivedLine::Print(const PrintArgs& args) const
 		"Differing lobby received. Lobby: {} CurrentlyAssigned: {} ConnectedToMatchServer: {} HasLobby: {} AssignedMatchEnded: {}",
 		m_NewLobby, m_CurrentLobby, int(m_ConnectedToMatchServer), int(m_HasLobby), int(m_AssignedMatchEnded));
 }
+
+#ifdef TF2BD_ENABLE_TESTS
+#include <catch2/catch.hpp>
+
+TEST_CASE("ProcessChatMessage - Newlines", "[tf2bd]")
+{
+	const auto TestProcessChatMessage = [](std::string message)
+	{
+		ChatConsoleLine line(tfbd_clock_t::now(), "<playername>", std::move(message), false, false, false, TeamShareResult::SameTeams, SteamID{});
+
+		Settings::Theme dummyTheme;
+
+		std::string output;
+
+		ProcessChatMessage(line, dummyTheme,
+			[&](const ImVec4& color, const std::string_view& msg)
+			{
+				output << msg << '\n';
+			},
+			[&]()
+			{
+				output << "<sameline>";
+			});
+
+		return output;
+	};
+
+	REQUIRE(TestProcessChatMessage("this is a normal message") ==
+		"<playername>\n<sameline>: \n<sameline>this is a normal message\n");
+	REQUIRE(TestProcessChatMessage("this is\n\na message with newlines in it") ==
+		"<playername>\n<sameline>: \n<sameline>this is\n<sameline>(\\n x 2)\n<playername>\n<sameline>: \n<sameline>a message with newlines in it\n");
+}
+
+#endif
