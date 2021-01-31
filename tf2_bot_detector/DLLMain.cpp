@@ -1,12 +1,12 @@
 #include "DLLMain.h"
 
+#include "Application.h"
 #include "Tests/Tests.h"
 #include "UI/MainWindow.h"
 #include "Util/TextUtils.h"
 #include "Log.h"
 #include "Filesystem.h"
 
-#include <imgui_desktop/Application.h>
 #include <mh/text/string_insertion.hpp>
 
 #ifdef WIN32
@@ -96,11 +96,8 @@ TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** 
 
 	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
 
-	DebugLog("Initializing ImGuiDesktop::Application...");
-	ImGuiDesktop::Application app;
-
-	DebugLog("Initializing MainWindow...");
-	app.AddManagedWindow(std::make_unique<tf2_bot_detector::MainWindow>(app));
+	DebugLog("Initializing TF2BDApplication...");
+	TF2BDApplication app;
 
 	DebugLog("Entering event loop...");
 	while (!app.ShouldQuit())

@@ -40,7 +40,7 @@ namespace tf2_bot_detector
 
 	public:
 		ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message, bool isDead,
-			bool isTeam, bool isSelf, TeamShareResult teamShare);
+			bool isTeam, bool isSelf, TeamShareResult teamShare, SteamID id);
 		static std::shared_ptr<IConsoleLine> TryParse(const ConsoleLineTryParseArgs& args);
 		//static std::shared_ptr<ChatConsoleLine> TryParseFlexible(const std::string_view& text, time_point_t timestamp);
 
@@ -59,6 +59,7 @@ namespace tf2_bot_detector
 
 		std::string m_PlayerName;
 		std::string m_Message;
+		SteamID m_PlayerSteamID;
 		TeamShareResult m_TeamShareResult;
 		bool m_IsDead : 1;
 		bool m_IsTeam : 1;

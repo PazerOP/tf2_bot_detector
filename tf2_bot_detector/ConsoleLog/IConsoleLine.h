@@ -8,6 +8,7 @@
 
 namespace tf2_bot_detector
 {
+	class MainWindow;
 	class Settings;
 	class IWorldState;
 
@@ -86,7 +87,9 @@ namespace tf2_bot_detector
 
 		struct PrintArgs
 		{
-			std::reference_wrapper<const Settings> m_Settings;
+			const Settings& m_Settings;
+			IWorldState& m_WorldState;
+			MainWindow& m_MainWindow;
 		};
 		virtual void Print(const PrintArgs& args) const = 0;
 

@@ -48,6 +48,9 @@ namespace tf2_bot_detector
 
 		ImFont* GetFontPointer(Font f) const;
 
+		void DrawPlayerTooltip(IPlayer& player);
+		void DrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
+
 	private:
 		void OnImGuiInit() override;
 		void OnOpenGLInit() override;
@@ -62,8 +65,7 @@ namespace tf2_bot_detector
 		void OnDrawColorPicker(const char* name_id, std::array<float, 4>& color);
 		void OnDrawChat();
 		void OnDrawServerStats();
-		void OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
-		void OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
+		void DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
 
 		struct ColorPicker
 		{

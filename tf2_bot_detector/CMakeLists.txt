@@ -119,6 +119,8 @@ target_sources(tf2_bot_detector PRIVATE
 	"Util/PathUtils.h"
 	"Util/TextUtils.cpp"
 	"Util/TextUtils.h"
+	"Application.cpp"
+	"Application.h"
 	"BaseTextures.h"
 	"BaseTextures.cpp"
 	"BatchedAction.h"

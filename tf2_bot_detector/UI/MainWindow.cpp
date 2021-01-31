@@ -183,7 +183,7 @@ void MainWindow::OnDrawChat()
 
 			ImGui::PushTextWrapPos();
 
-			const IConsoleLine::PrintArgs args{ m_Settings };
+			const IConsoleLine::PrintArgs args{ m_Settings, *m_WorldState, *this };
 			for (auto it = m_MainState->m_PrintingLines.rbegin(); it != m_MainState->m_PrintingLines.rend(); ++it)
 			{
 				assert(*it);

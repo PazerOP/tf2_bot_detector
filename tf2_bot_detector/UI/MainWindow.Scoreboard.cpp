@@ -374,7 +374,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 	}
 
 	if (shouldDrawPlayerTooltip)
-		OnDrawPlayerTooltip(player, teamShareResult, playerAttribs);
+		DrawPlayerTooltip(player, teamShareResult, playerAttribs);
 }
 
 void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
@@ -478,11 +478,16 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 	}
 }
 
-void MainWindow::OnDrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult,
+void MainWindow::DrawPlayerTooltip(IPlayer& player)
+{
+	DrawPlayerTooltip(player, m_WorldState->GetTeamShareResult(player), GetModLogic().GetPlayerAttributes(player));
+}
+
+void MainWindow::DrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult,
 	const PlayerMarks& playerAttribs)
 {
 	ImGui::BeginTooltip();
-	OnDrawPlayerTooltipBody(player, teamShareResult, playerAttribs);
+	DrawPlayerTooltipBody(player, teamShareResult, playerAttribs);
 	ImGui::EndTooltip();
 }
 
@@ -799,7 +804,7 @@ static void PrintPlayerLogsCount(const IPlayer& player)
 			});
 }
 
-void MainWindow::OnDrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult,
+void MainWindow::DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult,
 	const PlayerMarks& playerAttribs)
 {
 	ImGuiDesktop::ScopeGuards::StyleColor textColor(ImGuiCol_Text, { 1, 1, 1, 1 });

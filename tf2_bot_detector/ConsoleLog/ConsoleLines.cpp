@@ -1,7 +1,9 @@
 #include "ConsoleLines.h"
+#include "Application.h"
 #include "Config/Settings.h"
 #include "GameData/MatchmakingQueue.h"
 #include "GameData/UserMessageType.h"
+#include "UI/MainWindow.h"
 #include "UI/ImGui_TF2BotDetector.h"
 #include "Util/RegexUtils.h"
 #include "Log.h"
@@ -42,9 +44,9 @@ void GenericConsoleLine::Print(const PrintArgs& args) const
 }
 
 ChatConsoleLine::ChatConsoleLine(time_point_t timestamp, std::string playerName, std::string message,
-	bool isDead, bool isTeam, bool isSelf, TeamShareResult teamShareResult) :
+	bool isDead, bool isTeam, bool isSelf, TeamShareResult teamShareResult, SteamID id) :
 	ConsoleLineBase(timestamp), m_PlayerName(std::move(playerName)), m_Message(std::move(message)),
-	m_IsDead(isDead), m_IsTeam(isTeam), m_IsSelf(isSelf), m_TeamShareResult(teamShareResult)
+	m_IsDead(isDead), m_IsTeam(isTeam), m_IsSelf(isSelf), m_TeamShareResult(teamShareResult), m_PlayerSteamID(id)
 {
 	m_PlayerName.shrink_to_fit();
 	m_Message.shrink_to_fit();
@@ -84,7 +86,7 @@ template<typename TTextFunc, typename TSameLineFunc>
 static void ProcessChatMessage(const ChatConsoleLine& msgLine, const IConsoleLine::PrintArgs& args,
 	TTextFunc&& textFunc, TSameLineFunc&& sameLineFunc)
 {
-	auto& colorSettings = args.m_Settings.get().m_Theme.m_Colors;
+	auto& colorSettings = args.m_Settings.m_Theme.m_Colors;
 	std::array<float, 4> colors{ 0.8f, 0.8f, 1.0f, 1.0f };
 
 	if (msgLine.IsSelf())
@@ -167,6 +169,8 @@ void ChatConsoleLine::Print(const PrintArgs& args) const
 		[] { ImGui::SameLine(); });
 	ImGui::EndGroup();
 
+	const bool isHovered = ImGui::IsItemHovered();
+
 	if (auto scope = ImGui::BeginPopupContextItemScope("ChatConsoleLineContextMenu"))
 	{
 		if (ImGui::MenuItem("Copy"))
@@ -185,6 +189,11 @@ void ChatConsoleLine::Print(const PrintArgs& args) const
 
 			ImGui::SetClipboardText(fullText.c_str());
 		}
+	}
+	else if (isHovered)
+	{
+		if (auto player = args.m_WorldState.FindPlayer(m_PlayerSteamID))
+			args.m_MainWindow.DrawPlayerTooltip(*player);
 	}
 }
 

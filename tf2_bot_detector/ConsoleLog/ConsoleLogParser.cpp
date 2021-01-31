@@ -159,15 +159,17 @@ bool ConsoleLogParser::ParseChatMessage(const std::string_view& lineStr, striter
 						msgEnd - msgBegin - type.m_Message.m_Start.m_Narrow.size());
 
 					TeamShareResult teamShareResult = TeamShareResult::Neither;
+					SteamID id;
 					bool isSelf = false;
 					if (auto player = m_WorldState->FindSteamIDForName(name))
 					{
 						teamShareResult = m_WorldState->GetTeamShareResult(*player);
 						isSelf = (player == m_Settings->GetLocalSteamID());
+						id = *player;
 					}
 
 					parsed = std::make_unique<ChatConsoleLine>(m_WorldState->GetCurrentTime(),
-						std::string(name), std::string(msg), IsDead(category), IsTeam(category), isSelf, teamShareResult);
+						std::string(name), std::string(msg), IsDead(category), IsTeam(category), isSelf, teamShareResult, id);
 				}
 				else
 				{
