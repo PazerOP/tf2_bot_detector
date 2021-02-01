@@ -656,6 +656,8 @@ void MainWindow::OnDrawMenuBar()
 			m_Settings.SaveFile();
 		if (ImGui::MenuItem("Show App Log", nullptr, &m_Settings.m_UIState.m_MainWindow.m_AppLogEnabled))
 			m_Settings.SaveFile();
+		if (ImGui::MenuItem("Show Team Stats", nullptr, &m_Settings.m_UIState.m_MainWindow.m_TeamStatsEnabled))
+			m_Settings.SaveFile();
 		if (ImGui::MenuItem("Show Scoreboard", nullptr, &m_Settings.m_UIState.m_MainWindow.m_ScoreboardEnabled))
 			m_Settings.SaveFile();
 

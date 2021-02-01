@@ -130,6 +130,7 @@ namespace tf2_bot_detector
 				bool m_ChatEnabled = true;
 				bool m_ScoreboardEnabled = true;
 				bool m_AppLogEnabled = true;
+				bool m_TeamStatsEnabled = true;
 
 			} m_MainWindow;
 
