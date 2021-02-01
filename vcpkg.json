@@ -14,6 +14,6 @@
 		"stb",
 		"nlohmann-json",
 		"catch2",
-		"sqlite3"
+		"sqlitecpp"
 	]
 }
