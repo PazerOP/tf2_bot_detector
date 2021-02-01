@@ -70,6 +70,8 @@ namespace tf2_bot_detector
 		}
 		std::string str() const;
 
+		uint32_t GetAccountID() const { return static_cast<uint32_t>(ID); }
+
 		union
 		{
 			uint64_t ID64 = 0;

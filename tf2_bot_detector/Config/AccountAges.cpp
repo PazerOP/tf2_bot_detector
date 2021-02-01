@@ -23,6 +23,8 @@ namespace
 
 		std::optional<time_point_t> EstimateAccountCreationTime(const SteamID& id) const override;
 
+		mh::generator<std::pair<SteamID, time_point_t>> GetEntries() const override;
+
 	private:
 		[[nodiscard]] bool CheckSteamIDValid(const SteamID& id, MH_SOURCE_LOCATION_AUTO(location)) const;
 
@@ -120,6 +122,15 @@ std::optional<time_point_t> AccountAges::EstimateAccountCreationTime(const Steam
 		lower->second.time_since_epoch().count(), upper->second.time_since_epoch().count());
 
 	return time_point_t(time_point_t::duration(interpValue));
+}
+
+mh::generator<std::pair<SteamID, time_point_t>> AccountAges::GetEntries() const
+{
+	m_Sentinel.check();
+	for (const auto& [accID, time] : m_Ages)
+	{
+		co_yield{ SteamID(static_cast<uint32_t>(accID), SteamAccountType::Individual, SteamAccountUniverse::Public), time };
+	}
 }
 
 void AccountAges::ValidateSchema(const ConfigSchemaInfo& schema) const

@@ -16,7 +16,7 @@ namespace tf2_bot_detector::LogsTFAPI
 	struct PlayerLogsInfo
 	{
 		SteamID m_ID;
-		size_t m_LogsCount;
+		uint32_t m_LogsCount;
 	};
 
 	mh::task<PlayerLogsInfo> GetPlayerLogsInfoAsync(std::shared_ptr<const IHTTPClient> client, SteamID id);

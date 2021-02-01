@@ -18,6 +18,8 @@
 #include "WorldEventListener.h"
 #include "Config/AccountAges.h"
 #include "GlobalDispatcher.h"
+#include "Application.h"
+#include "DB/TempDB.h"
 
 #include <mh/algorithm/algorithm.hpp>
 #include <mh/concurrency/dispatcher.hpp>
@@ -96,7 +98,7 @@ namespace
 		const std::unordered_set<SteamID>& GetFriends() const { return m_Friends; }
 
 		IAccountAges& GetAccountAges() { return *m_AccountAges; }
-		const IAccountAges& GetAccountAges() const { return *m_AccountAges; }
+		const IAccountAges& GetAccountAges() const override { return *m_AccountAges; }
 
 	protected:
 		virtual IConsoleLineListener& GetConsoleLineListenerBroadcaster() { return m_ConsoleLineListenerBroadcaster; }
@@ -235,7 +237,7 @@ namespace
 
 		template<typename T, typename TFunc>
 		const mh::expected<T>& GetOrFetchDataAsync(mh::expected<T>& variable, TFunc&& updateFunc,
-			std::initializer_list<std::error_condition> silentErrors = {}) const;
+			std::initializer_list<std::error_condition> silentErrors = {}, MH_SOURCE_LOCATION_AUTO(location)) const;
 
 		WorldState* m_World = nullptr;
 		PlayerStatus m_Status{};
@@ -982,9 +984,9 @@ const mh::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
 
 template<typename T, typename TFunc>
 const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&& updateFunc,
-	std::initializer_list<std::error_condition> silentErrors) const
+	std::initializer_list<std::error_condition> silentErrors, const mh::source_location& location) const
 {
-	m_Sentinel.check();
+	m_Sentinel.check(location);
 
 	if (var == ErrorCode::LazyValueUninitialized ||
 		var == ErrorCode::InternetConnectivityDisabled)
@@ -1002,7 +1004,8 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 			auto sharedThis = shared_from_this();
 
 			[](std::shared_ptr<const Player> sharedThis, std::shared_ptr<const IHTTPClient> client,
-				mh::expected<T>& var, std::vector<std::error_condition> silentErrors, TFunc updateFunc) -> mh::task<>
+				mh::expected<T>& var, std::vector<std::error_condition> silentErrors, TFunc updateFunc,
+				mh::source_location location) -> mh::task<>
 			{
 				try
 				{
@@ -1016,11 +1019,11 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 						result = e.code().default_error_condition();
 
 						if (!mh::contains(silentErrors, result.error()))
-							DebugLogException(e);
+							DebugLogException(location, e);
 					}
 					catch (...)
 					{
-						LogException();
+						LogException(location);
 						result = ErrorCode::UnknownError;
 					}
 
@@ -1030,10 +1033,10 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 				}
 				catch (...)
 				{
-					LogException();
+					LogException(location);
 				}
 
-			}(sharedThis, client, var, silentErrors, std::move(updateFunc));
+			}(sharedThis, client, var, silentErrors, std::move(updateFunc), location);
 		}
 	}
 
@@ -1043,7 +1046,41 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 {
 	return GetOrFetchDataAsync(m_LogsInfo,
-		[&](auto pThis, auto client) { return LogsTFAPI::GetPlayerLogsInfoAsync(client, GetSteamID()); });
+		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<mh::expected<LogsTFAPI::PlayerLogsInfo>>
+		{
+			TF2BDApplication& app = TF2BDApplication::GetApplication();
+
+			LogsTFAPI::PlayerLogsInfo logsInfo{};
+			DB::LogsTFCacheInfo cacheInfo{};
+
+			cacheInfo.m_ID = pThis->GetSteamID();
+			bool wantsRefresh = true;
+			if (app.GetTempDB().TryGet(cacheInfo))
+			{
+				if ((tfbd_clock_t::now() - cacheInfo.m_LastUpdateTime) <= day_t(7))
+				{
+					logsInfo.m_ID = cacheInfo.m_ID;
+					logsInfo.m_LogsCount = cacheInfo.m_LogCount;
+					wantsRefresh = false;
+
+					DebugLog("Pulled logs count ({}) from db cache for {}", cacheInfo.m_LogCount, *pThis);
+				}
+			}
+
+			if (wantsRefresh)
+			{
+				logsInfo = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, GetSteamID());
+
+				assert(cacheInfo.m_ID == logsInfo.m_ID);
+				cacheInfo.m_LastUpdateTime = tfbd_clock_t::now();
+				cacheInfo.m_LogCount = logsInfo.m_LogsCount;
+				app.GetTempDB().Store(cacheInfo);
+
+				DebugLog("Fetched logs count ({}) from web for {} and stored into db", logsInfo.m_LogsCount, *pThis);
+			}
+
+			co_return logsInfo;
+		});
 }
 
 mh::expected<duration_t> Player::GetTF2Playtime() const

@@ -14,6 +14,7 @@ namespace tf2_bot_detector
 	class ChatConsoleLine;
 	class ConfigExecLine;
 	class ConsoleLogParser;
+	class IAccountAges;
 	class IConsoleLineListener;
 	class IPlayer;
 	class IWorldEventListener;
@@ -85,6 +86,8 @@ namespace tf2_bot_detector
 		// Have we joined a team and picked a class?
 		virtual bool IsLocalPlayerInitialized() const = 0;
 		virtual bool IsVoteInProgress() const = 0;
+
+		virtual const IAccountAges& GetAccountAges() const = 0;
 	};
 
 	inline mh::generator<IPlayer&> IWorldState::GetLobbyMembers()

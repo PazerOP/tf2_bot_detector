@@ -121,7 +121,7 @@ static duration_t GetMinRequestInterval(const URL& url)
 	if (url.m_Host.ends_with("akamaihd.net") ||
 		url.m_Host.ends_with("steamstatic.com"))
 	{
-		return 50ms;
+		return 0ms;
 	}
 	else if (url.m_Host == "api.steampowered.com")
 	{

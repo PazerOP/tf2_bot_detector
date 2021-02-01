@@ -105,6 +105,10 @@ namespace
 		{
 			throw mh::not_implemented_error();
 		}
+		virtual const IAccountAges& GetAccountAges() const override
+		{
+			throw mh::not_implemented_error();
+		}
 
 	} static s_DummyWorldState;
 }
