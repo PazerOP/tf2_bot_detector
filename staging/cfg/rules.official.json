@@ -35,6 +35,23 @@
 					"cheater"
 				]
 			},
+			"description": "misc discord advertisement bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"discord.gg/ngXUzkRh7C"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "[VAC] OneTrick",
 			"triggers": {
 				"avatar_match": [
@@ -288,13 +305,14 @@
 					"cheater"
 				]
 			},
-			"description": "cheemsburger gaming",
+			"description": "<something> gaming",
 			"triggers": {
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"cheemsburger gaming"
+						"cheemsburger gaming",
+						"engineer gaming"
 					]
 				}
 			}
