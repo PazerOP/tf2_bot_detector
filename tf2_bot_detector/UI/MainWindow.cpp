@@ -742,7 +742,6 @@ void MainWindow::PostSetupFlowState::OnUpdateDiscord()
 #endif
 }
 
-#include "Config/AccountAges.h"
 void MainWindow::OnUpdate()
 {
 	if (m_Paused)

@@ -19,7 +19,5 @@ namespace tf2_bot_detector
 		virtual void OnDataReady(const SteamID& id, time_point_t creationTime) = 0;
 
 		virtual std::optional<time_point_t> EstimateAccountCreationTime(const SteamID& id) const = 0;
-
-		virtual mh::generator<std::pair<SteamID, time_point_t>> GetEntries() const = 0;
 	};
 }

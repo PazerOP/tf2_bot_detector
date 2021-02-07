@@ -8,6 +8,7 @@
 #include <mh/error/ensure.hpp>
 #include <mh/concurrency/thread_sentinel.hpp>
 #include <mh/types/enum_class_bit_ops.hpp>
+#include <sqlite3.h>
 #include <SQLiteCpp/SQLiteCpp.h>
 
 #include <cassert>
@@ -24,6 +25,7 @@ namespace
 
 		void Store(const AccountAgeInfo& info) override;
 		bool TryGet(AccountAgeInfo& info) const override;
+		void GetNearestAccountAgeInfos(SteamID id, std::optional<AccountAgeInfo>& lower, std::optional<AccountAgeInfo>& upper) const override;
 
 		void Store(const LogsTFCacheInfo& info) override;
 		bool TryGet(LogsTFCacheInfo& info) const override;
@@ -123,10 +125,51 @@ namespace
 		throw;
 	}
 
+	void TempDB::GetNearestAccountAgeInfos(SteamID id, std::optional<AccountAgeInfo>& lower, std::optional<AccountAgeInfo>& upper) const
+	{
+		auto queryStr = mh::format(R"SQL(
+SELECT max({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_AccountAges} WHERE {col_AccountID} <= $steamID
+UNION ALL
+SELECT min({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_AccountAges} WHERE {col_AccountID} >= $steamID)SQL",
+
+			mh::fmtarg("col_AccountID", TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID.m_Name),
+			mh::fmtarg("col_CreationTime", TABLE_ACCOUNT_AGES::COL_CREATION_TIME.m_Name),
+			mh::fmtarg("tbl_AccountAges", TABLE_ACCOUNT_AGES::TABLENAME));
+
+		Statement2 query(SQLite::Statement(const_cast<SQLite::Database&>(m_Connection.value()), queryStr));
+		query.bind("$steamID", id.GetAccountID());
+
+		const auto DeserializeAccountInfo = [&]()
+		{
+			AccountAgeInfo info;
+			info.m_ID = SteamID(query.getColumn(TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID).getUInt(), SteamAccountType::Individual);
+			info.m_CreationTime = time_point_t(std::chrono::seconds(query.getColumn(TABLE_ACCOUNT_AGES::COL_CREATION_TIME).getInt64()));
+			return info;
+		};
+
+		while (query.executeStep())
+		{
+			assert(!lower.has_value() || !upper.has_value());
+
+			auto info = DeserializeAccountInfo();
+			if (info.m_ID == id)
+			{
+				lower = info;
+				upper = info;
+				return;
+			}
+
+			if (info.m_ID.GetAccountID() < id.GetAccountID())
+				lower = info;
+			else
+				upper = info;
+		}
+	}
+
 	void TempDB::Connect()
 	{
 		assert(!m_Connection.has_value());
-		m_Connection.emplace(CreateDBPath(), SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+		m_Connection.emplace(CreateDBPath(), SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE | SQLite::OPEN_FULLMUTEX);
 	}
 
 	void TempDB::CreateAccountAgesTable() try
@@ -181,8 +224,6 @@ namespace
 			.Where(TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID == info.m_ID.GetAccountID())
 			.Run(db);
 
-		auto result = TABLE_LOGSTF_CACHE::COL_LOG_COUNT != "5" && TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID == 498002983;
-
 		if (query.executeStep())
 		{
 			info.m_LastUpdateTime = time_point_t(std::chrono::seconds(query.getColumn(TABLE_LOGSTF_CACHE::COL_LAST_UPDATE_TIME).getInt64()));
@@ -193,6 +234,7 @@ namespace
 		return false;
 	}
 }
+
 std::unique_ptr<ITempDB> tf2_bot_detector::DB::ITempDB::Create()
 {
 	return std::make_unique<TempDB>();

@@ -323,7 +323,7 @@ namespace
 		StringStatementGenerator& ParamImpl(T&& value)
 		{
 			m_Parameters.push_back(std::move(value));
-			return Text(mh::fmtstr<32>("${}", m_Parameters.size())); // parameter indices start at 1
+			return Text(mh::fmtstr<32>("?{}", m_Parameters.size())); // parameter indices start at 1
 		}
 	};
 }
@@ -345,17 +345,17 @@ Statement2 SelectStatementBuilder::Run(SQLite::Database& db) const
 
 	for (size_t i = 0; i < gen.m_Parameters.size(); i++)
 	{
-		const mh::fmtstr<32> argName("${}", (i + 1));
+		const mh::fmtstr<32> argName("?{}", (i + 1));
 
 		std::visit([&](auto&& arg)
 			{
 				using type_t = std::decay_t<decltype(arg)>;
 				if constexpr (std::is_same_v<type_t, BlobData>)
-					retVal.bind(argName.c_str(), arg.m_Data, (int)arg.m_Size);
+					retVal.bind(int(i + 1), arg.m_Data, (int)arg.m_Size);
 				else if constexpr (std::is_same_v<type_t, std::string>)
-					retVal.bind(argName.c_str(), arg.c_str());
+					retVal.bind(int(i + 1), arg.c_str());
 				else
-					retVal.bind(argName.c_str(), arg);
+					retVal.bind(int(i + 1), arg);
 
 			}, gen.m_Parameters[i]);
 	}

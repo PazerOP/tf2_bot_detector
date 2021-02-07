@@ -1048,14 +1048,14 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 	return GetOrFetchDataAsync(m_LogsInfo,
 		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<mh::expected<LogsTFAPI::PlayerLogsInfo>>
 		{
-			TF2BDApplication& app = TF2BDApplication::GetApplication();
+			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
 
 			LogsTFAPI::PlayerLogsInfo logsInfo{};
 			DB::LogsTFCacheInfo cacheInfo{};
 
 			cacheInfo.m_ID = pThis->GetSteamID();
 			bool wantsRefresh = true;
-			if (app.GetTempDB().TryGet(cacheInfo))
+			if (cacheDB.TryGet(cacheInfo))
 			{
 				if ((tfbd_clock_t::now() - cacheInfo.m_LastUpdateTime) <= day_t(7))
 				{
@@ -1074,7 +1074,7 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 				assert(cacheInfo.m_ID == logsInfo.m_ID);
 				cacheInfo.m_LastUpdateTime = tfbd_clock_t::now();
 				cacheInfo.m_LogCount = logsInfo.m_LogsCount;
-				app.GetTempDB().Store(cacheInfo);
+				cacheDB.Store(cacheInfo);
 
 				DebugLog("Fetched logs count ({}) from web for {} and stored into db", logsInfo.m_LogsCount, *pThis);
 			}
