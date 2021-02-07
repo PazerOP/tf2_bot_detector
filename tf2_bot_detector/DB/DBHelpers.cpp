@@ -3,7 +3,16 @@
 #include "DBHelpers.h"
 
 #include <mh/error/ensure.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <SQLiteCpp/SQLiteCpp.h>
+
+using namespace tf2_bot_detector;
+using namespace tf2_bot_detector::DB;
+
+IStatementGenerator& IStatementGenerator::TextQuoted(const std::string_view& text)
+{
+	return Text(mh::format("{}", std::quoted(text)));
+}
 
 void tf2_bot_detector::DB::CreateTable(SQLite::Database& db, std::string tableName,
 	std::initializer_list<ColumnDefinition> columns, CreateTableFlags flags) try
@@ -145,38 +154,211 @@ void tf2_bot_detector::DB::ReplaceInto(SQLite::Database& db, const std::string_v
 	return InsertInto(db, tableName, columns, InsertIntoConstraintResolver::Replace);
 }
 
-tf2_bot_detector::DB::ColumnData::ColumnData(const ColumnDefinition& column, uint32_t intData) :
+ColumnData::ColumnData(const ColumnDefinition& column, uint32_t intData) :
 	m_Column(column), m_Data(static_cast<int64_t>(intData))
 {
 	assert(column.m_Type == ColumnType::Integer);
 }
 
-tf2_bot_detector::DB::ColumnData::ColumnData(const ColumnDefinition& column, int64_t intData) :
+ColumnData::ColumnData(const ColumnDefinition& column, int64_t intData) :
 	m_Column(column), m_Data(intData)
 {
 	assert(column.m_Type == ColumnType::Integer);
 }
 
-tf2_bot_detector::DB::ColumnData::ColumnData(const ColumnDefinition& column, double realData) :
+ColumnData::ColumnData(const ColumnDefinition& column, double realData) :
 	m_Column(column), m_Data(realData)
 {
 	assert(column.m_Type == ColumnType::Float);
 }
 
-tf2_bot_detector::DB::ColumnData::ColumnData(const ColumnDefinition& column, const char* textData) :
+ColumnData::ColumnData(const ColumnDefinition& column, const char* textData) :
 	m_Column(column), m_Data(textData)
 {
 	assert(column.m_Type == ColumnType::Text);
 }
 
-tf2_bot_detector::DB::ColumnData::ColumnData(const ColumnDefinition& column, const BlobData& blobData) :
+ColumnData::ColumnData(const ColumnDefinition& column, const BlobData& blobData) :
 	m_Column(column), m_Data(blobData)
 {
 	assert(column.m_Type == ColumnType::Blob);
 }
 
-tf2_bot_detector::DB::BinaryOperation::BinaryOperation(BinaryOperator operation,
+BinaryOperation::BinaryOperation(BinaryOperator operation,
 	std::unique_ptr<IOperationExpression> lhs, std::unique_ptr<IOperationExpression> rhs) :
 	m_LHS(std::move(lhs)), m_RHS(std::move(rhs)), m_Operation(operation)
 {
+}
+
+void BinaryOperation::GenerateStatement(IStatementGenerator& gen) const
+{
+	gen.Text("(");
+
+	m_LHS->GenerateStatement(gen);
+
+	switch (m_Operation)
+	{
+	case BinaryOperator::Equals:
+		gen.Text(" == ");
+		break;
+	case BinaryOperator::NotEquals:
+		gen.Text(" != ");
+		break;
+	case BinaryOperator::GreaterThan:
+		gen.Text(" > ");
+		break;
+	case BinaryOperator::GreaterThanOrEqual:
+		gen.Text(" >= ");
+		break;
+	case BinaryOperator::LessThan:
+		gen.Text(" < ");
+		break;
+	case BinaryOperator::LessThanOrEqual:
+		gen.Text(" <= ");
+		break;
+	case BinaryOperator::LogicalAnd:
+		gen.Text(" && ");
+		break;
+	case BinaryOperator::LogicalOr:
+		gen.Text(" || ");
+		break;
+	}
+
+	m_RHS->GenerateStatement(gen);
+
+	gen.Text(")");
+}
+
+std::unique_ptr<IOperationExpression> BinaryOperation::Clone() const
+{
+	return std::make_unique<BinaryOperation>(m_Operation, m_LHS->Clone(), m_RHS->Clone());
+}
+
+BinaryOperation tf2_bot_detector::DB::operator&&(const BinaryOperation& lhs, const BinaryOperation& rhs)
+{
+	return BinaryOperation(BinaryOperator::LogicalAnd, lhs.Clone(), rhs.Clone());
+}
+BinaryOperation tf2_bot_detector::DB::operator||(const BinaryOperation& lhs, const BinaryOperation& rhs)
+{
+	return BinaryOperation(BinaryOperator::LogicalOr, lhs.Clone(), rhs.Clone());
+}
+
+Statement2::Statement2(SQLite::Statement&& innerStatement) :
+	SQLite::Statement(std::move(innerStatement))
+{
+}
+
+SQLite::Column Statement2::getColumn(const ColumnDefinition& definition)
+{
+	return SQLite::Statement::getColumn(definition.m_Name);
+}
+
+std::unique_ptr<ColumnExpression> tf2_bot_detector::DB::CreateOperationExpression(const ColumnDefinition& column)
+{
+	return std::make_unique<ColumnExpression>(column);
+}
+
+void ConstantExpression::GenerateStatement(IStatementGenerator& gen) const
+{
+	std::visit([&](const auto& val)
+		{
+			gen.Param(val);
+		}, m_Data);
+}
+
+std::unique_ptr<IOperationExpression> ConstantExpression::Clone() const
+{
+	return std::make_unique<ConstantExpression>(*this);
+}
+
+ColumnExpression::ColumnExpression(const ColumnDefinition& column) :
+	m_Column(column)
+{
+}
+
+void ColumnExpression::GenerateStatement(IStatementGenerator& gen) const
+{
+	gen.TextQuoted(m_Column.m_Name);
+}
+
+std::unique_ptr<IOperationExpression> ColumnExpression::Clone() const
+{
+	return std::make_unique<ColumnExpression>(*this);
+}
+
+SelectStatementBuilder::SelectStatementBuilder(const std::string_view& tableName) :
+	m_TableName(tableName)
+{
+}
+
+SelectStatementBuilder& SelectStatementBuilder::Where(BinaryOperation&& binOp)
+{
+	assert(!m_WhereCondition);
+	m_WhereCondition.emplace(std::move(binOp));
+	return *this;
+}
+
+namespace
+{
+	struct StringStatementGenerator final : public IStatementGenerator
+	{
+		StringStatementGenerator(std::string& targetString) : m_TargetString(targetString) {}
+
+		StringStatementGenerator& Text(const std::string_view& text) override
+		{
+			m_TargetString.append(text);
+			return *this;
+		}
+
+		StringStatementGenerator& Param(int64_t value) override { return ParamImpl(value); }
+		StringStatementGenerator& Param(double value) override { return ParamImpl(value); }
+		StringStatementGenerator& Param(std::string value) override { return ParamImpl(std::move(value)); }
+		StringStatementGenerator& Param(const BlobData& value) override { return ParamImpl(value); }
+
+		std::string& m_TargetString;
+		std::vector<std::variant<int64_t, double, std::string, BlobData>> m_Parameters;
+
+	private:
+		template<typename T>
+		StringStatementGenerator& ParamImpl(T&& value)
+		{
+			m_Parameters.push_back(std::move(value));
+			return Text(mh::fmtstr<32>("${}", m_Parameters.size())); // parameter indices start at 1
+		}
+	};
+}
+
+Statement2 SelectStatementBuilder::Run(SQLite::Database& db) const
+{
+	std::string queryStr;
+
+	queryStr.append("SELECT * FROM \"").append(m_TableName).append("\"");
+
+	StringStatementGenerator gen(queryStr);
+	if (m_WhereCondition)
+	{
+		queryStr.append(" WHERE ");
+		m_WhereCondition->GenerateStatement(gen);
+	}
+
+	Statement2 retVal(SQLite::Statement(db, queryStr));
+
+	for (size_t i = 0; i < gen.m_Parameters.size(); i++)
+	{
+		const mh::fmtstr<32> argName("${}", (i + 1));
+
+		std::visit([&](auto&& arg)
+			{
+				using type_t = std::decay_t<decltype(arg)>;
+				if constexpr (std::is_same_v<type_t, BlobData>)
+					retVal.bind(argName.c_str(), arg.m_Data, (int)arg.m_Size);
+				else if constexpr (std::is_same_v<type_t, std::string>)
+					retVal.bind(argName.c_str(), arg.c_str());
+				else
+					retVal.bind(argName.c_str(), arg);
+
+			}, gen.m_Parameters[i]);
+	}
+
+	return retVal;
 }

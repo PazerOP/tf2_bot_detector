@@ -30,7 +30,6 @@ namespace
 
 	private:
 		static constexpr size_t DB_VERSION = 3;
-		//void CreateTableVersionsTable();
 		void CreateAccountAgesTable();
 		void CreateLogsTFCacheTable();
 		void Connect();
@@ -44,15 +43,6 @@ namespace
 		std::filesystem::create_directories(folderPath);
 		return (folderPath / "tf2bd_temp_db.sqlite").string();
 	}
-
-#if 0
-	struct TABLE_VERSIONS
-	{
-		static constexpr char TABLENAME[] = "TABLE_VERSIONS";
-		static constexpr char COL_TABLE_NAME[] = "TableName";
-		static constexpr char COL_VERSION[] = "Version";
-	};
-#endif
 
 	struct TABLE_ACCOUNT_AGES
 	{
@@ -88,7 +78,6 @@ namespace
 
 		m_Connection->exec("PRAGMA journal_mode = WAL;");
 
-		//CreateTableVersionsTable();
 		CreateAccountAgesTable();
 		CreateLogsTFCacheTable();
 	}
@@ -116,9 +105,9 @@ namespace
 	{
 		auto& db = const_cast<SQLite::Database&>(m_Connection.value());
 
-		SQLite::Statement query(db, mh::format("SELECT * FROM \"{}\" WHERE \"{}\" = ?1",
-			TABLE_ACCOUNT_AGES::TABLENAME, TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID));
-		query.bind("?accID", info.m_ID.GetAccountID());
+		auto query = SelectStatementBuilder(TABLE_ACCOUNT_AGES::TABLENAME)
+			.Where(TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID == info.m_ID.GetAccountID())
+			.Run(db);
 
 		if (query.executeStep())
 		{
@@ -140,22 +129,6 @@ namespace
 		m_Connection.emplace(CreateDBPath(), SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
 	}
 
-#if 0
-	void TempDB::CreateTableVersionsTable() try
-	{
-		CreateTable(m_Connection, TABLE_VERSIONS::TABLENAME,
-			{
-				{ TABLE_VERSIONS::COL_TABLE_NAME, ColumnType::Text, ColumnFlags::NotNull | ColumnFlags::PrimaryKey | ColumnFlags::Unique },
-				{ TABLE_VERSIONS::COL_VERSION, ColumnType::Integer, ColumnFlags::NotNull },
-			}, CreateTableFlags::IfNotExists);
-	}
-	catch (...)
-	{
-		LogException();
-		throw;
-	}
-#endif
-
 	void TempDB::CreateAccountAgesTable() try
 	{
 		CreateTable(m_Connection.value(), TABLE_ACCOUNT_AGES::TABLENAME,
@@ -163,14 +136,6 @@ namespace
 				TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID,
 				TABLE_ACCOUNT_AGES::COL_CREATION_TIME,
 			}, CreateTableFlags::IfNotExists);
-
-#if 0
-		InsertInto(m_Connection, TABLE_VERSIONS::TABLENAME,
-			{
-				{ TABLE_VERSIONS::COL_TABLE_NAME, TABLE_ACCOUNT_AGES::TABLENAME },
-
-			});
-#endif
 	}
 	catch (...)
 	{
@@ -212,9 +177,11 @@ namespace
 	{
 		auto& db = const_cast<SQLite::Database&>(m_Connection.value());
 
-		SQLite::Statement query(db, mh::format("SELECT * FROM \"{}\" WHERE \"{}\" = $accID",
-			TABLE_LOGSTF_CACHE::TABLENAME, TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID));
-		query.bind("$accID", info.m_ID.GetAccountID());
+		auto query = SelectStatementBuilder(TABLE_LOGSTF_CACHE::TABLENAME)
+			.Where(TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID == info.m_ID.GetAccountID())
+			.Run(db);
+
+		auto result = TABLE_LOGSTF_CACHE::COL_LOG_COUNT != "5" && TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID == 498002983;
 
 		if (query.executeStep())
 		{

@@ -7,10 +7,12 @@
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <mh/types/enum_class_bit_ops.hpp>
 
+#include <concepts>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <string_view>
+#include <optional>
 #include <variant>
 
 namespace SQLite
@@ -38,8 +40,8 @@ namespace tf2_bot_detector::DB
 		LessThan,
 		GreaterThanOrEqual,
 		LessThanOrEqual,
-		//BitwiseAnd,
-		//BitwiseOr,
+		LogicalAnd,
+		LogicalOr,
 	};
 
 	enum class CreateTableFlags
@@ -60,39 +62,125 @@ namespace tf2_bot_detector::DB
 	};
 	MH_ENABLE_ENUM_CLASS_BIT_OPS(ColumnFlags);
 
-	class IOperationExpression
-	{
-	public:
-		virtual ~IOperationExpression() = default;
-	};
-
 	struct BlobData
 	{
 		const void* m_Data;
 		size_t m_Size;
 	};
 
+	class IStatementGenerator
+	{
+	public:
+		virtual ~IStatementGenerator() = default;
+
+		virtual IStatementGenerator& Text(const std::string_view& text) = 0;
+		virtual IStatementGenerator& TextQuoted(const std::string_view& text);
+		virtual IStatementGenerator& Param(int64_t value) = 0;
+		virtual IStatementGenerator& Param(double value) = 0;
+		virtual IStatementGenerator& Param(std::string value) = 0;
+		virtual IStatementGenerator& Param(const BlobData& value) = 0;
+	};
+
+	class IOperationExpression
+	{
+	public:
+		virtual ~IOperationExpression() = default;
+
+		virtual void GenerateStatement(IStatementGenerator& gen) const = 0;
+
+		virtual std::unique_ptr<IOperationExpression> Clone() const = 0;
+	};
+
+	struct BinaryOperation;
+	class ConstantExpression;
+
+	template<typename T>
+	concept ConstantExpressionValue =
+		std::integral<T> ||
+		std::floating_point<T> ||
+		std::same_as<std::decay_t<T>, char*> ||
+		std::same_as<std::decay_t<T>, const char*> ||
+		std::same_as<T, std::string> ||
+		std::same_as<T, BlobData>;
+
+	template<typename T>
+	concept BinaryExpressionArg =
+		std::same_as<T, BinaryOperation>
+		;
+
 	using DBData_t = std::variant<int64_t, double, const char*, BlobData>;
 	class ConstantExpression final : public IOperationExpression
 	{
 	public:
-		DBData_t m_Data;
+		void GenerateStatement(IStatementGenerator& gen) const override;
+		std::unique_ptr<IOperationExpression> Clone() const override;
+
+		std::variant<int64_t, double, std::string, BlobData> m_Data;
 	};
 
 	class ColumnExpression final : public IOperationExpression
 	{
 	public:
-		std::reference_wrapper<const ColumnDefinition> m_Column;
+		ColumnExpression(const ColumnDefinition& column);
+
+		void GenerateStatement(IStatementGenerator& gen) const override;
+		std::unique_ptr<IOperationExpression> Clone() const override;
+
+		const ColumnDefinition& m_Column;
 	};
 
-	struct BinaryOperation
+	std::unique_ptr<ColumnExpression> CreateOperationExpression(const ColumnDefinition& column);
+
+	template<ConstantExpressionValue TValue>
+	std::unique_ptr<ConstantExpression> CreateOperationExpression(TValue value)
+	{
+		auto expr = std::make_unique<ConstantExpression>();
+
+		if constexpr (std::is_integral_v<TValue>)
+			expr->m_Data.emplace<int64_t>(value);
+		else if constexpr (std::is_floating_point_v<TValue>)
+			expr->m_Data.emplace<double>(value);
+		else if constexpr (std::is_same_v<TValue, BlobData>)
+			expr->m_Data.emplace<BlobData>(value);
+		else
+			expr->m_Data.emplace<std::string>(std::string(value));
+
+		return expr;
+	}
+
+	template<typename T>
+	concept OperationExpressionValue =
+		ConstantExpressionValue<T> ||
+		std::same_as<T, ColumnDefinition>;
+
+	struct BinaryOperation final : IOperationExpression
 	{
 		BinaryOperation(BinaryOperator operation, std::unique_ptr<IOperationExpression> lhs, std::unique_ptr<IOperationExpression> rhs);
+
+		void GenerateStatement(IStatementGenerator& gen) const override;
+		std::unique_ptr<IOperationExpression> Clone() const override;
+
+		friend BinaryOperation operator==(const BinaryOperation& lhs, const BinaryOperation& rhs);
+		friend BinaryOperation operator!=(const BinaryOperation& lhs, const BinaryOperation& rhs);
+		friend BinaryOperation operator&&(const BinaryOperation& lhs, const BinaryOperation& rhs);
+		friend BinaryOperation operator||(const BinaryOperation& lhs, const BinaryOperation& rhs);
 
 		std::unique_ptr<IOperationExpression> m_LHS;
 		std::unique_ptr<IOperationExpression> m_RHS;
 		BinaryOperator m_Operation;
 	};
+
+#define OP_EXPR(op, opName) \
+	template<OperationExpressionValue TValue> \
+	friend BinaryOperation operator op(const ColumnDefinition& lhs, const TValue& rhs) \
+	{ \
+		return BinaryOperation(BinaryOperator::opName, CreateOperationExpression(lhs), CreateOperationExpression(rhs)); \
+	} \
+	template<OperationExpressionValue TValue> \
+	friend BinaryOperation operator op(const TValue& lhs, const ColumnDefinition& rhs) \
+	{ \
+		return BinaryOperation(BinaryOperator::opName, CreateOperationExpression(lhs), CreateOperationExpression(rhs)); \
+	}
 
 	struct ColumnDefinition
 	{
@@ -101,11 +189,39 @@ namespace tf2_bot_detector::DB
 		{
 		}
 
-		//constexpr operator const char* () const { return m_Name; }
+		OP_EXPR(==, Equals);
+		OP_EXPR(!=, NotEquals);
+		OP_EXPR(>, GreaterThan);
+		OP_EXPR(>=, GreaterThanOrEqual);
+		OP_EXPR(<, LessThan);
+		OP_EXPR(<=, LessThanOrEqual);
 
 		const char* m_Name = nullptr;
 		ColumnType m_Type{};
 		ColumnFlags m_Flags{};
+	};
+
+#undef OP_EXPR
+
+	struct Statement2 : SQLite::Statement
+	{
+		Statement2(SQLite::Statement&& innerStatement);
+
+		SQLite::Column getColumn(const ColumnDefinition& definition);
+	};
+
+	class SelectStatementBuilder
+	{
+	public:
+		explicit SelectStatementBuilder(const std::string_view& tableName);
+
+		SelectStatementBuilder& Where(BinaryOperation&& binOp);
+
+		Statement2 Run(SQLite::Database& db) const;
+
+	private:
+		std::string m_TableName;
+		std::optional<BinaryOperation> m_WhereCondition;
 	};
 
 	struct ColumnData
@@ -135,5 +251,4 @@ namespace tf2_bot_detector::DB
 	void InsertInto(SQLite::Database& db, const std::string_view& tableName, std::initializer_list<ColumnData> columns,
 		InsertIntoConstraintResolver resolver = InsertIntoConstraintResolver::Abort);
 	void ReplaceInto(SQLite::Database& db, const std::string_view& tableName, std::initializer_list<ColumnData> columns);
-	//void SelectAllColumns(SQLite::Database& db, const std::string_view& tableName)
 }
