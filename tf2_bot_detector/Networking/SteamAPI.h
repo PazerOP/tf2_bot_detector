@@ -17,6 +17,7 @@
 namespace tf2_bot_detector
 {
 	class IHTTPClient;
+	class ISteamAPISettings;
 }
 
 namespace tf2_bot_detector::SteamAPI
@@ -33,6 +34,7 @@ namespace tf2_bot_detector::SteamAPI
 		JSONParseError,
 		InvalidSteamID,
 		EmptyAPIKey,
+		SteamAPIDisabled,
 	};
 
 	struct SteamAPIError : mh::error_condition_exception, std::nested_exception
@@ -102,8 +104,8 @@ namespace tf2_bot_detector::SteamAPI
 	};
 	void from_json(const nlohmann::json& j, PlayerSummary& d);
 
-	mh::task<std::vector<PlayerSummary>> GetPlayerSummariesAsync(
-		const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const IHTTPClient& client);
+	mh::task<std::vector<PlayerSummary>> GetPlayerSummariesAsync(const ISteamAPISettings& apiSettings,
+		const std::vector<SteamID>& steamIDs, const IHTTPClient& client);
 
 	enum class PlayerEconomyBan
 	{
@@ -125,12 +127,12 @@ namespace tf2_bot_detector::SteamAPI
 	};
 	void from_json(const nlohmann::json& j, PlayerBans& d);
 
-	mh::task<std::vector<PlayerBans>> GetPlayerBansAsync(
-		const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const IHTTPClient& client);
+	mh::task<std::vector<PlayerBans>> GetPlayerBansAsync(const ISteamAPISettings& apiSettings,
+		const std::vector<SteamID>& steamIDs, const IHTTPClient& client);
 
-	mh::task<duration_t> GetTF2PlaytimeAsync(const std::string_view& apikey,
+	mh::task<duration_t> GetTF2PlaytimeAsync(const ISteamAPISettings& apiSettings,
 		const SteamID& steamID, const IHTTPClient& client);
 
-	mh::task<std::unordered_set<SteamID>> GetFriendList(const std::string_view& apikey,
+	mh::task<std::unordered_set<SteamID>> GetFriendList(const ISteamAPISettings& apiSettings,
 		const SteamID& steamID, const IHTTPClient& client);
 }

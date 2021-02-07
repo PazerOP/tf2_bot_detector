@@ -94,14 +94,17 @@ std::string HTTPClientImpl::GetString(const URL& url) const try
 		{ "User-Agent", "curl/7.58.0" }
 	};
 
-	DebugLog("HTTP GET: {}", url);
-
+	const auto startTime = tfbd_clock_t::now();
 	auto response = client.Get(url.m_Path.c_str(), headers);
 	if (!response)
 		throw http_error(response.error(), mh::format("Failed to HTTP GET {}", url));
 
 	if (response->status >= 400 && response->status < 600)
 		throw http_error((HTTPResponseCode)response->status, mh::format("Failed to HTTP GET {}", url));
+
+	const auto duration = tfbd_clock_t::now() - startTime;
+
+	DebugLog("[{}ms] HTTP GET: {}", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(), url);
 
 	return response->body;
 }
@@ -123,7 +126,7 @@ static duration_t GetMinRequestInterval(const URL& url)
 	{
 		return 50ms;
 	}
-	else if (url.m_Host == "api.steampowered.com")
+	else if (url.m_Host == "api.steampowered.com" || url.m_Host == "tf2bd-util.pazer.us")
 	{
 		return 100ms;
 	}

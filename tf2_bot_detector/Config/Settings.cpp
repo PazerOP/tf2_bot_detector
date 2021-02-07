@@ -156,10 +156,61 @@ namespace tf2_bot_detector
 	{
 		try_get_to_defaulted(j, d, &Settings::UIState::m_MainWindow, "main_window");
 	}
+
+	void to_json(nlohmann::json& j, const SteamAPIMode& d)
+	{
+		switch (d)
+		{
+		case SteamAPIMode::Direct:    j = "direct";   break;
+		case SteamAPIMode::Disabled:  j = "disabled"; break;
+
+		default:
+			LogError("Unknown SteamAPIMode {}, defaulting to proxy", +std::underlying_type_t<SteamAPIMode>(d));
+			[[fallthrough]];
+		case SteamAPIMode::Proxy:     j = "proxy";    break;
+		}
+	}
+	void from_json(const nlohmann::json& j, SteamAPIMode& d)
+	{
+		auto sv = j.get<std::string_view>();
+		if (sv == "direct")
+			d = SteamAPIMode::Direct;
+		else if (sv == "disabled")
+			d = SteamAPIMode::Disabled;
+		else
+		{
+			if (j != "proxy")
+				LogError("Unknown SteamAPIMode {}, defaulting to proxy", std::quoted(sv));
+
+			d = SteamAPIMode::Proxy;
+		}
+	}
+}
+
+bool ISteamAPISettings::IsSteamAPIAvailable() const
+{
+	switch (GetSteamAPIMode())
+	{
+	case SteamAPIMode::Disabled:
+		return false;
+	case SteamAPIMode::Proxy:
+		return true;
+	case SteamAPIMode::Direct:
+		return !GetSteamAPIKey().empty();
+	}
+
+	LogError("Unknown SteamAPIMode {}", +std::underlying_type_t<SteamAPIMode>(GetSteamAPIMode()));
+	return false;
+}
+
+std::string GeneralSettings::GetSteamAPIKey() const
+{
+	return (m_SteamAPIMode == SteamAPIMode::Direct) ? m_SteamAPIKey : std::string();
 }
 
 void GeneralSettings::SetSteamAPIKey(std::string key)
 {
+	assert(key.empty() || key.size() == 32);
 	ILogManager::GetInstance().AddSecret(key, mh::format("<STEAM_API_KEY:{}>", key.size()));
 	m_SteamAPIKey = std::move(key);
 }
@@ -338,6 +389,9 @@ void Settings::Deserialize(const nlohmann::json& json)
 			SetSteamAPIKey(std::move(apiKey));
 		}
 
+		try_get_to_defaulted(*found, m_SteamAPIMode, "steam_api_mode",
+			GetSteamAPIKeyDirect().size() == 32 ? SteamAPIMode::Direct : SteamAPIMode::Proxy);
+
 		if (auto foundDir = found->find("steam_dir_override"); foundDir != found->end())
 			m_SteamDirOverride = foundDir->get<std::string_view>();
 		if (auto foundDir = found->find("tf_game_dir_override"); foundDir != found->end())
@@ -370,7 +424,8 @@ void Settings::Serialize(nlohmann::json& json) const
 				{ "sleep_when_unfocused", m_SleepWhenUnfocused },
 				{ "auto_temp_mute", m_AutoTempMute },
 				{ "program_update_check_mode", m_ReleaseChannel },
-				{ "steam_api_key", GetSteamAPIKey() },
+				{ "steam_api_key", GetSteamAPIKeyDirect() },
+				{ "steam_api_mode", m_SteamAPIMode },
 				{ "auto_launch_tf2", m_AutoLaunchTF2 },
 				{ "auto_chat_warnings", m_AutoChatWarnings },
 				{ "auto_chat_warnings_connecting", m_AutoChatWarningsConnecting },
