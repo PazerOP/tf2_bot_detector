@@ -436,3 +436,17 @@ tf2_bot_detector::SteamAPI::SteamAPIError::SteamAPIError(const mh::source_locati
 	if (code != ErrorCode::InfoPrivate && code != ErrorCode::GameNotOwned)
 		LogException(m_SourceLocation, *this);
 }
+
+bool SteamAPI::PlayerBans::HasAnyBans() const
+{
+	if (m_CommunityBanned)
+		return true;
+	if (m_EconomyBan != PlayerEconomyBan::None)
+		return true;
+	if (m_VACBanCount > 0)
+		return true;
+	if (m_GameBanCount > 0)
+		return true;
+
+	return false;
+}

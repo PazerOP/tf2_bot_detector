@@ -116,6 +116,8 @@ namespace tf2_bot_detector::SteamAPI
 
 	struct PlayerBans
 	{
+		bool HasAnyBans() const;
+
 		SteamID m_SteamID;
 		bool m_CommunityBanned = false;
 		PlayerEconomyBan m_EconomyBan{};

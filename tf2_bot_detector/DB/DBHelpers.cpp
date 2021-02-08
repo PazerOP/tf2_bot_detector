@@ -132,6 +132,8 @@ void tf2_bot_detector::DB::InsertInto(SQLite::Database& db, const std::string_vi
 					using type = std::decay_t<decltype(val)>;
 					if constexpr (std::is_same_v<type, BlobData>)
 						statement.bind(i, val.m_Data, static_cast<int>(val.m_Size));
+					else if constexpr (std::is_same_v<type, std::monostate>)
+						statement.bind(i);
 					else
 						statement.bind(i, val);
 
@@ -155,9 +157,13 @@ void tf2_bot_detector::DB::ReplaceInto(SQLite::Database& db, const std::string_v
 }
 
 ColumnData::ColumnData(const ColumnDefinition& column, uint32_t intData) :
-	m_Column(column), m_Data(static_cast<int64_t>(intData))
+	ColumnData(column, int64_t(intData))
 {
-	assert(column.m_Type == ColumnType::Integer);
+}
+
+ColumnData::ColumnData(const ColumnDefinition& column, int32_t intData) :
+	ColumnData(column, int64_t(intData))
+{
 }
 
 ColumnData::ColumnData(const ColumnDefinition& column, int64_t intData) :

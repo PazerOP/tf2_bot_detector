@@ -108,7 +108,7 @@ namespace tf2_bot_detector::DB
 		std::same_as<T, BinaryOperation>
 		;
 
-	using DBData_t = std::variant<int64_t, double, const char*, BlobData>;
+	using DBData_t = std::variant<std::monostate, int64_t, double, const char*, BlobData>;
 	class ConstantExpression final : public IOperationExpression
 	{
 	public:
@@ -227,10 +227,12 @@ namespace tf2_bot_detector::DB
 	struct ColumnData
 	{
 		ColumnData(const ColumnDefinition& column, uint32_t intData);
+		ColumnData(const ColumnDefinition& column, int32_t intData);
 		ColumnData(const ColumnDefinition& column, int64_t intData);
 		ColumnData(const ColumnDefinition& column, double realData);
 		ColumnData(const ColumnDefinition& column, const char* textData);
 		ColumnData(const ColumnDefinition& column, const BlobData& blobData);
+		ColumnData(const ColumnDefinition& column, std::nullptr_t null);
 
 		std::reference_wrapper<const ColumnDefinition> m_Column;
 		DBData_t m_Data;
