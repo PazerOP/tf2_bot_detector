@@ -465,6 +465,14 @@ void ModeratorLogic::OnUserMessageReceived(IWorldState& world, const SVCUserMess
 			DebugLogWarning(VOTESTATUS_COLOR, "Possible #GameUI_vote_failed_vote_in_progress (m_VoteState = {})",
 				mh::enum_fmt(m_VoteState.GetValue()));
 		}
+		else if (userMsg.GetUserMessageBytes() == 56)
+		{
+			DebugLogWarning({ 0, 255, 16 }, "Possible #TF_Autobalance_TeamChangePending");
+		}
+		else
+		{
+			DebugLogWarning({ 0, 255, 64 }, "TextMsg: {} bytes", userMsg.GetUserMessageBytes());
+		}
 		break;
 	}
 	}

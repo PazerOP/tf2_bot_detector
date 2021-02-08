@@ -876,6 +876,9 @@ void MainWindow::DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShar
 
 void MainWindow::OnDrawTeamStats()
 {
+	if (!m_Settings.m_UIState.m_MainWindow.m_TeamStatsEnabled)
+		return;
+
 	struct TeamStats
 	{
 		uint8_t m_PlayerCount = 0;

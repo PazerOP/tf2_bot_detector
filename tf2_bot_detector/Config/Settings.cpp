@@ -133,6 +133,7 @@ namespace tf2_bot_detector
 			{ "app_log_enabled", d.m_AppLogEnabled },
 			{ "chat_enabled", d.m_ChatEnabled },
 			{ "scoreboard_enabled", d.m_ScoreboardEnabled },
+			{ "team_stats_enabled", d.m_TeamStatsEnabled },
 		};
 	}
 	void from_json(const nlohmann::json& j, Settings::UIState::MainWindow& d)
@@ -141,6 +142,7 @@ namespace tf2_bot_detector
 		try_get_to_defaulted(j, d, &MainWindow::m_AppLogEnabled, "app_log_enabled");
 		try_get_to_defaulted(j, d, &MainWindow::m_ChatEnabled, "chat_enabled");
 		try_get_to_defaulted(j, d, &MainWindow::m_ScoreboardEnabled, "scoreboard_enabled");
+		try_get_to_defaulted(j, d, &MainWindow::m_TeamStatsEnabled, "team_stats_enabled");
 	}
 
 	void to_json(nlohmann::json& j, const Settings::UIState& d)
