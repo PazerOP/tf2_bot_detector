@@ -96,16 +96,16 @@ namespace tf2_bot_detector::DB
 
 	template<typename T>
 	concept ConstantExpressionValue =
-		std::integral<T> ||
-		std::floating_point<T> ||
+		std::integral<std::decay_t<T>> ||
+		std::floating_point<std::decay_t<T>> ||
 		std::same_as<std::decay_t<T>, char*> ||
 		std::same_as<std::decay_t<T>, const char*> ||
-		std::same_as<T, std::string> ||
-		std::same_as<T, BlobData>;
+		std::same_as<std::decay_t<T>, std::string> ||
+		std::same_as<std::decay_t<T>, BlobData>;
 
 	template<typename T>
 	concept BinaryExpressionArg =
-		std::same_as<T, BinaryOperation>
+		std::same_as<std::decay_t<T>, BinaryOperation>
 		;
 
 	using DBData_t = std::variant<std::monostate, int64_t, double, const char*, BlobData>;
@@ -129,29 +129,49 @@ namespace tf2_bot_detector::DB
 		const ColumnDefinition& m_Column;
 	};
 
+	struct Column2;
+
+	template<typename T> struct ColumnDataSerializer;
+
+	template<typename T>
+	concept ColumnDataSerializable = requires(T x)
+	{
+		{ ColumnDataSerializer<std::decay_t<T>>::Serialize(x) } -> ConstantExpressionValue;
+		{ ColumnDataSerializer<std::decay_t<T>>::Deserialize(std::declval<const Column2&>()) } -> std::same_as<std::decay_t<T>>;
+	};
+
 	std::unique_ptr<ColumnExpression> CreateOperationExpression(const ColumnDefinition& column);
 
 	template<ConstantExpressionValue TValue>
-	std::unique_ptr<ConstantExpression> CreateOperationExpression(TValue value)
+	std::unique_ptr<ConstantExpression> CreateOperationExpression(TValue&& value)
 	{
 		auto expr = std::make_unique<ConstantExpression>();
 
-		if constexpr (std::is_integral_v<TValue>)
+		using TValueDecay = std::decay_t<TValue>;
+
+		if constexpr (std::is_integral_v<TValueDecay>)
 			expr->m_Data.emplace<int64_t>(value);
-		else if constexpr (std::is_floating_point_v<TValue>)
+		else if constexpr (std::is_floating_point_v<TValueDecay>)
 			expr->m_Data.emplace<double>(value);
-		else if constexpr (std::is_same_v<TValue, BlobData>)
+		else if constexpr (std::is_same_v<TValueDecay, BlobData>)
 			expr->m_Data.emplace<BlobData>(value);
 		else
-			expr->m_Data.emplace<std::string>(std::string(value));
+			expr->m_Data.emplace<std::string>(std::string(std::forward<TValue>(value)));
 
 		return expr;
+	}
+
+	template<ColumnDataSerializable TValue>
+	std::unique_ptr<ConstantExpression> CreateOperationExpression(TValue&& value)
+	{
+		return CreateOperationExpression(ColumnDataSerializer<std::decay_t<TValue>>::Serialize(std::forward<TValue>(value)));
 	}
 
 	template<typename T>
 	concept OperationExpressionValue =
 		ConstantExpressionValue<T> ||
-		std::same_as<T, ColumnDefinition>;
+		std::same_as<T, ColumnDefinition> ||
+		ColumnDataSerializable<T>;
 
 	struct BinaryOperation final : IOperationExpression
 	{
@@ -203,11 +223,19 @@ namespace tf2_bot_detector::DB
 
 #undef OP_EXPR
 
+	struct Column2 : SQLite::Column
+	{
+		Column2(SQLite::Column&& innerColumn);
+
+		template<ColumnDataSerializable T>
+		operator T() const { return ColumnDataSerializer<std::decay_t<T>>::Deserialize(*this); }
+	};
+
 	struct Statement2 : SQLite::Statement
 	{
 		Statement2(SQLite::Statement&& innerStatement);
 
-		SQLite::Column getColumn(const ColumnDefinition& definition);
+		Column2 getColumn(const ColumnDefinition& definition);
 	};
 
 	class SelectStatementBuilder
@@ -217,7 +245,7 @@ namespace tf2_bot_detector::DB
 
 		SelectStatementBuilder& Where(BinaryOperation&& binOp);
 
-		Statement2 Run(SQLite::Database& db) const;
+		Statement2 Run(const SQLite::Database& db) const;
 
 	private:
 		std::string m_TableName;
@@ -233,6 +261,12 @@ namespace tf2_bot_detector::DB
 		ColumnData(const ColumnDefinition& column, const char* textData);
 		ColumnData(const ColumnDefinition& column, const BlobData& blobData);
 		ColumnData(const ColumnDefinition& column, std::nullptr_t null);
+
+		template<ColumnDataSerializable T>
+		ColumnData(const ColumnDefinition& column, const T& data) :
+			ColumnData(column, ColumnDataSerializer<std::decay_t<T>>::Serialize(data))
+		{
+		}
 
 		std::reference_wrapper<const ColumnDefinition> m_Column;
 		DBData_t m_Data;

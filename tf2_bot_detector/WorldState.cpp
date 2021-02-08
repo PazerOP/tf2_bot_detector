@@ -1057,13 +1057,13 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 			bool wantsRefresh = true;
 			if (cacheDB.TryGet(cacheInfo))
 			{
-				if ((tfbd_clock_t::now() - cacheInfo.m_LastUpdateTime) <= day_t(7))
+				if ((tfbd_clock_t::now() - cacheInfo.m_LastCacheUpdateTime) <= day_t(7))
 				{
 					logsInfo.m_ID = cacheInfo.m_ID;
-					logsInfo.m_LogsCount = cacheInfo.m_LogCount;
+					logsInfo.m_LogsCount = cacheInfo.m_LogsCount;
 					wantsRefresh = false;
 
-					DebugLog("Pulled logs count ({}) from db cache for {}", cacheInfo.m_LogCount, *pThis);
+					DebugLog("Pulled logs count ({}) from db cache for {}", cacheInfo.m_LogsCount, *pThis);
 				}
 			}
 
@@ -1072,8 +1072,8 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 				logsInfo = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, GetSteamID());
 
 				assert(cacheInfo.m_ID == logsInfo.m_ID);
-				cacheInfo.m_LastUpdateTime = tfbd_clock_t::now();
-				cacheInfo.m_LogCount = logsInfo.m_LogsCount;
+				cacheInfo.m_LastCacheUpdateTime = tfbd_clock_t::now();
+				cacheInfo.m_LogsCount = logsInfo.m_LogsCount;
 				cacheDB.Store(cacheInfo);
 
 				DebugLog("Fetched logs count ({}) from web for {} and stored into db", logsInfo.m_LogsCount, *pThis);

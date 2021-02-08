@@ -46,20 +46,27 @@ namespace
 		return (folderPath / "tf2bd_temp_db.sqlite").string();
 	}
 
-	struct TABLE_ACCOUNT_AGES
+	struct BASETABLE
+	{
+		static constexpr ColumnDefinition COL_ACCOUNT_ID{ "AccountID", ColumnType::Integer, ColumnFlags::PrimaryKeyDefaults };
+	};
+
+	struct BASETABLE_EXPIRABLE : BASETABLE
+	{
+		static constexpr ColumnDefinition COL_LAST_UPDATE_TIME{ "LastUpdateTime", ColumnType::Integer, ColumnFlags::NotNull };
+	};
+
+	struct TABLE_ACCOUNT_AGES : BASETABLE
 	{
 		static constexpr char TABLENAME[] = "TABLE_ACCOUNT_AGES";
 
-		static constexpr ColumnDefinition COL_ACCOUNT_ID{ "AccountID", ColumnType::Integer, ColumnFlags::PrimaryKeyDefaults };
 		static constexpr ColumnDefinition COL_CREATION_TIME{ "CreationTime", ColumnType::Integer, ColumnFlags::NotNull };
 	};
 
-	struct TABLE_LOGSTF_CACHE
+	struct TABLE_LOGSTF_CACHE : BASETABLE_EXPIRABLE
 	{
 		static constexpr char TABLENAME[] = "TABLE_LOGSTF_CACHE";
 
-		static constexpr ColumnDefinition COL_ACCOUNT_ID{ "AccountID", ColumnType::Integer, ColumnFlags::PrimaryKeyDefaults };
-		static constexpr ColumnDefinition COL_LAST_UPDATE_TIME{ "LastUpdateTime", ColumnType::Integer, ColumnFlags::NotNull };
 		static constexpr ColumnDefinition COL_LOG_COUNT{ "LogCount", ColumnType::Integer, ColumnFlags::NotNull };
 	};
 
@@ -88,13 +95,55 @@ namespace
 		LogException();
 		throw;
 	}
+}
+
+namespace tf2_bot_detector::DB
+{
+	template<>
+	struct ColumnDataSerializer<time_point_t>
+	{
+		static int64_t Serialize(time_point_t time)
+		{
+			return std::chrono::duration_cast<std::chrono::seconds>(time.time_since_epoch()).count();
+		}
+		static time_point_t Deserialize(const SQLite::Column& column)
+		{
+			return time_point_t(std::chrono::seconds(column.getInt64()));
+		}
+	};
+
+	template<>
+	struct ColumnDataSerializer<SteamID>
+	{
+		static uint32_t Serialize(SteamID id)
+		{
+			assert(id.Type == SteamAccountType::Individual);
+			return id.GetAccountID();
+		}
+		static SteamID Deserialize(const SQLite::Column& column)
+		{
+			return SteamID(column.getUInt(), SteamAccountType::Individual);
+		}
+	};
+}
+
+namespace
+{
+	static int64_t ToSeconds(time_point_t timePoint)
+	{
+		return std::chrono::duration_cast<std::chrono::seconds>(timePoint.time_since_epoch()).count();
+	}
+	static time_point_t ToTimePoint(int64_t seconds)
+	{
+		return time_point_t(std::chrono::seconds(seconds));
+	}
 
 	void TempDB::Store(const AccountAgeInfo& info) try
 	{
 		ReplaceInto(m_Connection.value(), TABLE_ACCOUNT_AGES::TABLENAME,
 			{
-				{ TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID, info.m_ID.GetAccountID() },
-				{ TABLE_ACCOUNT_AGES::COL_CREATION_TIME, std::chrono::duration_cast<std::chrono::seconds>(info.m_CreationTime.time_since_epoch()).count() },
+				{ TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID, info.m_SteamID },
+				{ TABLE_ACCOUNT_AGES::COL_CREATION_TIME, info.m_CreationTime },
 			});
 	}
 	catch (...)
@@ -108,12 +157,12 @@ namespace
 		auto& db = const_cast<SQLite::Database&>(m_Connection.value());
 
 		auto query = SelectStatementBuilder(TABLE_ACCOUNT_AGES::TABLENAME)
-			.Where(TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID == info.m_ID.GetAccountID())
+			.Where(TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID == info.m_SteamID)
 			.Run(db);
 
 		if (query.executeStep())
 		{
-			info.m_CreationTime = time_point_t(std::chrono::seconds(query.getColumn(TABLE_ACCOUNT_AGES::COL_CREATION_TIME).getInt64()));
+			info.m_CreationTime = query.getColumn(TABLE_ACCOUNT_AGES::COL_CREATION_TIME);
 			return true;
 		}
 
@@ -142,8 +191,8 @@ SELECT min({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_Acc
 		const auto DeserializeAccountInfo = [&]()
 		{
 			AccountAgeInfo info;
-			info.m_ID = SteamID(query.getColumn(TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID).getUInt(), SteamAccountType::Individual);
-			info.m_CreationTime = time_point_t(std::chrono::seconds(query.getColumn(TABLE_ACCOUNT_AGES::COL_CREATION_TIME).getInt64()));
+			info.m_SteamID = query.getColumn(TABLE_ACCOUNT_AGES::COL_ACCOUNT_ID);
+			info.m_CreationTime = query.getColumn(TABLE_ACCOUNT_AGES::COL_CREATION_TIME);
 			return info;
 		};
 
@@ -152,14 +201,14 @@ SELECT min({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_Acc
 			assert(!lower.has_value() || !upper.has_value());
 
 			auto info = DeserializeAccountInfo();
-			if (info.m_ID == id)
+			if (info.m_SteamID == id)
 			{
 				lower = info;
 				upper = info;
 				return;
 			}
 
-			if (info.m_ID.GetAccountID() < id.GetAccountID())
+			if (info.m_SteamID.GetAccountID() < id.GetAccountID())
 				lower = info;
 			else
 				upper = info;
@@ -205,9 +254,9 @@ SELECT min({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_Acc
 	{
 		ReplaceInto(m_Connection.value(), TABLE_LOGSTF_CACHE::TABLENAME,
 			{
-				{ TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID, info.m_ID.GetAccountID() },
-				{ TABLE_LOGSTF_CACHE::COL_LAST_UPDATE_TIME, std::chrono::duration_cast<std::chrono::seconds>(info.m_LastUpdateTime.time_since_epoch()).count() },
-				{ TABLE_LOGSTF_CACHE::COL_LOG_COUNT, info.m_LogCount }
+				{ TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID, info.GetSteamID() },
+				{ TABLE_LOGSTF_CACHE::COL_LAST_UPDATE_TIME, info.m_LastCacheUpdateTime },
+				{ TABLE_LOGSTF_CACHE::COL_LOG_COUNT, info.m_LogsCount }
 			});
 	}
 	catch (...)
@@ -218,16 +267,14 @@ SELECT min({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_Acc
 
 	bool TempDB::TryGet(LogsTFCacheInfo& info) const
 	{
-		auto& db = const_cast<SQLite::Database&>(m_Connection.value());
-
 		auto query = SelectStatementBuilder(TABLE_LOGSTF_CACHE::TABLENAME)
-			.Where(TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID == info.m_ID.GetAccountID())
-			.Run(db);
+			.Where(TABLE_LOGSTF_CACHE::COL_ACCOUNT_ID == info.m_ID)
+			.Run(m_Connection.value());
 
 		if (query.executeStep())
 		{
-			info.m_LastUpdateTime = time_point_t(std::chrono::seconds(query.getColumn(TABLE_LOGSTF_CACHE::COL_LAST_UPDATE_TIME).getInt64()));
-			info.m_LogCount = query.getColumn(TABLE_LOGSTF_CACHE::COL_LOG_COUNT).getUInt();
+			info.m_LastCacheUpdateTime = query.getColumn(TABLE_LOGSTF_CACHE::COL_LAST_UPDATE_TIME);
+			info.m_LogsCount = query.getColumn(TABLE_LOGSTF_CACHE::COL_LOG_COUNT);
 			return true;
 		}
 
@@ -238,4 +285,25 @@ SELECT min({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_Acc
 std::unique_ptr<ITempDB> tf2_bot_detector::DB::ITempDB::Create()
 {
 	return std::make_unique<TempDB>();
+}
+
+std::optional<time_point_t> DB::detail::BaseCacheInfo_Expiration::GetCacheCreationTime() const
+{
+	return m_LastCacheUpdateTime;
+}
+
+bool DB::detail::BaseCacheInfo_Expiration::SetCacheCreationTime(time_point_t cacheCreationTime)
+{
+	m_LastCacheUpdateTime = cacheCreationTime;
+	return true;
+}
+
+std::optional<time_point_t> DB::detail::ICacheInfo::GetCacheCreationTime() const
+{
+	return std::nullopt;
+}
+
+bool DB::detail::ICacheInfo::SetCacheCreationTime(time_point_t cacheCreationTime)
+{
+	return false;
 }

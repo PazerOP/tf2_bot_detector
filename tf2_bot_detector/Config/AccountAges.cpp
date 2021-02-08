@@ -57,7 +57,10 @@ void AccountAges::OnDataReady(const SteamID& id, time_point_t creationTime)
 		return;
 
 	DB::ITempDB& tempDB = TF2BDApplication::GetApplication().GetTempDB();
-	tempDB.Store(DB::AccountAgeInfo(id, creationTime));
+	DB::AccountAgeInfo info{};
+	info.m_SteamID = id;
+	info.m_CreationTime = creationTime;
+	tempDB.Store(info);
 }
 
 std::optional<time_point_t> AccountAges::EstimateAccountCreationTime(const SteamID& id) const
@@ -78,7 +81,7 @@ std::optional<time_point_t> AccountAges::EstimateAccountCreationTime(const Steam
 
 	// Interpolate the time between the nearest lower and upper steam ID
 	const auto interpValue = mh::remap(id.GetAccountID(),
-		lower->m_ID.GetAccountID(), upper->m_ID.GetAccountID(),
+		lower->m_SteamID.GetAccountID(), upper->m_SteamID.GetAccountID(),
 		lower->m_CreationTime.time_since_epoch().count(), upper->m_CreationTime.time_since_epoch().count());
 
 	assert(interpValue >= 0);

@@ -1,35 +1,61 @@
 #pragma once
 
+#include "Networking/LogsTFAPI.h"
 #include "Clock.h"
 #include "SteamID.h"
+
+#include <mh/reflection/struct.hpp>
 
 #include <optional>
 
 namespace tf2_bot_detector::DB
 {
-	struct AccountAgeInfo
+	namespace detail
 	{
-		constexpr AccountAgeInfo() = default;
-		constexpr AccountAgeInfo(SteamID id, time_point_t creationTime) :
-			m_ID(id), m_CreationTime(creationTime)
+		struct ICacheInfo
 		{
-		}
+			virtual ~ICacheInfo() = default;
 
-		SteamID m_ID;
+			SteamID& GetSteamID() { return const_cast<SteamID&>(const_cast<const ICacheInfo&>(*this).GetSteamID()); }
+			virtual const SteamID& GetSteamID() const = 0;
+
+			virtual std::optional<time_point_t> GetCacheCreationTime() const;
+			virtual bool SetCacheCreationTime(time_point_t cacheCreationTime);
+		};
+
+		struct BaseCacheInfo_SteamID : virtual ICacheInfo
+		{
+			MH_STRUCT_REFLECT_BASES(ICacheInfo);
+
+			using ICacheInfo::GetSteamID;
+			const SteamID& GetSteamID() const override final { return m_SteamID; }
+
+			SteamID m_SteamID;
+		};
+
+		struct BaseCacheInfo_Expiration : virtual ICacheInfo
+		{
+			MH_STRUCT_REFLECT_BASES(ICacheInfo);
+
+			std::optional<time_point_t> GetCacheCreationTime() const override final;
+			bool SetCacheCreationTime(time_point_t cacheCreationTime) override final;
+			time_point_t m_LastCacheUpdateTime;
+		};
+	}
+
+	struct AccountAgeInfo final : detail::BaseCacheInfo_SteamID
+	{
+		MH_STRUCT_REFLECT_BASES(detail::BaseCacheInfo_SteamID);
+
 		time_point_t m_CreationTime{};
 	};
 
-	struct LogsTFCacheInfo
+	struct LogsTFCacheInfo final : detail::BaseCacheInfo_Expiration, LogsTFAPI::PlayerLogsInfo
 	{
-		constexpr LogsTFCacheInfo() = default;
-		constexpr LogsTFCacheInfo(SteamID id, time_point_t lastUpdateTime, uint32_t logCount) :
-			m_ID(id), m_LastUpdateTime(lastUpdateTime), m_LogCount(logCount)
-		{
-		}
+		MH_STRUCT_REFLECT_BASES(detail::BaseCacheInfo_Expiration, LogsTFAPI::PlayerLogsInfo);
 
-		SteamID m_ID;
-		time_point_t m_LastUpdateTime{};
-		uint32_t m_LogCount{};
+		using ICacheInfo::GetSteamID;
+		const SteamID& GetSteamID() const override { return m_ID; }
 	};
 
 	class ITempDB
@@ -47,3 +73,21 @@ namespace tf2_bot_detector::DB
 		[[nodiscard]] virtual bool TryGet(LogsTFCacheInfo& info) const = 0;
 	};
 }
+
+MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::detail::ICacheInfo)
+MH_STRUCT_REFLECT_END();
+
+MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::detail::BaseCacheInfo_SteamID)
+	MH_STRUCT_REFLECT_MEMBER(m_SteamID);
+MH_STRUCT_REFLECT_END();
+
+MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::detail::BaseCacheInfo_Expiration)
+	MH_STRUCT_REFLECT_MEMBER(m_LastCacheUpdateTime);
+MH_STRUCT_REFLECT_END();
+
+MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::AccountAgeInfo)
+	MH_STRUCT_REFLECT_MEMBER(m_CreationTime);
+MH_STRUCT_REFLECT_END();
+
+MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::LogsTFCacheInfo)
+MH_STRUCT_REFLECT_END();

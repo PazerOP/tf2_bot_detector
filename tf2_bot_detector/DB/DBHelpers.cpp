@@ -249,12 +249,17 @@ BinaryOperation tf2_bot_detector::DB::operator||(const BinaryOperation& lhs, con
 	return BinaryOperation(BinaryOperator::LogicalOr, lhs.Clone(), rhs.Clone());
 }
 
+Column2::Column2(SQLite::Column&& innerColumn) :
+	SQLite::Column(std::move(innerColumn))
+{
+}
+
 Statement2::Statement2(SQLite::Statement&& innerStatement) :
 	SQLite::Statement(std::move(innerStatement))
 {
 }
 
-SQLite::Column Statement2::getColumn(const ColumnDefinition& definition)
+Column2 Statement2::getColumn(const ColumnDefinition& definition)
 {
 	return SQLite::Statement::getColumn(definition.m_Name);
 }
@@ -334,7 +339,7 @@ namespace
 	};
 }
 
-Statement2 SelectStatementBuilder::Run(SQLite::Database& db) const
+Statement2 SelectStatementBuilder::Run(const SQLite::Database& db) const
 {
 	std::string queryStr;
 
@@ -347,7 +352,8 @@ Statement2 SelectStatementBuilder::Run(SQLite::Database& db) const
 		m_WhereCondition->GenerateStatement(gen);
 	}
 
-	Statement2 retVal(SQLite::Statement(db, queryStr));
+	// The const_cast is "ok" because its just a select statement... right?
+	Statement2 retVal(SQLite::Statement(const_cast<SQLite::Database&>(db), queryStr));
 
 	for (size_t i = 0; i < gen.m_Parameters.size(); i++)
 	{
