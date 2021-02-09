@@ -128,6 +128,9 @@ void SettingsWindow::OnDraw()
 					case SteamAPIMode::Direct:    return "Direct";
 					case SteamAPIMode::Proxy:     return "Proxied";
 					}
+
+					LogError("Unknown value {}", mh::enum_fmt(mode));
+					return "Proxied";
 				};
 
 				ImGui::NewLine();
