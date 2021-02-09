@@ -55,7 +55,25 @@ namespace tf2_bot_detector
 		std::string CreateProfileURL(const SteamID& id) const;
 	};
 
-	struct GeneralSettings
+	enum class SteamAPIMode
+	{
+		Disabled,  // Totally opt out
+		Proxy,     // Through tf2bd-util.pazer.us
+		Direct,    // Requires Steam API key
+	};
+
+	class ISteamAPISettings
+	{
+	public:
+		virtual ~ISteamAPISettings() = default;
+
+		bool IsSteamAPIAvailable() const;
+		virtual std::string GetSteamAPIKey() const = 0;
+		virtual void SetSteamAPIKey(std::string key) = 0;
+		virtual SteamAPIMode GetSteamAPIMode() const = 0;
+	};
+
+	struct GeneralSettings : public ISteamAPISettings
 	{
 		bool m_AutoChatWarnings = true;
 		bool m_AutoChatWarningsConnecting = false;
@@ -75,8 +93,14 @@ namespace tf2_bot_detector
 
 		constexpr auto GetAutoVotekickDelay() const { return std::chrono::duration<float>(m_AutoVotekickDelay); }
 
-		const std::string& GetSteamAPIKey() const { return m_SteamAPIKey; }
-		void SetSteamAPIKey(std::string key);
+		std::string GetSteamAPIKey() const override;
+		void SetSteamAPIKey(std::string key) override;
+
+		SteamAPIMode m_SteamAPIMode = SteamAPIMode::Proxy;
+		SteamAPIMode GetSteamAPIMode() const override { return m_SteamAPIMode; }
+
+	protected:
+		const std::string& GetSteamAPIKeyDirect() const { return m_SteamAPIKey; }
 
 	private:
 		std::string m_SteamAPIKey;
@@ -192,4 +216,10 @@ MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::Font)
 	MH_ENUM_REFLECT_VALUE(ProggyClean_13px)
 	MH_ENUM_REFLECT_VALUE(ProggyTiny_20px)
 	MH_ENUM_REFLECT_VALUE(ProggyClean_26px)
+MH_ENUM_REFLECT_END()
+
+MH_ENUM_REFLECT_BEGIN(tf2_bot_detector::SteamAPIMode)
+	MH_ENUM_REFLECT_VALUE(Disabled)
+	MH_ENUM_REFLECT_VALUE(Proxy)
+	MH_ENUM_REFLECT_VALUE(Direct)
 MH_ENUM_REFLECT_END()

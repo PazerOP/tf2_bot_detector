@@ -120,15 +120,55 @@ void SettingsWindow::OnDraw()
 
 		ImGui::EnabledSwitch(m_Settings.m_AllowInternetUsage.value_or(false), [&](bool enabled)
 			{
-				ImGui::NewLine();
-				if (std::string key = m_Settings.GetSteamAPIKey();
-					InputTextSteamAPIKey("Steam API Key", key, true))
+				const auto GetSteamAPIModeString = [](SteamAPIMode mode)
 				{
-					m_Settings.SetSteamAPIKey(key);
-					m_Settings.SaveFile();
-				}
-				ImGui::NewLine();
+					switch (mode)
+					{
+					case SteamAPIMode::Disabled:  return "Disabled";
+					case SteamAPIMode::Direct:    return "Direct";
+					case SteamAPIMode::Proxy:     return "Proxied";
+					}
 
+					LogError("Unknown value {}", mh::enum_fmt(mode));
+					return "Proxied";
+				};
+
+				ImGui::NewLine();
+				if (ImGui::BeginCombo("Steam API Mode", GetSteamAPIModeString(m_Settings.GetSteamAPIMode())))
+				{
+					const auto ModeSelectable = [&](SteamAPIMode mode)
+					{
+						if (ImGui::Selectable(GetSteamAPIModeString(mode), m_Settings.GetSteamAPIMode() == mode))
+						{
+							m_Settings.m_SteamAPIMode = mode;
+							m_Settings.SaveFile();
+						}
+					};
+
+					ModeSelectable(SteamAPIMode::Disabled);
+					ImGui::SetHoverTooltip("Disables the Steam API integration completely.");
+
+					ModeSelectable(SteamAPIMode::Proxy);
+					ImGui::SetHoverTooltip("The default setting. Proxies all Steam API traffic through a TF2BD server. Does not require entering a Steam API key.");
+
+					ModeSelectable(SteamAPIMode::Direct);
+					ImGui::SetHoverTooltip("Communicates directly with the Steam API servers. Offers improved performance and privacy compared to Proxy, but requires entering a Steam API key.");
+
+					ImGui::EndCombo();
+				}
+
+				if (m_Settings.GetSteamAPIMode() == SteamAPIMode::Direct)
+				{
+					ImGui::NewLine();
+					if (std::string key = m_Settings.GetSteamAPIKey();
+						InputTextSteamAPIKey("Steam API Key", key, true))
+					{
+						m_Settings.SetSteamAPIKey(key);
+						m_Settings.SaveFile();
+					}
+				}
+
+				ImGui::NewLine();
 				if (auto mode = enabled ? m_Settings.m_ReleaseChannel : ReleaseChannel::None;
 					Combo("Automatic update checking", mode))
 				{
