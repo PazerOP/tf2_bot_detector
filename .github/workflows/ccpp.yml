@@ -12,7 +12,7 @@ env:
   VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
   VCPKG_BINARY_SOURCES: files,${{ github.workspace }}/submodules/vcpkg/archives,readwrite
   VCPKG_FEATURE_FLAGS: manifests
-  VCPKG_CACHE_VERSION: 8
+  VCPKG_CACHE_VERSION: 9
 
 defaults:
   run:
