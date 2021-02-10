@@ -4,8 +4,6 @@
 #include "Clock.h"
 #include "SteamID.h"
 
-#include <mh/reflection/struct.hpp>
-
 #include <optional>
 
 namespace tf2_bot_detector::DB
@@ -25,8 +23,6 @@ namespace tf2_bot_detector::DB
 
 		struct BaseCacheInfo_SteamID : virtual ICacheInfo
 		{
-			MH_STRUCT_REFLECT_BASES(ICacheInfo);
-
 			using ICacheInfo::GetSteamID;
 			const SteamID& GetSteamID() const override final { return m_SteamID; }
 
@@ -35,8 +31,6 @@ namespace tf2_bot_detector::DB
 
 		struct BaseCacheInfo_Expiration : virtual ICacheInfo
 		{
-			MH_STRUCT_REFLECT_BASES(ICacheInfo);
-
 			std::optional<time_point_t> GetCacheCreationTime() const override final;
 			bool SetCacheCreationTime(time_point_t cacheCreationTime) override final;
 			time_point_t m_LastCacheUpdateTime;
@@ -45,15 +39,11 @@ namespace tf2_bot_detector::DB
 
 	struct AccountAgeInfo final : detail::BaseCacheInfo_SteamID
 	{
-		MH_STRUCT_REFLECT_BASES(detail::BaseCacheInfo_SteamID);
-
 		time_point_t m_CreationTime{};
 	};
 
 	struct LogsTFCacheInfo final : detail::BaseCacheInfo_Expiration, LogsTFAPI::PlayerLogsInfo
 	{
-		MH_STRUCT_REFLECT_BASES(detail::BaseCacheInfo_Expiration, LogsTFAPI::PlayerLogsInfo);
-
 		using ICacheInfo::GetSteamID;
 		const SteamID& GetSteamID() const override { return m_ID; }
 	};
@@ -73,21 +63,3 @@ namespace tf2_bot_detector::DB
 		[[nodiscard]] virtual bool TryGet(LogsTFCacheInfo& info) const = 0;
 	};
 }
-
-MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::detail::ICacheInfo)
-MH_STRUCT_REFLECT_END();
-
-MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::detail::BaseCacheInfo_SteamID)
-	MH_STRUCT_REFLECT_MEMBER(m_SteamID);
-MH_STRUCT_REFLECT_END();
-
-MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::detail::BaseCacheInfo_Expiration)
-	MH_STRUCT_REFLECT_MEMBER(m_LastCacheUpdateTime);
-MH_STRUCT_REFLECT_END();
-
-MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::AccountAgeInfo)
-	MH_STRUCT_REFLECT_MEMBER(m_CreationTime);
-MH_STRUCT_REFLECT_END();
-
-MH_STRUCT_REFLECT_BEGIN(tf2_bot_detector::DB::LogsTFCacheInfo)
-MH_STRUCT_REFLECT_END();
