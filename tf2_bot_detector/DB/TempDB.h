@@ -44,6 +44,10 @@ namespace tf2_bot_detector::DB
 
 	struct LogsTFCacheInfo final : detail::BaseCacheInfo_Expiration, LogsTFAPI::PlayerLogsInfo
 	{
+		LogsTFCacheInfo() = default;
+		using LogsTFAPI::PlayerLogsInfo::PlayerLogsInfo; 
+		using LogsTFAPI::PlayerLogsInfo::operator=;
+
 		using ICacheInfo::GetSteamID;
 		const SteamID& GetSteamID() const override { return m_ID; }
 	};

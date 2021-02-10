@@ -1050,7 +1050,6 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 		{
 			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
 
-			LogsTFAPI::PlayerLogsInfo logsInfo{};
 			DB::LogsTFCacheInfo cacheInfo{};
 
 			cacheInfo.m_ID = pThis->GetSteamID();
@@ -1059,8 +1058,6 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 			{
 				if ((tfbd_clock_t::now() - cacheInfo.m_LastCacheUpdateTime) <= day_t(7))
 				{
-					logsInfo.m_ID = cacheInfo.m_ID;
-					logsInfo.m_LogsCount = cacheInfo.m_LogsCount;
 					wantsRefresh = false;
 
 					DebugLog("Pulled logs count ({}) from db cache for {}", cacheInfo.m_LogsCount, *pThis);
@@ -1069,17 +1066,14 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 
 			if (wantsRefresh)
 			{
-				logsInfo = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, GetSteamID());
-
-				assert(cacheInfo.m_ID == logsInfo.m_ID);
+				cacheInfo = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, GetSteamID());
 				cacheInfo.m_LastCacheUpdateTime = tfbd_clock_t::now();
-				cacheInfo.m_LogsCount = logsInfo.m_LogsCount;
 				cacheDB.Store(cacheInfo);
 
-				DebugLog("Fetched logs count ({}) from web for {} and stored into db", logsInfo.m_LogsCount, *pThis);
+				DebugLog("Fetched logs count ({}) from web for {} and stored into db", cacheInfo.m_LogsCount, *pThis);
 			}
 
-			co_return logsInfo;
+			co_return cacheInfo;
 		});
 }
 
