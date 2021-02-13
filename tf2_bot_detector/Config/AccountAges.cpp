@@ -74,7 +74,7 @@ std::optional<time_point_t> AccountAges::EstimateAccountCreationTime(const Steam
 	if (!lower.has_value())
 		return std::nullopt;   // super new, we don't have any data for this
 	if (!upper.has_value())
-		return upper.value().m_CreationTime;  // Nothing to interpolate to, pick the lower value
+		return lower.value().m_CreationTime;  // Nothing to interpolate to, pick the lower value
 
 	if (lower->m_CreationTime == upper->m_CreationTime)
 		return lower->m_CreationTime;  // they're the same picture

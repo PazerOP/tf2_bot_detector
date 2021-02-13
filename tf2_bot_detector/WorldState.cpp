@@ -1046,32 +1046,17 @@ const mh::expected<T>& Player::GetOrFetchDataAsync(mh::expected<T>& var, TFunc&&
 const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 {
 	return GetOrFetchDataAsync(m_LogsInfo,
-		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<mh::expected<LogsTFAPI::PlayerLogsInfo>>
+		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<LogsTFAPI::PlayerLogsInfo>
 		{
 			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
 
 			DB::LogsTFCacheInfo cacheInfo{};
-
 			cacheInfo.m_ID = pThis->GetSteamID();
-			bool wantsRefresh = true;
-			if (cacheDB.TryGet(cacheInfo))
-			{
-				if ((tfbd_clock_t::now() - cacheInfo.m_LastCacheUpdateTime) <= day_t(7))
+
+			co_await cacheDB.GetOrUpdateAsync(cacheInfo, [client](DB::LogsTFCacheInfo& info) -> mh::task<>
 				{
-					wantsRefresh = false;
-
-					DebugLog("Pulled logs count ({}) from db cache for {}", cacheInfo.m_LogsCount, *pThis);
-				}
-			}
-
-			if (wantsRefresh)
-			{
-				cacheInfo = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, GetSteamID());
-				cacheInfo.m_LastCacheUpdateTime = tfbd_clock_t::now();
-				cacheDB.Store(cacheInfo);
-
-				DebugLog("Fetched logs count ({}) from web for {} and stored into db", cacheInfo.m_LogsCount, *pThis);
-			}
+					info = co_await LogsTFAPI::GetPlayerLogsInfoAsync(client, info.m_ID);
+				});
 
 			co_return cacheInfo;
 		});

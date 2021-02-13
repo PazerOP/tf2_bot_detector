@@ -286,24 +286,3 @@ std::unique_ptr<ITempDB> tf2_bot_detector::DB::ITempDB::Create()
 {
 	return std::make_unique<TempDB>();
 }
-
-std::optional<time_point_t> DB::detail::BaseCacheInfo_Expiration::GetCacheCreationTime() const
-{
-	return m_LastCacheUpdateTime;
-}
-
-bool DB::detail::BaseCacheInfo_Expiration::SetCacheCreationTime(time_point_t cacheCreationTime)
-{
-	m_LastCacheUpdateTime = cacheCreationTime;
-	return true;
-}
-
-std::optional<time_point_t> DB::detail::ICacheInfo::GetCacheCreationTime() const
-{
-	return std::nullopt;
-}
-
-bool DB::detail::ICacheInfo::SetCacheCreationTime(time_point_t cacheCreationTime)
-{
-	return false;
-}
