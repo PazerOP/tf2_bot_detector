@@ -282,10 +282,10 @@ void WorldState::Update()
 void WorldState::UpdateFriends()
 {
 	if (auto client = GetSettings().GetHTTPClient();
-		client && !GetSettings().GetSteamAPIKey().empty() && (tfbd_clock_t::now() - 5min) > m_LastFriendsUpdate)
+		client && GetSettings().IsSteamAPIAvailable() && (tfbd_clock_t::now() - 5min) > m_LastFriendsUpdate)
 	{
 		m_LastFriendsUpdate = tfbd_clock_t::now();
-		m_FriendsFuture = SteamAPI::GetFriendList(GetSettings().GetSteamAPIKey(), GetSettings().GetLocalSteamID(), *client);
+		m_FriendsFuture = SteamAPI::GetFriendList(GetSettings(), GetSettings().GetLocalSteamID(), *client);
 	}
 
 	if (m_FriendsFuture.is_ready())
@@ -1084,11 +1084,11 @@ mh::expected<duration_t> Player::GetTF2Playtime() const
 	return GetOrFetchDataAsync(m_TF2Playtime,
 		[&](std::shared_ptr<const Player> pThis, std::shared_ptr<const IHTTPClient> client) -> mh::task<mh::expected<duration_t>>
 		{
-			const auto apiKey = pThis->GetWorld().GetSettings().GetSteamAPIKey();
-			if (apiKey.empty())
-				co_return ErrorCode::EmptyAPIKey;
+			const auto& settings = pThis->GetWorld().GetSettings();
+			if (!settings.IsSteamAPIAvailable())
+				co_return ErrorCode::SteamAPIDisabled;
 
-			co_return co_await SteamAPI::GetTF2PlaytimeAsync(apiKey, GetSteamID(), *client);
+			co_return co_await SteamAPI::GetTF2PlaytimeAsync(settings, GetSteamID(), *client);
 		}, { ErrorCode::InfoPrivate, ErrorCode::GameNotOwned });
 }
 
@@ -1164,12 +1164,12 @@ auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 	if (!client)
 		return {};
 
-	if (state->GetSettings().GetSteamAPIKey().empty())
+	if (!state->GetSettings().IsSteamAPIAvailable())
 	{
 		for (auto& entry : collection)
 		{
 			if (auto found = state->FindPlayer(entry))
-				static_cast<Player*>(found)->m_PlayerSummary = SteamAPI::ErrorCode::EmptyAPIKey;
+				static_cast<Player*>(found)->m_PlayerSummary = SteamAPI::ErrorCode::SteamAPIDisabled;
 		}
 		return {};
 	}
@@ -1177,7 +1177,7 @@ auto WorldState::PlayerSummaryUpdateAction::SendRequest(
 	std::vector<SteamID> steamIDs = Take100(collection);
 
 	return SteamAPI::GetPlayerSummariesAsync(
-		state->GetSettings().GetSteamAPIKey(), std::move(steamIDs), *client);
+		state->GetSettings(), std::move(steamIDs), *client);
 }
 
 void WorldState::PlayerSummaryUpdateAction::OnDataReady(WorldState*& state,
@@ -1203,19 +1203,19 @@ auto WorldState::PlayerBansUpdateAction::SendRequest(state_type& state,
 	if (!client)
 		return {};
 
-	if (state->GetSettings().GetSteamAPIKey().empty())
+	if (!state->GetSettings().IsSteamAPIAvailable())
 	{
 		for (auto& entry : collection)
 		{
 			if (auto found = state->FindPlayer(entry))
-				static_cast<Player*>(found)->m_PlayerSteamBans = SteamAPI::ErrorCode::EmptyAPIKey;
+				static_cast<Player*>(found)->m_PlayerSteamBans = SteamAPI::ErrorCode::SteamAPIDisabled;
 		}
 		return {};
 	}
 
 	std::vector<SteamID> steamIDs = Take100(collection);
 	return SteamAPI::GetPlayerBansAsync(
-		state->GetSettings().GetSteamAPIKey(), std::move(steamIDs), *client);
+		state->GetSettings(), std::move(steamIDs), *client);
 }
 
 void WorldState::PlayerBansUpdateAction::OnDataReady(state_type& state,

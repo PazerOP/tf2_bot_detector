@@ -1,4 +1,5 @@
 #include "SteamAPI.h"
+#include "Config/Settings.h"
 #include "Util/JSONUtils.h"
 #include "Util/PathUtils.h"
 #include "HTTPClient.h"
@@ -32,17 +33,6 @@ namespace
 		std::string m_Response;
 	};
 
-	static mh::task<SteamAPITask> SteamAPIGET(const HTTPClient& client, URL url)
-	{
-		auto clientPtr = client.shared_from_this();
-
-		SteamAPITask retVal;
-		retVal.m_RequestURL = url;
-		retVal.m_Response = co_await clientPtr->GetStringAsync(url);
-
-		co_return retVal;
-	}
-
 	class AvatarCacheManager final
 	{
 	public:
@@ -74,13 +64,15 @@ namespace
 
 			if (client)
 			{
+				auto clientPtr = client->shared_from_this();
+
 				// We're not stored in the cache, download now
-				const SteamAPITask& data = co_await SteamAPIGET(*client, url);
+				std::string data = co_await clientPtr->GetStringAsync(url);
 
 				std::lock_guard lock(m_CacheMutex);
 				{
 					std::ofstream file(cachedPath, std::ios::trunc | std::ios::binary);
-					file << data.m_Response;
+					file << data;
 				}
 				co_return Bitmap(cachedPath);
 			}
@@ -179,38 +171,66 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerSummar
 		d.m_CreationTime = std::chrono::system_clock::time_point(std::chrono::seconds(found->get<uint64_t>()));
 }
 
+static std::string GenerateSteamAPIURL(const ISteamAPISettings& apiSettings,
+	const std::string_view& endpoint, std::string query = "") try
+{
+	assert(apiSettings.IsSteamAPIAvailable());
+	assert(query.empty() || query.starts_with("?"));
+	assert(endpoint.starts_with("/"));
+	assert(!endpoint.ends_with("/"));
+
+	if (apiSettings.GetSteamAPIMode() == SteamAPIMode::Direct)
+	{
+		if (!query.empty())
+			query[0] = '&';
+
+		return mh::format(MH_FMT_STRING("https://api.steampowered.com{}/?key={}{}"), endpoint, apiSettings.GetSteamAPIKey(), query);
+	}
+	else if (apiSettings.GetSteamAPIMode() == SteamAPIMode::Proxy)
+	{
+		return mh::format(MH_FMT_STRING("https://tf2bd-util.pazer.us/SteamAPIProxy{}{}"), endpoint, query);
+	}
+	else
+	{
+		throw std::runtime_error(mh::format(MH_FMT_STRING("Should never get here: SteamAPIMode was {}"), mh::enum_fmt(apiSettings.GetSteamAPIMode())));
+	}
+}
+catch (...)
+{
+	LogException();
+	throw;
+}
+
+static std::string GenerateSteamIDsQueryParam(const std::vector<SteamID>& steamIDs, size_t max, MH_SOURCE_LOCATION_AUTO(location))
+{
+	if (steamIDs.size() > max)
+		LogError(location, "Attempted to fetch {} steamIDs at once (max {}). Clamping to {}.", steamIDs.size(), max, max);
+
+	std::string steamIDsString = "?steamids=";
+	for (size_t i = 0; i < std::min<size_t>(steamIDs.size(), max); i++)
+	{
+		if (i != 0)
+			steamIDsString << ',';
+
+		steamIDsString << steamIDs[i].ID64;
+	}
+
+	return steamIDsString;
+}
+
 mh::task<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSummariesAsync(
-	const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
+	const ISteamAPISettings& apiSettings, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
 		co_return {};
 
-	if (apikey.empty())
-	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
-		co_return {};
-	}
+	std::string url = GenerateSteamAPIURL(apiSettings, "/ISteamUser/GetPlayerSummaries/v0002",
+		GenerateSteamIDsQueryParam(steamIDs, 100));
 
-	if (steamIDs.size() > 100)
-	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Attempted to fetch "s << steamIDs.size()
-			<< " steamIDs at once (max 100)");
-	}
+	auto clientPtr = client.shared_from_this();
+	const std::string data = co_await clientPtr->GetStringAsync(url);
 
-	std::string url = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key="s
-		<< apikey << "&steamids=";
-
-	for (size_t i = 0; i < std::min<size_t>(steamIDs.size(), 100); i++)
-	{
-		if (i != 0)
-			url << ',';
-
-		url << steamIDs[i].ID64;
-	}
-
-	const auto& data = co_await SteamAPIGET(client, url);
-
-	auto json = nlohmann::json::parse(data.m_Response);
+	auto json = nlohmann::json::parse(data);
 	co_return json.at("response").at("players").get<std::vector<PlayerSummary>>();
 }
 
@@ -238,34 +258,19 @@ void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerBans& 
 }
 
 mh::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync(
-	const std::string_view& apikey, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
+	const ISteamAPISettings& apiSettings, const std::vector<SteamID>& steamIDs, const HTTPClient& client)
 {
 	if (steamIDs.empty())
 		co_return std::vector<PlayerBans>();
 
-	if (apikey.empty())
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::EmptyAPIKey);
+	std::string url = GenerateSteamAPIURL(apiSettings, "/ISteamUser/GetPlayerBans/v0001",
+		GenerateSteamIDsQueryParam(steamIDs, 100));
 
-	if (steamIDs.size() > 100)
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Attempted to fetch {} steamIDs at once (max 100)", steamIDs.size());
-
-	std::string url = mh::format(
-		MH_FMT_STRING("https://api.steampowered.com/ISteamUser/GetPlayerBans/v0001/?key={}&steamids="), apikey);
-
-	for (size_t i = 0; i < std::min<size_t>(steamIDs.size(), 100); i++)
-	{
-		if (i != 0)
-			url += ',';
-
-		url << steamIDs[i].ID64;
-	}
-
-	auto data = SteamAPIGET(client, url);
-
+	auto clientPtr = client.shared_from_this();
 	std::string response;
 	try
 	{
-		response = (co_await data).m_Response;
+		response = co_await clientPtr->GetStringAsync(url);
 	}
 	catch (const std::exception&)
 	{
@@ -286,7 +291,7 @@ mh::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync
 }
 
 mh::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
-	const std::string_view& apikey, const SteamID& steamID, const HTTPClient& client)
+	const ISteamAPISettings& apiSettings, const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
 	{
@@ -294,17 +299,15 @@ mh::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 			mh::format(MH_FMT_STRING("Invalid SteamID {}"), steamID));
 	}
 
-	if (apikey.empty())
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::EmptyAPIKey);
+	std::string url = GenerateSteamAPIURL(apiSettings, "/IPlayerService/GetOwnedGames/v0001",
+		mh::format(MH_FMT_STRING("?input_json=%7B%22appids_filter%22%3A%5B440%5D,%22include_played_free_games%22%3Atrue,%22steamid%22%3A{}%7D"),
+			steamID.ID64));
 
-	auto url = mh::format(MH_FMT_STRING("https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&input_json=%7B%22appids_filter%22%3A%5B440%5D,%22include_played_free_games%22%3Atrue,%22steamid%22%3A{}%7D"), apikey, steamID.ID64);
-
-	auto data = co_await SteamAPIGET(client, url);
-
+	auto clientPtr = client.shared_from_this();
 	std::string responseString;
 	try
 	{
-		responseString = data.m_Response;
+		responseString = co_await clientPtr->GetStringAsync(url);
 	}
 	catch (...)
 	{
@@ -376,6 +379,8 @@ namespace tf2_bot_detector::SteamAPI
 				return "The SteamID was not valid for the given request.";
 			case ErrorCode::EmptyAPIKey:
 				return "The provided Steam Web API key was an empty string.";
+			case ErrorCode::SteamAPIDisabled:
+				return "Steam API support has been disabled via the tool settings.";
 			}
 
 			return mh::format("Unknown SteamAPI error ({})", condition);
@@ -394,7 +399,7 @@ std::error_condition tf2_bot_detector::SteamAPI::make_error_condition(tf2_bot_de
 	return std::error_condition(int(e), tf2_bot_detector::SteamAPI::ErrorCategory());
 }
 
-mh::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(const std::string_view& apikey,
+mh::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(const ISteamAPISettings& apiSettings,
 	const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
@@ -403,19 +408,12 @@ mh::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(
 		co_return {};
 	}
 
-	if (apikey.empty())
-	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "apikey was empty");
-		co_return {};
-	}
+	auto url = GenerateSteamAPIURL(apiSettings, "/ISteamUser/GetFriendList/v0001", mh::format("?steamid={}", steamID.ID64));
 
-	auto url = mh::format(
-		MH_FMT_STRING("https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={}&steamid={}"),
-		apikey, steamID.ID64);
+	auto clientPtr = client.shared_from_this();
+	std::string data = co_await clientPtr->GetStringAsync(url);
 
-	auto data = co_await SteamAPIGET(client, url);
-
-	const auto json = nlohmann::json::parse(data.m_Response);
+	const auto json = nlohmann::json::parse(data);
 
 	std::unordered_set<SteamID> retVal;
 
