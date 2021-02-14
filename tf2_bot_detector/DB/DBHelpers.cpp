@@ -14,8 +14,8 @@ IStatementGenerator& IStatementGenerator::TextQuoted(const std::string_view& tex
 	return Text(mh::format("{}", std::quoted(text)));
 }
 
-void tf2_bot_detector::DB::CreateTable(SQLite::Database& db, std::string tableName,
-	std::initializer_list<ColumnDefinition> columns, CreateTableFlags flags) try
+void tf2_bot_detector::DB::CreateTable(SQLite::Database& db, const std::string_view& tableName,
+	const ColumnDefinition* columnsBegin, const ColumnDefinition* columnsEnd, CreateTableFlags flags) try
 {
 	std::string query = "CREATE TABLE";
 
@@ -24,12 +24,14 @@ void tf2_bot_detector::DB::CreateTable(SQLite::Database& db, std::string tableNa
 
 	query.append(" \"").append(tableName).append("\" (");
 
-	assert(columns.size() > 0);
+	assert((columnsEnd - columnsBegin) > 0);
 
 	const ColumnDefinition* primaryKey = nullptr;
-	for (const ColumnDefinition& column : columns)
+	for (auto columnIt = columnsBegin; columnIt != columnsEnd; columnIt++)
 	{
-		if (&column != columns.begin())
+		const ColumnDefinition& column = *columnIt;
+
+		if (&column != columnsBegin)
 			query.append(","); // Not the first column, add a comma
 
 		query.append("\n\t\"").append(column.m_Name).append("\"");
@@ -70,6 +72,18 @@ catch (...)
 {
 	LogException();
 	throw;
+}
+
+void tf2_bot_detector::DB::CreateTable(SQLite::Database& db, const std::string_view& tableName,
+	std::initializer_list<ColumnDefinition> columns, CreateTableFlags flags)
+{
+	return CreateTable(db, tableName, columns.begin(), columns.end(), flags);
+}
+
+void tf2_bot_detector::DB::CreateTable(SQLite::Database& db, const TableDefinition& table, CreateTableFlags flags)
+{
+	const auto& cols = table.GetColumns();
+	return CreateTable(db, table.GetTableName(), cols.data(), cols.data() + cols.size(), flags);
 }
 
 void tf2_bot_detector::DB::InsertInto(SQLite::Database& db, const std::string_view& tableName, std::initializer_list<ColumnData> columns,

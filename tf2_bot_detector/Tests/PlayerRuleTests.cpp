@@ -95,6 +95,10 @@ namespace
 		{
 			throw mh::not_implemented_error();
 		}
+		const mh::expected<uint32_t>& GetInventoryItemCount() const override
+		{
+			throw mh::not_implemented_error();
+		}
 	};
 }
 

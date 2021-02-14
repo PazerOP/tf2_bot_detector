@@ -79,6 +79,8 @@ namespace tf2_bot_detector
 
 		virtual const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const = 0;
 
+		virtual const mh::expected<uint32_t>& GetInventoryItemCount() const = 0;
+
 		// The time that this player has been in the "active" state.
 		virtual duration_t GetActiveTime() const = 0;
 

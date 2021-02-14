@@ -223,6 +223,30 @@ namespace tf2_bot_detector::DB
 
 #undef OP_EXPR
 
+	class TableDefinition
+	{
+	public:
+		const std::string& GetTableName() const { return m_TableName; }
+		const std::vector<ColumnDefinition>& GetColumns() const { return m_Columns; }
+
+	protected:
+		TableDefinition(std::string tableName) :
+			m_TableName(std::move(tableName))
+		{
+		}
+
+		ColumnDefinition Column(const char* name, ColumnType type, ColumnFlags flags = ColumnFlags::None)
+		{
+			ColumnDefinition retVal(name, type, flags);
+			m_Columns.push_back(retVal);
+			return retVal;
+		}
+
+	private:
+		std::string m_TableName;
+		std::vector<ColumnDefinition> m_Columns;
+	};
+
 	struct Column2 : SQLite::Column
 	{
 		Column2(SQLite::Column&& innerColumn);
@@ -272,8 +296,11 @@ namespace tf2_bot_detector::DB
 		DBData_t m_Data;
 	};
 
-	void CreateTable(SQLite::Database& db, std::string tableName, std::initializer_list<ColumnDefinition> columns,
+	void CreateTable(SQLite::Database& db, const std::string_view& tableName, const ColumnDefinition* columnsBegin, const ColumnDefinition* columnsEnd,
 		CreateTableFlags flags = CreateTableFlags::None);
+	void CreateTable(SQLite::Database& db, const std::string_view& tableName, std::initializer_list<ColumnDefinition> columns,
+		CreateTableFlags flags = CreateTableFlags::None);
+	void CreateTable(SQLite::Database& db, const TableDefinition& table, CreateTableFlags flags = CreateTableFlags::None);
 
 	enum class InsertIntoConstraintResolver
 	{

@@ -274,7 +274,7 @@ mh::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync
 	}
 	catch (const std::exception&)
 	{
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GenericHttpError);
+		throw SteamAPIError(ErrorCode::GenericHttpError);
 	}
 
 	nlohmann::json json;
@@ -284,7 +284,7 @@ mh::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync
 	}
 	catch (const std::exception&)
 	{
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::JSONParseError);
+		throw SteamAPIError(ErrorCode::JSONParseError);
 	}
 
 	co_return json.at("players").get<std::vector<PlayerBans>>();
@@ -295,7 +295,7 @@ mh::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 {
 	if (!steamID.IsValid())
 	{
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::InvalidSteamID,
+		throw SteamAPIError(ErrorCode::InvalidSteamID,
 			mh::format(MH_FMT_STRING("Invalid SteamID {}"), steamID));
 	}
 
@@ -311,7 +311,7 @@ mh::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 	}
 	catch (...)
 	{
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GenericHttpError);
+		throw SteamAPIError(ErrorCode::GenericHttpError);
 	}
 
 	nlohmann::json json;
@@ -321,30 +321,30 @@ mh::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
 	}
 	catch (...)
 	{
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::JSONParseError);
+		throw SteamAPIError(ErrorCode::JSONParseError);
 	}
 
 	auto& response = json.at("response");
 	if (!response.contains("game_count"))
 	{
 		// response is empty (as opposed to games being empty and game_count = 0) if games list is private
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::InfoPrivate, "Games list is private");
+		throw SteamAPIError(ErrorCode::InfoPrivate, "Games list is private");
 	}
 
 	auto games = response.find("games");
 	if (games == response.end())
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::GameNotOwned); // TF2 not on their owned games list
+		throw SteamAPIError(ErrorCode::GameNotOwned); // TF2 not on their owned games list
 
 	if (games->size() != 1)
 	{
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::UnexpectedDataFormat,
+		throw SteamAPIError(ErrorCode::UnexpectedDataFormat,
 			mh::format(MH_FMT_STRING("Unexpected games array size {}"), games->size()));
 	}
 
 	auto& firstElem = games->at(0);
 	if (uint32_t appid = firstElem.at("appid"); appid != 440)
 	{
-		throw SteamAPIError(MH_SOURCE_LOCATION_CURRENT(), ErrorCode::UnexpectedDataFormat,
+		throw SteamAPIError(ErrorCode::UnexpectedDataFormat,
 			mh::format(MH_FMT_STRING("Unexpected appid {} at response.games[0].appid"), appid));
 	}
 
@@ -426,8 +426,8 @@ mh::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(
 	co_return retVal;
 }
 
-tf2_bot_detector::SteamAPI::SteamAPIError::SteamAPIError(const mh::source_location& location,
-	std::error_condition code, const std::string_view& detail) :
+tf2_bot_detector::SteamAPI::SteamAPIError::SteamAPIError(
+	std::error_condition code, const std::string_view& detail, const mh::source_location& location) :
 	mh::error_condition_exception(code, mh::format(MH_FMT_STRING("{}: {}"), location, detail)),
 	m_SourceLocation(location)
 {
@@ -447,4 +447,40 @@ bool SteamAPI::PlayerBans::HasAnyBans() const
 		return true;
 
 	return false;
+}
+
+mh::task<uint32_t> SteamAPI::GetTF2InventorySizeAsync(const SteamID& steamID, const IHTTPClient& client)
+{
+	if (!steamID.IsValid())
+	{
+		LogError("Invalid SteamID {}", steamID.ID64);
+		co_return {};
+	}
+
+	auto clientPtr = client.shared_from_this();
+	std::string data;
+
+	try
+	{
+		data = co_await clientPtr->GetStringAsync(mh::format("https://steamcommunity.com/inventory/{}/440/2?count=1", steamID.ID64));
+	}
+	catch (const http_error& error)
+	{
+		if (error.code() == HTTPResponseCode::Forbidden)
+			throw SteamAPIError(ErrorCode::InfoPrivate);
+		else
+			throw; // rethrow generic http errors
+	}
+
+	nlohmann::json json;
+	try
+	{
+		json = nlohmann::json::parse(data);
+	}
+	catch (...)
+	{
+		throw SteamAPIError(ErrorCode::JSONParseError);
+	}
+
+	co_return json.at("total_inventory_count").get<uint32_t>();
 }

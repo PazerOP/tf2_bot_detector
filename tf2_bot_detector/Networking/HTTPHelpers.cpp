@@ -107,6 +107,8 @@ std::error_condition tf2_bot_detector::make_error_condition(HTTPResponseCode e)
 				return "Forbidden";
 			case HTTPResponseCode::NotFound:
 				return "Not Found";
+			case HTTPResponseCode::TooManyRequests:
+				return "Too Many Requests";
 
 				// 500
 			case HTTPResponseCode::InternalServerError:
@@ -119,10 +121,9 @@ std::error_condition tf2_bot_detector::make_error_condition(HTTPResponseCode e)
 				return "Service Unavailable";
 			case HTTPResponseCode::GatewayTimeout:
 				return "Gateway Timeout";
-
-			default:
-				return mh::format("<UNKNOWN>(HTTP {})", condition);
 			}
+
+			return mh::format("<UNKNOWN>(HTTP {})", condition);
 		}
 
 	} static const s_Category;

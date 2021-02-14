@@ -52,6 +52,7 @@ namespace tf2_bot_detector
 		PaymentRequired = 402,
 		Forbidden = 403,
 		NotFound = 404,
+		TooManyRequests = 429,
 
 		InternalServerError = 500,
 		NotImplemented = 501,

@@ -84,6 +84,8 @@ if (MSVC)
 		/w34062 # enumerator 'identifier' in a switch of enum 'enumeration' is not handled
 		/w44103 # 'filename' : alignment changed after including header, may be due to missing #pragma pack(pop)
 		        # Windows headers trigger this
+
+		/wd4250 # 'class1' : inherits 'class2::member' via dominance, not really useful
 	)
 endif()
 

@@ -39,8 +39,7 @@ namespace tf2_bot_detector::SteamAPI
 
 	struct SteamAPIError : mh::error_condition_exception, std::nested_exception
 	{
-		SteamAPIError(const mh::source_location& location, std::error_condition code,
-			const std::string_view& detail = {});
+		SteamAPIError(std::error_condition code, const std::string_view& detail = {}, MH_SOURCE_LOCATION_AUTO(location));
 
 		mh::source_location m_SourceLocation;
 	};
@@ -137,4 +136,6 @@ namespace tf2_bot_detector::SteamAPI
 
 	mh::task<std::unordered_set<SteamID>> GetFriendList(const ISteamAPISettings& apiSettings,
 		const SteamID& steamID, const IHTTPClient& client);
+
+	mh::task<uint32_t> GetTF2InventorySizeAsync(const SteamID& steamID, const IHTTPClient& client);
 }

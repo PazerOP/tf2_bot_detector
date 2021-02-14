@@ -807,6 +807,29 @@ static void PrintPlayerLogsCount(const IPlayer& player)
 			});
 }
 
+static void PrintPlayerInventoryInfo(const IPlayer& player)
+{
+	ImGui::TextFmt("Inventory Size : ");
+	ImGui::SameLineNoPad();
+
+	player.GetInventoryItemCount()
+		.or_else([&](std::error_condition err)
+			{
+				if (err == std::errc::operation_in_progress)
+				{
+					ImGui::PacifierText();
+				}
+				else
+				{
+					ImGui::TextFmt(COLOR_RED, "{}", err);
+				}
+			})
+		.map([&](uint32_t itemCount)
+			{
+				ImGui::TextFmt("{} items", itemCount);
+			});
+}
+
 void MainWindow::DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult,
 	const PlayerMarks& playerAttribs)
 {
@@ -852,6 +875,7 @@ void MainWindow::DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShar
 	PrintPlayerBans(player);
 	PrintPlayerPlaytime(player);
 	PrintPlayerLogsCount(player);
+	PrintPlayerInventoryInfo(player);
 
 	ImGui::NewLine();
 

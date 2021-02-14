@@ -211,6 +211,7 @@ namespace
 
 		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override;
 		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override;
+		const mh::expected<uint32_t>& GetInventoryItemCount() const override;
 
 		PlayerScores m_Scores{};
 		TFTeam m_Team{};
@@ -249,6 +250,7 @@ namespace
 
 		mutable mh::expected<duration_t> m_TF2Playtime = ErrorCode::LazyValueUninitialized;
 		mutable mh::expected<LogsTFAPI::PlayerLogsInfo> m_LogsInfo = ErrorCode::LazyValueUninitialized;
+		mutable mh::expected<uint32_t> m_InventoryItemCount = ErrorCode::LazyValueUninitialized;
 	};
 }
 
@@ -902,6 +904,7 @@ Player& WorldState::FindOrCreatePlayer(const SteamID& id)
 			data->GetPlayerBans();
 			data->GetTF2Playtime();
 			data->GetLogsInfo();
+			data->GetInventoryItemCount();
 		}
 	}
 
@@ -1059,6 +1062,26 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 				});
 
 			co_return cacheInfo;
+		});
+}
+
+const mh::expected<uint32_t>& Player::GetInventoryItemCount() const
+{
+	return GetOrFetchDataAsync(m_InventoryItemCount,
+		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<uint32_t>
+		{
+			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
+
+			DB::AccountInventorySizeInfo cacheInfo{};
+			cacheInfo.m_SteamID = pThis->GetSteamID();
+			cacheInfo.m_ItemCount = (uint32_t)-1; // sanity check
+
+			co_await cacheDB.GetOrUpdateAsync(cacheInfo, [client](DB::AccountInventorySizeInfo& info) -> mh::task<>
+				{
+					info.m_ItemCount = co_await SteamAPI::GetTF2InventorySizeAsync(info.GetSteamID(), *client);
+				});
+
+			co_return cacheInfo.m_ItemCount;
 		});
 }
 

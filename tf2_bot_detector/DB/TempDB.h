@@ -20,7 +20,6 @@ namespace tf2_bot_detector::DB
 
 			SteamID& GetSteamID() { return const_cast<SteamID&>(const_cast<const ICacheInfo&>(*this).GetSteamID()); }
 			virtual const SteamID& GetSteamID() const = 0;
-
 		};
 
 		struct BaseCacheInfo_SteamID : virtual ICacheInfo
@@ -41,6 +40,13 @@ namespace tf2_bot_detector::DB
 	struct AccountAgeInfo final : detail::BaseCacheInfo_SteamID
 	{
 		time_point_t m_CreationTime{};
+	};
+
+	struct AccountInventorySizeInfo final : detail::BaseCacheInfo_SteamID, detail::BaseCacheInfo_Expiration
+	{
+		uint32_t m_ItemCount{};
+
+		duration_t GetCacheLiveTime() const override { return day_t(7); }
 	};
 
 	struct LogsTFCacheInfo final : detail::BaseCacheInfo_Expiration, LogsTFAPI::PlayerLogsInfo
@@ -68,6 +74,9 @@ namespace tf2_bot_detector::DB
 
 		virtual void Store(const LogsTFCacheInfo& info) = 0;
 		[[nodiscard]] virtual bool TryGet(LogsTFCacheInfo& info) const = 0;
+
+		virtual void Store(const AccountInventorySizeInfo& info) = 0;
+		[[nodiscard]] virtual bool TryGet(AccountInventorySizeInfo& info) const = 0;
 
 		template<typename TInfo, typename TUpdateFunc>
 		mh::task<> GetOrUpdateAsync(TInfo& info, TUpdateFunc&& updateFunc)
