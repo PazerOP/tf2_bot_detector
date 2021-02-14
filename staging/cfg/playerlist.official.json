@@ -1277,6 +1277,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "cgprs59",
+				"time": 1612933609
+			},
+			"steamid": "[U:1:1018439706]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -7996,6 +8006,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "JacobGam\u202cerOP",
+				"time": 1613249454
+			},
+			"steamid": "[U:1:1169073927]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "Honey tea\u202c",
 				"time": 1611054494
 			},
@@ -8167,6 +8187,36 @@
 				"time": 1612507642
 			},
 			"steamid": "[U:1:1177449695]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "hotdog2\u202c",
+				"time": 1613257884
+			},
+			"steamid": "[U:1:1178998738]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(SQU1\u202cRRELLY)",
+				"time": 1613257733
+			},
+			"steamid": "[U:1:1179126567]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "a\u202cgree",
+				"time": 1613252574
+			},
+			"steamid": "[U:1:1179247634]"
 		}
 	]
 }
