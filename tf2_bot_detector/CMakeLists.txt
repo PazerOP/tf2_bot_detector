@@ -217,6 +217,7 @@ find_package(libzippp CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
 find_package(SQLiteCpp CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	tf2_bot_detector::common
@@ -230,6 +231,7 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	fmt::fmt
 	BZip2::BZip2
 	SQLiteCpp
+	ZLIB::ZLIB
 )
 
 find_path(HTTPLIB_PATH NAMES httplib.h)

@@ -819,6 +819,10 @@ static void PrintPlayerInventoryInfo(const IPlayer& player)
 				{
 					ImGui::PacifierText();
 				}
+				else if (err == SteamAPI::ErrorCode::InfoPrivate)
+				{
+					ImGui::TextFmt(COLOR_PRIVATE, "Private");
+				}
 				else
 				{
 					ImGui::TextFmt(COLOR_RED, "{}", err);

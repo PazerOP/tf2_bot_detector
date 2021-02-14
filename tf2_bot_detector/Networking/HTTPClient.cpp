@@ -1,4 +1,5 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT 1
+#define CPPHTTPLIB_ZLIB_SUPPORT 1
 
 #include <mh/concurrency/thread_pool.hpp>
 #include <mh/error/error_code_exception.hpp>
@@ -89,9 +90,10 @@ std::string HTTPClientImpl::GetString(const URL& url) const try
 	client.set_follow_location(true);
 	client.set_read_timeout(10);
 
-	httplib::Headers headers =
+	static const httplib::Headers headers =
 	{
-		{ "User-Agent", "curl/7.58.0" }
+		{ "User-Agent", "curl/7.58.0" },
+		{ "Accept-Encoding", "gzip" },
 	};
 
 	const auto startTime = tfbd_clock_t::now();
@@ -129,6 +131,10 @@ static duration_t GetMinRequestInterval(const URL& url)
 	else if (url.m_Host == "api.steampowered.com" || url.m_Host == "tf2bd-util.pazer.us")
 	{
 		return 100ms;
+	}
+	else if (url.m_Host == "steamcommunity.com")
+	{
+		return 2000ms;
 	}
 
 	return 500ms;
