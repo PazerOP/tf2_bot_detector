@@ -100,12 +100,6 @@ jobs:
       with:
         submodules: recursive
 
-    - uses: lukka/run-vcpkg@v7.0
-      with:
-        setupOnly: true
-        vcpkgDirectory: '${{ env.VCPKG_ROOT }}'
-        appendedCacheKey: ${{ env.VCPKG_CACHE_VERSION}}
-
     # - name: cache-vcpkg
     #   uses: actions/cache@v2
     #   with:
@@ -116,9 +110,15 @@ jobs:
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1.5.0
       with:
         arch: ${{ matrix.tf2bd_arch }}
+
+    - uses: lukka/run-vcpkg@v7.0
+      with:
+        setupOnly: true
+        vcpkgDirectory: '${{ env.VCPKG_ROOT }}'
+        appendedCacheKey: ${{ env.VCPKG_CACHE_VERSION }}
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
@@ -207,13 +207,6 @@ jobs:
             tf2bd_arch: x64
 
     steps:
-    - name: Config cross-platform paths
-      id: tf2bd_paths
-      run: |
-        tf2bd_workspace=`realpath "${{ github.workspace }}"`
-        echo "::set-output name=workspace::$tf2bd_workspace"
-        echo "::set-output name=build_dir::$tf2bd_workspace/tf2bd_cmake_build_dir/"
-
     - name: Debug
       run: |
         echo "matrix.os = ${{ matrix.os }}"
@@ -230,12 +223,6 @@ jobs:
       with:
         submodules: recursive
 
-    - uses: lukka/run-vcpkg@v7.0
-      with:
-        setupOnly: true
-        vcpkgDirectory: '${{ env.VCPKG_ROOT }}'
-        appendedCacheKey: ${{ env.VCPKG_CACHE_VERSION}}
-
     # - name: cache-vcpkg
     #   uses: actions/cache@v2
     #   with:
@@ -246,9 +233,15 @@ jobs:
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1.5.0
       with:
         arch: ${{ matrix.tf2bd_arch }}
+
+    - uses: lukka/run-vcpkg@v7.0
+      with:
+        setupOnly: true
+        vcpkgDirectory: '${{ env.VCPKG_ROOT }}'
+        appendedCacheKey: ${{ env.VCPKG_CACHE_VERSION }}
 
     - name: CMake
       if: ${{ startsWith(matrix.os, 'windows') }}
@@ -327,14 +320,12 @@ jobs:
       id: msix_filename
       run: echo "::set-output name=value::tf2-bot-detector_${{ matrix.tf2bd_arch }}-windows_${{ needs.config.outputs.tf2bd_version }}_${{ matrix.build_type.name }}.msix"
 
-    - name: Configure PATH for windows sdk
-      uses: ilammy/msvc-dev-cmd@v1
+    - name: Configure build tools
+      uses: ilammy/msvc-dev-cmd@v1.5.0
 
-    - name: Checkout
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
-    - name: Download artifact
-      uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v2
       with:
         name: "tf2-bot-detector_${{ matrix.tf2bd_arch }}-windows_${{ needs.config.outputs.tf2bd_version }}_${{ matrix.build_type.name }}"
         path: msix/package_staging/app
@@ -387,7 +378,7 @@ jobs:
 
     steps:
     - name: Configure PATH for windows sdk
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1.5.0
 
     - name: Download msix (x86)
       uses: actions/download-artifact@v2
