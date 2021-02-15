@@ -10,8 +10,8 @@ on:
 
 env:
   VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
-  VCPKG_BINARY_SOURCES: files,${{ github.workspace }}/submodules/vcpkg/archives,readwrite
-  VCPKG_FEATURE_FLAGS: manifests
+  # VCPKG_BINARY_SOURCES: files,${{ github.workspace }}/submodules/vcpkg/archives,readwrite
+  VCPKG_FEATURE_FLAGS: manifests,binarycaching
   VCPKG_CACHE_VERSION: 9
 
 defaults:
@@ -100,13 +100,19 @@ jobs:
       with:
         submodules: recursive
 
-    - name: cache-vcpkg
-      uses: actions/cache@v2
+    - uses: lukka/run-vcpkg@v7.0
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
-        path: |
-          ${{ env.VCPKG_ROOT }}/archives
-          ${{ env.VCPKG_ROOT }}/vcpkg.exe
+        setupOnly: true
+        vcpkgDirectory: '${{ env.VCPKG_ROOT }}'
+        appendedCacheKey: ${{ env.VCPKG_CACHE_VERSION}}
+
+    # - name: cache-vcpkg
+    #   uses: actions/cache@v2
+    #   with:
+    #     key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
+    #     path: |
+    #       ${{ env.VCPKG_ROOT }}/archives
+    #       ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
@@ -224,13 +230,19 @@ jobs:
       with:
         submodules: recursive
 
-    - name: cache-vcpkg
-      uses: actions/cache@v2
+    - uses: lukka/run-vcpkg@v7.0
       with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
-        path: |
-          ${{ env.VCPKG_ROOT }}/archives
-          ${{ env.VCPKG_ROOT }}/vcpkg.exe
+        setupOnly: true
+        vcpkgDirectory: '${{ env.VCPKG_ROOT }}'
+        appendedCacheKey: ${{ env.VCPKG_CACHE_VERSION}}
+
+    # - name: cache-vcpkg
+    #   uses: actions/cache@v2
+    #   with:
+    #     key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
+    #     path: |
+    #       ${{ env.VCPKG_ROOT }}/archives
+    #       ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
