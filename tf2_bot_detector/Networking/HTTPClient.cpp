@@ -37,48 +37,48 @@ namespace std
 
 namespace httplib
 {
+	struct ErrorCategory final : std::error_category
+	{
+		const char* name() const noexcept override { return "httplib::Error"; }
+
+		std::string message(int condition) const override
+		{
+			switch ((Error)condition)
+			{
+			case Error::Success:
+				return "Success";
+
+			case Error::Unknown:
+				return "Unknown error";
+			case Error::Connection:
+				return "Connection error";
+			case Error::BindIPAddress:
+				return "Failed to bind IP address";
+			case Error::Read:
+				return "Failed to read from a socket";
+			case Error::Write:
+				return "Failed to write to a socket";
+			case Error::ExceedRedirectCount:
+				return "Exceeded the maximum number of redirects";
+			case Error::Canceled:
+				return "Request cancelled";
+			case Error::SSLConnection:
+				return "SSL connection error";
+			case Error::SSLServerVerification:
+				return "SSL server verification error";
+			case Error::UnsupportedMultipartBoundaryChars:
+				return "Unsupported multi-part boundary characters";
+
+			default:
+				return "<UNKNOWN ERROR>";
+			}
+		}
+
+	} static const s_ErrorCategory;
+
 	std::error_condition make_error_condition(Error e)
 	{
-		struct Category final : std::error_category
-		{
-			const char* name() const noexcept override { return "httplib::Error"; }
-
-			std::string message(int condition) const override
-			{
-				switch ((Error)condition)
-				{
-				case Error::Success:
-					return "Success";
-
-				case Error::Unknown:
-					return "Unknown error";
-				case Error::Connection:
-					return "Connection error";
-				case Error::BindIPAddress:
-					return "Failed to bind IP address";
-				case Error::Read:
-					return "Failed to read from a socket";
-				case Error::Write:
-					return "Failed to write to a socket";
-				case Error::ExceedRedirectCount:
-					return "Exceeded the maximum number of redirects";
-				case Error::Canceled:
-					return "Request cancelled";
-				case Error::SSLConnection:
-					return "SSL connection error";
-				case Error::SSLServerVerification:
-					return "SSL server verification error";
-				case Error::UnsupportedMultipartBoundaryChars:
-					return "Unsupported multi-part boundary characters";
-
-				default:
-					return "<UNKNOWN ERROR>";
-				}
-			}
-
-		} static const s_Category;
-
-		return std::error_condition(static_cast<int>(e), s_Category);
+		return std::error_condition(static_cast<int>(e), s_ErrorCategory);
 	}
 }
 
@@ -146,50 +146,74 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 
 	static mh::thread_pool s_HTTPThreadPool(2);
 
-	using throttle_time_t = mh::thread_pool::clock_t::time_point;
-	throttle_time_t throttleTime{};
+	int32_t retryCount = 0;
+	while (true)
 	{
-		const duration_t MIN_INTERVAL = GetMinRequestInterval(url);
-
-		static std::mutex s_ThrottleMutex;
-		static std::map<std::string, throttle_time_t> s_ThrottleDomains;
-		std::lock_guard lock(s_ThrottleMutex);
-
-		auto now = mh::thread_pool::clock_t::now();
-
-		if (auto found = s_ThrottleDomains.find(url.m_Host);
-			found != s_ThrottleDomains.end())
+		using throttle_time_t = mh::thread_pool::clock_t::time_point;
+		throttle_time_t throttleTime{};
 		{
-			if (now > found->second)
+			const duration_t MIN_INTERVAL = GetMinRequestInterval(url);
+
+			static std::mutex s_ThrottleMutex;
+			static std::map<std::string, throttle_time_t> s_ThrottleDomains;
+			std::lock_guard lock(s_ThrottleMutex);
+
+			auto now = mh::thread_pool::clock_t::now();
+
+			if (auto found = s_ThrottleDomains.find(url.m_Host);
+				found != s_ThrottleDomains.end())
 			{
-				found->second = now + MIN_INTERVAL;
+				if (now > found->second)
+				{
+					found->second = now + MIN_INTERVAL;
+				}
+				else
+				{
+					throttleTime = found->second;
+					found->second += MIN_INTERVAL;
+				}
 			}
 			else
 			{
-				throttleTime = found->second;
-				found->second += MIN_INTERVAL;
+				s_ThrottleDomains.emplace(url.m_Host, now + MIN_INTERVAL);
 			}
 		}
-		else
+
+		if (throttleTime != throttle_time_t{})
+			co_await s_HTTPThreadPool.co_delay_until(throttleTime);
+
+		// Move to a thread pool thread, do nothing if we're already on one
+		co_await s_HTTPThreadPool.co_add_task();
+
+		try
 		{
-			s_ThrottleDomains.emplace(url.m_Host, now + MIN_INTERVAL);
+			co_return self->GetString(url);
 		}
+		catch (const http_error& e)
+		{
+			if (e.code() == HTTPResponseCode::TooManyRequests && retryCount < 10)
+			{
+				// retry a fair number of times for http 429, some stuff is aggressively throttled
+			}
+			else if (e.code() == HTTPResponseCode::InternalServerError && retryCount < 3)
+			{
+				// retry a few times for http 500, might be tf2bd-util being broken
+			}
+			else if (e.code().category() == httplib::s_ErrorCategory && retryCount < 3)
+			{
+				// retry a few times for unknown cpp-httplib related errors
+			}
+			else
+			{
+				throw; // give up
+			}
+		}
+
+		// Wait and try again
+		co_await s_HTTPThreadPool.co_delay_for(10s);
+		retryCount++;
+		DebugLog("Retry #{} for {}", retryCount, url);
 	}
-
-	if (throttleTime != throttle_time_t{})
-	{
-		const auto startTime = mh::thread_pool::clock_t::now();
-		const auto intendedSleepTime = throttleTime - startTime;
-		co_await s_HTTPThreadPool.co_delay_until(throttleTime);
-		const auto actualSleepTime = mh::thread_pool::clock_t::now() - startTime;
-
-		DebugLog(LogMessageColor(1, 0, 1), "Intended to sleep for {}ms, actually slept for {}ms",
-			std::chrono::duration_cast<std::chrono::milliseconds>(intendedSleepTime).count(),
-			std::chrono::duration_cast<std::chrono::milliseconds>(actualSleepTime).count());
-	}
-
-	co_await s_HTTPThreadPool.co_add_task();
-	co_return self->GetString(url);
 }
 catch (const http_error&)
 {
