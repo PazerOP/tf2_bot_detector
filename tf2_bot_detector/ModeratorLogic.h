@@ -65,8 +65,6 @@ namespace tf2_bot_detector
 		virtual size_t GetRuleCount() const = 0;
 
 		virtual void ReloadConfigFiles() = 0;
-
-		virtual std::optional<VoteCooldown> GetVoteCooldown() const = 0;
 	};
 }
 

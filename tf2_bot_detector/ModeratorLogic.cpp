@@ -32,32 +32,6 @@ using namespace std::string_view_literals;
 
 namespace
 {
-	static constexpr LogMessageColor VOTESTATUS_COLOR = { 0, 1, 1 };
-
-	enum class VoteState
-	{
-		Inactive = 0,
-
-		// We sent a callvote command, awaiting reply from server
-		SentCallVote,
-
-		// The local player appears to be the owner of the active vote
-		LocalOwner,
-
-		// The local player does *NOT* appear to be the owner of the active vote
-		ForeignOwner,
-	};
-}
-
-MH_ENUM_REFLECT_BEGIN(VoteState)
-	MH_ENUM_REFLECT_VALUE(Inactive)
-	MH_ENUM_REFLECT_VALUE(SentCallVote)
-	MH_ENUM_REFLECT_VALUE(LocalOwner)
-	MH_ENUM_REFLECT_VALUE(ForeignOwner)
-MH_ENUM_REFLECT_END()
-
-namespace
-{
 	class ModeratorLogic final : public IModeratorLogic, AutoConsoleLineListener, AutoWorldEventListener
 	{
 	public:
@@ -101,8 +75,6 @@ namespace
 
 		void ReloadConfigFiles() override;
 
-		std::optional<VoteCooldown> GetVoteCooldown() const override;
-
 	private:
 		IWorldState* m_World = nullptr;
 		const Settings* m_Settings = nullptr;
@@ -132,9 +104,6 @@ namespace
 		void OnPlayerStatusUpdate(IWorldState& world, const IPlayer& player) override;
 		void OnChatMsg(IWorldState& world, IPlayer& player, const std::string_view& msg) override;
 
-		void OnConsoleLineParsed(IWorldState& world, IConsoleLine& line) override;
-		void OnUserMessageReceived(IWorldState& world, const SVCUserMessageLine& userMsg);
-
 		void OnRuleMatch(const ModerationRule& rule, const IPlayer& player);
 
 		// How long inbetween accusations
@@ -158,37 +127,6 @@ namespace
 			const std::vector<Cheater>& connectingEnemyCheaters);
 		void HandleConnectedEnemyCheaters(const std::vector<Cheater>& enemyCheaters);
 		void HandleConnectingEnemyCheaters(const std::vector<Cheater>& connectingEnemyCheaters);
-
-		// Maximum duration of votes on the server, see the (development only) cvar sv_vote_timer_duration
-		static constexpr duration_t DEFAULT_VOTE_DURATION = std::chrono::seconds(15);
-		// Maximum amount of time to wait for the server to start a vote or send us a CallVoteFailed message
-		static constexpr duration_t MAX_WAIT_VOTESTATE_CALLVOTESENT = std::chrono::seconds(10);
-		// Maximum amount of time to let a vote sit in one of the active states (LocalOwner/ForeignOwner) before
-		// we assume something is wrong and set ourselves back to VoteState::Inactive
-		static constexpr duration_t MAX_WAIT_VOTESTATE_VOTEACTIVE = DEFAULT_VOTE_DURATION + std::chrono::seconds(10);
-
-		struct VoteStateHelper
-		{
-			VoteStateHelper(VoteState state = VoteState::Inactive) :
-				m_Value(state), m_LastChangedTime(tfbd_clock_t::now())
-			{
-			}
-
-			VoteState GetValue() const { return m_Value; }
-			operator VoteState() const { return GetValue(); }
-
-			time_point_t GetLastChangedTime() const { return m_LastChangedTime; }
-			duration_t GetTimeSinceLastChanged() const { return tfbd_clock_t::now() - m_LastChangedTime; }
-
-		private:
-			time_point_t m_LastChangedTime;
-			VoteState m_Value;
-
-		} m_VoteState;
-
-		void HandleVoteStateTimeouts();
-
-		static_assert(MAX_WAIT_VOTESTATE_CALLVOTESENT < MAX_WAIT_VOTESTATE_VOTEACTIVE);
 
 		// Minimum interval between callvote commands (the 150 comes from the default value of sv_vote_creation_timer)
 		static constexpr duration_t MIN_VOTEKICK_INTERVAL = std::chrono::seconds(150);
@@ -231,39 +169,8 @@ std::unique_ptr<IModeratorLogic> IModeratorLogic::Create(IWorldState& world,
 	return std::make_unique<ModeratorLogic>(world, settings, actionManager);
 }
 
-void ModeratorLogic::HandleVoteStateTimeouts()
-{
-	// Some timeouts so we can't get stuck in a "waiting for vote/cooldown to finish" state forever
-	switch (m_VoteState)
-	{
-	case VoteState::Inactive: break;
-
-	case VoteState::ForeignOwner:
-	case VoteState::LocalOwner:
-	case VoteState::SentCallVote:
-	{
-		auto elapsed = m_VoteState.GetTimeSinceLastChanged();
-		const auto maxWaitTime = m_VoteState == VoteState::SentCallVote ? MAX_WAIT_VOTESTATE_CALLVOTESENT : MAX_WAIT_VOTESTATE_VOTEACTIVE;
-
-		if (elapsed > maxWaitTime)
-		{
-			constexpr VoteState NEW_VOTE_STATE = VoteState::Inactive;
-			LogWarning("Lost track of vote state somehow, resetting m_VoteState to {} (was {}) after {} have elapsed",
-				mh::enum_fmt(NEW_VOTE_STATE), mh::enum_fmt(m_VoteState.GetValue()), HumanDuration(elapsed));
-
-			if (mh::any_eq(m_VoteState, VoteState::LocalOwner, VoteState::SentCallVote))
-				m_LastVoteCallTime = {};
-
-			m_VoteState = NEW_VOTE_STATE;
-		}
-		break;
-	}
-	}
-}
-
 void ModeratorLogic::Update()
 {
-	HandleVoteStateTimeouts();
 	ProcessPlayerActions();
 }
 
@@ -356,128 +263,6 @@ void ModeratorLogic::OnChatMsg(IWorldState& world, IPlayer& player, const std::s
 	}
 }
 
-void ModeratorLogic::OnConsoleLineParsed(IWorldState& world, IConsoleLine& baseLine)
-{
-	switch (baseLine.GetType())
-	{
-	default: break;
-
-	case ConsoleLineType::ClientReachedServerSpawn:
-	{
-		m_VoteState = VoteState::Inactive;
-		m_LastVoteCallTime = {};
-		break;
-	}
-
-	case ConsoleLineType::SVC_UserMessage:
-		OnUserMessageReceived(world, static_cast<const SVCUserMessageLine&>(baseLine));
-		break;
-	}
-}
-
-void ModeratorLogic::OnUserMessageReceived(IWorldState& world, const SVCUserMessageLine& userMsg)
-{
-	const UserMessageType userMsgType = userMsg.GetUserMessageType();
-
-	const auto ChangeVoteState = [&](VoteState newVoteState, MH_SOURCE_LOCATION_AUTO(location))
-	{
-		assert(newVoteState == VoteState::Inactive || m_VoteState != newVoteState);
-
-		const auto oldVoteState = m_VoteState;
-		m_VoteState = newVoteState;
-		DebugLogWarning(VOTESTATUS_COLOR, location, "Received {}: {} -> {}", mh::enum_fmt(userMsgType),
-			mh::enum_fmt(oldVoteState.GetValue()), mh::enum_fmt(m_VoteState.GetValue()));
-	};
-
-	const auto PrintInvalidStateWarning = [&](MH_SOURCE_LOCATION_AUTO(location))
-	{
-		LogWarning(location, "Received {} when m_VoteState was {}", mh::enum_fmt(userMsgType), mh::enum_fmt(m_VoteState.GetValue()));
-	};
-
-	switch (userMsgType)
-	{
-	default: break;
-
-	case UserMessageType::CallVoteFailed:
-	{
-		switch (m_VoteState)
-		{
-		case VoteState::SentCallVote:
-			ChangeVoteState(VoteState::Inactive);
-			break;
-		case VoteState::LocalOwner:
-			ChangeVoteState(VoteState::ForeignOwner);
-			break;
-
-		case VoteState::Inactive:
-		case VoteState::ForeignOwner:
-			PrintInvalidStateWarning();
-			break;
-		}
-
-		break;
-	}
-
-	case UserMessageType::VoteStart:
-	{
-		switch (m_VoteState)
-		{
-		case VoteState::SentCallVote:
-			m_LastVoteCallTime = userMsg.GetTimestamp();  // Refresh the last callvote time with the timestamp from the log message
-			ChangeVoteState(VoteState::LocalOwner);
-			break;
-		case VoteState::Inactive:
-			ChangeVoteState(VoteState::ForeignOwner);
-			break;
-
-		case VoteState::LocalOwner:
-		case VoteState::ForeignOwner:
-			PrintInvalidStateWarning();
-			break;
-		}
-
-		break;
-	}
-
-	case UserMessageType::VotePass:
-	case UserMessageType::VoteFailed:
-	{
-		switch (m_VoteState)
-		{
-		case VoteState::Inactive:
-		case VoteState::SentCallVote:
-			PrintInvalidStateWarning();
-			[[fallthrough]];
-
-		case VoteState::LocalOwner:
-		case VoteState::ForeignOwner:
-			ChangeVoteState(VoteState::Inactive);
-			break;
-		}
-		break;
-	}
-
-	case UserMessageType::TextMsg:
-	{
-		if (userMsg.GetUserMessageBytes() == 42)
-		{
-			// Probably ClientPrint(HUD_PRINTCENTER, "#GameUI_vote_failed_vote_in_progress")
-			DebugLogWarning(VOTESTATUS_COLOR, "Possible #GameUI_vote_failed_vote_in_progress (m_VoteState = {})",
-				mh::enum_fmt(m_VoteState.GetValue()));
-		}
-		else if (userMsg.GetUserMessageBytes() == 56)
-		{
-			DebugLogWarning({ 0, 255, 16 }, "Possible #TF_Autobalance_TeamChangePending");
-		}
-		else
-		{
-			DebugLogWarning({ 0, 255, 64 }, "TextMsg: {} bytes", userMsg.GetUserMessageBytes());
-		}
-		break;
-	}
-	}
-}
-
 static bool CanPassVote(size_t totalPlayerCount, size_t cheaterCount, float* cheaterRatio = nullptr)
 {
 	if (cheaterRatio)
@@ -508,19 +293,6 @@ void ModeratorLogic::HandleFriendlyCheaters(uint8_t friendlyPlayerCount, uint8_t
 	{
 		LogWarning("Impossible to pass a successful votekick against "s << friendlyCheaters.size()
 			<< " friendly cheaters: our team is " << int(cheaterRatio * 100) << "% cheaters");
-		return;
-	}
-
-	if (m_VoteState != VoteState::Inactive)
-	{
-		LogWarning("Cannot call vote: another vote is already in progress ({})", mh::enum_fmt(m_VoteState.GetValue()));
-		return;
-	}
-
-	if (const auto cooldown = GetVoteCooldown())
-	{
-		LogWarning("Cannot call vote: it has only been {:1.1f} seconds since our last votekick (min {:1.1f})",
-			to_seconds(cooldown->m_Elapsed), to_seconds(cooldown->m_Total));
 		return;
 	}
 
@@ -963,18 +735,6 @@ void ModeratorLogic::ReloadConfigFiles()
 	m_Rules.LoadFiles();
 }
 
-std::optional<VoteCooldown> ModeratorLogic::GetVoteCooldown() const
-{
-	const auto elapsed = GetTimeSinceLastCallVote();
-	if (elapsed > MIN_VOTEKICK_INTERVAL)
-		return std::nullopt;
-
-	VoteCooldown cd{};
-	cd.m_Elapsed = elapsed;
-	cd.m_Total = MIN_VOTEKICK_INTERVAL;
-	return cd;
-}
-
 ModeratorLogic::ModeratorLogic(IWorldState& world, const Settings& settings, IRCONActionManager& actionManager) :
 	AutoConsoleLineListener(world),
 	AutoWorldEventListener(world),
@@ -1014,7 +774,6 @@ bool ModeratorLogic::InitiateVotekick(const IPlayer& player, KickReason reason, 
 		Log(std::move(logMsg));
 
 		m_LastVoteCallTime = tfbd_clock_t::now();
-		m_VoteState = VoteState::SentCallVote;
 	}
 
 	return true;

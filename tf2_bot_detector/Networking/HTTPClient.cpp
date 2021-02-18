@@ -212,7 +212,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 		// Wait and try again
 		co_await s_HTTPThreadPool.co_delay_for(10s);
 		retryCount++;
-		DebugLog("Retry #{} for {}", retryCount, url);
+		DebugLogWarning("Retry #{} for {}", retryCount, url);
 	}
 }
 catch (const http_error&)

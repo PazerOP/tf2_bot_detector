@@ -561,12 +561,6 @@ void MainWindow::OnDraw()
 		ImGui::Value("Parsed line count", parsedLineCount);
 	}
 
-	if (const auto cooldown = GetModLogic().GetVoteCooldown())
-	{
-		ImGui::ProgressBar(cooldown->GetProgress(), { -1, 0 },
-			mh::fmtstr<128>("Vote Cooldown: {}", HumanDuration(cooldown->GetRemainingDuration())).c_str());
-	}
-
 	//OnDrawServerStats();
 	if (mainWindowState.m_ChatEnabled)
 		OnDrawChat();
