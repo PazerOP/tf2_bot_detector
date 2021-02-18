@@ -5998,6 +5998,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "Bob The Mechanic",
+				"time": 1613623825
+			},
+			"steamid": "[U:1:1132111288]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "Pigeon society",
 				"time": 1612847861
 			},
@@ -8323,6 +8333,26 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "Waffen-SS\u200f\u200f",
+				"time": 1613622279
+			},
+			"steamid": "[U:1:1178236240]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "W\u200faf\u200f\u200ffen-SS",
+				"time": 1613624238
+			},
+			"steamid": "[U:1:1178573066]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "hotdog2\u202c",
 				"time": 1613257884
 			},
@@ -8333,8 +8363,18 @@
 				"cheater"
 			],
 			"last_seen": {
-				"player_name": "(SQU1\u202cRRELLY)",
-				"time": 1613257733
+				"player_name": "S\u202cpeed Wagon",
+				"time": 1613621504
+			},
+			"steamid": "[U:1:1179110485]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "DarkHo\u202cund",
+				"time": 1613442274
 			},
 			"steamid": "[U:1:1179126567]"
 		},
@@ -8403,10 +8443,30 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "Olbed Syan Knight",
+				"time": 1613622954
+			},
+			"steamid": "[U:1:1179587572]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "genfrontier",
 				"time": 1613451286
 			},
 			"steamid": "[U:1:1179656333]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Mr. Dope Man",
+				"time": 1613623944
+			},
+			"steamid": "[U:1:1179675038]"
 		},
 		{
 			"attributes": [
@@ -8427,6 +8487,16 @@
 				"time": 1613459350
 			},
 			"steamid": "[U:1:1179779480]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "W\u200f\u200faffen-SS\u200f",
+				"time": 1613623837
+			},
+			"steamid": "[U:1:1181622461]"
 		}
 	]
 }
