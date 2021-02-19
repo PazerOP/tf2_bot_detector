@@ -305,24 +305,6 @@
 					"cheater"
 				]
 			},
-			"description": "<something> gaming",
-			"triggers": {
-				"username_text_match": {
-					"case_sensitive": false,
-					"mode": "contains",
-					"patterns": [
-						"cheemsburger gaming",
-						"engineer gaming"
-					]
-				}
-			}
-		},
-		{
-			"actions": {
-				"transient_mark": [
-					"cheater"
-				]
-			},
 			"description": "WAMO",
 			"triggers": {
 				"username_text_match": {
