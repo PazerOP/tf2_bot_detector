@@ -530,6 +530,21 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "nick",
+				"time": 1611640811
+			},
+			"proof": [
+				"https://rgl.gg/Public/PlayerProfile.aspx?p=76561198246427928",
+				"https://www.ugcleague.com/players_page.cfm?player_id=76561198246427928",
+				"https://youtu.be/9V6YldM5vSA"
+			],
+			"steamid": "[U:1:286162200]"
+		},
+		{
+			"attributes": [
 				"racist"
 			],
 			"steamid": "[U:1:296870600]"
