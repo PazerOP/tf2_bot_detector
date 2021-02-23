@@ -695,6 +695,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "NOT A N O N",
+				"time": 1614056653
+			},
+			"steamid": "[U:1:384308781]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -6852,6 +6862,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "NOT A N O N's BOT",
+				"time": 1614056692
+			},
+			"steamid": "[U:1:1140498466]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "(1)Festive Hitman",
 				"time": 1607908630
 			},
@@ -8982,6 +9002,16 @@
 				"time": 1613985880
 			},
 			"steamid": "[U:1:1182906055]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)NOT A N O N's BOT",
+				"time": 1614056620
+			},
+			"steamid": "[U:1:1182968591]"
 		},
 		{
 			"attributes": [
