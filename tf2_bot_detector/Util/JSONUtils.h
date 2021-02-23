@@ -27,6 +27,15 @@ namespace std
 		else
 			j.get_to<T>(d.emplace());
 	}
+
+	inline void to_json(nlohmann::json& j, const std::filesystem::path& path)
+	{
+		j = path.string();
+	}
+	inline void from_json(const nlohmann::json& j, std::filesystem::path& path)
+	{
+		path = (std::string)j;
+	}
 }
 
 namespace tf2_bot_detector

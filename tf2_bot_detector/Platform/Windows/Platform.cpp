@@ -3,6 +3,8 @@
 
 #include <Windows.h>
 
+const std::error_code tf2_bot_detector::Platform::ErrorCodes::PRIVILEGE_NOT_HELD(ERROR_PRIVILEGE_NOT_HELD, std::system_category());
+
 tf2_bot_detector::Platform::OS tf2_bot_detector::Platform::GetOS()
 {
 	return OS::Windows;

@@ -214,7 +214,7 @@ std::string Filesystem::ReadFile(std::filesystem::path path) const try
 }
 catch (...)
 {
-	LogException(MH_SOURCE_LOCATION_CURRENT(), "Filename: {}", path);
+	DebugLogException("Filename: {}", path);
 	throw;
 }
 

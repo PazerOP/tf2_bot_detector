@@ -94,6 +94,11 @@ namespace tf2_bot_detector
 			void OpenURL(const char* url);
 			inline void OpenURL(const std::string& url) { return OpenURL(url.c_str()); }
 		}
+
+		namespace ErrorCodes
+		{
+			extern const std::error_code PRIVILEGE_NOT_HELD;
+		}
 	}
 }
 

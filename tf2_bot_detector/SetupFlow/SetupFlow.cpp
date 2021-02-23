@@ -22,6 +22,7 @@ using namespace tf2_bot_detector;
 
 namespace tf2_bot_detector
 {
+	std::unique_ptr<ISetupFlowPage> CreateAddonManagerPage();
 	std::unique_ptr<ISetupFlowPage> CreateUpdateCheckPage();
 	std::unique_ptr<ISetupFlowPage> CreatePermissionsCheckPage();
 	std::unique_ptr<ISetupFlowPage> CreateCheckSteamOpenPage();
@@ -34,8 +35,8 @@ SetupFlow::SetupFlow()
 	m_Pages.push_back(std::make_unique<BasicSettingsPage>());
 	m_Pages.push_back(std::make_unique<NetworkSettingsPage>());
 	m_Pages.push_back(CreateUpdateCheckPage());
+	m_Pages.push_back(CreateAddonManagerPage());
 	m_Pages.push_back(std::make_unique<ChatWrappersGeneratorPage>());
-	//m_Pages.push_back(std::make_unique<UseRCONCmdLinePage>());
 	m_Pages.push_back(std::make_unique<TF2CommandLinePage>());
 	m_Pages.push_back(std::make_unique<ChatWrappersVerifyPage>());
 	//m_Pages.push_back(std::make_unique<RCONConnectionPage>());

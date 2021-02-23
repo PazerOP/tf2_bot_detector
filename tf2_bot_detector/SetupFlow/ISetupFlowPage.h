@@ -17,6 +17,7 @@ namespace tf2_bot_detector
 		BasicSettings,
 		NetworkSettings,
 		UpdateCheck,
+		AddonManager,
 		ChatWrappersGenerate,
 		TF2CommandLine,
 		ChatWrappersVerify,
