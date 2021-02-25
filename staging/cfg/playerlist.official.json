@@ -795,6 +795,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "The Cap'm",
+				"time": 1614292247
+			},
+			"steamid": "[U:1:407886407]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -8241,6 +8251,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "b\u202ceegyoshi",
+				"time": 1614291811
+			},
+			"steamid": "[U:1:1169110625]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "Honey tea\u202c",
 				"time": 1611054494
 			},
@@ -9122,6 +9142,16 @@
 				"time": 1613984546
 			},
 			"steamid": "[U:1:1183380907]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "NOT A N O N'S BOT",
+				"time": 1614288619
+			},
+			"steamid": "[U:1:1184784427]"
 		}
 	]
 }
