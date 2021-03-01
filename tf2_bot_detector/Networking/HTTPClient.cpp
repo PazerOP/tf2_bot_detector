@@ -4,11 +4,13 @@
 #include <mh/concurrency/thread_pool.hpp>
 #include <mh/error/error_code_exception.hpp>
 
+#include "GlobalDispatcher.h"
 #include "HTTPClient.h"
 #include "HTTPHelpers.h"
 
 #pragma warning(push, 1)
-#include <httplib.h>
+#include <cpprest/http_client.h>
+#include <pplawait.h>
 #pragma warning(pop)
 
 using namespace std::chrono_literals;
@@ -26,99 +28,60 @@ namespace
 		uint32_t GetTotalRequestCount() const override { return m_TotalRequestCount; }
 
 	private:
+		mh::task<std::string> GetStringAsyncImpl(URL url) const;
+
+		mutable std::mutex m_InnerClientMutex;
+		mutable std::map<std::string, std::shared_ptr<web::http::client::http_client>> m_InnerClients;
+		std::shared_ptr<web::http::client::http_client> GetInnerClient(const URL& url) const;
+
 		mutable std::atomic_uint32_t m_TotalRequestCount = 0;
 	};
 }
 
-namespace std
+std::string HTTPClientImpl::GetString(const URL& url) const
 {
-	template<> struct is_error_condition_enum<httplib::Error> : true_type {};
+	auto task = GetStringAsync(url);
+	task.wait();
+	return std::move(task.get());
 }
 
-namespace httplib
+std::shared_ptr<web::http::client::http_client> HTTPClientImpl::GetInnerClient(const URL& url) const
 {
-	struct ErrorCategory final : std::error_category
+	std::lock_guard lock(m_InnerClientMutex);
+
+	const std::string schemeHostPort = url.GetSchemeHostPort();
+	if (auto found = m_InnerClients.find(schemeHostPort); found != m_InnerClients.end())
 	{
-		const char* name() const noexcept override { return "httplib::Error"; }
-
-		std::string message(int condition) const override
-		{
-			switch ((Error)condition)
-			{
-			case Error::Success:
-				return "Success";
-
-			case Error::Unknown:
-				return "Unknown error";
-			case Error::Connection:
-				return "Connection error";
-			case Error::BindIPAddress:
-				return "Failed to bind IP address";
-			case Error::Read:
-				return "Failed to read from a socket";
-			case Error::Write:
-				return "Failed to write to a socket";
-			case Error::ExceedRedirectCount:
-				return "Exceeded the maximum number of redirects";
-			case Error::Canceled:
-				return "Request cancelled";
-			case Error::SSLConnection:
-				return "SSL connection error";
-			case Error::SSLServerVerification:
-				return "SSL server verification error";
-			case Error::UnsupportedMultipartBoundaryChars:
-				return "Unsupported multi-part boundary characters";
-
-			default:
-				return "<UNKNOWN ERROR>";
-			}
-		}
-
-	} static const s_ErrorCategory;
-
-	std::error_condition make_error_condition(Error e)
+		return found->second;
+	}
+	else
 	{
-		return std::error_condition(static_cast<int>(e), s_ErrorCategory);
+		auto newClient = std::make_shared<web::http::client::http_client>(utility::conversions::to_string_t(schemeHostPort));
+		return m_InnerClients.emplace(schemeHostPort, newClient).first->second;
 	}
 }
 
-std::string HTTPClientImpl::GetString(const URL& url) const try
+mh::task<std::string> HTTPClientImpl::GetStringAsyncImpl(URL url) const
 {
+	auto self = shared_from_this();
+
 	++m_TotalRequestCount;
 
-	httplib::SSLClient client(url.m_Host, url.m_Port);
-	client.set_follow_location(true);
-	client.set_read_timeout(10);
-
-	static const httplib::Headers headers =
-	{
-		{ "User-Agent", "curl/7.58.0" },
-		{ "Accept-Encoding", "gzip" },
-	};
+	auto client = GetInnerClient(url);
 
 	const auto startTime = tfbd_clock_t::now();
-	auto response = client.Get(url.m_Path.c_str(), headers);
-	if (!response)
-		throw http_error(response.error(), mh::format("Failed to HTTP GET {}", url));
 
-	if (response->status >= 400 && response->status < 600)
-		throw http_error((HTTPResponseCode)response->status, mh::format("Failed to HTTP GET {}", url));
+	auto response = co_await client->request(web::http::methods::GET, utility::conversions::to_string_t(url.m_Path));
+
+	if (response.status_code() >= 400 && response.status_code() < 600)
+		throw http_error((HTTPResponseCode)response.status_code(), mh::format("Failed to HTTP GET {}", url));
+
+	std::string stringResponse = co_await response.extract_utf8string(true);
 
 	const auto duration = tfbd_clock_t::now() - startTime;
-
 	DebugLog("[{}ms] HTTP GET: {}", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(), url);
 
-	return response->body;
-}
-catch (const http_error&)
-{
-	DebugLogException("{}", url);
-	throw;
-}
-catch (...)
-{
-	LogException("{}", url);
-	throw;
+	co_return stringResponse;
 }
 
 static duration_t GetMinRequestInterval(const URL& url)
@@ -143,8 +106,6 @@ static duration_t GetMinRequestInterval(const URL& url)
 mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 {
 	auto self = shared_from_this(); // Make sure we don't vanish
-
-	static mh::thread_pool s_HTTPThreadPool(2);
 
 	int32_t retryCount = 0;
 	while (true)
@@ -180,14 +141,11 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 		}
 
 		if (throttleTime != throttle_time_t{})
-			co_await s_HTTPThreadPool.co_delay_until(throttleTime);
-
-		// Move to a thread pool thread, do nothing if we're already on one
-		co_await s_HTTPThreadPool.co_add_task();
+			co_await GetDispatcher().co_delay_until(throttleTime);
 
 		try
 		{
-			co_return self->GetString(url);
+			co_return co_await GetStringAsyncImpl(url);
 		}
 		catch (const http_error& e)
 		{
@@ -195,22 +153,26 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 			{
 				// retry a fair number of times for http 429, some stuff is aggressively throttled
 			}
-			else if (e.code() == HTTPResponseCode::InternalServerError && retryCount < 3)
+			else if (e.code() == HTTPResponseCode::InternalServerError && retryCount < 5)
 			{
 				// retry a few times for http 500, might be tf2bd-util being broken
-			}
-			else if (e.code().category() == httplib::s_ErrorCategory && retryCount < 3)
-			{
-				// retry a few times for unknown cpp-httplib related errors
 			}
 			else
 			{
 				throw; // give up
 			}
 		}
+		catch (const web::http::http_exception&)
+		{
+			if (retryCount > 3)
+			{
+				// Give up after a few socket/timeout errors
+				throw;
+			}
+		}
 
 		// Wait and try again
-		co_await s_HTTPThreadPool.co_delay_for(10s);
+		co_await GetDispatcher().co_delay_for(10s);
 		retryCount++;
 		DebugLogWarning("Retry #{} for {}", retryCount, url);
 	}

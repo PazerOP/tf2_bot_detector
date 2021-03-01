@@ -219,6 +219,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(BZip2 REQUIRED)
 find_package(SQLiteCpp CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(cpprestsdk CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	tf2_bot_detector::common
@@ -227,16 +228,13 @@ target_link_libraries(tf2_bot_detector PRIVATE
 	libzip::zip
 	libzippp::libzippp
 	SourceRCON
-	OpenSSL::SSL # cpp-httplib requires openssl
 	nlohmann_json::nlohmann_json
 	fmt::fmt
 	BZip2::BZip2
 	SQLiteCpp
 	ZLIB::ZLIB
+	cpprestsdk::cpprest
 )
-
-find_path(HTTPLIB_PATH NAMES httplib.h)
-target_include_directories(tf2_bot_detector PRIVATE ${HTTPLIB_PATH})
 
 if (TF2BD_ENABLE_TESTS)
 	enable_testing()

@@ -22,6 +22,9 @@ namespace tf2_bot_detector
 
 		auto operator<=>(const URL&) const = default;
 
+		std::string ToString() const;
+		std::string GetSchemeHostPort() const;
+
 		std::string m_Scheme;
 		std::string m_Host;
 		unsigned int m_Port = 80;

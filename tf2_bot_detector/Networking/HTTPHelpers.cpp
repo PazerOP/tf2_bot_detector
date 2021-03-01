@@ -52,6 +52,20 @@ URL::URL(const std::string_view& url)
 	m_Path = std::string(url.substr(firstSlash));
 }
 
+std::string tf2_bot_detector::URL::ToString() const
+{
+	std::string retVal;
+	retVal << *this;
+	return retVal;
+}
+
+std::string tf2_bot_detector::URL::GetSchemeHostPort() const
+{
+	std::string retVal;
+	retVal << m_Scheme << m_Host << ':' << m_Port;
+	return retVal;
+}
+
 std::error_condition tf2_bot_detector::make_error_condition(HTTPResponseCode e)
 {
 	struct Category final : std::error_category
