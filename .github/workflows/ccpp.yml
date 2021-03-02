@@ -109,14 +109,6 @@ jobs:
         -username "${{ github.repository_owner }}"
         -password "${{ secrets.GITHUB_TOKEN }}"
 
-    # - name: cache-vcpkg
-    #   uses: actions/cache@v2.1.4
-    #   with:
-    #     key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
-    #     path: |
-    #       ${{ env.VCPKG_ROOT }}/archives
-    #       ${{ env.VCPKG_ROOT }}/vcpkg.exe
-
     - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
       uses: ilammy/msvc-dev-cmd@v1.5.0
@@ -234,13 +226,6 @@ jobs:
         -name "GitHub"
         -username "${{ github.repository_owner }}"
         -password "${{ secrets.GITHUB_TOKEN }}"
-
-    # - name: cache-vcpkg
-    #   uses: actions/cache@v2.1.4
-    #   with:
-    #     key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
-    #     path: |
-    #       ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
