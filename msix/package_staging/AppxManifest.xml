@@ -32,7 +32,7 @@
 					</uap:Protocol>
 				</uap:Extension>
 				<desktop:Extension Category="windows.startupTask">
-					<desktop:StartupTask TaskId="TF2BD_Startup_Task" Enabled="false" DisplayName="TF2 Bot Detector Startup Task" />
+					<desktop:StartupTask TaskId="TF2BD_Startup_Task" Enabled="false" />
 				</desktop:Extension>
 			</Extensions>
 		</Application>
