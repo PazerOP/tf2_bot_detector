@@ -10,7 +10,7 @@ on:
 
 env:
   VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
-  VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/submodules/vcpkg/archives,readwrite
+  VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
   VCPKG_FEATURE_FLAGS: manifests,binarycaching
   VCPKG_CACHE_VERSION: 9
 
@@ -100,13 +100,22 @@ jobs:
       with:
         submodules: recursive
 
-    - name: cache-vcpkg
-      uses: actions/cache@v2.1.4
-      with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
-        path: |
-          ${{ env.VCPKG_ROOT }}/archives
-          ${{ env.VCPKG_ROOT }}/vcpkg.exe
+    - name: Setup NuGet Credentials
+      run: >
+        nuget sources add
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+        -storepasswordincleartext
+        -name "GitHub"
+        -username "${{ github.repository_owner }}"
+        -password "${{ secrets.GITHUB_TOKEN }}"
+
+    # - name: cache-vcpkg
+    #   uses: actions/cache@v2.1.4
+    #   with:
+    #     key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
+    #     path: |
+    #       ${{ env.VCPKG_ROOT }}/archives
+    #       ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
@@ -217,13 +226,21 @@ jobs:
       with:
         submodules: recursive
 
-    - name: cache-vcpkg
-      uses: actions/cache@v2.1.4
-      with:
-        key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
-        path: |
-          ${{ env.VCPKG_ROOT }}/archives
-          ${{ env.VCPKG_ROOT }}/vcpkg.exe
+    - name: Setup NuGet Credentials
+      run: >
+        nuget sources add
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+        -storepasswordincleartext
+        -name "GitHub"
+        -username "${{ github.repository_owner }}"
+        -password "${{ secrets.GITHUB_TOKEN }}"
+
+    # - name: cache-vcpkg
+    #   uses: actions/cache@v2.1.4
+    #   with:
+    #     key: ${{ hashFiles('.git/modules/submodules/vcpkg/HEAD') }}-${{ hashFiles('tf2_bot_detector_updater/vcpkg.json') }}-${{ matrix.triplet }}-${{ env.VCPKG_CACHE_VERSION }}
+    #     path: |
+    #       ${{ env.VCPKG_ROOT }}/vcpkg.exe
 
     - uses: seanmiddleditch/gha-setup-ninja@v3
     - name: Configure build tools
