@@ -18,6 +18,23 @@ SettingsWindow::SettingsWindow(ImGuiDesktop::Application& app, Settings& setting
 
 void SettingsWindow::OnDraw()
 {
+	OnDrawASOSettings();
+	OnDrawCompatibilitySettings();
+	OnDrawLoggingSettings();
+	OnDrawModerationSettings();
+	OnDrawModSettings();
+	OnDrawPerformanceSettings();
+	OnDrawServiceIntegrationSettings();
+	OnDrawUISettings();
+
+	ImGui::NewLine();
+
+	if (AutoLaunchTF2Checkbox(m_Settings.m_AutoLaunchTF2))
+		m_Settings.SaveFile();
+}
+
+void SettingsWindow::OnDrawASOSettings()
+{
 	if (ImGui::TreeNode("Autodetected Settings Overrides"))
 	{
 		// Steam dir
@@ -34,16 +51,23 @@ void SettingsWindow::OnDraw()
 
 		ImGui::TreePop();
 	}
+}
 
+void SettingsWindow::OnDrawCompatibilitySettings()
+{
 	if (ImGui::TreeNode("Compatibility"))
 	{
 		if (ImGui::Checkbox("Config Compatibility Mode", &m_Settings.m_ConfigCompatibilityMode))
 			m_Settings.SaveFile();
 		ImGui::SetHoverTooltip("Improves compatibility with some configs (such as mastercomfig). Resolves some strange issues with \"Issued too many commands to server\" disconnections, at the expense of delayed scoreboard updates when joining a server.");
 
+		ImGui::NewLine();
 		ImGui::TreePop();
 	}
+}
 
+void SettingsWindow::OnDrawLoggingSettings()
+{
 	if (ImGui::TreeNode("Logging"))
 	{
 #ifdef TF2BD_ENABLE_DISCORD_INTEGRATION
@@ -53,9 +77,13 @@ void SettingsWindow::OnDraw()
 		if (ImGui::Checkbox("RCON Packets", &m_Settings.m_Logging.m_RCONPackets))
 			m_Settings.SaveFile();
 
+		ImGui::NewLine();
 		ImGui::TreePop();
 	}
+}
 
+void SettingsWindow::OnDrawModerationSettings()
+{
 	if (ImGui::TreeNode("Moderation"))
 	{
 		// Auto temp mute
@@ -85,9 +113,23 @@ void SettingsWindow::OnDraw()
 				"Looks like: \"Heads up! There are N known cheaters joining the other team! Names unknown until they fully join.\"");
 		}
 
+		ImGui::NewLine();
 		ImGui::TreePop();
 	}
+}
 
+void SettingsWindow::OnDrawModSettings()
+{
+	if (ImGui::TreeNode("Mods"))
+	{
+
+		ImGui::NewLine();
+		ImGui::TreePop();
+	}
+}
+
+void SettingsWindow::OnDrawPerformanceSettings()
+{
 	if (ImGui::TreeNode("Performance"))
 	{
 		// Sleep when unfocused
@@ -97,9 +139,13 @@ void SettingsWindow::OnDraw()
 			ImGui::SetHoverTooltip("Slows program refresh rate when not focused to reduce CPU/GPU usage.");
 		}
 
+		ImGui::NewLine();
 		ImGui::TreePop();
 	}
+}
 
+void SettingsWindow::OnDrawServiceIntegrationSettings()
+{
 	if (ImGui::TreeNode("Service Integrations"))
 	{
 		if (ImGui::Checkbox("Discord integrations", &m_Settings.m_Discord.m_EnableRichPresence))
@@ -177,9 +223,13 @@ void SettingsWindow::OnDraw()
 				}
 			}, "Requires \"Allow internet connectivity\"");
 
+		ImGui::NewLine();
 		ImGui::TreePop();
 	}
+}
 
+void SettingsWindow::OnDrawUISettings()
+{
 	if (ImGui::TreeNode("UI"))
 	{
 		float& fontGlobalScale = ImGui::GetIO().FontGlobalScale;
@@ -236,11 +286,7 @@ void SettingsWindow::OnDraw()
 			ImGui::EndCombo();
 		}
 
+		ImGui::NewLine();
 		ImGui::TreePop();
 	}
-
-	ImGui::NewLine();
-
-	if (AutoLaunchTF2Checkbox(m_Settings.m_AutoLaunchTF2))
-		m_Settings.SaveFile();
 }

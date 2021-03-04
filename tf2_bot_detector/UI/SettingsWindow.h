@@ -15,6 +15,15 @@ namespace tf2_bot_detector
 	private:
 		void OnDraw() override;
 
+		void OnDrawASOSettings();
+		void OnDrawCompatibilitySettings();
+		void OnDrawLoggingSettings();
+		void OnDrawModerationSettings();
+		void OnDrawModSettings();
+		void OnDrawPerformanceSettings();
+		void OnDrawServiceIntegrationSettings();
+		void OnDrawUISettings();
+
 		Settings& m_Settings;
 		MainWindow& m_MainWindow;
 	};
