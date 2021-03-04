@@ -1,0 +1,11 @@
+This disables the CallVoteFailed element and the vote_failed.wav noise. Made for Pazer
+as part of the TF2 Bot Detector project by ClusterConsultant and Moeb with <3.
+Credit for the idea goes to CrazyGunman#6724 on discord. This particular mod is
+licensed under the MIT license. See LICENSE for more details.
+
+This will reset all voting related UI elements to default. This is unavoidable as the
+way TF2 loads custom requires that the entire file be present so one could not just
+override the vote failed related parts. If you want your custom HUD to still apply
+to the voting ui simply replace
+`tf2_bot_detector/tf2_addons/aaaaaaaaa_votefailed_eraser_v2/resource/ui/botdetector_tf_hud_base/votehud.res`
+with your `custom/exampleHUD/resource/ui/votehud.res` file.
