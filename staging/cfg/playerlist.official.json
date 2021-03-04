@@ -253,6 +253,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "picklesteakjit\u001b",
+				"time": 1614745036
+			},
+			"steamid": "[U:1:107533396]"
+		},
+		{
+			"attributes": [
 				"racist"
 			],
 			"steamid": "[U:1:111160048]"
@@ -988,6 +998,16 @@
 				"time": 1592413046
 			},
 			"steamid": "[U:1:857640160]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n \u0e38",
+				"time": 1614745007
+			},
+			"steamid": "[U:1:872229470]"
 		},
 		{
 			"attributes": [
@@ -5422,6 +5442,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "ttv.TimelessFROST",
+				"time": 1614818554
+			},
+			"steamid": "[U:1:1119394219]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "(1)STEAMROLLED",
 				"time": 1596694152
 			},
@@ -9354,6 +9384,46 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "NOT A N O N'S BOT",
+				"time": 1614799102
+			},
+			"steamid": "[U:1:1185106059]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "NOT A N O N'S BOT",
+				"time": 1614741015
+			},
+			"steamid": "[U:1:1185206047]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "(1)NOT A N O N'S BOT",
+				"time": 1614745443
+			},
+			"steamid": "[U:1:1185347757]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "NOT A N O N'S BOT",
+				"time": 1614819358
+			},
+			"steamid": "[U:1:1185460806]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "braaaap 83",
 				"time": 1614634419
 			},
@@ -9368,6 +9438,66 @@
 				"time": 1614665045
 			},
 			"steamid": "[U:1:1185678994]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "braaaap 79",
+				"time": 1614799257
+			},
+			"steamid": "[U:1:1185724809]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "OMEGATR\u0e4bONIC",
+				"time": 1614742040
+			},
+			"steamid": "[U:1:1185728881]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "braaaap 26",
+				"time": 1614741007
+			},
+			"steamid": "[U:1:1185998101]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "braaaap 53",
+				"time": 1614799295
+			},
+			"steamid": "[U:1:1186261000]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "braaaap 37",
+				"time": 1614741045
+			},
+			"steamid": "[U:1:1186543558]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "braaaap 35",
+				"time": 1614741058
+			},
+			"steamid": "[U:1:1186578487]"
 		}
 	]
 }
