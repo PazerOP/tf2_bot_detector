@@ -34,7 +34,7 @@ namespace
 		bool TryGet(AccountInventorySizeInfo& info) const override;
 
 	private:
-		static constexpr size_t DB_VERSION = 3;
+		static constexpr size_t DB_VERSION = 4;
 		void Connect();
 
 		std::optional<SQLite::Database> m_Connection;
@@ -82,6 +82,7 @@ namespace
 		TABLE_INVENTORY_SIZE() : BASETABLE_EXPIRABLE("TABLE_INVENTORY_SIZE") {}
 
 		const ColumnDefinition COL_ITEM_COUNT = Column("ItemCount", ColumnType::Integer, ColumnFlags::NotNull);
+		const ColumnDefinition COL_SLOT_COUNT = Column("SlotCount", ColumnType::Integer, ColumnFlags::NotNull);
 
 	} static const s_TableInventorySize;
 
@@ -265,7 +266,8 @@ SELECT min({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_Acc
 			{
 				{ s_TableInventorySize.COL_ACCOUNT_ID, info.GetSteamID() },
 				{ s_TableInventorySize.COL_LAST_UPDATE_TIME, info.m_LastCacheUpdateTime },
-				{ s_TableInventorySize.COL_ITEM_COUNT, info.m_ItemCount },
+				{ s_TableInventorySize.COL_ITEM_COUNT, info.m_Items },
+				{ s_TableInventorySize.COL_SLOT_COUNT, info.m_Slots },
 			});
 	}
 	catch (...)
@@ -283,7 +285,8 @@ SELECT min({col_AccountID}) AS {col_AccountID}, {col_CreationTime} FROM {tbl_Acc
 		if (query.executeStep())
 		{
 			info.m_LastCacheUpdateTime = query.getColumn(s_TableInventorySize.COL_LAST_UPDATE_TIME);
-			info.m_ItemCount = query.getColumn(s_TableInventorySize.COL_ITEM_COUNT);
+			info.m_Items = query.getColumn(s_TableInventorySize.COL_ITEM_COUNT);
+			info.m_Slots = query.getColumn(s_TableInventorySize.COL_SLOT_COUNT);
 			return true;
 		}
 

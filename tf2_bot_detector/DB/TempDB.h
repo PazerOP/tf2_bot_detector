@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Networking/LogsTFAPI.h"
+#include "Networking/SteamAPI.h"
 #include "Clock.h"
 #include "SteamID.h"
 
@@ -42,9 +43,11 @@ namespace tf2_bot_detector::DB
 		time_point_t m_CreationTime{};
 	};
 
-	struct AccountInventorySizeInfo final : detail::BaseCacheInfo_SteamID, detail::BaseCacheInfo_Expiration
+	struct AccountInventorySizeInfo final : detail::BaseCacheInfo_SteamID, detail::BaseCacheInfo_Expiration, SteamAPI::PlayerInventoryInfo
 	{
-		uint32_t m_ItemCount{};
+		AccountInventorySizeInfo() = default;
+		using SteamAPI::PlayerInventoryInfo::PlayerInventoryInfo;
+		using SteamAPI::PlayerInventoryInfo::operator=;
 
 		duration_t GetCacheLiveTime() const override { return day_t(7); }
 	};

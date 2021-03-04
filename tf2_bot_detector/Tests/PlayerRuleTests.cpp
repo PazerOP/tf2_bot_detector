@@ -95,7 +95,7 @@ namespace
 		{
 			throw mh::not_implemented_error();
 		}
-		const mh::expected<uint32_t>& GetInventoryItemCount() const override
+		const mh::expected<SteamAPI::PlayerInventoryInfo>& GetInventoryInfo() const override
 		{
 			throw mh::not_implemented_error();
 		}

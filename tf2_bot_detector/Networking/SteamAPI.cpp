@@ -230,8 +230,24 @@ mh::task<std::vector<PlayerSummary>> tf2_bot_detector::SteamAPI::GetPlayerSummar
 	auto clientPtr = client.shared_from_this();
 	const std::string data = co_await clientPtr->GetStringAsync(url);
 
-	auto json = nlohmann::json::parse(data);
-	co_return json.at("response").at("players").get<std::vector<PlayerSummary>>();
+	nlohmann::json json;
+	try
+	{
+		json = nlohmann::json::parse(data);
+	}
+	catch (...)
+	{
+		throw SteamAPIError(ErrorCode::JSONParseError);
+	}
+
+	try
+	{
+		co_return json.at("response").at("players").get<std::vector<PlayerSummary>>();
+	}
+	catch (...)
+	{
+		throw SteamAPIError(ErrorCode::JSONDeserializeError);
+	}
 }
 
 void tf2_bot_detector::SteamAPI::from_json(const nlohmann::json& j, PlayerBans& d)
@@ -287,7 +303,14 @@ mh::task<std::vector<PlayerBans>> tf2_bot_detector::SteamAPI::GetPlayerBansAsync
 		throw SteamAPIError(ErrorCode::JSONParseError);
 	}
 
-	co_return json.at("players").get<std::vector<PlayerBans>>();
+	try
+	{
+		co_return json.at("players").get<std::vector<PlayerBans>>();
+	}
+	catch (...)
+	{
+		throw SteamAPIError(ErrorCode::JSONDeserializeError);
+	}
 }
 
 mh::task<duration_t> tf2_bot_detector::SteamAPI::GetTF2PlaytimeAsync(
@@ -375,6 +398,8 @@ namespace tf2_bot_detector::SteamAPI
 				return "There was an HTTP error encountered when getting the result.";
 			case ErrorCode::JSONParseError:
 				return "There was an error parsing the response JSON.";
+			case ErrorCode::JSONDeserializeError:
+				return "There was an error deserializing the response JSON.";
 			case ErrorCode::InvalidSteamID:
 				return "The SteamID was not valid for the given request.";
 			case ErrorCode::EmptyAPIKey:
@@ -449,7 +474,8 @@ bool SteamAPI::PlayerBans::HasAnyBans() const
 	return false;
 }
 
-mh::task<uint32_t> SteamAPI::GetTF2InventorySizeAsync(const SteamID& steamID, const IHTTPClient& client)
+mh::task<PlayerInventoryInfo> SteamAPI::GetTF2InventoryInfoAsync(const ISteamAPISettings& apiSettings,
+	const SteamID& steamID, const IHTTPClient& client)
 {
 	if (!steamID.IsValid())
 	{
@@ -460,9 +486,11 @@ mh::task<uint32_t> SteamAPI::GetTF2InventorySizeAsync(const SteamID& steamID, co
 	auto clientPtr = client.shared_from_this();
 	std::string data;
 
+	auto url = GenerateSteamAPIURL(apiSettings, "/IEconItems_440/GetPlayerItems/v0001", mh::format("?steamid={}", steamID.ID64));
+
 	try
 	{
-		data = co_await clientPtr->GetStringAsync(mh::format("https://steamcommunity.com/inventory/{}/440/2?count=1", steamID.ID64));
+		data = co_await clientPtr->GetStringAsync(url);
 	}
 	catch (const http_error& error)
 	{
@@ -482,5 +510,27 @@ mh::task<uint32_t> SteamAPI::GetTF2InventorySizeAsync(const SteamID& steamID, co
 		throw SteamAPIError(ErrorCode::JSONParseError);
 	}
 
-	co_return json.at("total_inventory_count").get<uint32_t>();
+	PlayerInventoryInfo info{};
+
+	try
+	{
+		const nlohmann::json& result = json.at("result");
+
+		int status = result.at("status");
+		if (status == 15)
+			throw SteamAPIError(ErrorCode::InfoPrivate);
+
+		info.m_Items = static_cast<uint32_t>(result.at("items").size());
+		result.at("num_backpack_slots").get_to(info.m_Slots);
+	}
+	catch (const SteamAPIError&)
+	{
+		throw; // Don't touch these
+	}
+	catch (...)
+	{
+		throw SteamAPIError(ErrorCode::JSONDeserializeError);
+	}
+
+	co_return info;
 }

@@ -812,7 +812,7 @@ static void PrintPlayerInventoryInfo(const IPlayer& player)
 	ImGui::TextFmt("Inventory Size : ");
 	ImGui::SameLineNoPad();
 
-	player.GetInventoryItemCount()
+	player.GetInventoryInfo()
 		.or_else([&](std::error_condition err)
 			{
 				if (err == std::errc::operation_in_progress)
@@ -828,9 +828,9 @@ static void PrintPlayerInventoryInfo(const IPlayer& player)
 					ImGui::TextFmt(COLOR_RED, "{}", err);
 				}
 			})
-		.map([&](uint32_t itemCount)
+		.map([&](const SteamAPI::PlayerInventoryInfo& info)
 			{
-				ImGui::TextFmt("{} items", itemCount);
+				ImGui::TextFmt("{} items ({} slots)", info.m_Items, info.m_Slots);
 			});
 }
 

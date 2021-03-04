@@ -211,7 +211,7 @@ namespace
 
 		std::optional<time_point_t> GetEstimatedAccountCreationTime() const override;
 		const mh::expected<LogsTFAPI::PlayerLogsInfo>& GetLogsInfo() const override;
-		const mh::expected<uint32_t>& GetInventoryItemCount() const override;
+		const mh::expected<SteamAPI::PlayerInventoryInfo>& GetInventoryInfo() const override;
 
 		PlayerScores m_Scores{};
 		TFTeam m_Team{};
@@ -250,7 +250,7 @@ namespace
 
 		mutable mh::expected<duration_t> m_TF2Playtime = ErrorCode::LazyValueUninitialized;
 		mutable mh::expected<LogsTFAPI::PlayerLogsInfo> m_LogsInfo = ErrorCode::LazyValueUninitialized;
-		mutable mh::expected<uint32_t> m_InventoryItemCount = ErrorCode::LazyValueUninitialized;
+		mutable mh::expected<SteamAPI::PlayerInventoryInfo> m_InventoryInfo = ErrorCode::LazyValueUninitialized;
 	};
 }
 
@@ -904,7 +904,7 @@ Player& WorldState::FindOrCreatePlayer(const SteamID& id)
 			data->GetPlayerBans();
 			data->GetTF2Playtime();
 			data->GetLogsInfo();
-			data->GetInventoryItemCount();
+			data->GetInventoryInfo();
 		}
 	}
 
@@ -1065,23 +1065,27 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 		});
 }
 
-const mh::expected<uint32_t>& Player::GetInventoryItemCount() const
+const mh::expected<SteamAPI::PlayerInventoryInfo>& Player::GetInventoryInfo() const
 {
-	return GetOrFetchDataAsync(m_InventoryItemCount,
-		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<uint32_t>
+	return GetOrFetchDataAsync(m_InventoryInfo,
+		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<mh::expected<SteamAPI::PlayerInventoryInfo>>
 		{
 			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
 
 			DB::AccountInventorySizeInfo cacheInfo{};
 			cacheInfo.m_SteamID = pThis->GetSteamID();
-			cacheInfo.m_ItemCount = (uint32_t)-1; // sanity check
+			cacheInfo.m_Items = cacheInfo.m_Slots = (uint32_t)-1; // sanity check
 
-			co_await cacheDB.GetOrUpdateAsync(cacheInfo, [client](DB::AccountInventorySizeInfo& info) -> mh::task<>
+			const auto& settings = pThis->GetWorld().GetSettings();
+			if (!settings.IsSteamAPIAvailable())
+				co_return SteamAPI::ErrorCode::SteamAPIDisabled;
+
+			co_await cacheDB.GetOrUpdateAsync(cacheInfo, [&settings, client](DB::AccountInventorySizeInfo& info) -> mh::task<>
 				{
-					info.m_ItemCount = co_await SteamAPI::GetTF2InventorySizeAsync(info.GetSteamID(), *client);
+					info = co_await SteamAPI::GetTF2InventoryInfoAsync(settings, info.GetSteamID(), *client);
 				});
 
-			co_return cacheInfo.m_ItemCount;
+			co_return cacheInfo;
 		});
 }
 

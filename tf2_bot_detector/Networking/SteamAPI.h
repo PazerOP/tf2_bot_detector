@@ -32,6 +32,7 @@ namespace tf2_bot_detector::SteamAPI
 		UnexpectedDataFormat,
 		GenericHttpError,
 		JSONParseError,
+		JSONDeserializeError,
 		InvalidSteamID,
 		EmptyAPIKey,
 		SteamAPIDisabled,
@@ -137,5 +138,10 @@ namespace tf2_bot_detector::SteamAPI
 	mh::task<std::unordered_set<SteamID>> GetFriendList(const ISteamAPISettings& apiSettings,
 		const SteamID& steamID, const IHTTPClient& client);
 
-	mh::task<uint32_t> GetTF2InventorySizeAsync(const SteamID& steamID, const IHTTPClient& client);
+	struct PlayerInventoryInfo
+	{
+		uint32_t m_Items = 0;
+		uint32_t m_Slots = 0;
+	};
+	mh::task<PlayerInventoryInfo> GetTF2InventoryInfoAsync(const ISteamAPISettings& apiSettings, const SteamID& steamID, const IHTTPClient& client);
 }

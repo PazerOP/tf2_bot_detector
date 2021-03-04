@@ -1,6 +1,7 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT 1
 #define CPPHTTPLIB_ZLIB_SUPPORT 1
 
+#include <mh/algorithm/multi_compare.hpp>
 #include <mh/concurrency/thread_pool.hpp>
 #include <mh/error/error_code_exception.hpp>
 
@@ -65,7 +66,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsyncImpl(URL url) const
 {
 	auto self = shared_from_this();
 
-	++m_TotalRequestCount;
+	auto requestIndex = ++m_TotalRequestCount;
 
 	auto client = GetInnerClient(url);
 
@@ -79,7 +80,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsyncImpl(URL url) const
 	std::string stringResponse = co_await response.extract_utf8string(true);
 
 	const auto duration = tfbd_clock_t::now() - startTime;
-	DebugLog("[{}ms] HTTP GET: {}", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(), url);
+	DebugLog("[{}ms] HTTP GET #{}: {}", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(), requestIndex, url);
 
 	co_return stringResponse;
 }
@@ -143,19 +144,33 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 		if (throttleTime != throttle_time_t{})
 			co_await GetDispatcher().co_delay_until(throttleTime);
 
+		auto retryDelayTime = 10s;
 		try
 		{
 			co_return co_await GetStringAsyncImpl(url);
 		}
 		catch (const http_error& e)
 		{
+			const auto PrintRetryWarning = [&](MH_SOURCE_LOCATION_AUTO(location))
+			{
+				DebugLogWarning(location, "HTTP {} on {}, retrying...", (int)e.code().value(), url);
+			};
+
 			if (e.code() == HTTPResponseCode::TooManyRequests && retryCount < 10)
 			{
 				// retry a fair number of times for http 429, some stuff is aggressively throttled
+				PrintRetryWarning();
 			}
 			else if (e.code() == HTTPResponseCode::InternalServerError && retryCount < 5)
 			{
-				// retry a few times for http 500, might be tf2bd-util being broken
+				// retry a few times for http 500-class errors, might be tf2bd-util being broken
+				PrintRetryWarning();
+			}
+			else if (mh::any_eq(e.code(), HTTPResponseCode::BadGateway, HTTPResponseCode::ServiceUnavailable))
+			{
+				// retry forever for these two (after a slightly longer delay), since they are likely indicitive of an api being temporarily down
+				retryDelayTime += 10s;
+				PrintRetryWarning();
 			}
 			else
 			{
@@ -172,7 +187,7 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 		}
 
 		// Wait and try again
-		co_await GetDispatcher().co_delay_for(10s);
+		co_await GetDispatcher().co_delay_for(retryDelayTime);
 		retryCount++;
 		DebugLogWarning("Retry #{} for {}", retryCount, url);
 	}
