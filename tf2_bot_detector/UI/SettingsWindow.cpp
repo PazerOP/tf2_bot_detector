@@ -1,9 +1,11 @@
 #include "SettingsWindow.h"
 #include "ImGui_TF2BotDetector.h"
 #include "Config/Settings.h"
+#include "SetupFlow/AddonManagerPage.h"
 #include "UI/MainWindow.h"
 #include "Util/PathUtils.h"
 
+#include <mh/algorithm/algorithm.hpp>
 #include <mh/error/ensure.hpp>
 
 using namespace tf2_bot_detector;
@@ -122,6 +124,24 @@ void SettingsWindow::OnDrawModSettings()
 {
 	if (ImGui::TreeNode("Mods"))
 	{
+		ImGui::TextFmt("Mods/Addons can be enabled or disabled below.");
+
+		for (const std::filesystem::path& path : Addons::GetAllAvailableAddons())
+		{
+			const std::string filename = path.filename().string();
+			ImGuiDesktop::ScopeGuards::ID id(filename);
+
+			bool checked = !mh::contains(m_Settings.m_Mods.m_DisabledList, filename);
+			if (ImGui::Checkbox(filename.c_str(), &checked))
+			{
+				mh::erase(m_Settings.m_Mods.m_DisabledList, filename);
+
+				if (!checked)
+					m_Settings.m_Mods.m_DisabledList.push_back(filename);
+
+				m_Settings.SaveFile();
+			}
+		}
 
 		ImGui::NewLine();
 		ImGui::TreePop();

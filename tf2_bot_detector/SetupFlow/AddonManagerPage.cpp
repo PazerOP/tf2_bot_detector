@@ -1,3 +1,4 @@
+#include "AddonManagerPage.h"
 #include "SetupFlow/ISetupFlowPage.h"
 #include "Config/Settings.h"
 #include "Platform/Platform.h"
@@ -5,6 +6,7 @@
 #include "Util/JSONUtils.h"
 #include "Filesystem.h"
 
+#include <mh/algorithm/algorithm.hpp>
 #include <mh/error/ensure.hpp>
 #include <mh/io/filesystem_helpers.hpp>
 #include <nlohmann/json.hpp>
@@ -103,14 +105,11 @@ namespace
 
 		const auto tfDir = settings.GetTFDir();
 
-		for (const std::filesystem::directory_entry& entry : IFilesystem::Get().IterateDir("tf2_addons", false))
+		for (const std::filesystem::path& entry : Addons::GetAllEnabledAddons(settings))
 		{
-			if (!entry.is_regular_file() && !entry.is_directory())
-				continue;
-
 			Addon addon;
 			addon.m_Source = entry;
-			addon.m_InstallTarget = tfDir / "custom" / entry.path().filename();
+			addon.m_InstallTarget = tfDir / "custom" / entry.filename();
 
 			bool shouldSkip = false;
 			if (std::filesystem::exists(addon.m_InstallTarget))
@@ -279,5 +278,25 @@ namespace tf2_bot_detector
 	std::unique_ptr<ISetupFlowPage> CreateAddonManagerPage()
 	{
 		return std::make_unique<AddonManagerPage>();
+	}
+}
+
+mh::generator<std::filesystem::path> tf2_bot_detector::Addons::GetAllAvailableAddons()
+{
+	for (const std::filesystem::directory_entry& entry : IFilesystem::Get().IterateDir("tf2_addons", false))
+	{
+		if (!entry.is_regular_file() && !entry.is_directory())
+			continue;
+
+		co_yield entry.path();
+	}
+}
+
+mh::generator<std::filesystem::path> tf2_bot_detector::Addons::GetAllEnabledAddons(const Settings& settings)
+{
+	for (const std::filesystem::path& path : GetAllAvailableAddons())
+	{
+		if (!mh::contains(settings.m_Mods.m_DisabledList, path.filename().string()))
+			co_yield path;
 	}
 }

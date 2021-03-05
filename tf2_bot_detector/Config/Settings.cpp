@@ -185,6 +185,18 @@ namespace tf2_bot_detector
 			d = SteamAPIMode::Proxy;
 		}
 	}
+
+	void to_json(nlohmann::json& j, const Settings::Mods& d)
+	{
+		j =
+		{
+			{ "disabled_list", d.m_DisabledList },
+		};
+	}
+	void from_json(const nlohmann::json& j, Settings::Mods& d)
+	{
+		try_get_to_defaulted(j, d.m_DisabledList, "disabled_list");
+	}
 }
 
 bool ISteamAPISettings::IsSteamAPIAvailable() const
@@ -402,6 +414,7 @@ void Settings::Deserialize(const nlohmann::json& json)
 	try_get_to_defaulted(json, m_Theme, "theme");
 	try_get_to_defaulted(json, m_TF2Interface, "tf2_interface");
 	try_get_to_defaulted(json, m_UIState, "ui_state");
+	try_get_to_defaulted(json, m_Mods, "mods");
 
 	if (!try_get_to_defaulted(json, m_GotoProfileSites, "goto_profile_sites"))
 		AddDefaultGotoProfileSites();
@@ -440,6 +453,7 @@ void Settings::Serialize(nlohmann::json& json) const
 		{ "discord", m_Discord },
 		{ "tf2_interface", m_TF2Interface },
 		{ "ui_state", m_UIState },
+		{ "mods", m_Mods },
 	};
 
 	if (!m_SteamDirOverride.empty())

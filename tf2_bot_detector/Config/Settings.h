@@ -197,6 +197,11 @@ namespace tf2_bot_detector
 
 		} m_TF2Interface;
 
+		struct Mods
+		{
+			std::vector<std::string> m_DisabledList;
+		} m_Mods;
+
 	private:
 		static constexpr int SETTINGS_SCHEMA_VERSION = 3;
 
