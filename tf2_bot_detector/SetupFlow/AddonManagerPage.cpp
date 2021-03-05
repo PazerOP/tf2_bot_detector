@@ -23,9 +23,12 @@ namespace
 		std::filesystem::path m_InstallTarget;  // Path inside of tf/addons/
 	};
 
-	class AddonManagerPage final : public ISetupFlowPage
+	static IAddonManager* s_AddonManager = nullptr;
+
+	class AddonManagerPage final : public ISetupFlowPage, public IAddonManager
 	{
 	public:
+		AddonManagerPage();
 		~AddonManagerPage();
 
 		bool WantsSetupText() const override { return false; }
@@ -38,6 +41,11 @@ namespace
 		void Commit(const CommitState& cs) override {}
 
 		SetupFlowPage GetPage() const override { return SetupFlowPage::AddonManager; }
+
+		mh::generator<std::filesystem::path> GetAllAvailableAddons() const override;
+		mh::generator<std::filesystem::path> GetAllEnabledAddons(const Settings& settings) const override;
+		bool IsAddonEnabled(const Settings& settings, const std::filesystem::path& addon) const override;
+		void SetAddonEnabled(Settings& settings, const std::filesystem::path& addon, bool enabled) override;
 
 	private:
 		bool m_HasSetupAddons = false;
@@ -54,9 +62,15 @@ namespace
 		void ShutdownAddons(MH_SOURCE_LOCATION_AUTO(location)) const;
 	};
 
+	AddonManagerPage::AddonManagerPage()
+	{
+		mh_ensure(!std::exchange(s_AddonManager, this));
+	}
+
 	AddonManagerPage::~AddonManagerPage()
 	{
 		ShutdownAddons();
+		mh_ensure(std::exchange(s_AddonManager, nullptr) == this);
 	}
 
 	void AddonManagerPage::ShutdownAddons(const mh::source_location& location) const try
@@ -105,7 +119,7 @@ namespace
 
 		const auto tfDir = settings.GetTFDir();
 
-		for (const std::filesystem::path& entry : Addons::GetAllEnabledAddons(settings))
+		for (const std::filesystem::path& entry : GetAllEnabledAddons(settings))
 		{
 			Addon addon;
 			addon.m_Source = entry;
@@ -271,6 +285,45 @@ namespace
 		LogException();
 		throw;
 	}
+
+	mh::generator<std::filesystem::path> AddonManagerPage::GetAllAvailableAddons() const
+	{
+		for (const std::filesystem::directory_entry& entry : IFilesystem::Get().IterateDir("tf2_addons", false))
+		{
+			if (!entry.is_regular_file() && !entry.is_directory())
+				continue;
+
+			co_yield entry.path();
+		}
+	}
+
+	mh::generator<std::filesystem::path> AddonManagerPage::GetAllEnabledAddons(const Settings& settings) const
+	{
+		for (const std::filesystem::path& path : GetAllAvailableAddons())
+		{
+			if (!mh::contains(settings.m_Mods.m_DisabledList, path.filename().string()))
+				co_yield path;
+		}
+	}
+
+	bool AddonManagerPage::IsAddonEnabled(const Settings& settings, const std::filesystem::path& addon) const
+	{
+		return !mh::contains(settings.m_Mods.m_DisabledList, addon.filename().string());
+	}
+
+	void AddonManagerPage::SetAddonEnabled(Settings& settings, const std::filesystem::path& addon, bool enabled)
+	{
+		const std::string filename = addon.filename().string();
+
+		mh::erase(settings.m_Mods.m_DisabledList, filename);
+
+		if (!enabled)
+			settings.m_Mods.m_DisabledList.push_back(filename);
+
+		// TODO: Add/remove the mods directly here, rather than waiting for the tool to be restarted
+
+		settings.SaveFile();
+	}
 }
 
 namespace tf2_bot_detector
@@ -279,24 +332,9 @@ namespace tf2_bot_detector
 	{
 		return std::make_unique<AddonManagerPage>();
 	}
-}
 
-mh::generator<std::filesystem::path> tf2_bot_detector::Addons::GetAllAvailableAddons()
-{
-	for (const std::filesystem::directory_entry& entry : IFilesystem::Get().IterateDir("tf2_addons", false))
+	IAddonManager& IAddonManager::Get()
 	{
-		if (!entry.is_regular_file() && !entry.is_directory())
-			continue;
-
-		co_yield entry.path();
-	}
-}
-
-mh::generator<std::filesystem::path> tf2_bot_detector::Addons::GetAllEnabledAddons(const Settings& settings)
-{
-	for (const std::filesystem::path& path : GetAllAvailableAddons())
-	{
-		if (!mh::contains(settings.m_Mods.m_DisabledList, path.filename().string()))
-			co_yield path;
+		return *mh_ensure(s_AddonManager);
 	}
 }

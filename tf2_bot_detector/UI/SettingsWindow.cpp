@@ -124,22 +124,26 @@ void SettingsWindow::OnDrawModSettings()
 {
 	if (ImGui::TreeNode("Mods"))
 	{
+		ImGui::NewLine();
 		ImGui::TextFmt("Mods/Addons can be enabled or disabled below.");
 
-		for (const std::filesystem::path& path : Addons::GetAllAvailableAddons())
+		if (m_ModsChanged)
+		{
+			ImGui::NewLine();
+			ImGui::TextFmt({ 1, 1, 0, 1 }, "TF2 and TF2 Bot Detector must be restarted to apply changes to mods.");
+		}
+
+		IAddonManager& addonManager = IAddonManager::Get();
+		for (const std::filesystem::path& path : addonManager.GetAllAvailableAddons())
 		{
 			const std::string filename = path.filename().string();
 			ImGuiDesktop::ScopeGuards::ID id(filename);
 
-			bool checked = !mh::contains(m_Settings.m_Mods.m_DisabledList, filename);
+			bool checked = addonManager.IsAddonEnabled(m_Settings, path);
 			if (ImGui::Checkbox(filename.c_str(), &checked))
 			{
-				mh::erase(m_Settings.m_Mods.m_DisabledList, filename);
-
-				if (!checked)
-					m_Settings.m_Mods.m_DisabledList.push_back(filename);
-
-				m_Settings.SaveFile();
+				addonManager.SetAddonEnabled(m_Settings, path, checked);
+				m_ModsChanged = true;
 			}
 		}
 

@@ -26,5 +26,7 @@ namespace tf2_bot_detector
 
 		Settings& m_Settings;
 		MainWindow& m_MainWindow;
+
+		bool m_ModsChanged = false;
 	};
 }
