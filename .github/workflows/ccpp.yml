@@ -124,8 +124,7 @@ jobs:
           -DTF2BD_IS_CI_COMPILE=ON \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ needs.config.outputs.tf2bd_build_dir }}" \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ needs.config.outputs.tf2bd_build_dir }}" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${{ needs.config.outputs.tf2bd_build_dir }}" \
           -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
           -DTF2BD_VERSION_BUILD=${{ github.run_number }} \
           ../
@@ -245,8 +244,7 @@ jobs:
           -DVCPKG_LIBRARY_LINKAGE=static \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_TOOLCHAIN_FILE="${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake" \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE="${{ needs.config.outputs.tf2bd_build_dir }}" \
-          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG="${{ needs.config.outputs.tf2bd_build_dir }}" \
+          -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="${{ needs.config.outputs.tf2bd_build_dir }}" \
           -DTF2BD_ENABLE_DISCORD_INTEGRATION=${{ matrix.discord_integration }} \
           -DTF2BD_VERSION_BUILD=${{ github.run_number }} \
           ../tf2_bot_detector_updater/
