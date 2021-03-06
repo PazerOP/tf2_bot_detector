@@ -1524,6 +1524,16 @@
 		},
 		{
 			"attributes": [
+				"racist"
+			],
+			"last_seen": {
+				"player_name": "Mac  \ub9e5",
+				"time": 1615003631
+			},
+			"steamid": "[U:1:1054657049]"
+		},
+		{
+			"attributes": [
 				"cheater"
 			],
 			"last_seen": {
@@ -4009,6 +4019,16 @@
 				"time": 1591845035
 			},
 			"steamid": "[U:1:1104356337]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Exploder Without Rocket",
+				"time": 1615009805
+			},
+			"steamid": "[U:1:1104364399]"
 		},
 		{
 			"attributes": [
