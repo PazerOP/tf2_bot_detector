@@ -26,16 +26,19 @@ namespace
 		std::string GetString(const URL& url) const override;
 		mh::task<std::string> GetStringAsync(URL url) const override;
 
-		uint32_t GetTotalRequestCount() const override { return m_TotalRequestCount; }
+		RequestCounts GetRequestCounts() const override;
 
 	private:
-		mh::task<std::string> GetStringAsyncImpl(URL url) const;
-
 		mutable std::mutex m_InnerClientMutex;
 		mutable std::map<std::string, std::shared_ptr<web::http::client::http_client>> m_InnerClients;
 		std::shared_ptr<web::http::client::http_client> GetInnerClient(const URL& url) const;
 
 		mutable std::atomic_uint32_t m_TotalRequestCount = 0;
+		mutable std::atomic_uint32_t m_FailedRequestCount = 0;
+
+		// This is a pretty stupid way of implementing this lol, but its easy
+		struct RequestInProgressObj {};
+		const std::shared_ptr<RequestInProgressObj> m_InProgressRequestCount = std::make_shared<RequestInProgressObj>();
 	};
 }
 
@@ -62,29 +65,6 @@ std::shared_ptr<web::http::client::http_client> HTTPClientImpl::GetInnerClient(c
 	}
 }
 
-mh::task<std::string> HTTPClientImpl::GetStringAsyncImpl(URL url) const
-{
-	auto self = shared_from_this();
-
-	auto requestIndex = ++m_TotalRequestCount;
-
-	auto client = GetInnerClient(url);
-
-	const auto startTime = tfbd_clock_t::now();
-
-	auto response = co_await client->request(web::http::methods::GET, utility::conversions::to_string_t(url.m_Path));
-
-	if (response.status_code() >= 400 && response.status_code() < 600)
-		throw http_error((HTTPResponseCode)response.status_code(), mh::format("Failed to HTTP GET {}", url));
-
-	std::string stringResponse = co_await response.extract_utf8string(true);
-
-	const auto duration = tfbd_clock_t::now() - startTime;
-	DebugLog("[{}ms] HTTP GET #{}: {}", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(), requestIndex, url);
-
-	co_return stringResponse;
-}
-
 static duration_t GetMinRequestInterval(const URL& url)
 {
 	if (url.m_Host.ends_with("akamaihd.net") ||
@@ -107,6 +87,7 @@ static duration_t GetMinRequestInterval(const URL& url)
 mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 {
 	auto self = shared_from_this(); // Make sure we don't vanish
+	auto inProgressObj = m_InProgressRequestCount;
 
 	int32_t retryCount = 0;
 	while (true)
@@ -147,7 +128,31 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 		auto retryDelayTime = 10s;
 		try
 		{
-			co_return co_await GetStringAsyncImpl(url);
+			try // exceptions are fun and cool and not a code smell
+			{
+				auto requestIndex = ++m_TotalRequestCount;
+
+				auto client = GetInnerClient(url);
+
+				const auto startTime = tfbd_clock_t::now();
+
+				auto response = co_await client->request(web::http::methods::GET, utility::conversions::to_string_t(url.m_Path));
+
+				if (response.status_code() >= 400 && response.status_code() < 600)
+					throw http_error((HTTPResponseCode)response.status_code(), mh::format("Failed to HTTP GET {}", url));
+
+				std::string stringResponse = co_await response.extract_utf8string(true);
+
+				const auto duration = tfbd_clock_t::now() - startTime;
+				DebugLog("[{}ms] HTTP GET #{}: {}", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(), requestIndex, url);
+
+				co_return std::move(stringResponse);
+			}
+			catch (...)
+			{
+				++m_FailedRequestCount;
+				throw;
+			}
 		}
 		catch (const http_error& e)
 		{
@@ -201,6 +206,16 @@ catch (...)
 {
 	LogException("{}", url);
 	throw;
+}
+
+auto HTTPClientImpl::GetRequestCounts() const -> RequestCounts
+{
+	return RequestCounts
+	{
+		.m_Total = m_TotalRequestCount,
+		.m_Failed = m_FailedRequestCount,
+		.m_InProgress = static_cast<uint32_t>(m_InProgressRequestCount.use_count() - 1),
+	};
 }
 
 std::shared_ptr<IHTTPClient> tf2_bot_detector::IHTTPClient::Create()

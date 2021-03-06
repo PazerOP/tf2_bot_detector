@@ -537,9 +537,26 @@ void MainWindow::OnDraw()
 		ImGui::TextFmt("RAM Usage: {:1.1f} MB", Platform::Processes::GetCurrentRAMUsage() / 1024.0f / 1024);
 
 		if (auto client = m_Settings.GetHTTPClient())
-			ImGui::Value("HTTP Requests", client->GetTotalRequestCount());
+		{
+			const IHTTPClient::RequestCounts reqs = client->GetRequestCounts();
+			ImGui::TextFmt("HTTP Requests: {} total | ", reqs.m_Total);
+
+			ImGui::SameLineNoPad();
+
+			ImGui::TextFmt({ 1, 0.5f, 0.5f, 1 }, "{} failed ({:1.1f}%)",
+				reqs.m_Failed, reqs.m_Failed / float(reqs.m_Total) * 100);
+
+			ImGui::SameLineNoPad();
+			ImGui::TextFmt(" | ");
+			ImGui::SameLineNoPad();
+			ImGui::TextFmt(
+				reqs.m_InProgress > 0 ? ImVec4{ 2.0f / 3, 1, 2.0f / 3, 1 } : ImVec4{ 0.5f, 0.5f, 0.5f, 1 },
+				"{} queued", reqs.m_InProgress);
+		}
 		else
-			ImGui::Value("HTTP Requests", "HTTPClient Unavailable");
+		{
+			ImGui::TextFmt("HTTP Requests: HTTPClient Unavailable");
+		}
 	}
 #endif
 
