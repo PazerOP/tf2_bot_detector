@@ -13,10 +13,10 @@ namespace tf2_bot_detector
 		Invalid = -1,
 
 		PermissionsCheck = 0,
-		CheckSteamOpen,
-		BasicSettings,
 		NetworkSettings,
 		UpdateCheck,
+		CheckSteamOpen,
+		BasicSettings,
 		AddonManager,
 		ChatWrappersGenerate,
 		TF2CommandLine,

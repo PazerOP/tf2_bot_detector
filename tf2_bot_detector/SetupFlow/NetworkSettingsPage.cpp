@@ -12,7 +12,7 @@ using namespace tf2_bot_detector;
 template<typename T>
 static bool InternalValidateSettings(const T& settings)
 {
-	if (!settings.m_AllowInternetUsage)
+	if (!settings.m_AllowInternetUsage.has_value())
 		return false;
 	if (!settings.m_ReleaseChannel.has_value())
 		return false;

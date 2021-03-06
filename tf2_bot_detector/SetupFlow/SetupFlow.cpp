@@ -11,6 +11,7 @@
 #include "Version.h"
 
 #include <imgui.h>
+#include <mh/algorithm/algorithm.hpp>
 #include <mh/text/string_insertion.hpp>
 
 #include <string_view>
@@ -30,6 +31,7 @@ namespace tf2_bot_detector
 
 SetupFlow::SetupFlow()
 {
+	// order unimportant, see SetupFlowPage enum
 	m_Pages.push_back(CreatePermissionsCheckPage());
 	m_Pages.push_back(CreateCheckSteamOpenPage());
 	m_Pages.push_back(std::make_unique<BasicSettingsPage>());
@@ -39,7 +41,13 @@ SetupFlow::SetupFlow()
 	m_Pages.push_back(std::make_unique<ChatWrappersGeneratorPage>());
 	m_Pages.push_back(std::make_unique<TF2CommandLinePage>());
 	m_Pages.push_back(std::make_unique<ChatWrappersVerifyPage>());
-	//m_Pages.push_back(std::make_unique<RCONConnectionPage>());
+	// order unimportant, see SetupFlowPage enum
+
+	mh::sort(m_Pages, [](const std::unique_ptr<ISetupFlowPage>& lhs, const std::unique_ptr<ISetupFlowPage>& rhs)
+		{
+			assert(lhs->GetPage() != rhs->GetPage());
+			return lhs->GetPage() < rhs->GetPage();
+		});
 }
 
 bool SetupFlow::OnUpdate(const Settings& settings)
