@@ -140,6 +140,21 @@ void MainWindow::OnDrawScoreboard()
 	ImGui::EndChild();
 }
 
+// src/dest terminology is mirroring that of opengl: dest color is the base color, src color is the color we are blending towards
+static ImVec4 BlendColors(const std::array<float, 4>& dstColor, const std::array<float, 4>& srcColor, float scalar)
+{
+	assert(scalar >= 0);
+	assert(scalar <= 1);
+
+	scalar *= srcColor[3]; // src alpha
+
+	std::array<float, 4> result;
+	for (size_t i = 0; i < 4; i++)
+		result[i] = (srcColor[i] * scalar) + (dstColor[i] * (1.0f - scalar));
+
+	return ImVec4(result);
+}
+
 void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 {
 	if (!m_Settings.m_LazyLoadAPIData)
@@ -185,13 +200,13 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 		}();
 
 		if (playerAttribs.Has(PlayerAttribute::Cheater))
-			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG));
+			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardCheaterBG, TimeSine());
 		else if (playerAttribs.Has(PlayerAttribute::Suspicious))
-			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG));
+			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardSuspiciousBG, TimeSine());
 		else if (playerAttribs.Has(PlayerAttribute::Exploiter))
-			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG));
+			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardExploiterBG, TimeSine());
 		else if (playerAttribs.Has(PlayerAttribute::Racist))
-			bgColor = mh::lerp(TimeSine(), bgColor, ImVec4(m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG));
+			bgColor = BlendColors(bgColor.to_array(), m_Settings.m_Theme.m_Colors.m_ScoreboardRacistBG, TimeSine());
 
 		ImGuiDesktop::ScopeGuards::StyleColor styleColorScope(ImGuiCol_Header, bgColor);
 
