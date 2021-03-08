@@ -329,6 +329,16 @@
 		},
 		{
 			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Mr. Paladin",
+				"time": 1615174564
+			},
+			"steamid": "[U:1:121956403]"
+		},
+		{
+			"attributes": [
 				"racist"
 			],
 			"last_seen": {
@@ -5632,6 +5642,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "das",
+				"time": 1615174765
+			},
+			"steamid": "[U:1:1123478097]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "ding dong.",
 				"time": 1598427560
 			},
@@ -9440,6 +9460,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "OMEGATR\u0e34ONIC",
+				"time": 1615174894
+			},
+			"steamid": "[U:1:1184166482]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "NOT A N O N'S BOT",
 				"time": 1614288619
 			},
@@ -9574,6 +9604,16 @@
 				"time": 1614741058
 			},
 			"steamid": "[U:1:1186578487]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "\ud83e\udd16",
+				"time": 1615175184
+			},
+			"steamid": "[U:1:1188578487]"
 		}
 	]
 }
