@@ -351,3 +351,4 @@ staging/cfg/account_ages.json
 staging/temp/
 enc_temp_folder/
 vcpkg_installed/
+staging/cfg/addons_list.json
