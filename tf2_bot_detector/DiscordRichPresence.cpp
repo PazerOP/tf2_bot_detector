@@ -13,6 +13,7 @@
 
 #include <mh/concurrency/thread_sentinel.hpp>
 #include <mh/text/charconv_helper.hpp>
+#include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
 #include <mh/text/indenting_ostream.hpp>
 #include <mh/text/string_insertion.hpp>
@@ -374,7 +375,7 @@ namespace
 		void SetInLocalServer(bool inLocalServer);
 		void SetInParty(bool inParty);
 		void SetMapName(std::string mapName);
-		void UpdateParty(uint8_t partyMembers);
+		void UpdateParty(const TFParty& party);
 		void OnLocalPlayerSpawned(TFClassType classType);
 		void OnConnectionCountUpdate(unsigned connectionCount);
 
@@ -398,7 +399,7 @@ namespace
 		TFClassType m_LastSpawnedClass = TFClassType::Undefined;
 		std::string m_MapName;
 		bool m_InLobby = false;
-		uint8_t m_PartyMemberCount = 0;
+		TFParty m_Party;
 		time_point_t m_LastStatusTimestamp;
 
 		struct : public mh::property<ConnectionState>
@@ -539,9 +540,10 @@ discord::Activity DiscordGameState::ConstructActivity() const
 		retVal.SetState(GetGameState());
 	}
 
-	if (m_PartyMemberCount > 0)
+	if (m_Party.m_MemberCount > 0)
 	{
-		retVal.GetParty().GetSize().SetCurrentSize(m_PartyMemberCount);
+		retVal.GetParty().SetId(mh::pfstr<64>("{}", m_Party.m_PartyID).c_str());
+		retVal.GetParty().GetSize().SetCurrentSize(m_Party.m_MemberCount);
 		retVal.GetParty().GetSize().SetMaxSize(6);
 	}
 
@@ -659,12 +661,15 @@ void DiscordGameState::SetInParty(bool inParty)
 	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	if (inParty)
 	{
-		if (m_PartyMemberCount < 1)
-			m_PartyMemberCount = 1;
+		if (m_Party.m_MemberCount < 1)
+			m_Party.m_MemberCount = 1;
 	}
 	else
 	{
-		m_PartyMemberCount = 0;
+		m_Party =
+		{
+			.m_MemberCount = 0,
+		};
 	}
 }
 
@@ -676,13 +681,13 @@ void DiscordGameState::SetMapName(std::string mapName)
 		m_LastSpawnedClass = TFClassType::Undefined;
 }
 
-void DiscordGameState::UpdateParty(uint8_t partyMembers)
+void DiscordGameState::UpdateParty(const TFParty& party)
 {
 	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
-	if (partyMembers > 0)
+	if (party.m_MemberCount > 0)
 	{
 		SetInParty(true);
-		m_PartyMemberCount = partyMembers;
+		m_Party = party;
 	}
 }
 
@@ -768,7 +773,7 @@ void DiscordState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& line)
 	{
 		QueueUpdate();
 		auto& partyLine = static_cast<const PartyHeaderLine&>(line);
-		m_GameState.UpdateParty(partyLine.GetParty().m_MemberCount);
+		m_GameState.UpdateParty(partyLine.GetParty());
 		break;
 	}
 	case ConsoleLineType::LobbyHeader:
