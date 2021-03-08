@@ -206,13 +206,18 @@ if (TF2BD_ENABLE_DISCORD_INTEGRATION)
 		"DiscordRichPresence.cpp"
 		"DiscordRichPresence.h"
 	)
+
+	# We really only need this library for one thing in the DRP integration.
+	# Later on it will probably be moved out of this if statement when it is required elsewhere in the code.
+	find_package(cryptopp CONFIG REQUIRED)
+	target_link_libraries(tf2_bot_detector PRIVATE cryptopp-static)
+
 endif()
 
 if (WIN32)
 	INCLUDE_TF2BD_WINRT(tf2_bot_detector)
 endif()
 
-find_package(OpenSSL REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(libzip CONFIG REQUIRED)
 find_package(libzippp CONFIG REQUIRED)

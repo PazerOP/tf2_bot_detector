@@ -18,6 +18,7 @@
 #include <mh/text/indenting_ostream.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <discord-game-sdk/core.h>
+#include <cryptopp/sha.h>
 
 #include <array>
 #include <cassert>
@@ -376,8 +377,16 @@ namespace
 		void SetInParty(bool inParty);
 		void SetMapName(std::string mapName);
 		void UpdateParty(const TFParty& party);
+		void UpdatePartyMatchmakingBanTime(MatchmakingBannedTimeLine::LadderType type, uint64_t banTime);
 		void OnLocalPlayerSpawned(TFClassType classType);
 		void OnConnectionCountUpdate(unsigned connectionCount);
+
+		struct PartyInfo
+		{
+			TFParty m_TFParty{};
+			uint64_t m_CasualBanTime{};
+			uint64_t m_RankedBanTime{};
+		};
 
 	private:
 		const Settings* m_Settings = nullptr;
@@ -399,8 +408,9 @@ namespace
 		TFClassType m_LastSpawnedClass = TFClassType::Undefined;
 		std::string m_MapName;
 		bool m_InLobby = false;
-		TFParty m_Party;
 		time_point_t m_LastStatusTimestamp;
+
+		PartyInfo m_PartyInfo;
 
 		struct : public mh::property<ConnectionState>
 		{
@@ -455,6 +465,49 @@ std::optional<time_point_t> DiscordGameState::GetEarliestActiveQueueStartTime() 
 	}
 
 	return retVal;
+}
+
+static void SetHashedPartyId(discord::ActivityParty& discordParty, const DiscordGameState::PartyInfo& gameParty)
+{
+	// I'm not 100% sure that discord exposes the party id to clients, but rather than
+	// find out the hard way that its possible to annoy people in parties, we hash the
+	// party ID and the party leader SteamID together to create an ID for discord that
+	// is not trivially reversible.
+	CryptoPP::SHA256 partyIDHash;
+
+	const auto HashByValue = [&partyIDHash](const auto& data)
+	{
+		partyIDHash.Update((const CryptoPP::byte*)&data, sizeof(data));
+	};
+	HashByValue(gameParty.m_TFParty.m_PartyID);
+	HashByValue(gameParty.m_TFParty.m_LeaderID.ID64);
+	HashByValue(gameParty.m_CasualBanTime);
+	HashByValue(gameParty.m_RankedBanTime);
+
+	CryptoPP::byte digestBufRaw[partyIDHash.DIGESTSIZE];
+	partyIDHash.Final(digestBufRaw);
+
+	// In case anyone ever stumbles upon this string without having a clue what it's for
+	constexpr char HASH_PREFIX[] = "tf2bd-discord-partyhash:";
+
+	constexpr size_t STR_HASH_LENGTH = (sizeof(HASH_PREFIX) - 1) + sizeof(digestBufRaw) * 2 + 1;
+	mh::pfstr<STR_HASH_LENGTH> digestStr;  // enough room for hex + null terminator + tf2bd
+
+	digestStr.puts(HASH_PREFIX);
+	for (CryptoPP::byte byte : digestBufRaw)
+		digestStr.sprintf("%02x", byte);
+
+	discordParty.SetId(digestStr.c_str());
+
+#ifdef _DEBUG
+	// In case discord changes their max party id string length in the future or something
+	{
+		const char* setPartyID = discordParty.GetId();
+		assert(setPartyID);
+		if (setPartyID)
+			assert(!strncmp(digestStr.c_str(), setPartyID, digestStr.size()));
+	}
+#endif
 }
 
 discord::Activity DiscordGameState::ConstructActivity() const
@@ -540,10 +593,12 @@ discord::Activity DiscordGameState::ConstructActivity() const
 		retVal.SetState(GetGameState());
 	}
 
-	if (m_Party.m_MemberCount > 0)
+	if (m_PartyInfo.m_TFParty.m_MemberCount > 0)
 	{
-		retVal.GetParty().SetId(mh::pfstr<64>("{}", m_Party.m_PartyID).c_str());
-		retVal.GetParty().GetSize().SetCurrentSize(m_Party.m_MemberCount);
+		// Party ID (so discord knows two people are in the same party)
+		SetHashedPartyId(retVal.GetParty(), m_PartyInfo);
+
+		retVal.GetParty().GetSize().SetCurrentSize(m_PartyInfo.m_TFParty.m_MemberCount);
 		retVal.GetParty().GetSize().SetMaxSize(6);
 	}
 
@@ -661,12 +716,12 @@ void DiscordGameState::SetInParty(bool inParty)
 	DiscordDebugLog(MH_SOURCE_LOCATION_CURRENT());
 	if (inParty)
 	{
-		if (m_Party.m_MemberCount < 1)
-			m_Party.m_MemberCount = 1;
+		if (m_PartyInfo.m_TFParty.m_MemberCount < 1)
+			m_PartyInfo.m_TFParty.m_MemberCount = 1;
 	}
 	else
 	{
-		m_Party =
+		m_PartyInfo.m_TFParty =
 		{
 			.m_MemberCount = 0,
 		};
@@ -687,8 +742,24 @@ void DiscordGameState::UpdateParty(const TFParty& party)
 	if (party.m_MemberCount > 0)
 	{
 		SetInParty(true);
-		m_Party = party;
+		m_PartyInfo.m_TFParty = party;
 	}
+}
+
+void DiscordGameState::UpdatePartyMatchmakingBanTime(MatchmakingBannedTimeLine::LadderType ladderType, uint64_t banTime)
+{
+	using LadderType = MatchmakingBannedTimeLine::LadderType;
+	switch (ladderType)
+	{
+	case LadderType::Casual:
+		m_PartyInfo.m_CasualBanTime = banTime;
+		return;
+	case LadderType::Competitive:
+		m_PartyInfo.m_RankedBanTime = banTime;
+		return;
+	}
+
+	LogError("Unknown ladderType {}", mh::enum_fmt(ladderType));
 }
 
 void DiscordGameState::OnLocalPlayerSpawned(TFClassType classType)
@@ -774,6 +845,13 @@ void DiscordState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& line)
 		QueueUpdate();
 		auto& partyLine = static_cast<const PartyHeaderLine&>(line);
 		m_GameState.UpdateParty(partyLine.GetParty());
+		break;
+	}
+	case ConsoleLineType::MatchmakingBannedTime:
+	{
+		QueueUpdate();
+		auto& banLine = static_cast<const MatchmakingBannedTimeLine&>(line);
+		m_GameState.UpdatePartyMatchmakingBanTime(banLine.GetLadderType(), banLine.GetBannedTime());
 		break;
 	}
 	case ConsoleLineType::LobbyHeader:

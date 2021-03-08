@@ -44,6 +44,7 @@ namespace tf2_bot_detector
 		InQueue,
 		ServerJoin,
 		ServerDroppedPlayer,
+		MatchmakingBannedTime,
 
 		NetStatusConfig,
 		NetLatency,

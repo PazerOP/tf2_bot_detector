@@ -1148,3 +1148,32 @@ TEST_CASE("ProcessChatMessage - Newlines", "[tf2bd]")
 }
 
 #endif
+
+MatchmakingBannedTimeLine::MatchmakingBannedTimeLine(time_point_t timestamp, LadderType ladderType, uint64_t bannedTime) :
+	BaseClass(timestamp), m_LadderType(ladderType), m_BannedTime(bannedTime)
+{
+}
+
+std::shared_ptr<IConsoleLine> MatchmakingBannedTimeLine::TryParse(const ConsoleLineTryParseArgs& args)
+{
+	static const std::regex s_Regex(R"regex((?:(casual)|(?:ranked))_banned_time: (\d+))regex", std::regex::optimize);
+
+	if (svmatch result; std::regex_match(args.m_Text.begin(), args.m_Text.end(), result, s_Regex))
+	{
+		const LadderType ladderType = result[1].matched ? LadderType::Casual : LadderType::Competitive;
+
+		uint64_t bannedTime;
+		from_chars_throw(result[2], bannedTime);
+
+		return std::make_shared<MatchmakingBannedTimeLine>(args.m_Timestamp, ladderType, bannedTime);
+	}
+
+	return nullptr;
+}
+
+void MatchmakingBannedTimeLine::Print(const PrintArgs& args) const
+{
+	ImGui::TextFmt("{}_banned_time: {}",
+		m_LadderType == LadderType::Casual ? "casual" : "ranked",
+		m_BannedTime);
+}

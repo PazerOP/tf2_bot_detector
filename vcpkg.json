@@ -3,7 +3,7 @@
 	"version-string": "",
 	"dependencies": [
 		"sdl2",
-		"openssl",
+		"cryptopp",
 		"libzippp",
 		"fmt",
 		{
