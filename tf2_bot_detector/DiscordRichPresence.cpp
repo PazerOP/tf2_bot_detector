@@ -688,6 +688,7 @@ void DiscordGameState::UpdateParty(const TFParty& party)
 	{
 		SetInParty(true);
 		m_Party = party;
+		Log("Party ID: 0x{:x}", (uint64_t)party.m_PartyID);
 	}
 }
 
