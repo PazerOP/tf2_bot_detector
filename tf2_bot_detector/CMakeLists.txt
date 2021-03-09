@@ -20,16 +20,16 @@ if (WIN32)
 	target_include_directories(tf2_bot_detector_launcher PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 	target_link_libraries(tf2_bot_detector_launcher PRIVATE tf2_bot_detector)
 	set_target_properties(tf2_bot_detector_launcher PROPERTIES OUTPUT_NAME "tf2_bot_detector")
-	set_property(TARGET tf2_bot_detector_launcher PROPERTY CXX_STANDARD 17)
+	target_compile_features(tf2_bot_detector_launcher PUBLIC cxx_std_17)
 else()
 	add_executable(tf2_bot_detector
 		"Launcher/main.cpp"
 	)
 endif()
 
+target_compile_features(tf2_bot_detector PUBLIC cxx_std_20)
 set_target_properties(tf2_bot_detector PROPERTIES
 	VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/staging"
-	CXX_STANDARD 20
 )
 
 target_compile_definitions(tf2_bot_detector PRIVATE WIN32_LEAN_AND_MEAN)
@@ -268,5 +268,5 @@ if(TF2BD_ENABLE_CLI_EXE)
 	add_executable(tf2_bot_detector_cli "Launcher/main.cpp")
 	target_include_directories(tf2_bot_detector_cli PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 	target_link_libraries(tf2_bot_detector_cli PRIVATE tf2_bot_detector)
-	set_property(TARGET tf2_bot_detector_cli PROPERTY CXX_STANDARD 17)
+	target_compile_features(tf2_bot_detector_cli PUBLIC cxx_std_17)
 endif()
