@@ -24,7 +24,8 @@ namespace tf2_bot_detector
 		{
 			uint32_t m_Total;
 			uint32_t m_Failed;
-			uint32_t m_InProgress;
+			uint32_t m_InProgress;  // Waiting on the server
+			uint32_t m_Throttled;   // Locally throttled
 		};
 
 		virtual RequestCounts GetRequestCounts() const = 0;

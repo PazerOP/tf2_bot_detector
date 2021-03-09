@@ -4,6 +4,7 @@
 #include <mh/algorithm/multi_compare.hpp>
 #include <mh/concurrency/thread_pool.hpp>
 #include <mh/error/error_code_exception.hpp>
+#include <mh/text/case_insensitive_string.hpp>
 
 #include "GlobalDispatcher.h"
 #include "HTTPClient.h"
@@ -38,7 +39,9 @@ namespace
 
 		// This is a pretty stupid way of implementing this lol, but its easy
 		struct RequestInProgressObj {};
+		struct RequestQueuedObj {};
 		const std::shared_ptr<RequestInProgressObj> m_InProgressRequestCount = std::make_shared<RequestInProgressObj>();
+		const std::shared_ptr<RequestQueuedObj> m_QueuedRequestCount = std::make_shared<RequestQueuedObj>();
 	};
 }
 
@@ -74,6 +77,9 @@ static duration_t GetMinRequestInterval(const URL& url)
 	}
 	else if (url.m_Host == "api.steampowered.com" || url.m_Host == "tf2bd-util.pazer.us")
 	{
+		if (mh::case_insensitive_view(url.m_Path).find("/GetPlayerItems/") != url.m_Path.npos)
+			return 1000ms; // This is a slow/heavily throttled api
+
 		return 100ms;
 	}
 	else if (url.m_Host == "steamcommunity.com")
@@ -87,7 +93,24 @@ static duration_t GetMinRequestInterval(const URL& url)
 mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 {
 	auto self = shared_from_this(); // Make sure we don't vanish
-	auto inProgressObj = m_InProgressRequestCount;
+	std::shared_ptr<RequestInProgressObj> inProgressObj;
+	std::shared_ptr<RequestQueuedObj> queuedObj;
+
+	const auto SetThrottled = [&](bool throttled)
+	{
+		if (throttled)
+		{
+			queuedObj = m_QueuedRequestCount;
+			inProgressObj.reset();
+		}
+		else
+		{
+			inProgressObj = m_InProgressRequestCount;
+			queuedObj.reset();
+		}
+	};
+
+	SetThrottled(false);
 
 	int32_t retryCount = 0;
 	while (true)
@@ -123,7 +146,11 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 		}
 
 		if (throttleTime != throttle_time_t{})
+		{
+			SetThrottled(true);
 			co_await GetDispatcher().co_delay_until(throttleTime);
+			SetThrottled(false);
+		}
 
 		auto retryDelayTime = 10s;
 		try
@@ -174,7 +201,6 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 			else if (mh::any_eq(e.code(), HTTPResponseCode::BadGateway, HTTPResponseCode::ServiceUnavailable))
 			{
 				// retry forever for these two (after a slightly longer delay), since they are likely indicitive of an api being temporarily down
-				retryDelayTime += 10s;
 				PrintRetryWarning();
 			}
 			else
@@ -192,7 +218,11 @@ mh::task<std::string> HTTPClientImpl::GetStringAsync(URL url) const try
 		}
 
 		// Wait and try again
-		co_await GetDispatcher().co_delay_for(retryDelayTime);
+		{
+			SetThrottled(true);
+			co_await GetDispatcher().co_delay_for(retryDelayTime);
+			SetThrottled(false);
+		}
 		retryCount++;
 		DebugLogWarning("Retry #{} for {}", retryCount, url);
 	}
@@ -215,6 +245,7 @@ auto HTTPClientImpl::GetRequestCounts() const -> RequestCounts
 		.m_Total = m_TotalRequestCount,
 		.m_Failed = m_FailedRequestCount,
 		.m_InProgress = static_cast<uint32_t>(m_InProgressRequestCount.use_count() - 1),
+		.m_Throttled = static_cast<uint32_t>(m_QueuedRequestCount.use_count() - 1),
 	};
 }
 

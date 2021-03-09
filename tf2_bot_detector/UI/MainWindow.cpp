@@ -542,16 +542,22 @@ void MainWindow::OnDraw()
 			ImGui::TextFmt("HTTP Requests: {} total | ", reqs.m_Total);
 
 			ImGui::SameLineNoPad();
-
 			ImGui::TextFmt({ 1, 0.5f, 0.5f, 1 }, "{} failed ({:1.1f}%)",
 				reqs.m_Failed, reqs.m_Failed / float(reqs.m_Total) * 100);
 
-			ImGui::SameLineNoPad();
-			ImGui::TextFmt(" | ");
-			ImGui::SameLineNoPad();
-			ImGui::TextFmt(
-				reqs.m_InProgress > 0 ? ImVec4{ 2.0f / 3, 1, 2.0f / 3, 1 } : ImVec4{ 0.5f, 0.5f, 0.5f, 1 },
-				"{} queued", reqs.m_InProgress);
+			const auto QueuedText = [](uint32_t count, const std::string_view& name)
+			{
+				ImGui::SameLineNoPad();
+				ImGui::TextFmt(" | ");
+
+				ImGui::SameLineNoPad();
+				ImGui::TextFmt(
+					count > 0 ? ImVec4{ 2.0f / 3, 1, 2.0f / 3, 1 } : ImVec4{ 0.5f, 0.5f, 0.5f, 1 },
+					"{} {}", count, name);
+			};
+
+			QueuedText(reqs.m_InProgress, "running");
+			QueuedText(reqs.m_Throttled, "throttled");
 		}
 		else
 		{
