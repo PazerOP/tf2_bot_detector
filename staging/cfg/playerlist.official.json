@@ -9340,6 +9340,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "W\u200f\u200f\u200f\u200faffen-SS\u200f",
+				"time": 1615429518
+			},
+			"steamid": "[U:1:1181500380]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "W\u200f\u200faffen-S\u200fS",
 				"time": 1613892133
 			},
@@ -9614,6 +9624,26 @@
 				"time": 1615175184
 			},
 			"steamid": "[U:1:1188578487]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "W\u200f\u200faffen-S\u200f\u200fS\u200f",
+				"time": 1615436518
+			},
+			"steamid": "[U:1:1188781019]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "OMEGATRONIC\u0e34",
+				"time": 1615433452
+			},
+			"steamid": "[U:1:1188797888]"
 		}
 	]
 }
