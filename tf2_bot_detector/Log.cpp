@@ -18,6 +18,7 @@
 #include <fstream>
 #include <iostream>
 #include <mutex>
+#include <sstream>
 #include <vector>
 
 #ifdef _WIN32
@@ -47,7 +48,7 @@ namespace
 		mh::generator<const LogMessage&> GetVisibleMsgs() const override;
 		void ClearVisibleMsgs() override;
 
-		std::ofstream& GetFile() { return m_File; }
+		std::ostream& GetLogStream();
 
 		void LogConsoleOutput(const std::string_view& consoleOutput) override;
 
@@ -60,7 +61,8 @@ namespace
 		void EnsureInit(MH_SOURCE_LOCATION_AUTO(location)) const;
 
 		std::filesystem::path m_FileName;
-		std::ofstream m_File;
+		std::optional<std::stringstream> m_TempLogs = std::stringstream();   // Logs before we have been initialized
+		std::optional<std::ofstream> m_File;
 		mutable std::recursive_mutex m_LogMutex;
 		std::deque<LogMessage> m_LogMessages;
 		size_t m_VisibleLogMessagesStart = 0;
@@ -128,15 +130,15 @@ void LogManager::Init()
 		if (!m_FileName.empty())
 		{
 			m_File = std::ofstream(m_FileName, std::ofstream::ate | std::ofstream::app | std::ofstream::out | std::ofstream::binary);
-			if (!m_File.good())
+			if (!m_File->good())
 			{
 				::LogWarning("Failed to open log file {}. Log output will go to stdout only.", m_FileName);
 			}
 			else
 			{
 				// Dump all log messages being held in memory to the file, if it was successfully opened
-				for (const auto& msg : m_LogMessages)
-					LogToStream(msg.m_Text, m_File, msg.m_Timestamp, true);
+				m_File.value() << m_TempLogs.value().str();
+				m_TempLogs.reset();
 
 				::DebugLog("Dumped all pending log messages to {}.", m_FileName);
 			}
@@ -307,7 +309,7 @@ void LogManager::Log(std::string msg, const LogMessageColor& color,
 	std::lock_guard lock(m_LogMutex);
 	ReplaceSecrets(msg);
 
-	LogToStream(msg, m_File, timestamp, true);
+	LogToStream(msg, GetLogStream(), timestamp, true);
 
 	if (!(visibility == LogVisibility::Debug && !mh::is_debug))
 	{
@@ -342,6 +344,18 @@ void LogManager::ClearVisibleMsgs()
 	std::lock_guard lock(m_LogMutex);
 	DebugLog("Clearing visible log messages...");
 	m_VisibleLogMessagesStart = m_LogMessages.size();
+}
+
+std::ostream& LogManager::GetLogStream() try
+{
+	if (m_File.has_value())
+		return *m_File;
+
+	return m_TempLogs.value();
+}
+catch (...)
+{
+	LogFatalException();
 }
 
 void LogManager::LogConsoleOutput(const std::string_view& consoleOutput)
