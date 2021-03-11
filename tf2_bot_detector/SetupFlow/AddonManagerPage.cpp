@@ -275,6 +275,7 @@ namespace
 	{
 		for (const Addon& addon : addons)
 		{
+			DebugLog("Deleting {}...", addon.m_InstallTarget);
 			std::filesystem::remove_all(addon.m_InstallTarget);
 		}
 	}
