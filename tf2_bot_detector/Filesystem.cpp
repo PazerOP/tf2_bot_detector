@@ -160,6 +160,8 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 	{
 		if (usage == PathUsage::Read)
 		{
+			std::vector<std::filesystem::path> fullSearchPaths;
+
 			for (const auto& searchPath : m_SearchPaths)
 			{
 				auto fullPath = searchPath / path;
@@ -170,7 +172,12 @@ std::filesystem::path Filesystem::ResolvePath(const std::filesystem::path& path,
 				}
 			}
 
-			DebugLogWarning("Unable to find {} in any search path", path);
+			std::string debugMsg = mh::format("Unable to find {} in any search path. Full search paths:", path);
+
+			for (const std::filesystem::path& fsp : fullSearchPaths)
+				debugMsg << "\n\t" << fsp;
+
+			DebugLogWarning(debugMsg);
 			return {};
 		}
 		else if (usage == PathUsage::WriteLocal)
