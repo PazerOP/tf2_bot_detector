@@ -137,7 +137,7 @@ namespace
 		{
 			Addon addon;
 			addon.m_Source = entry;
-			addon.m_InstallTarget = tfDir / "custom" / entry.filename();
+			const auto baseInstallTarget = addon.m_InstallTarget = tfDir / "custom" / entry.filename();
 
 			bool shouldSkip = false;
 			if (std::filesystem::exists(addon.m_InstallTarget))
@@ -148,8 +148,8 @@ namespace
 					if (std::filesystem::exists(addon.m_InstallTarget))
 					{
 						const auto originalInstallTarget = addon.m_InstallTarget;
-						addon.m_InstallTarget = mh::replace_filename_keep_extension(addon.m_InstallTarget,
-							mh::format(MH_FMT_STRING("{}_{}"), mh::filename_without_extension(addon.m_InstallTarget).string(), i));
+						addon.m_InstallTarget = mh::replace_filename_keep_extension(baseInstallTarget,
+							mh::format(MH_FMT_STRING("{}_{}"), mh::filename_without_extension(baseInstallTarget).string(), i));
 
 						DebugLogWarning("{} already exists, trying {}...", originalInstallTarget, addon.m_InstallTarget);
 					}
