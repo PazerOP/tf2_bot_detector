@@ -33,75 +33,77 @@ namespace tf2_bot_detector
 
 TF2_BOT_DETECTOR_EXPORT int tf2_bot_detector::RunProgram(int argc, const char** argv)
 {
+	{
 #ifdef _WIN32
-	try
-	{
-		const auto langID = MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
-
-		//if (!SetThreadLocale(langID))
-		//	throw std::runtime_error("Failed to SetThreadLocale()");
-		if (SetThreadUILanguage(langID) != langID)
-			throw std::runtime_error("Failed to SetThreadUILanguage()");
-		//if (ULONG langs = 1; !SetThreadPreferredUILanguages(MUI_LANGUAGE_NAME, L"pl-PL\0", &langs))
-		//	throw std::runtime_error("Failed to SetThreadPreferredUILanguages()");
-
-		const auto err = std::error_code(10035, std::system_category());
-		const auto errMsg = err.message();
-
-		CHECK_HR(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-
-		CHECK_HR(CoInitializeSecurity(NULL,
-			-1,                          // COM authentication
-			NULL,                        // Authentication services
-			NULL,                        // Reserved
-			RPC_C_AUTHN_LEVEL_DEFAULT,   // Default authentication
-			RPC_C_IMP_LEVEL_IMPERSONATE, // Default Impersonation
-			NULL,                        // Authentication info
-			EOAC_NONE,                   // Additional capabilities
-			NULL)                        // Reserved
-		);
-	}
-	catch (const std::exception& e)
-	{
-		MessageBoxA(nullptr, e.what(), "Initialization failed", MB_OK);
-		return 1;
-	}
-#endif
-
-	IFilesystem::Get().Init();
-	ILogManager::GetInstance().Init();
-
-	for (int i = 1; i < argc; i++)
-	{
-#ifdef _DEBUG
-		if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
-			tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
-		else if (!strcmp(argv[i], "--allow-open-tf2"))
-			tf2_bot_detector::g_SkipOpenTF2Check = true;
-		else if (!strcmp(argv[i], "--run-tests"))
+		try
 		{
-#ifdef TF2BD_ENABLE_TESTS
-			return tf2_bot_detector::RunTests();
-#else
-			LogError("--run-tests was on the command line, but tests were not compiled in");
-#endif
+			const auto langID = MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);
+
+			//if (!SetThreadLocale(langID))
+			//	throw std::runtime_error("Failed to SetThreadLocale()");
+			if (SetThreadUILanguage(langID) != langID)
+				throw std::runtime_error("Failed to SetThreadUILanguage()");
+			//if (ULONG langs = 1; !SetThreadPreferredUILanguages(MUI_LANGUAGE_NAME, L"pl-PL\0", &langs))
+			//	throw std::runtime_error("Failed to SetThreadPreferredUILanguages()");
+
+			const auto err = std::error_code(10035, std::system_category());
+			const auto errMsg = err.message();
+
+			CHECK_HR(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
+
+			CHECK_HR(CoInitializeSecurity(NULL,
+				-1,                          // COM authentication
+				NULL,                        // Authentication services
+				NULL,                        // Reserved
+				RPC_C_AUTHN_LEVEL_DEFAULT,   // Default authentication
+				RPC_C_IMP_LEVEL_IMPERSONATE, // Default Impersonation
+				NULL,                        // Authentication info
+				EOAC_NONE,                   // Additional capabilities
+				NULL)                        // Reserved
+			);
+		}
+		catch (const std::exception& e)
+		{
+			MessageBoxA(nullptr, e.what(), "Initialization failed", MB_OK);
+			return 1;
 		}
 #endif
-	}
+
+		IFilesystem::Get().Init();
+		ILogManager::GetInstance().Init();
+
+		for (int i = 1; i < argc; i++)
+		{
+#ifdef _DEBUG
+			if (!strcmp(argv[i], "--static-seed") && (i + 1) < argc)
+				tf2_bot_detector::g_StaticRandomSeed = atoi(argv[i + 1]);
+			else if (!strcmp(argv[i], "--allow-open-tf2"))
+				tf2_bot_detector::g_SkipOpenTF2Check = true;
+			else if (!strcmp(argv[i], "--run-tests"))
+			{
+#ifdef TF2BD_ENABLE_TESTS
+				return tf2_bot_detector::RunTests();
+#else
+				LogError("--run-tests was on the command line, but tests were not compiled in");
+#endif
+			}
+#endif
+		}
 
 #if defined(_DEBUG) && defined(TF2BD_ENABLE_TESTS)
-	// Always run the tests debug builds (but don't quit afterwards)
-	tf2_bot_detector::RunTests();
+		// Always run the tests debug builds (but don't quit afterwards)
+		tf2_bot_detector::RunTests();
 #endif
 
-	ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
+		ImGuiDesktop::SetLogFunction(&tf2_bot_detector::ImGuiDesktopLogFunc);
 
-	DebugLog("Initializing TF2BDApplication...");
-	TF2BDApplication app;
+		DebugLog("Initializing TF2BDApplication...");
+		TF2BDApplication app;
 
-	DebugLog("Entering event loop...");
-	while (!app.ShouldQuit())
-		app.Update();
+		DebugLog("Entering event loop...");
+		while (!app.ShouldQuit())
+			app.Update();
+	}
 
 	DebugLog("Graceful shutdown");
 	return 0;
