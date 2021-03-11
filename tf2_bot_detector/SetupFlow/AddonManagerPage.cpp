@@ -11,7 +11,7 @@
 #include <mh/io/filesystem_helpers.hpp>
 #include <nlohmann/json.hpp>
 
-#include <vector>
+#include <set>
 
 using namespace tf2_bot_detector;
 
@@ -21,6 +21,13 @@ namespace
 	{
 		std::filesystem::path m_Source;         // Path in ./tf2_addons/
 		std::filesystem::path m_InstallTarget;  // Path inside of tf/addons/
+
+		friend bool operator<(const Addon& lhs, const Addon& rhs)
+		{
+			return
+				lhs.m_Source < rhs.m_Source &&
+				lhs.m_InstallTarget < rhs.m_InstallTarget;
+		}
 	};
 
 	static IAddonManager* s_AddonManager = nullptr;
@@ -52,12 +59,12 @@ namespace
 
 		static constexpr char ADDONS_LIST_FILENAME[] = "cfg/addons_list.json";
 
-		std::vector<Addon> BuildAddonsList(const Settings& settings) const;
-		void SaveAddonsList(const std::vector<Addon>& addons) const;
-		std::vector<Addon> LoadAddonsList() const;
+		std::set<Addon> BuildAddonsList(const Settings& settings) const;
+		void SaveAddonsList(const std::set<Addon>& addons) const;
+		std::set<Addon> LoadAddonsList() const;
 		void RemoveAddonsList() const;
-		void ConnectAddons(const std::vector<Addon>& addons) const;
-		void DisconnectAddons(const std::vector<Addon>& addons) const;
+		void ConnectAddons(const std::set<Addon>& addons) const;
+		void DisconnectAddons(const std::set<Addon>& addons) const;
 
 		void ShutdownAddons(MH_SOURCE_LOCATION_AUTO(location)) const;
 	};
@@ -98,7 +105,14 @@ namespace
 			{
 				ShutdownAddons();
 
-				const auto addons = BuildAddonsList(*mh_ensure(ds.m_Settings));
+				std::set<Addon> addons = BuildAddonsList(*mh_ensure(ds.m_Settings));
+				{
+					// In case there were any errors removing old addons, merge lists
+					for (const Addon& addon : LoadAddonsList())
+					{
+						addons.insert(std::move(addon));
+					}
+				}
 				SaveAddonsList(addons);
 				ConnectAddons(addons);
 			}
@@ -113,9 +127,9 @@ namespace
 		return OnDrawResult::EndDrawing;
 	}
 
-	std::vector<Addon> AddonManagerPage::BuildAddonsList(const Settings& settings) const try
+	std::set<Addon> AddonManagerPage::BuildAddonsList(const Settings& settings) const try
 	{
-		std::vector<Addon> addons;
+		std::set<Addon> addons;
 
 		const auto tfDir = settings.GetTFDir();
 
@@ -153,7 +167,7 @@ namespace
 			}
 
 			if (!shouldSkip)
-				addons.push_back(std::move(addon));
+				addons.insert(std::move(addon));
 		}
 
 		return addons;
@@ -178,7 +192,7 @@ namespace
 		try_get_to_defaulted(j, addon.m_InstallTarget, "target");
 	}
 
-	void AddonManagerPage::SaveAddonsList(const std::vector<Addon>& addons) const try
+	void AddonManagerPage::SaveAddonsList(const std::set<Addon>& addons) const try
 	{
 		nlohmann::json j =
 		{
@@ -186,6 +200,8 @@ namespace
 		};
 
 		auto str = j.dump(1, '\t', true, nlohmann::detail::error_handler_t::ignore);
+
+		DebugLog("Saving {}: {}", ADDONS_LIST_FILENAME, str);
 
 		IFilesystem::Get().WriteFile(ADDONS_LIST_FILENAME, str, PathUsage::WriteLocal);
 	}
@@ -195,7 +211,7 @@ namespace
 		throw;
 	}
 
-	std::vector<Addon> AddonManagerPage::LoadAddonsList() const try
+	std::set<Addon> AddonManagerPage::LoadAddonsList() const try
 	{
 		std::string file;
 		try
@@ -210,9 +226,11 @@ namespace
 				throw;
 		}
 
+		DebugLog("Loaded {}: {}", ADDONS_LIST_FILENAME, file);
+
 		const nlohmann::json j = nlohmann::json::parse(file);
 
-		return j.at("addons").get<std::vector<Addon>>();
+		return j.at("addons").get<std::set<Addon>>();
 	}
 	catch (...)
 	{
@@ -220,7 +238,7 @@ namespace
 		throw;
 	}
 
-	void AddonManagerPage::ConnectAddons(const std::vector<Addon>& addons) const try
+	void AddonManagerPage::ConnectAddons(const std::set<Addon>& addons) const try
 	{
 		for (const Addon& addon : addons)
 		{
@@ -253,7 +271,7 @@ namespace
 		throw;
 	}
 
-	void AddonManagerPage::DisconnectAddons(const std::vector<Addon>& addons) const try
+	void AddonManagerPage::DisconnectAddons(const std::set<Addon>& addons) const try
 	{
 		for (const Addon& addon : addons)
 		{
