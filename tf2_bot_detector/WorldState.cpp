@@ -192,7 +192,7 @@ namespace
 		}
 	};
 
-	class Player final : public IPlayer, AutoWorldEventListener
+	class Player final : public IPlayer
 	{
 	public:
 		Player(WorldState& world, SteamID id);
@@ -647,7 +647,16 @@ mh::task<> WorldState::BuildFriendsGraphAsync(std::shared_ptr<Player> playerPtr)
 		Player& player = static_cast<Player&>(*playerPtr);
 		const SteamID ourSteamID = player.GetSteamID();
 		{
-			std::unordered_set<SteamID> friends = co_await SteamAPI::GetFriendList(m_Settings, ourSteamID, *httpClient);
+			std::unordered_set<SteamID> friends;
+
+			try
+			{
+				friends = co_await SteamAPI::GetFriendList(m_Settings, ourSteamID, *httpClient);
+			}
+			catch (...)
+			{
+				LogException();
+			}
 
 			co_await GetDispatcher().co_dispatch(); // switch to main thread
 
@@ -980,7 +989,6 @@ auto WorldState::GetTeamShareResult(const SteamID& id0, const SteamID& id1) cons
 }
 
 Player::Player(WorldState& world, SteamID id) :
-	AutoWorldEventListener(world),
 	m_World(&world)
 {
 	m_Status.m_SteamID = id;

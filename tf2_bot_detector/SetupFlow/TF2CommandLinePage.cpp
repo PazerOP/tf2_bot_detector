@@ -71,7 +71,7 @@ auto TF2CommandLinePage::ValidateSettings(const Settings& settings) const -> Val
 {
 	if (!Processes::IsTF2Running())
 		return ValidateSettingsResult::TriggerOpen;
-	if (!m_Data.m_CommandLineArgs->IsPopulated())
+	if (!m_Data.m_CommandLineArgs.has_value() || !m_Data.m_CommandLineArgs->IsPopulated())
 		return ValidateSettingsResult::TriggerOpen;
 
 	return ValidateSettingsResult::Success;

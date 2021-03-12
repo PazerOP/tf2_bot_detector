@@ -10,6 +10,8 @@
 
 #include <mh/text/formatters/error_code.hpp>
 
+#include <set>
+
 using namespace tf2_bot_detector;
 using namespace std::chrono_literals;
 
@@ -353,6 +355,34 @@ namespace tf2_bot_detector::UI
 				{
 					ImGui::TextFmt("{} items ({} slots)", info.m_Items, info.m_Slots);
 				});
+	}
+
+	static void PrintFriendsInServer(const IPlayer& player)
+	{
+		ImGui::TextFmt("       Friends : ");
+		ImGui::SameLineNoPad();
+
+		bool noneInServer = true;
+		for (const IPlayer& otherPlayer : player.GetWorld().GetPlayers())
+		{
+			if (!player.GetSteamFriends().contains(otherPlayer.GetSteamID()))
+				continue; // other player not on our friends list
+
+			if (!noneInServer)
+			{
+				ImGui::TextFmt("               ");
+				ImGui::SameLineNoPad();
+			}
+			else
+			{
+				noneInServer = false;
+			}
+
+			ImGui::TextFmt("- {}", otherPlayer);
+		}
+
+		if (noneInServer)
+			ImGui::TextFmt(COLOR_UNAVAILABLE, "None");
 	}
 
 	void DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult,
