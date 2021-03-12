@@ -17,14 +17,14 @@ namespace
 	class BaseTextures final : public IBaseTextures
 	{
 	public:
-		BaseTextures(ITextureManager& textureManager);
+		BaseTextures(std::shared_ptr<ITextureManager> textureManager);
 
 		const ITexture* GetHeart_16() const override { return m_Heart_16.get(); }
 		const ITexture* GetVACShield_16() const override { return m_VACShield_16.get(); }
 		const ITexture* GetGameBanIcon_16() const override { return m_GameBanIcon_16.get(); }
 
 	private:
-		ITextureManager& m_TextureManager;
+		std::shared_ptr<ITextureManager> m_TextureManager;
 
 		std::shared_ptr<ITexture> m_Heart_16;
 		std::shared_ptr<ITexture> m_VACShield_16;
@@ -34,12 +34,12 @@ namespace
 	};
 }
 
-std::unique_ptr<IBaseTextures> IBaseTextures::Create(ITextureManager& textureManager)
+std::unique_ptr<IBaseTextures> IBaseTextures::Create(std::shared_ptr<ITextureManager> textureManager)
 {
 	return std::make_unique<BaseTextures>(textureManager);
 }
 
-BaseTextures::BaseTextures(ITextureManager& textureManager) :
+BaseTextures::BaseTextures(std::shared_ptr<ITextureManager> textureManager) :
 	m_TextureManager(textureManager),
 
 	m_Heart_16(TryLoadTexture("images/heart_16.png")),
@@ -54,7 +54,7 @@ std::shared_ptr<ITexture> BaseTextures::TryLoadTexture(std::filesystem::path fil
 
 	try
 	{
-		return m_TextureManager.CreateTexture(Bitmap(file));
+		return m_TextureManager->CreateTexture(Bitmap(file));
 	}
 	catch (const std::exception& e)
 	{

@@ -114,6 +114,7 @@ namespace tf2_bot_detector
 
 		void LoadFile();
 		bool SaveFile() const;
+		bool SaveFileIf(bool condition) const; // Useful for interactions with ImGui. Saves if condition is true
 
 		// Settings that are not saved in the config file because we want them to
 		// reset to these defaults when the tool is reopened

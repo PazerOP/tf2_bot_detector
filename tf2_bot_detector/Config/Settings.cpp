@@ -343,6 +343,14 @@ catch (...)
 	return false;
 }
 
+bool Settings::SaveFileIf(bool condition) const
+{
+	if (condition)
+		return SaveFile();
+	else
+		return false;
+}
+
 Settings::Unsaved::~Unsaved()
 {
 }

@@ -48,32 +48,19 @@ namespace tf2_bot_detector
 
 		ImFont* GetFontPointer(Font f) const;
 
-		void DrawPlayerTooltip(IPlayer& player);
-		void DrawPlayerTooltip(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
+		IModeratorLogic& GetModLogic() { return *m_MainState.value().m_ModeratorLogic; }
+		const IModeratorLogic& GetModLogic() const { return *m_MainState.value().m_ModeratorLogic; }
 
 	private:
 		void OnImGuiInit() override;
 		void OnOpenGLInit() override;
 		void OnDraw() override;
-		void OnEndFrame() override;
 		void OnDrawMenuBar() override;
 		bool HasMenuBar() const override { return true; }
-		void OnDrawScoreboard();
-		void OnDrawTeamStats();
 		void OnDrawAllPanesDisabled();
-		void OnDrawScoreboardContextMenu(IPlayer& player);
-		void OnDrawScoreboardRow(IPlayer& player);
 		void OnDrawColorPicker(const char* name_id, std::array<float, 4>& color);
 		void OnDrawChat();
 		void OnDrawServerStats();
-		void DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult, const PlayerMarks& playerAttribs);
-
-		struct ColorPicker
-		{
-			const char* m_Name;
-			std::array<float, 4>& m_Color;
-		};
-		void OnDrawColorPickers(const char* id, const std::initializer_list<ColorPicker>& pickers);
 
 		void OnDrawAppLog();
 		const void* m_LastLogMessage = nullptr;
@@ -96,7 +83,6 @@ namespace tf2_bot_detector
 		bool IsSleepingEnabled() const override;
 
 		bool IsTimeEven() const;
-		float TimeSine(float interval = 1.0f, float min = 0, float max = 1) const;
 
 		void SetupFonts();
 		ImFont* m_ProggyTiny10Font{};
@@ -119,8 +105,6 @@ namespace tf2_bot_detector
 		time_point_t GetCurrentTimestampCompensated() const;
 
 		mh::expected<std::shared_ptr<ITexture>, std::error_condition> TryGetAvatarTexture(IPlayer& player);
-		std::shared_ptr<ITextureManager> m_TextureManager;
-		std::unique_ptr<IBaseTextures> m_BaseTextures;
 
 		struct PingSample
 		{
@@ -158,7 +142,7 @@ namespace tf2_bot_detector
 		std::vector<PingSample> m_ServerPingSamples;
 		time_point_t m_LastServerPingSample{};
 
-		Settings m_Settings;
+		Settings& m_Settings;  // Reference is here for backwards compatibility
 		std::unique_ptr<SettingsWindow> m_SettingsWindow;
 
 		std::unique_ptr<IUpdateManager> m_UpdateManager;
@@ -193,8 +177,6 @@ namespace tf2_bot_detector
 		};
 		std::optional<PostSetupFlowState> m_MainState;
 
-		IModeratorLogic& GetModLogic() { return *m_MainState.value().m_ModeratorLogic; }
-		const IModeratorLogic& GetModLogic() const { return *m_MainState.value().m_ModeratorLogic; }
 		SponsorsList& GetSponsorsList() { return m_MainState.value().m_SponsorsList; }
 		const SponsorsList& GetSponsorsList() const { return m_MainState.value().m_SponsorsList; }
 

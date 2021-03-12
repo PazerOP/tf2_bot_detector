@@ -200,6 +200,9 @@ namespace tf2_bot_detector
 	bool InputTextSteamAPIKey(const char* label_id, std::string& key, bool requireValid = false);
 	bool Combo(const char* label_id, std::optional<ReleaseChannel>& mode);
 	bool AutoLaunchTF2Checkbox(bool& value);
+
+	// src/dest terminology is mirroring that of opengl: dest color is the base color, src color is the color we are blending towards
+	ImVec4 BlendColors(const std::array<float, 4>& dstColor, const std::array<float, 4>& srcColor, float scalar);
 }
 
 namespace ImPlot

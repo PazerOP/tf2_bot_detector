@@ -56,6 +56,9 @@ namespace tf2_bot_detector
 	tm GetLocalTM();
 	time_point_t GetLocalTimePoint();
 
+	// Useful for animations
+	float TimeSine(float interval = 1.0f, float min = 0, float max = 1);
+
 	template<typename TRep, typename TPeriod>
 	struct HumanDuration
 	{

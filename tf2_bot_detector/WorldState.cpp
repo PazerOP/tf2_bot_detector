@@ -20,6 +20,7 @@
 #include "GlobalDispatcher.h"
 #include "Application.h"
 #include "DB/TempDB.h"
+#include "Util/AsyncValue.h"
 
 #include <mh/algorithm/algorithm.hpp>
 #include <mh/concurrency/dispatcher.hpp>
@@ -42,7 +43,7 @@ namespace
 {
 	class Player;
 
-	class WorldState final : public IWorldState, BaseConsoleLineListener
+	class WorldState final : public IWorldState, BaseConsoleLineListener, BaseWorldEventListener
 	{
 	public:
 		WorldState(const Settings& settings);
@@ -105,11 +106,15 @@ namespace
 
 	private:
 		const Settings& m_Settings;
+		mh::thread_sentinel m_Sentinel;
 
 		CompensatedTS m_CurrentTimestamp;
 
 		void OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed) override;
 		void OnConfigExecLineParsed(const ConfigExecLine& execLine);
+		void OnNewPlayer(IWorldState& world, IPlayer& player) override;
+		//void OnNewPlayers(IWorldState& world, const std::unordered_set<SteamID>& players) override;
+		mh::task<> BuildFriendsGraphAsync(std::shared_ptr<Player> player);
 
 		void UpdateFriends();
 		mh::task<std::unordered_set<SteamID>> m_FriendsFuture;
@@ -143,6 +148,9 @@ namespace
 		std::unordered_map<SteamID, std::shared_ptr<Player>> m_CurrentPlayerData;
 		bool m_IsLocalPlayerInitialized = false;
 		bool m_IsVoteInProgress = false;
+
+		std::unordered_set<SteamID> m_NewPlayers;  // New players since the last OnNewPlayers()
+		uint32_t m_NewPlayersAge = 0;              // Ticks since last modification of m_NewPlayers
 
 		std::shared_ptr<IAccountAges> m_AccountAges = IAccountAges::Create();
 
@@ -185,7 +193,7 @@ namespace
 		}
 	};
 
-	class Player final : public IPlayer
+	class Player final : public IPlayer, AutoWorldEventListener
 	{
 	public:
 		Player(WorldState& world, SteamID id);
@@ -205,6 +213,7 @@ namespace
 		time_point_t GetLastStatusUpdateTime() const override { return m_LastStatusUpdateTime; }
 		const mh::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const override;
 		const mh::expected<SteamAPI::PlayerBans>& GetPlayerBans() const override;
+		const std::unordered_set<SteamID>& GetSteamFriends(std::error_condition* status = nullptr) const override;
 		mh::expected<duration_t> GetTF2Playtime() const override;
 		bool IsFriend() const override;
 		duration_t GetActiveTime() const override;
@@ -219,6 +228,7 @@ namespace
 		uint8_t m_ClientIndex{};
 		mutable mh::expected<SteamAPI::PlayerSummary> m_PlayerSummary = ErrorCode::LazyValueUninitialized;
 		mutable mh::expected<SteamAPI::PlayerBans> m_PlayerSteamBans = ErrorCode::LazyValueUninitialized;
+		std::unordered_set<SteamID> m_SteamFriends;
 
 		void SetStatus(PlayerStatus status, time_point_t timestamp);
 		const PlayerStatus& GetStatus() const { return m_Status; }
@@ -279,6 +289,17 @@ void WorldState::Update()
 	m_PlayerBansUpdates.Update();
 
 	UpdateFriends();
+
+	// IWorldEventListener::OnNewPlayers()
+	{
+		if (m_NewPlayersAge > 5 && m_NewPlayers.size())
+		{
+			InvokeEventListener(&IWorldEventListener::OnNewPlayers, *this, m_NewPlayers);
+			m_NewPlayers.clear();
+		}
+
+		m_NewPlayersAge++;
+	}
 }
 
 void WorldState::UpdateFriends()
@@ -612,6 +633,41 @@ void WorldState::OnConfigExecLineParsed(const ConfigExecLine& execLine)
 	}
 }
 
+void WorldState::OnNewPlayer(IWorldState& world, IPlayer& iPlayer)
+{
+	BuildFriendsGraphAsync(std::static_pointer_cast<Player>(iPlayer.shared_from_this()));
+}
+
+mh::task<> WorldState::BuildFriendsGraphAsync(std::shared_ptr<Player> playerPtr) try
+{
+	auto worldPtr = shared_from_this();
+	auto httpClient = m_Settings.GetHTTPClient();
+
+	if (httpClient)
+	{
+		Player& player = static_cast<Player&>(*playerPtr);
+		const SteamID ourSteamID = player.GetSteamID();
+		{
+			std::unordered_set<SteamID> friends = co_await SteamAPI::GetFriendList(m_Settings, ourSteamID, *httpClient);
+
+			co_await GetDispatcher().co_dispatch(); // switch to main thread
+
+			player.m_SteamFriends = std::move(friends);
+		}
+
+		for (auto& [otherSteamID, otherPlayer] : m_CurrentPlayerData)
+		{
+			// both ways
+			if (player.m_SteamFriends.contains(otherSteamID))
+				otherPlayer->m_SteamFriends.insert(ourSteamID);
+		}
+	}
+}
+catch (...)
+{
+	LogException();
+}
+
 void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 {
 	assert(&world == this);
@@ -889,6 +945,8 @@ void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 
 Player& WorldState::FindOrCreatePlayer(const SteamID& id)
 {
+	m_Sentinel.check();
+
 	Player* data;
 	if (auto found = m_CurrentPlayerData.find(id); found != m_CurrentPlayerData.end())
 	{
@@ -906,8 +964,12 @@ Player& WorldState::FindOrCreatePlayer(const SteamID& id)
 			data->GetLogsInfo();
 			data->GetInventoryInfo();
 		}
-	}
 
+		m_NewPlayers.insert(id);
+		m_NewPlayersAge = 0;
+
+		InvokeEventListener(&IWorldEventListener::OnNewPlayer, *this, *data);
+	}
 
 	assert(data->GetSteamID() == id);
 	return *data;
@@ -919,6 +981,7 @@ auto WorldState::GetTeamShareResult(const SteamID& id0, const SteamID& id1) cons
 }
 
 Player::Player(WorldState& world, SteamID id) :
+	AutoWorldEventListener(world),
 	m_World(&world)
 {
 	m_Status.m_SteamID = id;
@@ -983,6 +1046,12 @@ const mh::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
 	}
 
 	return m_PlayerSteamBans;
+}
+
+const std::unordered_set<SteamID>& Player::GetSteamFriends(std::error_condition* status) const
+{
+	// TODO: set status
+	return m_SteamFriends;
 }
 
 template<typename T, typename TFunc>
@@ -1051,7 +1120,7 @@ const mh::expected<LogsTFAPI::PlayerLogsInfo>& Player::GetLogsInfo() const
 	return GetOrFetchDataAsync(m_LogsInfo,
 		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<LogsTFAPI::PlayerLogsInfo>
 		{
-			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
+			DB::ITempDB& cacheDB = TF2BDApplication::Get().GetTempDB();
 
 			DB::LogsTFCacheInfo cacheInfo{};
 			cacheInfo.m_ID = pThis->GetSteamID();
@@ -1070,7 +1139,7 @@ const mh::expected<SteamAPI::PlayerInventoryInfo>& Player::GetInventoryInfo() co
 	return GetOrFetchDataAsync(m_InventoryInfo,
 		[&](std::shared_ptr<const Player> pThis, auto client) -> mh::task<mh::expected<SteamAPI::PlayerInventoryInfo>>
 		{
-			DB::ITempDB& cacheDB = TF2BDApplication::GetApplication().GetTempDB();
+			DB::ITempDB& cacheDB = TF2BDApplication::Get().GetTempDB();
 
 			DB::AccountInventorySizeInfo cacheInfo{};
 			cacheInfo.m_SteamID = pThis->GetSteamID();

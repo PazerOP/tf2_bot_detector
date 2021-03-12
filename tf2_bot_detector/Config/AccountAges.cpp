@@ -56,7 +56,7 @@ void AccountAges::OnDataReady(const SteamID& id, time_point_t creationTime)
 	if (!CheckSteamIDValid(id))
 		return;
 
-	DB::ITempDB& tempDB = TF2BDApplication::GetApplication().GetTempDB();
+	DB::ITempDB& tempDB = TF2BDApplication::Get().GetTempDB();
 	DB::AccountAgeInfo info{};
 	info.m_SteamID = id;
 	info.m_CreationTime = creationTime;
@@ -69,7 +69,7 @@ std::optional<time_point_t> AccountAges::EstimateAccountCreationTime(const Steam
 		return std::nullopt;
 
 	std::optional<DB::AccountAgeInfo> lower, upper;
-	TF2BDApplication::GetApplication().GetTempDB().GetNearestAccountAgeInfos(id, lower, upper);
+	TF2BDApplication::Get().GetTempDB().GetNearestAccountAgeInfos(id, lower, upper);
 
 	if (!lower.has_value())
 		return std::nullopt;   // super new, we don't have any data for this

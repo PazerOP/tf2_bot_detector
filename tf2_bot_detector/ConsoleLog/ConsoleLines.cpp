@@ -3,6 +3,7 @@
 #include "Config/Settings.h"
 #include "GameData/MatchmakingQueue.h"
 #include "GameData/UserMessageType.h"
+#include "UI/Components.h"
 #include "UI/MainWindow.h"
 #include "UI/ImGui_TF2BotDetector.h"
 #include "Util/RegexUtils.h"
@@ -192,7 +193,7 @@ void ChatConsoleLine::Print(const PrintArgs& args) const
 	else if (isHovered)
 	{
 		if (auto player = args.m_WorldState.FindPlayer(m_PlayerSteamID))
-			args.m_MainWindow.DrawPlayerTooltip(*player);
+			UI::DrawPlayerTooltip(args.m_MainWindow.GetModLogic(), *player);
 	}
 }
 

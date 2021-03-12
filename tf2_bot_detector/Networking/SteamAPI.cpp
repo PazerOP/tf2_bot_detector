@@ -428,10 +428,7 @@ mh::task<std::unordered_set<SteamID>> tf2_bot_detector::SteamAPI::GetFriendList(
 	const SteamID& steamID, const HTTPClient& client)
 {
 	if (!steamID.IsValid())
-	{
-		LogError(MH_SOURCE_LOCATION_CURRENT(), "Invalid SteamID {}", steamID.ID64);
-		co_return {};
-	}
+		throw SteamAPIError(ErrorCode::InvalidSteamID, mh::format("Invalid SteamID {}", steamID.ID64));
 
 	auto url = GenerateSteamAPIURL(apiSettings, "/ISteamUser/GetFriendList/v0001", mh::format("?steamid={}", steamID.ID64));
 

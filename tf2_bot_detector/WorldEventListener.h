@@ -3,12 +3,14 @@
 #include "Clock.h"
 
 #include <string_view>
+#include <unordered_set>
 
 namespace tf2_bot_detector
 {
 	class IPlayer;
 	class IWorldState;
 	enum class TFClassType;
+	class SteamID;
 
 	class IWorldEventListener
 	{
@@ -21,6 +23,12 @@ namespace tf2_bot_detector
 		virtual void OnLocalPlayerInitialized(IWorldState& world, bool initialized) = 0;
 		virtual void OnLocalPlayerSpawned(IWorldState& world, TFClassType classType) = 0;
 		virtual void OnPlayerDroppedFromServer(IWorldState& world, IPlayer& player, const std::string_view& reason) = 0;
+
+		// Happens the instant a new player object is created
+		virtual void OnNewPlayer(IWorldState& world, IPlayer& player) = 0;
+
+		// Batched, to some extent
+		virtual void OnNewPlayers(IWorldState& world, const std::unordered_set<SteamID>& players) = 0;
 	};
 
 	class BaseWorldEventListener : public IWorldEventListener
@@ -32,6 +40,10 @@ namespace tf2_bot_detector
 		void OnLocalPlayerInitialized(IWorldState& world, bool initialized) override {}
 		void OnLocalPlayerSpawned(IWorldState& world, TFClassType classType) override {}
 		void OnPlayerDroppedFromServer(IWorldState& world, IPlayer& player, const std::string_view& reason) override {}
+
+		void OnNewPlayer(IWorldState& world, IPlayer& player) override {}
+
+		void OnNewPlayers(IWorldState& world, const std::unordered_set<SteamID>& players) override {}
 	};
 
 	class AutoWorldEventListener : public BaseWorldEventListener

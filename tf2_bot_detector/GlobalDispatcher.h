@@ -4,5 +4,5 @@
 
 namespace tf2_bot_detector
 {
-	mh::dispatcher& GetDispatcher();
+	mh::dispatcher GetDispatcher();
 }

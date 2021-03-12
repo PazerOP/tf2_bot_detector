@@ -20,6 +20,8 @@
 #include "GlobalDispatcher.h"
 #include "Networking/HTTPClient.h"
 #include "SettingsWindow.h"
+#include "UI/Components.h"
+#include "Application.h"
 
 #include <imgui_desktop/Application.h>
 #include <imgui_desktop/ScopeGuards.h>
@@ -45,20 +47,11 @@ using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-namespace tf2_bot_detector
-{
-	mh::dispatcher& GetDispatcher()
-	{
-		static mh::dispatcher s_Dispatcher;
-		return s_Dispatcher;
-	}
-}
-
 MainWindow::MainWindow(ImGuiDesktop::Application& app) :
 	ImGuiDesktop::Window(app, 800, 600, mh::fmtstr<128>("TF2 Bot Detector v{}", VERSION).c_str()),
+	m_Settings(TF2BDApplication::Get().GetSettings()),
 	m_WorldState(IWorldState::Create(m_Settings)),
 	m_ActionManager(IRCONActionManager::Create(m_Settings, GetWorld())),
-	m_TextureManager(ITextureManager::Create()),
 	m_UpdateManager(IUpdateManager::Create(m_Settings))
 {
 	SetIsPrimaryAppWindow(true);
@@ -127,8 +120,6 @@ void MainWindow::OnImGuiInit()
 void MainWindow::OnOpenGLInit()
 {
 	Super::OnOpenGLInit();
-
-	m_BaseTextures = IBaseTextures::Create(*m_TextureManager);
 }
 
 ImFont* MainWindow::GetFontPointer(Font f) const
@@ -155,26 +146,15 @@ void MainWindow::OnDrawColorPicker(const char* name, std::array<float, 4>& color
 		m_Settings.SaveFile();
 }
 
-void MainWindow::OnDrawColorPickers(const char* id, const std::initializer_list<ColorPicker>& pickers)
-{
-	ImGui::HorizontalScrollBox(id, [&]
-		{
-			for (const auto& picker : pickers)
-			{
-				OnDrawColorPicker(picker.m_Name, picker.m_Color);
-				ImGui::SameLine();
-			}
-		});
-}
-
 void MainWindow::OnDrawChat()
 {
-	OnDrawColorPickers("ChatColorPickers",
-		{
-			{ "You", m_Settings.m_Theme.m_Colors.m_ChatLogYouFG },
-			{ "Enemies", m_Settings.m_Theme.m_Colors.m_ChatLogEnemyTeamFG },
-			{ "Friendlies", m_Settings.m_Theme.m_Colors.m_ChatLogFriendlyTeamFG },
-		});
+	m_Settings.SaveFileIf(
+		UI::DrawColorPickers("ChatColorPickers",
+			{
+				{ "You", m_Settings.m_Theme.m_Colors.m_ChatLogYouFG },
+				{ "Enemies", m_Settings.m_Theme.m_Colors.m_ChatLogEnemyTeamFG },
+				{ "Friendlies", m_Settings.m_Theme.m_Colors.m_ChatLogFriendlyTeamFG },
+			}));
 
 	ImGui::AutoScrollBox("##fileContents", { 0, 0 }, [&]()
 		{
@@ -532,7 +512,7 @@ void MainWindow::OnDraw()
 
 		ImGui::TextFmt("FPS: {:1.1f}", GetFPS());
 
-		ImGui::Value("Texture Count", m_TextureManager->GetActiveTextureCount());
+		ImGui::Value("Texture Count", TF2BDApplication::Get().GetTextureManager()->GetActiveTextureCount());
 
 		ImGui::TextFmt("RAM Usage: {:1.1f} MB", Platform::Processes::GetCurrentRAMUsage() / 1024.0f / 1024);
 
@@ -592,7 +572,7 @@ void MainWindow::OnDraw()
 		ImGui::NextColumn();
 
 	if (mainWindowState.m_ScoreboardEnabled)
-		OnDrawScoreboard();
+		UI::DrawScoreboard(GetWorld(), GetModLogic());
 	if (mainWindowState.m_AppLogEnabled)
 		OnDrawAppLog();
 
@@ -626,11 +606,6 @@ void MainWindow::OnDrawAllPanesDisabled()
 		mainWindowState.m_AppLogEnabled = true;
 		m_Settings.SaveFile();
 	}
-}
-
-void MainWindow::OnEndFrame()
-{
-	m_TextureManager->EndFrame();
 }
 
 void MainWindow::OnDrawMenuBar()
@@ -811,13 +786,6 @@ bool MainWindow::IsTimeEven() const
 	return !(seconds.count() % 2);
 }
 
-float MainWindow::TimeSine(float interval, float min, float max) const
-{
-	const auto elapsed = (clock_t::now() - m_OpenTime) % std::chrono::duration_cast<clock_t::duration>(std::chrono::duration<float>(interval));
-	const auto progress = std::chrono::duration<float>(elapsed).count() / interval;
-	return mh::remap(std::sin(progress * 6.28318530717958647693f), -1.0f, 1.0f, min, max);
-}
-
 void MainWindow::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 {
 	m_ParsedLineCount++;
@@ -860,79 +828,6 @@ void MainWindow::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
 void MainWindow::OnConsoleLineUnparsed(IWorldState& world, const std::string_view& text)
 {
 	m_ParsedLineCount++;
-}
-
-mh::generator<IPlayer&> MainWindow::PostSetupFlowState::GeneratePlayerPrintData()
-{
-	IPlayer* printData[33]{};
-	auto begin = std::begin(printData);
-	auto end = std::end(printData);
-	assert(begin <= end);
-	auto& world = m_Parent->m_WorldState;
-	assert(static_cast<size_t>(end - begin) >= world->GetApproxLobbyMemberCount());
-
-	std::fill(begin, end, nullptr);
-
-	{
-		auto* current = begin;
-		for (IPlayer& member : world->GetLobbyMembers())
-		{
-			*current = &member;
-			current++;
-		}
-
-		if (current == begin)
-		{
-			// We seem to have either an empty lobby or we're playing on a community server.
-			// Just find the most recent status updates.
-			for (IPlayer& playerData : world->GetPlayers())
-			{
-				if (playerData.GetLastStatusUpdateTime() >= (world->GetLastStatusUpdateTime() - 15s))
-				{
-					*current = &playerData;
-					current++;
-
-					if (current >= end)
-						break; // This might happen, but we're not in a lobby so everything has to be approximate
-				}
-			}
-		}
-
-		end = current;
-	}
-
-	std::sort(begin, end, [](const IPlayer* lhs, const IPlayer* rhs) -> bool
-		{
-			assert(lhs);
-			assert(rhs);
-			//if (!lhs && !rhs)
-			//	return false;
-			//if (auto result = !!rhs <=> !!lhs; !std::is_eq(result))
-			//	return result < 0;
-
-			// Intentionally reversed, we want descending kill order
-			if (auto killsResult = rhs->GetScores().m_Kills <=> lhs->GetScores().m_Kills; !std::is_eq(killsResult))
-				return std::is_lt(killsResult);
-
-			if (auto deathsResult = lhs->GetScores().m_Deaths <=> rhs->GetScores().m_Deaths; !std::is_eq(deathsResult))
-				return std::is_lt(deathsResult);
-
-			// Sort by ascending userid
-			{
-				auto luid = lhs->GetUserID();
-				auto ruid = rhs->GetUserID();
-				if (luid && ruid)
-				{
-					if (auto result = *luid <=> *ruid; !std::is_eq(result))
-						return std::is_lt(result);
-				}
-			}
-
-			return false;
-		});
-
-	for (auto it = begin; it != end; ++it)
-		co_yield **it;
 }
 
 void MainWindow::UpdateServerPing(time_point_t timestamp)
@@ -985,68 +880,6 @@ float MainWindow::PlayerExtraData::GetAveragePing() const
 time_point_t MainWindow::GetCurrentTimestampCompensated() const
 {
 	return GetWorld().GetCurrentTime();
-}
-
-mh::expected<std::shared_ptr<ITexture>, std::error_condition> MainWindow::TryGetAvatarTexture(IPlayer& player)
-{
-	using StateTask_t = mh::task<mh::expected<std::shared_ptr<ITexture>, std::error_condition>>;
-
-	struct PlayerAvatarData
-	{
-		StateTask_t m_State;
-
-		static StateTask_t LoadAvatarAsync(mh::task<Bitmap> avatarBitmapTask,
-			mh::dispatcher updateDispatcher, std::shared_ptr<ITextureManager> textureManager)
-		{
-			const Bitmap* avatarBitmap = nullptr;
-
-			try
-			{
-				avatarBitmap = &(co_await avatarBitmapTask);
-			}
-			catch (...)
-			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to load avatar bitmap");
-				co_return ErrorCode::UnknownError;
-			}
-
-			// Switch to main thread
-			co_await updateDispatcher.co_dispatch();
-
-			try
-			{
-				co_return textureManager->CreateTexture(*avatarBitmap);
-			}
-			catch (...)
-			{
-				LogException(MH_SOURCE_LOCATION_CURRENT(), "Failed to create avatar bitmap");
-				co_return ErrorCode::UnknownError;
-			}
-		}
-	};
-
-	auto& avatarData = player.GetOrCreateData<PlayerAvatarData>().m_State;
-
-	if (avatarData.empty())
-	{
-		auto playerPtr = player.shared_from_this();
-		const auto& summary = playerPtr->GetPlayerSummary();
-		if (summary)
-		{
-			avatarData = PlayerAvatarData::LoadAvatarAsync(
-				summary->GetAvatarBitmap(m_Settings.GetHTTPClient()),
-				GetDispatcher(), m_TextureManager);
-		}
-		else
-		{
-			return summary.error();
-		}
-	}
-
-	if (auto data = avatarData.try_get())
-		return *data;
-	else
-		return std::errc::operation_in_progress;
 }
 
 MainWindow::PostSetupFlowState::PostSetupFlowState(MainWindow& window) :

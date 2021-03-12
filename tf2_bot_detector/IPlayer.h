@@ -11,6 +11,7 @@
 #include <optional>
 #include <ostream>
 #include <typeindex>
+#include <unordered_set>
 
 namespace tf2_bot_detector
 {
@@ -58,6 +59,7 @@ namespace tf2_bot_detector
 		virtual SteamID GetSteamID() const = 0;
 		virtual const mh::expected<SteamAPI::PlayerSummary>& GetPlayerSummary() const = 0;
 		virtual const mh::expected<SteamAPI::PlayerBans>& GetPlayerBans() const = 0;
+		virtual const std::unordered_set<SteamID>& GetSteamFriends(std::error_condition* status = nullptr) const = 0;
 		virtual mh::expected<duration_t> GetTF2Playtime() const = 0;
 		virtual bool IsFriend() const = 0;
 		virtual std::optional<UserID_t> GetUserID() const = 0;

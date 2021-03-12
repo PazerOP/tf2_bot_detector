@@ -99,6 +99,10 @@ namespace
 		{
 			throw mh::not_implemented_error();
 		}
+		const std::unordered_set<SteamID>& GetSteamFriends(std::error_condition* status) const override
+		{
+			throw mh::not_implemented_error();
+		}
 	};
 }
 

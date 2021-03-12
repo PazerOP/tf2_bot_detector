@@ -1,6 +1,8 @@
 #include "Application.h"
 #include "DB/TempDB.h"
 #include "UI/MainWindow.h"
+#include "BaseTextures.h"
+#include "TextureManager.h"
 
 #include <mh/error/ensure.hpp>
 
@@ -23,9 +25,24 @@ TF2BDApplication::TF2BDApplication()
 
 TF2BDApplication::~TF2BDApplication() = default;
 
-TF2BDApplication& TF2BDApplication::GetApplication()
+TF2BDApplication& TF2BDApplication::Get()
 {
 	return *mh_ensure(s_Application);
+}
+
+Settings& TF2BDApplication::GetSettings()
+{
+	return m_Settings;
+}
+
+std::shared_ptr<ITextureManager> TF2BDApplication::GetTextureManager() const
+{
+	return mh_ensure(m_TextureManager);
+}
+
+const IBaseTextures& TF2BDApplication::GetBaseTextures() const
+{
+	return *mh_ensure(m_BaseTextures);
 }
 
 MainWindow& TF2BDApplication::GetMainWindow()
@@ -56,4 +73,33 @@ void TF2BDApplication::OnRemovingManagedWindow(ImGuiDesktop::Window& window)
 {
 	if (&window == m_MainWindow)
 		m_MainWindow = nullptr;
+}
+
+void TF2BDApplication::OnEndFrame()
+{
+	Super::OnEndFrame();
+
+	GetTextureManager()->EndFrame();
+}
+
+void TF2BDApplication::OnOpenGLInit()
+{
+	Super::OnOpenGLInit();
+
+	assert(!m_TextureManager);
+	assert(!m_BaseTextures);
+
+	m_TextureManager = ITextureManager::Create();
+	m_BaseTextures = IBaseTextures::Create(m_TextureManager);
+}
+
+mh::dispatcher tf2_bot_detector::GetDispatcher()
+{
+	static mh::dispatcher s_Dispatcher;
+	return s_Dispatcher;
+}
+
+Settings& tf2_bot_detector::GetSettings()
+{
+	return TF2BDApplication::Get().GetSettings();
 }

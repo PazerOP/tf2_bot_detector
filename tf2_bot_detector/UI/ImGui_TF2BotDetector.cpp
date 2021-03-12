@@ -589,6 +589,20 @@ bool tf2_bot_detector::AutoLaunchTF2Checkbox(bool& value)
 	return ImGui::Checkbox("Automatically launch TF2 when TF2 Bot Detector is opened", &value);
 }
 
+ImVec4 tf2_bot_detector::BlendColors(const std::array<float, 4>& dstColor, const std::array<float, 4>& srcColor, float scalar)
+{
+	assert(scalar >= 0);
+	assert(scalar <= 1);
+
+	scalar *= srcColor[3]; // src alpha
+
+	std::array<float, 4> result;
+	for (size_t i = 0; i < 4; i++)
+		result[i] = (srcColor[i] * scalar) + (dstColor[i] * (1.0f - scalar));
+
+	return ImVec4(result);
+}
+
 ImVec2 ImGui::CalcButtonSize(const char* label)
 {
 	const auto& style = ImGui::GetStyle();
