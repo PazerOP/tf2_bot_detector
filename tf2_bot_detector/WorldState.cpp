@@ -20,7 +20,6 @@
 #include "GlobalDispatcher.h"
 #include "Application.h"
 #include "DB/TempDB.h"
-#include "Util/AsyncValue.h"
 
 #include <mh/algorithm/algorithm.hpp>
 #include <mh/concurrency/dispatcher.hpp>

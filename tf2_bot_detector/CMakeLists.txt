@@ -125,7 +125,6 @@ target_sources(tf2_bot_detector PRIVATE
 	"UI/SettingsWindow.cpp"
 	"UI/SettingsWindow.h"
 	"UI/TeamStats.cpp"
-	"Util/AsyncValue.h"
 	"Util/JSONUtils.h"
 	"Util/PathUtils.cpp"
 	"Util/PathUtils.h"
