@@ -9,6 +9,8 @@
 
 #include <optional>
 
+#undef GetCurrentTime
+
 namespace tf2_bot_detector
 {
 	class ChatConsoleLine;
