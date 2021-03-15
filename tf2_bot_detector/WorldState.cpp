@@ -228,6 +228,7 @@ namespace
 		mutable mh::expected<SteamAPI::PlayerSummary> m_PlayerSummary = ErrorCode::LazyValueUninitialized;
 		mutable mh::expected<SteamAPI::PlayerBans> m_PlayerSteamBans = ErrorCode::LazyValueUninitialized;
 		std::unordered_set<SteamID> m_SteamFriends;
+		std::error_condition m_SteamFriendsError = ErrorCode::LazyValueUninitialized;
 
 		void SetStatus(PlayerStatus status, time_point_t timestamp);
 		const PlayerStatus& GetStatus() const { return m_Status; }
@@ -275,10 +276,12 @@ WorldState::WorldState(const Settings& settings) :
 	m_ConsoleLineListenerBroadcaster(*this)
 {
 	AddConsoleLineListener(this);
+	AddWorldEventListener(this);
 }
 
 WorldState::~WorldState()
 {
+	RemoveWorldEventListener(this);
 	RemoveConsoleLineListener(this);
 }
 
@@ -645,22 +648,32 @@ mh::task<> WorldState::BuildFriendsGraphAsync(std::shared_ptr<Player> playerPtr)
 	if (httpClient)
 	{
 		Player& player = static_cast<Player&>(*playerPtr);
+		player.m_SteamFriendsError = std::errc::operation_in_progress;
+
 		const SteamID ourSteamID = player.GetSteamID();
 		{
 			std::unordered_set<SteamID> friends;
+			std::error_condition errCode = ErrorCode::Success;
 
 			try
 			{
 				friends = co_await SteamAPI::GetFriendList(m_Settings, ourSteamID, *httpClient);
 			}
+			catch (const std::system_error& e)
+			{
+				LogException();
+				errCode = e.code().default_error_condition();
+			}
 			catch (...)
 			{
 				LogException();
+				errCode = ErrorCode::UnknownError;
 			}
 
 			co_await GetDispatcher().co_dispatch(); // switch to main thread
 
 			player.m_SteamFriends = std::move(friends);
+			player.m_SteamFriendsError = errCode;
 		}
 
 		for (auto& [otherSteamID, otherPlayer] : m_CurrentPlayerData)
@@ -671,9 +684,19 @@ mh::task<> WorldState::BuildFriendsGraphAsync(std::shared_ptr<Player> playerPtr)
 		}
 	}
 }
+catch (const std::system_error& e)
+{
+	LogException();
+
+	assert(mh::is_main_thread());
+	playerPtr->m_SteamFriendsError = e.code().default_error_condition();
+}
 catch (...)
 {
 	LogException();
+
+	assert(mh::is_main_thread());
+	playerPtr->m_SteamFriendsError = ErrorCode::UnknownError;
 }
 
 void WorldState::OnConsoleLineParsed(IWorldState& world, IConsoleLine& parsed)
@@ -1057,7 +1080,9 @@ const mh::expected<SteamAPI::PlayerBans>& Player::GetPlayerBans() const
 
 const std::unordered_set<SteamID>& Player::GetSteamFriends(std::error_condition* status) const
 {
-	// TODO: set status
+	if (status)
+		*status = m_SteamFriendsError;
+
 	return m_SteamFriends;
 }
 

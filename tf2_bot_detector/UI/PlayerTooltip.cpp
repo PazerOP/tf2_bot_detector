@@ -3,11 +3,13 @@
 #include "Networking/SteamAPI.h"
 #include "UI/Components.h"
 #include "UI/ImGui_TF2BotDetector.h"
+#include "GenericErrors.h"
 #include "TextureManager.h"
 #include "IPlayer.h"
 #include "Log.h"
 #include "WorldState.h"
 
+#include <mh/error/ensure.hpp>
 #include <mh/text/formatters/error_code.hpp>
 
 #include <set>
@@ -359,30 +361,53 @@ namespace tf2_bot_detector::UI
 
 	static void PrintFriendsInServer(const IPlayer& player)
 	{
+		std::error_condition err;
+		const std::unordered_set<SteamID>& steamFriends = player.GetSteamFriends(&err);
+
+		std::vector<SteamID> inServer;
+		for (const IPlayer& otherPlayer : player.GetWorld().GetPlayers())
+		{
+			if (steamFriends.contains(otherPlayer.GetSteamID()))
+				inServer.push_back(otherPlayer.GetSteamID());
+		}
+
 		ImGui::TextFmt("       Friends : ");
 		ImGui::SameLineNoPad();
 
-		bool noneInServer = true;
-		for (const IPlayer& otherPlayer : player.GetWorld().GetPlayers())
+		if (steamFriends.empty() && err != ErrorCode::Success)
 		{
-			if (!player.GetSteamFriends().contains(otherPlayer.GetSteamID()))
-				continue; // other player not on our friends list
-
-			if (!noneInServer)
+			if (err == std::errc::operation_in_progress)
 			{
-				ImGui::TextFmt("               ");
-				ImGui::SameLineNoPad();
+				ImGui::PacifierText();
+			}
+			else if (err == SteamAPI::ErrorCode::InfoPrivate)
+			{
+				ImGui::TextFmt(COLOR_PRIVATE, "Private");
 			}
 			else
 			{
-				noneInServer = false;
+				ImGui::TextFmt(COLOR_RED, "{}", err);
 			}
-
-			ImGui::TextFmt("- {}", otherPlayer);
+		}
+		else
+		{
+			ImGui::TextFmt("{} known", steamFriends.size());
 		}
 
-		if (noneInServer)
-			ImGui::TextFmt(COLOR_UNAVAILABLE, "None");
+		if (!inServer.empty())
+		{
+			ImGui::SameLineNoPad();
+			ImGui::TextFmt(", {} in server", inServer.size());
+		}
+
+		for (const SteamID& otherPlayerID : inServer)
+		{
+			const IPlayer* otherPlayer = player.GetWorld().FindPlayer(otherPlayerID);
+			if (!mh_ensure(otherPlayer))
+				continue;
+
+			ImGui::TextFmt("               - {}", *otherPlayer);
+		}
 	}
 
 	void DrawPlayerTooltipBody(IPlayer& player, TeamShareResult teamShareResult,
@@ -431,6 +456,7 @@ namespace tf2_bot_detector::UI
 				PrintPlayerPlaytime(player);
 				PrintPlayerLogsCount(player);
 				PrintPlayerInventoryInfo(player);
+				PrintFriendsInServer(player);
 
 				ImGui::NewLine();
 
