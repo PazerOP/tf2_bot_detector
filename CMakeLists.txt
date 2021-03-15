@@ -7,6 +7,11 @@ include(cmake/init-preproject.cmake)
 	project(tf2_bot_detector)
 include(cmake/init-postproject.cmake)
 
+# apparent bug in VS 16.9.1 makes error messages unclickable because of wrong paths
+if (MSVC)
+	add_compile_options(/FC)
+endif()
+
 set(MH_STUFF_BUILD_SHARED_LIBS ON)
 add_subdirectory(submodules/mh_stuff)
 

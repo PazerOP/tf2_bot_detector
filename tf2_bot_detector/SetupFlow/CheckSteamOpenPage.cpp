@@ -2,6 +2,8 @@
 #include "UI/ImGui_TF2BotDetector.h"
 #include "Platform/Platform.h"
 
+#undef DrawState
+
 using namespace tf2_bot_detector;
 
 namespace
