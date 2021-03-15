@@ -8,6 +8,7 @@
 #include <mh/text/codecvt.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/text/format.hpp>
+#include <mh/text/indenting_ostream.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <mh/text/stringops.hpp>
 #include <SDL2/SDL_messagebox.h>
@@ -246,33 +247,67 @@ Error source function: {})"
 void tf2_bot_detector::LogException(const mh::source_location& location, const std::exception_ptr& e,
 	LogSeverity severity, LogVisibility visibility, const std::string_view& msg)
 {
-	const mh::exception_details details(e);
-
 	LogMessageColor color = LogColors::EXCEPTION;
 	if (visibility == LogVisibility::Debug)
 		color = color.WithAlpha(LogColors::DEBUG_ALPHA);
 
-	detail::log_h::LogImpl(LogColors::ERROR, severity, visibility, location,
-		msg.empty() ? "{1}: {2}"sv : "{0}: {1}: {2}"sv, msg, details.type_name(), details.m_Message);
+	std::string innerExceptions;
+
+	std::exception_ptr nextException = e;
+	do
+	{
+		mh::exception_details details(nextException);
+
+		if (!innerExceptions.empty())
+			innerExceptions += '\n';
+
+		mh::strwrapperstream innerExceptionsStream(innerExceptions);
+
+		mh::indenting_ostream(innerExceptionsStream) << details.type_name() << ": " << details.m_Message;
+
+		nextException = details.m_Nested;
+
+	} while (nextException);
+
+	{
+		std::string logMessage;
+
+		if (!msg.empty())
+		{
+			logMessage += msg;
+			logMessage << mh::indented(innerExceptions);
+		}
+		else
+		{
+			logMessage = innerExceptions;
+		}
+
+		detail::log_h::LogImpl(LogColors::ERROR, severity, visibility, location, std::move(logMessage));
+	}
 
 	if (severity == LogSeverity::Fatal)
 	{
-		auto dialogText = mh::format(
-			R"({}
+		std::string dialogText;
 
-Exception type: {}
-Exception message: {}
+		if (!msg.empty())
+		{
+			dialogText += msg;
+			dialogText += "\n\n";
+		}
 
-Exception source filename: {}:{}
-Exception source function: {})",
+		mh::format_to(std::back_inserter(dialogText),
+			R"(Exception source filename: {}:{}
+Exception source function: {}
 
-msg,
-
-details.type_name(),
-details.m_Message,
+Exceptions:)",
 
 location.file_name(), location.line(),
 location.function_name());
+
+		{
+			mh::strwrapperstream dialogTextStream(dialogText);
+			mh::indenting_ostream(dialogTextStream) << "\n" << innerExceptions;
+		}
 
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Unhandled exception", dialogText.c_str(), nullptr);
 
