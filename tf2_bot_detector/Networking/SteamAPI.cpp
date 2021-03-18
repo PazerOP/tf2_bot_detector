@@ -491,7 +491,7 @@ mh::task<PlayerInventoryInfo> SteamAPI::GetTF2InventoryInfoAsync(const ISteamAPI
 	}
 	catch (const http_error& error)
 	{
-		if (error.code() == HTTPResponseCode::Forbidden)
+		if (error.code() == HTTPResponseCode::Forbidden || error.code() == HTTPResponseCode::Unauthorized)
 			throw SteamAPIError(ErrorCode::InfoPrivate);
 		else
 			throw; // rethrow generic http errors

@@ -16,11 +16,14 @@
 #include "WorldState.h"
 
 #include <imgui_desktop/StorageHelper.h>
+#include <mh/data/optional_ref.hpp>
 
 using namespace std::chrono_literals;
 
 namespace tf2_bot_detector::UI
 {
+	static ImGuiDesktop::Storage<uint64_t> s_HoveredRowIDStorage;
+
 	mh::expected<std::shared_ptr<ITexture>> TryGetAvatarTexture(IPlayer& player)
 	{
 		using StateTask_t = mh::task<mh::expected<std::shared_ptr<ITexture>, std::error_condition>>;
@@ -184,8 +187,10 @@ namespace tf2_bot_detector::UI
 		}
 	}
 
-	void DrawScoreboardRow(IModeratorLogic& modLogic, IPlayer& player)
+	void DrawScoreboardRow(IModeratorLogic& modLogic, IPlayer& player, mh::optional_ref<bool> hovered = {})
 	{
+		const SteamID hoveredAccountID(s_HoveredRowIDStorage.Get());
+
 		const IBaseTextures& baseTextures = TF2BDApplication::Get().GetBaseTextures();
 		Settings& settings = GetSettings();
 
@@ -193,8 +198,7 @@ namespace tf2_bot_detector::UI
 			TryGetAvatarTexture(player);
 
 		const auto& playerName = player.GetNameSafe();
-		ImGuiDesktop::ScopeGuards::ID idScope((int)player.GetSteamID().Lower32);
-		ImGuiDesktop::ScopeGuards::ID idScope2((int)player.GetSteamID().Upper32);
+		ImGuiDesktop::ScopeGuards::ID idScope(player.GetSteamID().ID64);
 
 		ImGuiDesktop::ScopeGuards::StyleColor textColor;
 		if (player.GetConnectionState() != PlayerStatusState::Active || player.GetNameSafe().empty())
@@ -231,6 +235,9 @@ namespace tf2_bot_detector::UI
 				}
 			}();
 
+			if (player.GetSteamFriends().contains(hoveredAccountID))
+				bgColor = BlendColors(bgColor.to_array(), settings.m_Theme.m_Colors.m_ScoreboardHoverFriendBG, 1.0f);
+
 			if (playerAttribs.Has(PlayerAttribute::Cheater))
 				bgColor = BlendColors(bgColor.to_array(), settings.m_Theme.m_Colors.m_ScoreboardCheaterBG, TimeSine());
 			else if (playerAttribs.Has(PlayerAttribute::Suspicious))
@@ -249,7 +256,8 @@ namespace tf2_bot_detector::UI
 			ImGuiDesktop::ScopeGuards::StyleColor styleColorScopeActive(ImGuiCol_HeaderActive, bgColor);
 			ImGui::Selectable(buf.c_str(), true, ImGuiSelectableFlags_SpanAllColumns);
 
-			shouldDrawPlayerTooltip = ImGui::IsItemHovered();
+			hovered = ImGui::IsItemHovered();
+			shouldDrawPlayerTooltip = hovered;
 
 			ImGui::NextColumn();
 		}
@@ -608,8 +616,24 @@ namespace tf2_bot_detector::UI
 					ImGui::Separator();
 				}
 
+				const auto hoveredRowID = s_HoveredRowIDStorage.Snapshot();
+				bool hoveredRowIDWasSetOld = (hoveredRowID != 0);
+				bool hoveredRowIDWasSetNew = false;
 				for (IPlayer& player : GeneratePlayerPrintData(world.shared_from_this()))
-					DrawScoreboardRow(modLogic, player);
+				{
+					bool hovered = false;
+					DrawScoreboardRow(modLogic, player, hovered);
+
+					if (hovered)
+					{
+						hoveredRowID = player.GetSteamID().ID64;
+						hoveredRowIDWasSetNew = true;
+					}
+				}
+
+				// We can't just reset at the beginning of the loop because we need to affect players above us
+				if (hoveredRowIDWasSetOld && !hoveredRowIDWasSetNew)
+					hoveredRowID = 0;
 
 				ImGui::EndGroup();
 

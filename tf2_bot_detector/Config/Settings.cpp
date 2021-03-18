@@ -40,6 +40,7 @@ namespace tf2_bot_detector
 			{ "scoreboard_connecting.fg", d.m_ScoreboardConnectingFG },
 			{ "scoreboard_team_friendly.bg", d.m_ScoreboardFriendlyTeamBG },
 			{ "scoreboard_team_enemy.bg", d.m_ScoreboardEnemyTeamBG },
+			{ "scoreboard_hover_friend.bg", d.m_ScoreboardHoverFriendBG },
 
 			{ "chat_log_you.fg", d.m_ChatLogYouFG },
 			{ "chat_log_team_friendly.fg", d.m_ChatLogFriendlyTeamFG },
@@ -78,6 +79,7 @@ namespace tf2_bot_detector
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardConnectingFG, { "scoreboard_connecting.fg", "scoreboard_connecting" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardFriendlyTeamBG, { "scoreboard_team_friendly.bg", "friendly_team" });
 		try_get_to_defaulted(j, d, &Colors::m_ScoreboardEnemyTeamBG, { "scoreboard_team_enemy.bg", "enemy_team" });
+		try_get_to_defaulted(j, d, &Colors::m_ScoreboardHoverFriendBG, "scoreboard_hover_friend.bg");
 
 		try_get_to_defaulted(j, d, &Colors::m_ChatLogYouFG, "chat_log_you.fg");
 		try_get_to_defaulted(j, d, &Colors::m_ChatLogFriendlyTeamFG, "chat_log_team_friendly.fg");
