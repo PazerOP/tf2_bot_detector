@@ -50,6 +50,10 @@
 								"$ref": "./shared.schema.json#/definitions/tfbd_text_match",
 								"description": "Match against chat messages sent by the player."
 							},
+							"personaname_text_match": {
+								"$ref": "./shared.schema.json#/definitions/tfbd_text_match",
+								"description": "Match against the username."
+							},
 							"avatar_match": {
 								"type": "array",
 								"description": "Array of Steam avatar match rules. If any of these match, avatar_match is considered a match.",

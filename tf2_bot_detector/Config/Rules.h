@@ -68,9 +68,11 @@ namespace tf2_bot_detector
 			TriggerMatchMode m_Mode = TriggerMatchMode::MatchAll;
 
 			std::optional<TextMatch> m_UsernameTextMatch;
+			std::optional<TextMatch> m_PersonanameTextMatch;
 			std::optional<TextMatch> m_ChatMsgTextMatch;
 			std::vector<AvatarMatch> m_AvatarMatches;
 		} m_Triggers;
+
 
 		struct Actions
 		{
