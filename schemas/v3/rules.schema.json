@@ -52,7 +52,7 @@
 							},
 							"personaname_text_match": {
 								"$ref": "./shared.schema.json#/definitions/tfbd_text_match",
-								"description": "Match against the username."
+								"description": "Match against the steam name."
 							},
 							"avatar_match": {
 								"type": "array",
