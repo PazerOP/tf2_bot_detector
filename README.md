@@ -57,6 +57,7 @@
 - [FAQ](#faq)
   - [What is TF2 Bot Detector?](#what-is-tf2-bot-detector)
   - [What ISN'T TF2 Bot Detector?](#what-isnt-tf2-bot-detector)
+  - [Why would I want this? It's easy to identify and kick bots!](#why-would-i-want-this-its-easy-to-identify-and-kick-bots)
   - [Will this get me VAC banned?](#will-this-get-me-vac-banned)
   - [How does it work?](#how-does-it-work)
   - [How is the list of known cheaters curated?](#how-is-the-list-of-known-cheaters-curated)
