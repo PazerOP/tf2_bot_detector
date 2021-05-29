@@ -223,6 +223,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 * [Czechball](https://github.com/Czechball)
 * [RedNightmare](https://github.com/RedNightmare)
 * [Public Toilet](https://github.com/PoliteYeti)
+* [Koi](http://steamcommunity.com/profiles/76561198064411172)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
