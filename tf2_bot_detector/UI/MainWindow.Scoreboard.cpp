@@ -380,7 +380,7 @@ void MainWindow::OnDrawScoreboardRow(IPlayer& player)
 		ImGui::NextColumn();
 	}
 
-	// Steam ID column
+	// Steam ID3 column
 	{
 		const auto str = player.GetSteamID().str();
 		if (player.GetSteamID().Type != SteamAccountType::Invalid)
