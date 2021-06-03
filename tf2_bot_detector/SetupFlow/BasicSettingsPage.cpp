@@ -58,7 +58,7 @@ auto BasicSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 		ImGui::Unindent();
 	}
 
-	// 2. Steam ID
+	// 2. Steam ID3
 	//if (!GetCurrentActiveSteamID().IsValid())
 	{
 		any = true;
