@@ -48,7 +48,7 @@ void SettingsWindow::OnDrawASOSettings()
 			m_Settings.SaveFile();
 
 		// Local steamid
-		if (InputTextSteamIDOverride("My Steam ID", m_Settings.m_LocalSteamIDOverride, true))
+		if (InputTextSteamIDOverride("My Steam ID3", m_Settings.m_LocalSteamIDOverride, true))
 			m_Settings.SaveFile();
 
 		ImGui::TreePop();
