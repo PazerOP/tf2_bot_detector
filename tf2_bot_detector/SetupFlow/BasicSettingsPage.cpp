@@ -38,7 +38,7 @@ auto BasicSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 		ImGui::TextFmt("Location of your Steam directory:");
 		ImGui::NewLine();
 		ImGuiDesktop::ScopeGuards::Indent indent;
-		ImGui::TextFmt("Your Steam directory is needed to execute commands in TF2, read console logs, and determine your current Steam ID.");
+		ImGui::TextFmt("Your Steam directory is needed to execute commands in TF2, read console logs, and determine your current Steam ID3.");
 
 		InputTextSteamDirOverride("##SetupFlow_SteamDir", m_Settings.m_SteamDirOverride);
 
@@ -62,10 +62,10 @@ auto BasicSettingsPage::OnDraw(const DrawState& ds) -> OnDrawResult
 	//if (!GetCurrentActiveSteamID().IsValid())
 	{
 		any = true;
-		ImGui::TextFmt("Your Steam ID:"sv);
+		ImGui::TextFmt("Your Steam ID3:"sv);
 		ImGui::NewLine();
 		ImGui::Indent();
-		ImGui::TextFmt("Your Steam ID is needed to identify who can be votekicked (same team) and who is on the other team. You can find your Steam ID using sites like steamidfinder.com.");
+		ImGui::TextFmt("Your Steam ID3 is needed to identify who can be votekicked (same team) and who is on the other team. You can find your Steam ID3 using sites like steamidfinder.com.");
 
 		InputTextSteamIDOverride("##SetupFlow_SteamID", m_Settings.m_LocalSteamIDOverride);
 
