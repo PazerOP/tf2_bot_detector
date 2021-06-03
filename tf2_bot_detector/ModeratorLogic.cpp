@@ -98,7 +98,7 @@ namespace
 			} m_Voice;
 		};
 
-		// Steam IDs of players that we think are running the tool.
+		// Steam ID3s of players that we think are running the tool.
 		std::unordered_set<SteamID> m_PlayersRunningTool;
 
 		void OnPlayerStatusUpdate(IWorldState& world, const IPlayer& player) override;
