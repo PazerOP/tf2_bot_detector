@@ -111,7 +111,7 @@ void MainWindow::OnDrawScoreboard()
 
 				// SteamID header and column setup
 				{
-					ImGui::TextFmt("Steam ID");
+					ImGui::TextFmt("Steam ID3");
 					if (scoreboardResized)
 					{
 						nameColumnWidth -= 100 * currentFontScale;// +ImGui::GetStyle().ItemSpacing.x * 2;
@@ -412,7 +412,7 @@ void MainWindow::OnDrawScoreboardContextMenu(IPlayer& player)
 			if (ImGui::MenuItem("In-game Name"))
 				ImGui::SetClipboardText(player.GetNameUnsafe().c_str());
 
-			if (ImGui::MenuItem("Steam ID", nullptr, false, steamID.IsValid()))
+			if (ImGui::MenuItem("Steam ID3", nullptr, false, steamID.IsValid()))
 				ImGui::SetClipboardText(steamID.str().c_str());
 
 			ImGui::EndMenu();
