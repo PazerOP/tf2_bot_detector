@@ -44,7 +44,7 @@ bool AccountAges::CheckSteamIDValid(const SteamID& id, const mh::source_location
 {
 	if (id.Type != SteamAccountType::Individual)
 	{
-		LogError(location, "Steam ID ({}) must be for an individual account", id);
+		LogError(location, "Steam ID3 ({}) must be for an individual account", id);
 		return false;
 	}
 
