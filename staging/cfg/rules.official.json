@@ -536,7 +536,8 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"Verify me"
+						"Verify me",
+						"botpolice"
 					]
 				}
 			}
@@ -588,6 +589,23 @@
 					"mode": "ends_with",
 					"patterns": [
 						"\u0e31"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Wannabe anti-bots",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"OneTrick"
 					]
 				}
 			}
