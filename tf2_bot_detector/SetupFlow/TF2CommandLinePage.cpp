@@ -3,11 +3,13 @@
 #include "Platform/Platform.h"
 #include "UI/ImGui_TF2BotDetector.h"
 #include "Log.h"
+#include "Util/TextUtils.h"
 
 #include <mh/future.hpp>
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/string_insertion.hpp>
 #include <srcon/srcon.h>
+#include <vdf_parser.hpp>
 
 #include <chrono>
 #include <random>
@@ -133,12 +135,62 @@ bool TF2CommandLinePage::TF2CommandLine::IsPopulated() const
 	return true;
 }
 
-static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
+// Find the launch options that the user has configured through steam gui
+static std::string FindUserLaunchOptions(const Settings& settings)
 {
-	std::string url;
-	url << "steam://run/440//"
+	const SteamID steamID = settings.GetLocalSteamID();
+	const std::filesystem::path configPath = settings.GetSteamDir() / "userdata" / std::to_string(steamID.GetAccountID()) / "config/localconfig.vdf";
+	if (!std::filesystem::exists(configPath))
+		LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find Steam config file for Steam ID {}\n\nTried looking in {}", steamID, configPath);
+
+	std::ifstream file;
+	file.exceptions(std::ios::badbit | std::ios::failbit);
+	file.open(configPath);
+	tyti::vdf::object localConfigRoot = tyti::vdf::read(file);
+
+	auto childIter = localConfigRoot.childs.find("Software");
+	if (childIter == localConfigRoot.childs.end())
+		LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find \"Software\" key in {}", configPath);
+
+	std::shared_ptr<tyti::vdf::object> child = childIter->second;
+
+	const auto FindNextChild = [&](const std::string& name)
+	{
+		childIter = child->childs.find(name);
+		if (childIter == child->childs.end())
+			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find \"{}\" key in {}", name, configPath);
+
+		child = childIter->second;
+	};
+	FindNextChild("valve");
+	FindNextChild("Steam");
+	FindNextChild("Apps");
+	FindNextChild("440");
+
+	auto keyIter = child->attribs.find("LaunchOptions");
+	if (keyIter == child->attribs.end())
+	{
+		DebugLog("Didn't find any user-specified TF2 command line args in {}", configPath);
+		return {}; // User has never set any launch options
+	}
+
+	DebugLog("Found user-specified TF2 command line args in {}: {}", configPath, std::quoted(keyIter->second));
+	return keyIter->second; // Return launch options
+}
+
+// Actually launch tf2 with the necessary command line args for tf2bd to communicate with it
+static void OpenTF2(const Settings& settings, const std::string_view& rconPassword, uint16_t rconPort)
+{
+	const std::filesystem::path hl2Path = settings.GetTFDir() / ".." / "hl2.exe";
+
+	// TODO: scrub any conflicting alias or one-time-use commands from this
+	std::string args = FindUserLaunchOptions(settings);
+	args <<
+		" dummy" // Dummy option in case user has mismatched command line args in their steam config
+		" -game tf"
+		" -steam -secure"  // One or both of these is needed when launching the game directly
 		" -usercon"
-		" -high"
+		" -high" // TODO: make this an option
 		" +developer 1 +alias developer"
 		" +contimes 0 +alias contimes"   // the text in the top left when developer >= 1
 		" +ip 0.0.0.0 +alias ip"
@@ -153,7 +205,7 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 		" -conclearlog"
 		;
 
-	Shell::OpenURL(std::move(url));
+	Processes::Launch(hl2Path, args);
 }
 
 TF2CommandLinePage::RCONClientData::RCONClientData(std::string pwd, uint16_t port) :
@@ -246,7 +298,7 @@ void TF2CommandLinePage::DrawLaunchTF2Button(const DrawState& ds)
 				m_Data.m_RandomRCONPassword = GenerateRandomRCONPassword();
 				m_Data.m_RandomRCONPort = ds.m_Settings->m_TF2Interface.GetRandomRCONPort();
 
-				OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
+				OpenTF2(*ds.m_Settings, m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
 				m_Data.m_LastTF2LaunchTime = curTime;
 			}
 
