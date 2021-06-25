@@ -283,6 +283,8 @@ void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable
 void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable,
 	const std::string_view& args, bool elevated)
 {
+	DebugLog("ShellExecute({}, {}) (elevated = {})", executable, args, elevated);
+
 	const auto cmdLineWide = mh::change_encoding<wchar_t>(args);
 
 	const auto result = ShellExecuteW(

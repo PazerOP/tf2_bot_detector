@@ -133,12 +133,15 @@ bool TF2CommandLinePage::TF2CommandLine::IsPopulated() const
 	return true;
 }
 
-static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
+static void OpenTF2(const Settings& settings, const std::string_view& rconPassword, uint16_t rconPort)
 {
-	std::string url;
-	url << "steam://run/440//"
+	const std::filesystem::path hl2Path = settings.GetTFDir() / ".." / "hl2.exe";
+
+	std::string args;
+	args <<
+		" -game tf"
 		" -usercon"
-		" -high"
+		" -high" // TODO: make this an option
 		" +developer 1 +alias developer"
 		" +contimes 0 +alias contimes"   // the text in the top left when developer >= 1
 		" +ip 0.0.0.0 +alias ip"
@@ -153,7 +156,7 @@ static void OpenTF2(const std::string_view& rconPassword, uint16_t rconPort)
 		" -conclearlog"
 		;
 
-	Shell::OpenURL(std::move(url));
+	Processes::Launch(hl2Path, args);
 }
 
 TF2CommandLinePage::RCONClientData::RCONClientData(std::string pwd, uint16_t port) :
@@ -246,7 +249,7 @@ void TF2CommandLinePage::DrawLaunchTF2Button(const DrawState& ds)
 				m_Data.m_RandomRCONPassword = GenerateRandomRCONPassword();
 				m_Data.m_RandomRCONPort = ds.m_Settings->m_TF2Interface.GetRandomRCONPort();
 
-				OpenTF2(m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
+				OpenTF2(*ds.m_Settings, m_Data.m_RandomRCONPassword, m_Data.m_RandomRCONPort);
 				m_Data.m_LastTF2LaunchTime = curTime;
 			}
 
