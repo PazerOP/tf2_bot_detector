@@ -8,6 +8,7 @@
 #include <mh/future.hpp>
 #include <mh/text/charconv_helper.hpp>
 #include <mh/text/string_insertion.hpp>
+#include <mh/text/case_insensitive_string.hpp>
 #include <srcon/srcon.h>
 #include <vdf_parser.hpp>
 
@@ -148,21 +149,26 @@ static std::string FindUserLaunchOptions(const Settings& settings)
 	file.open(configPath);
 	tyti::vdf::object localConfigRoot = tyti::vdf::read(file);
 
-	auto childIter = localConfigRoot.childs.find("Software");
-	if (childIter == localConfigRoot.childs.end())
-		LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find \"Software\" key in {}", configPath);
-
-	std::shared_ptr<tyti::vdf::object> child = childIter->second;
+	std::shared_ptr<tyti::vdf::object> child;
 
 	const auto FindNextChild = [&](const std::string& name)
 	{
-		childIter = child->childs.find(name);
-		if (childIter == child->childs.end())
-			LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find \"{}\" key in {}", name, configPath);
+		const auto begin = child ? child->childs.begin() : localConfigRoot.childs.begin();
+		const auto end = child ? child->childs.end() : localConfigRoot.childs.end();
+		for (auto it = begin; it != end; ++it)
+		{
+			if (mh::case_insensitive_compare(it->first, name))
+			{
+				child = it->second;
+				return;
+			}
+		}
 
-		child = childIter->second;
+		LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find \"{}\" key in {}", name, configPath);
 	};
-	FindNextChild("valve");
+
+	FindNextChild("Software");
+	FindNextChild("Valve");
 	FindNextChild("Steam");
 	FindNextChild("Apps");
 	FindNextChild("440");
