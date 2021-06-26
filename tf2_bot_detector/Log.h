@@ -234,4 +234,9 @@ namespace tf2_bot_detector
 	{
 		LogFatalError(location, mh::try_format(fmtStr, args...));
 	}
+	template<typename... TArgs>
+	[[noreturn]] void LogFatalError(const detail::log_h::src_location_wrapper& fmtStr, const TArgs&... args)
+	{
+		return LogFatalError(fmtStr.m_Location, fmtStr.m_Value, args...);
+	}
 }
