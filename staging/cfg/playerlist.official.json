@@ -112,6 +112,16 @@
 				"racist"
 			],
 			"last_seen": {
+				"player_name": "Lt.TexasDan[BN]",
+				"time": 1624680846
+			},
+			"steamid": "[U:1:34109857]"
+		},
+		{
+			"attributes": [
+				"racist"
+			],
+			"last_seen": {
 				"player_name": "Rabbi Gabeslave",
 				"time": 1615088738
 			},
@@ -1144,6 +1154,16 @@
 				"time": 1609383196
 			},
 			"steamid": "[U:1:907277947]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "d9 man for life man",
+				"time": 1624680310
+			},
+			"steamid": "[U:1:918934206]"
 		},
 		{
 			"attributes": [
@@ -10104,6 +10124,16 @@
 				"time": 1616130834
 			},
 			"steamid": "[U:1:1192486585]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "cat",
+				"time": 1624680714
+			},
+			"steamid": "[U:1:1220405264]"
 		}
 	]
 }
