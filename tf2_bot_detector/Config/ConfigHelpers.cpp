@@ -212,11 +212,14 @@ static void SaveConfigFileBackup(const std::filesystem::path& filename) noexcept
 	const auto extension = filename.extension();
 	const auto baseFilename = filename.filename().replace_extension();
 
+	const auto baseTargetPath = fs.ResolvePath(filename, PathUsage::WriteLocal).remove_filename();
+	if (std::filesystem::create_directories(baseTargetPath))
+		DebugLog("Created one or more directories in the path {}", baseTargetPath);
+
 	std::filesystem::path backupPath;
 	for (size_t i = 1; ; i++)
 	{
-		backupPath = fs.ResolvePath(filename, PathUsage::WriteLocal).remove_filename();
-		backupPath /= mh::format("{}_BACKUP_{}{}", baseFilename.string(), i, extension.string());
+		backupPath = baseTargetPath / mh::format("{}_BACKUP_{}{}", baseFilename.string(), i, extension.string());
 
 		if (!std::filesystem::exists(backupPath))
 		{
