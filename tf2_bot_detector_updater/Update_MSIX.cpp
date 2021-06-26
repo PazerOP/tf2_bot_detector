@@ -58,7 +58,7 @@ int tf2_bot_detector::Updater::Update_MSIX() try
 	{
 		std::wcerr << "Error encountered during async update: "
 			<< task.ErrorCode() << ": " << task.get().ErrorText().c_str();
-		return false;
+		return 2;
 	}
 	else if (waitStatus == AsyncStatus::Completed)
 	{
