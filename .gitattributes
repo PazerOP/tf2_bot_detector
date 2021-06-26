@@ -5,7 +5,7 @@
 
 # STOP USING CRLF, PLEASE
 *.cpp text eol=lf
-*.h text eol=lf
+*.h text eol=lf linguist-language=cpp
 
 ###############################################################################
 # Set default behavior for command prompt diff.
