@@ -7,6 +7,9 @@
 *.cpp text eol=lf
 *.h text eol=lf linguist-language=cpp
 
+# Ignore some dependencies in submodules (gl stuff that is not actually a submodule)
+submodules/* linguist-vendored
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #
