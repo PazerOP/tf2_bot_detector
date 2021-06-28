@@ -27,6 +27,7 @@ namespace tf2_bot_detector
 	std::unique_ptr<ISetupFlowPage> CreateUpdateCheckPage();
 	std::unique_ptr<ISetupFlowPage> CreatePermissionsCheckPage();
 	std::unique_ptr<ISetupFlowPage> CreateCheckSteamOpenPage();
+	std::unique_ptr<ISetupFlowPage> CreateCheckFaceitClosedPage();
 }
 
 SetupFlow::SetupFlow()
@@ -41,6 +42,7 @@ SetupFlow::SetupFlow()
 	m_Pages.push_back(std::make_unique<ChatWrappersGeneratorPage>());
 	m_Pages.push_back(std::make_unique<TF2CommandLinePage>());
 	m_Pages.push_back(std::make_unique<ChatWrappersVerifyPage>());
+	m_Pages.push_back(CreateCheckFaceitClosedPage());
 	// order unimportant, see SetupFlowPage enum
 
 	mh::sort(m_Pages, [](const std::unique_ptr<ISetupFlowPage>& lhs, const std::unique_ptr<ISetupFlowPage>& rhs)

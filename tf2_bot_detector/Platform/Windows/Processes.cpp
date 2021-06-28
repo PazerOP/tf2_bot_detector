@@ -4,6 +4,7 @@
 
 #include <mh/memory/cached_variable.hpp>
 #include <mh/error/ensure.hpp>
+#include <mh/text/case_insensitive_string.hpp>
 #include <mh/text/codecvt.hpp>
 #include <mh/text/formatters/error_code.hpp>
 #include <mh/text/insertion_conversion.hpp>
@@ -222,31 +223,32 @@ std::shared_future<std::vector<std::string>> tf2_bot_detector::Processes::GetTF2
 
 bool tf2_bot_detector::Processes::IsSteamRunning()
 {
-	static mh::cached_variable m_CachedValue(std::chrono::seconds(1), []() -> bool
-		{
-			const SafeHandle snapshot(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
-
-			PROCESSENTRY32 entry{};
-			entry.dwSize = sizeof(entry);
-
-			if (!Process32First(snapshot.get(), &entry))
-			{
-				auto error = GetLastErrorCode();
-				LogError("Failed to enumerate processes: {}", error);
-				return false;
-			}
-
-			do
-			{
-				if (!_stricmp(entry.szExeFile, "Steam.exe"))
-					return true;
-
-			} while (Process32Next(snapshot.get(), &entry));
-
-			return false;
-		});
-
+	static mh::cached_variable m_CachedValue(std::chrono::seconds(1), []() { return IsProcessRunning("Steam.exe"); });
 	return m_CachedValue.get();
+}
+
+bool tf2_bot_detector::Processes::IsProcessRunning(const std::string_view& processName)
+{
+	const SafeHandle snapshot(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
+
+	PROCESSENTRY32 entry{};
+	entry.dwSize = sizeof(entry);
+
+	if (!Process32First(snapshot.get(), &entry))
+	{
+		auto error = GetLastErrorCode();
+		LogError("Failed to enumerate processes: {}", error);
+		return false;
+	}
+
+	do
+	{
+		if (mh::case_insensitive_compare(std::string_view(entry.szExeFile), processName))
+			return true;
+
+	} while (Process32Next(snapshot.get(), &entry));
+
+	return false;
 }
 
 void tf2_bot_detector::Processes::RequireTF2NotRunning()
@@ -297,8 +299,29 @@ void tf2_bot_detector::Processes::Launch(const std::filesystem::path& executable
 
 	if (reinterpret_cast<intptr_t>(result) <= 32)
 	{
-		auto exception = std::runtime_error(
-			mh::format("ShellExecuteW returned {}", reinterpret_cast<intptr_t>(result)));
+		std::string errorCode;
+		switch (reinterpret_cast<intptr_t>(result))
+		{
+		case 0:                       errorCode = "<out of resources>"; break;
+		case ERROR_FILE_NOT_FOUND:    errorCode = "ERROR_FILE_NOT_FOUND"; break;
+		case ERROR_PATH_NOT_FOUND:    errorCode = "ERROR_PATH_NOT_FOUND"; break;
+		case ERROR_BAD_FORMAT:        errorCode = "ERROR_BAD_FORMAT"; break;
+		case SE_ERR_ACCESSDENIED:     errorCode = "SE_ERR_ACCESSDENIED"; break;
+		case SE_ERR_ASSOCINCOMPLETE:  errorCode = "SE_ERR_ASSOCINCOMPLETE"; break;
+		case SE_ERR_DDEBUSY:          errorCode = "SE_ERR_DDEBUSY"; break;
+		case SE_ERR_DDEFAIL:          errorCode = "SE_ERR_DDEFAIL"; break;
+		case SE_ERR_DDETIMEOUT:       errorCode = "SE_ERR_DDETIMEOUT"; break;
+		case SE_ERR_DLLNOTFOUND:      errorCode = "SE_ERR_DLLNOTFOUND"; break;
+		//case SE_ERR_FNF:              errorCode = "SE_ERR_FNF"; break;
+		case SE_ERR_NOASSOC:          errorCode = "SE_ERR_NOASSOC"; break;
+		case SE_ERR_OOM:              errorCode = "SE_ERR_OOM"; break;
+		//case SE_ERR_PNF:              errorCode = "SE_ERR_PNF"; break;
+		case SE_ERR_SHARE:            errorCode = "SE_ERR_SHARE"; break;
+		default:
+			errorCode << reinterpret_cast<intptr_t>(result);
+			break;
+		}
+		auto exception = std::runtime_error(mh::format("ShellExecuteW returned {}", errorCode));
 
 		LogException(MH_SOURCE_LOCATION_CURRENT(), exception);
 		throw exception;
