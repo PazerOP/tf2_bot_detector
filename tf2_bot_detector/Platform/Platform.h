@@ -27,6 +27,7 @@ namespace tf2_bot_detector
 		std::filesystem::path GetRootRoamingAppDataDir();
 		std::filesystem::path GetLegacyAppDataDir();
 		std::filesystem::path GetRootTempDataDir();
+		bool IsPortAvailable(uint16_t port);
 
 		bool IsDebuggerAttached();
 

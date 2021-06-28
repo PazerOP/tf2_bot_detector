@@ -289,8 +289,25 @@ uint16_t Settings::TF2Interface::GetRandomRCONPort() const
 		generator.seed(randomSeed());
 	}
 
-	std::uniform_int_distribution<uint16_t> dist(m_RCONPortMin, m_RCONPortMax);
-	return dist(generator);
+	constexpr int MAX_TRIES = 10;
+	for (int i = 0; i < MAX_TRIES; i++)
+	{
+		std::uniform_int_distribution<uint16_t> dist(m_RCONPortMin, m_RCONPortMax);
+		const uint16_t port = dist(generator);
+
+		if (Platform::IsPortAvailable(port))
+		{
+			Log("Selected port {}.", port);
+			return port;
+		}
+		else
+		{
+			LogWarning("Port {} not available, trying again...", port);
+		}
+	}
+
+	LogFatalError("Tried to find an open port to use for TF2 rcon communication, but couldn't find one after {} tries.", MAX_TRIES);
+	return 0;
 }
 
 void tf2_bot_detector::to_json(nlohmann::json& j, const Settings::TF2Interface& d)
