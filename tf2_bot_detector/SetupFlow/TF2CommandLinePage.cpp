@@ -142,46 +142,64 @@ static std::string FindUserLaunchOptions(const Settings& settings)
 	const SteamID steamID = settings.GetLocalSteamID();
 	const std::filesystem::path configPath = settings.GetSteamDir() / "userdata" / std::to_string(steamID.GetAccountID()) / "config/localconfig.vdf";
 	if (!std::filesystem::exists(configPath))
-		LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find Steam config file for Steam ID {}\n\nTried looking in {}", steamID, configPath);
-
-	std::ifstream file;
-	file.exceptions(std::ios::badbit | std::ios::failbit);
-	file.open(configPath);
-	tyti::vdf::object localConfigRoot = tyti::vdf::read(file);
-
-	std::shared_ptr<tyti::vdf::object> child;
-
-	const auto FindNextChild = [&](const std::string& name)
 	{
-		const auto begin = child ? child->childs.begin() : localConfigRoot.childs.begin();
-		const auto end = child ? child->childs.end() : localConfigRoot.childs.end();
-		for (auto it = begin; it != end; ++it)
-		{
-			if (mh::case_insensitive_compare(it->first, name))
-			{
-				child = it->second;
-				return;
-			}
-		}
-
-		LogFatalError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find \"{}\" key in {}", name, configPath);
-	};
-
-	FindNextChild("Software");
-	FindNextChild("Valve");
-	FindNextChild("Steam");
-	FindNextChild("Apps");
-	FindNextChild("440");
-
-	auto keyIter = child->attribs.find("LaunchOptions");
-	if (keyIter == child->attribs.end())
-	{
-		DebugLog("Didn't find any user-specified TF2 command line args in {}", configPath);
-		return {}; // User has never set any launch options
+		LogError("Unable to find Steam config file for Steam ID {}\n\nTried looking in {}", steamID, configPath);
+		return {};
 	}
 
-	DebugLog("Found user-specified TF2 command line args in {}: {}", configPath, std::quoted(keyIter->second));
-	return keyIter->second; // Return launch options
+	DebugLog("Attempting to parse user-specified TF2 command line args from {}", configPath);
+
+	try
+	{
+		std::ifstream file;
+		file.exceptions(std::ios::badbit | std::ios::failbit);
+		file.open(configPath);
+		tyti::vdf::object localConfigRoot = tyti::vdf::read(file);
+
+		std::shared_ptr<tyti::vdf::object> child;
+
+		const auto FindNextChild = [&](const std::string& name)
+		{
+			const auto begin = child ? child->childs.begin() : localConfigRoot.childs.begin();
+			const auto end = child ? child->childs.end() : localConfigRoot.childs.end();
+			for (auto it = begin; it != end; ++it)
+			{
+				if (mh::case_insensitive_compare(it->first, name))
+				{
+					child = it->second;
+					return true;
+				}
+			}
+
+			LogError(MH_SOURCE_LOCATION_CURRENT(), "Unable to find \"{}\" key in {}", name, configPath);
+			return false;
+		};
+
+		if (!FindNextChild("Software") ||
+			!FindNextChild("Valve") ||
+			!FindNextChild("Steam") ||
+			!FindNextChild("Apps") ||
+			!FindNextChild("440"))
+		{
+			// There was a missing key or other error
+			return {};
+		}
+
+		auto keyIter = child->attribs.find("LaunchOptions");
+		if (keyIter == child->attribs.end())
+		{
+			DebugLog("Didn't find any user-specified TF2 command line args in {}", configPath);
+			return {}; // User has never set any launch options
+		}
+
+		DebugLog("Found user-specified TF2 command line args in {}: {}", configPath, std::quoted(keyIter->second));
+		return keyIter->second; // Return launch options
+	}
+	catch (const std::exception&)
+	{
+		LogException("Failed to determine user-specified TF2 command line arguments");
+		return {};
+	}
 }
 
 // Actually launch tf2 with the necessary command line args for tf2bd to communicate with it
