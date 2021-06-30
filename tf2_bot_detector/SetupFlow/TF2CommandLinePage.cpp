@@ -390,9 +390,16 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 
 	if (!m_Data.m_CommandLineArgs.has_value())
 	{
-		m_Data.m_TestRCONClient.reset();
-		ImGui::TextFmt("TF2 must be launched via TF2 Bot Detector. You can open it by clicking the button below.");
-		DrawLaunchTF2Button(ds);
+		if (Platform::Processes::IsTF2Running())
+		{
+			ImGui::TextFmt("TF2 is currently running. Fetching command line arguments...");
+		}
+		else
+		{
+			m_Data.m_TestRCONClient.reset();
+			ImGui::TextFmt("TF2 must be launched via TF2 Bot Detector. You can open it by clicking the button below.");
+			DrawLaunchTF2Button(ds);
+		}
 	}
 	else if (m_Data.m_MultipleInstances)
 	{
