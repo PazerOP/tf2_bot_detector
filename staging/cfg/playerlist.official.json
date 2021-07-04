@@ -5712,6 +5712,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(1)MaximilianMus",
+				"time": 1625357547
+			},
+			"steamid": "[U:1:1123127890]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "das",
 				"time": 1615174765
 			},
@@ -8583,6 +8593,16 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "(2)MaximilianMus",
+				"time": 1625357525
+			},
+			"steamid": "[U:1:1170003528]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "Elder God Pot",
 				"time": 1611054934
 			},
@@ -10150,10 +10170,39 @@
 				"cheater"
 			],
 			"last_seen": {
+				"player_name": "MaximilianMus",
+				"time": 1625357489
+			},
+			"steamid": "[U:1:1214690268]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"player_name": "Maxi\u200fmilianMus\u200f\u200f",
+				"time": 1625356995
+			},
+			"steamid": "[U:1:1216515664]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
 				"player_name": "cat",
 				"time": 1624680714
 			},
 			"steamid": "[U:1:1220405264]"
+		},
+		{
+			"attributes": [
+				"cheater"
+			],
+			"last_seen": {
+				"time": 1625356995
+			},
+			"steamid": "[U:1:1224796233]"
 		}
 	]
 }
