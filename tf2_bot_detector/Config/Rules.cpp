@@ -263,7 +263,7 @@ void ModerationRules::ConfigFileGroup::CombineEntries(RuleList_t& list, const Ru
 	list.insert(list.end(), file.m_Rules.begin(), file.m_Rules.end());
 }
 
-bool TextMatch::Match(const std::string_view& text) const
+bool TextMatch::Match(const std::string_view& text) const try
 {
 	switch (m_Mode)
 	{
@@ -312,12 +312,20 @@ bool TextMatch::Match(const std::string_view& text) const
 	{
 		return std::any_of(m_Patterns.begin(), m_Patterns.end(), [&](const std::string_view& pattern)
 			{
-				std::regex_constants::syntax_option_type options{};
-				if (!m_CaseSensitive)
-					options = std::regex_constants::icase;
+				try
+				{
+					std::regex_constants::syntax_option_type options{};
+					if (!m_CaseSensitive)
+						options = std::regex_constants::icase;
 
-				std::regex r(pattern.begin(), pattern.end(), options);
-				return std::regex_match(text.begin(), text.end(), r);
+					std::regex r(pattern.begin(), pattern.end(), options);
+					return std::regex_match(text.begin(), text.end(), r);
+				}
+				catch (const std::regex_error&)
+				{
+					LogException("Regex error when trying to match {} against pattern {}", std::quoted(text), std::quoted(pattern));
+					return false;
+				}
 			});
 	}
 	case TextMatchMode::Word:
@@ -346,6 +354,11 @@ bool TextMatch::Match(const std::string_view& text) const
 	}
 
 	throw std::runtime_error(mh::format("{}: Unknown value {}", MH_SOURCE_LOCATION_CURRENT(), mh::enum_fmt(m_Mode)));
+}
+catch (...)
+{
+	LogException("Error when trying to match against {}", std::quoted(text));
+	throw;
 }
 
 bool ModerationRule::Match(const IPlayer& player) const
