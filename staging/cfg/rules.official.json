@@ -461,6 +461,155 @@
 					}
 				]
 			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Crazy Frogs",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"CRAZY FROG",
+						"RACIST CRAZY FROG",
+						"cazy",
+						"A blast from",
+						"crzy",
+						"crazyfrog",
+						"AxelF",
+						"Cr@zy",
+						"Frog is crazy",
+						"Crazy Fortress"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "OMEGATRONIC 1",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"OMEGATRONIC"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "OMEGATRONIC 2",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"\u0e47",
+						"\u0e37",
+						"\u0e3a",
+						"\u0e35"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Verifiers",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"Verify me",
+						"botpolice"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Valve Gape Newells",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"[VALVE]"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Waffen-SS",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"Waffen-SS"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Impersonators",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "ends_with",
+					"patterns": [
+						"\u0e31"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Wannabe anti-bots",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"OneTrick"
+					]
+				}
+			}
 		}
 	]
 }
