@@ -8,10 +8,11 @@ defaults:
     shell: bash
 
 jobs:
-  config:
+  test:
     runs-on: windows-latest
     steps:
     - name: Download batch script from repo
+      shell: bash
       run: wget https://github.com/PazerOP/tf2_bot_detector/raw/${{ github.sha }}/util/download_and_compile.bat
 
     - name: Run batch script
