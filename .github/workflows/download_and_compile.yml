@@ -15,3 +15,5 @@ jobs:
     - name: Run batch script
       shell: cmd
       run: download_and_compile.bat
+      env:
+        TF2BD_DL_AND_COMPILE_SKIP_OPEN: 1

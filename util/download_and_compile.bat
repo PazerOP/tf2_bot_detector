@@ -8,7 +8,7 @@ IF EXIST tf2_bot_detector (
 		CD tf2_bot_detector
 		git pull --recurse-submodules
 		IF %ERRORLEVEL% NEQ 0 EXIT /B
-) else (
+) ELSE (
 	ECHO Downloading TF2 Bot Detector source...
 		git clone --depth=1 https://github.com/PazerOP/tf2_bot_detector.git tf2_bot_detector --recurse-submodules
 		IF %ERRORLEVEL% NEQ 0 EXIT /B
@@ -32,9 +32,11 @@ ECHO Copying default configuration...
 	XCOPY /E /Y tf2_bot_detector\Release\* "%STAGING_DIR%"
 	IF %ERRORLEVEL% NEQ 0 EXIT /B
 
-ECHO Opening compiled output...
-	explorer "%STAGING_DIR%"
-	IF %ERRORLEVEL% NEQ 0 EXIT /B
+IF NOT "%TF2BD_DL_AND_COMPILE_SKIP_OPEN%"=="1" (
+	ECHO Opening compiled output...
+		explorer "%STAGING_DIR%"
+		IF %ERRORLEVEL% NEQ 0 EXIT /B
+)
 
 PAUSE
 ENDLOCAL
