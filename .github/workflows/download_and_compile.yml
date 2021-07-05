@@ -13,4 +13,5 @@ jobs:
         url: "https://github.com/PazerOP/tf2_bot_detector/raw/${{ github.sha }}/util/download_and_compile.bat"
 
     - name: Run batch script
+      shell: cmd
       run: download_and_compile.bat
