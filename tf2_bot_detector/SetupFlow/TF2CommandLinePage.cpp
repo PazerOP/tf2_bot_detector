@@ -319,6 +319,9 @@ void TF2CommandLinePage::DrawLaunchTF2Button(const DrawState& ds)
 		{
 			if ((ImGui::Button("Launch TF2") || (m_IsAutoLaunchAllowed && ds.m_Settings->m_AutoLaunchTF2)) && canLaunchTF2)
 			{
+				if (Platform::Processes::IsTF2Running())
+					LogError("TF2 already running!");
+
 				m_Data.m_RandomRCONPassword = GenerateRandomRCONPassword();
 				m_Data.m_RandomRCONPort = ds.m_Settings->m_TF2Interface.GetRandomRCONPort();
 
@@ -403,6 +406,7 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 	}
 	else if (m_Data.m_MultipleInstances)
 	{
+		m_IsAutoLaunchAllowed = false; // Multiple instances already running for some reason, disable auto launching
 		m_Data.m_TestRCONClient.reset();
 		ImGui::TextFmt("More than one instance of hl2.exe found. Please close the other instances.");
 
@@ -410,6 +414,8 @@ auto TF2CommandLinePage::OnDraw(const DrawState& ds) -> OnDrawResult
 	}
 	else if (auto& args = m_Data.m_CommandLineArgs.value(); !args.IsPopulated())
 	{
+		m_IsAutoLaunchAllowed = false; // Invalid command line arguments, disable auto launching
+		m_Data.m_TestRCONClient.reset();
 		DrawCommandLineArgsInvalid(ds, args);
 	}
 	else if (!m_Data.m_RCONSuccess)
