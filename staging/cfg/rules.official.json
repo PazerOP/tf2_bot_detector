@@ -461,6 +461,29 @@
 					}
 				]
 			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Dox bot",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "48B892AF06224C6D2E3BF7313F5AF157625EBA8F"
+					}
+				],
+				"mode": "match_all",
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"bit.ly/2Ut8N3F"
+					]
+				}
+			}
 		}
 	]
 }
