@@ -472,7 +472,7 @@
 			"triggers": {
 				"avatar_match": [
 					{
-						"avatar_hash": "48B892AF06224C6D2E3BF7313F5AF157625EBA8F"
+						"avatar_hash": "0A05C28558B19CDFF2A52ACFBC4DCF3BBC1962CD"
 					}
 				],
 				"mode": "match_all",
