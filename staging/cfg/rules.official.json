@@ -480,7 +480,7 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"bit.ly/2Ut8N3F"
+						"bit.ly"
 					]
 				}
 			}
