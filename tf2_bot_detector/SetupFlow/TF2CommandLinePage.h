@@ -3,6 +3,7 @@
 #include "Clock.h"
 #include "ISetupFlowPage.h"
 
+#include <mh/coroutine/task.hpp>
 #include <srcon/async_client.h>
 
 #include <array>
@@ -72,7 +73,7 @@ namespace tf2_bot_detector
 
 			bool m_MultipleInstances = false;
 			std::optional<TF2CommandLine> m_CommandLineArgs;
-			std::shared_future<std::vector<std::string>> m_CommandLineArgsFuture;
+			mh::task<std::vector<std::string>> m_CommandLineArgsTask;
 			bool m_AtLeastOneUpdateRun = false;
 
 			time_point_t m_LastCLUpdate{};

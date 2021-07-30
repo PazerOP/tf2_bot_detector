@@ -72,7 +72,7 @@ namespace tf2_bot_detector
 		namespace Processes
 		{
 			bool IsTF2Running();
-			std::shared_future<std::vector<std::string>> GetTF2CommandLineArgsAsync();
+			mh::task<std::vector<std::string>> GetTF2CommandLineArgsAsync();
 			bool IsSteamRunning();
 			bool IsProcessRunning(const std::string_view& processName);
 			void RequireTF2NotRunning();
