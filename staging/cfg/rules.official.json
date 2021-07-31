@@ -484,6 +484,29 @@
 					]
 				}
 			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "LunaRP bot",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "B320273DC057BFA03CEF2422C69C686AA1F3660E"
+					}
+				],
+				"mode": "match_all",
+				"username_text_match": {
+					"case_sensitive": true,
+					"mode": "contains",
+					"patterns": [
+						"discord.gg/6TsYkfQbKk"
+					]
+				}
+			}
 		}
 	]
 }
