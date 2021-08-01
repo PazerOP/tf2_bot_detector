@@ -472,7 +472,7 @@
 			"triggers": {
 				"avatar_match": [
 					{
-						"avatar_hash": "0A05C28558B19CDFF2A52ACFBC4DCF3BBC1962CD"
+						"avatar_hash": "0a05c28558b19cdff2a52acfbc4dcf3bbc1962cd"
 					}
 				],
 				"mode": "match_all",
@@ -495,7 +495,7 @@
 			"triggers": {
 				"avatar_match": [
 					{
-						"avatar_hash": "B320273DC057BFA03CEF2422C69C686AA1F3660E"
+						"avatar_hash": "b320273dc057bfa03cef2422c69c686aa1f3660e"
 					}
 				],
 				"mode": "match_all",
