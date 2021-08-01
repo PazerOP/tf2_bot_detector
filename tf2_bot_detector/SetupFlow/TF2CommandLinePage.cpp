@@ -41,9 +41,9 @@ static std::string GenerateRandomRCONPassword(size_t length = 16)
 
 void TF2CommandLinePage::Data::TryUpdateCmdlineArgs()
 {
-	if (mh::is_future_ready(m_CommandLineArgsFuture))
+	if (m_CommandLineArgsTask.is_ready())
 	{
-		const auto& args = m_CommandLineArgsFuture.get();
+		const auto& args = m_CommandLineArgsTask.get();
 		m_MultipleInstances = args.size() > 1;
 		if (!m_MultipleInstances)
 		{
@@ -53,18 +53,18 @@ void TF2CommandLinePage::Data::TryUpdateCmdlineArgs()
 				m_CommandLineArgs = TF2CommandLine::Parse(args.at(0));
 		}
 
-		m_CommandLineArgsFuture = {};
+		m_CommandLineArgsTask = {};
 		m_AtLeastOneUpdateRun = true;
 	}
 
-	if (!m_CommandLineArgsFuture.valid())
+	if (!m_CommandLineArgsTask.valid())
 	{
 		// See about starting a new update
 
 		const auto curTime = clock_t::now();
 		if (!m_AtLeastOneUpdateRun || (curTime >= (m_LastCLUpdate + CL_UPDATE_INTERVAL)))
 		{
-			m_CommandLineArgsFuture = Processes::GetTF2CommandLineArgsAsync();
+			m_CommandLineArgsTask = Processes::GetTF2CommandLineArgsAsync();
 			m_LastCLUpdate = curTime;
 		}
 	}

@@ -2,6 +2,7 @@
 #include "Util/TextUtils.h"
 #include "Log.h"
 
+#include <mh/coroutine/future.hpp>
 #include <mh/memory/cached_variable.hpp>
 #include <mh/error/ensure.hpp>
 #include <mh/text/case_insensitive_string.hpp>
@@ -140,14 +141,18 @@ namespace
 			}
 			catch (const GetLastErrorException& e)
 			{
-				LogError(""s << __FUNCTION__ << "(): " << e.what());
+				LogException(e);
+				m_Promise.set_exception(std::current_exception());
 				return WBEM_E_FAILED;
 			}
 
 			return WBEM_S_NO_ERROR;
 		}
 
-		const auto& GetFuture() const { return m_Future; }
+		mh::task<std::vector<std::string>> GetTask() const
+		{
+			return m_Promise.get_task();
+		}
 
 	protected:
 		void OnComplete() override
@@ -159,13 +164,12 @@ namespace
 		mutable std::mutex m_ArgsMutex;
 		std::vector<std::string> m_Args;
 
-		std::promise<std::vector<std::string>> m_Promise;
-		std::shared_future<std::vector<std::string>> m_Future{ m_Promise.get_future().share() };
+		mh::promise<std::vector<std::string>> m_Promise;
 	};
 }
 
 // https://docs.microsoft.com/en-us/windows/win32/wmisdk/example--getting-wmi-data-from-the-local-computer
-std::shared_future<std::vector<std::string>> tf2_bot_detector::Processes::GetTF2CommandLineArgsAsync()
+mh::task<std::vector<std::string>> tf2_bot_detector::Processes::GetTF2CommandLineArgsAsync()
 {
 	try
 	{
@@ -212,11 +216,11 @@ std::shared_future<std::vector<std::string>> tf2_bot_detector::Processes::GetTF2
 			NULL,
 			pResponseSink.Get()));
 
-		return pResponseSink->GetFuture();
+		return pResponseSink->GetTask();
 	}
 	catch (const GetLastErrorException& e)
 	{
-		LogError(std::string(__FUNCTION__) << "(): " << e.what());
+		LogException(e);
 		throw;
 	}
 }
