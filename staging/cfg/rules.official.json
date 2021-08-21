@@ -468,6 +468,52 @@
 					"cheater"
 				]
 			},
+			"description": "Dox bot",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "0a05c28558b19cdff2a52acfbc4dcf3bbc1962cd"
+					}
+				],
+				"mode": "match_all",
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"bit.ly"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "LunaRP bot",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "b320273dc057bfa03cef2422c69c686aa1f3660e"
+					}
+				],
+				"mode": "match_all",
+				"username_text_match": {
+					"case_sensitive": true,
+					"mode": "contains",
+					"patterns": [
+						"discord.gg/6TsYkfQbKk"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
 			"description": "Crazy Frogs",
 			"triggers": {
 				"username_text_match": {
@@ -476,6 +522,7 @@
 					"patterns": [
 						"CRAZY FROG",
 						"RACIST CRAZY FROG",
+						"forg",
 						"cazy",
 						"A blast from",
 						"crzy",
@@ -494,13 +541,14 @@
 					"cheater"
 				]
 			},
-			"description": "OMEGATRONIC 1",
+			"description": "OMEGATRONIC 1 and such",
 			"triggers": {
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"OMEGATRONIC"
+						"OMEGATRONIC",
+						"The Wallace Breen"
 					]
 				}
 			}
@@ -520,7 +568,11 @@
 						"\u0e47",
 						"\u0e37",
 						"\u0e3a",
-						"\u0e35"
+						"\u0e35",
+						"\u0e4c",
+						"\u0e4a",
+						"\u0e4d",
+						"\u0e38"
 					]
 				}
 			}
@@ -589,7 +641,8 @@
 					"case_sensitive": false,
 					"mode": "ends_with",
 					"patterns": [
-						"\u0e31"
+						"\u0e31",
+						"\u0e4b"
 					]
 				}
 			}
@@ -607,6 +660,23 @@
 					"mode": "contains",
 					"patterns": [
 						"OneTrick"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Others",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"Enderblitz"
 					]
 				}
 			}
