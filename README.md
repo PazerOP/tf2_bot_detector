@@ -250,7 +250,7 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 [msix-install-link]: https://tf2bd-util.pazer.us/Redirect/AppInstaller?source=https://tf2bd-util.pazer.us/AppInstaller/Public.msixbundle
 [zip-image]: https://i.imgur.com/ZeCuUul.png
 [github-sponsors-pazerop]: https://github.com/sponsors/PazerOP
-[wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists
+[wiki-customization-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Customization#third-party-player-lists-and-rules
 [wiki-installation-link]: https://github.com/PazerOP/tf2_bot_detector/wiki/Getting-Started
 [install-video]: https://www.youtube.com/watch?v=MbFDUmsUakQ
 [getting-started-wiki]: https://github.com/PazerOP/tf2_bot_detector/wiki/Getting-Started
