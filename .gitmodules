@@ -4,9 +4,6 @@
 [submodule "submodules/ValveFileVDF"]
 	path = submodules/ValveFileVDF
 	url=https://github.com/PazerOP/ValveFileVDF.git
-[submodule "submodules/mh_stuff"]
-	path = submodules/mh_stuff
-	url = https://github.com/PazerOP/stuff.git
 [submodule "submodules/vcpkg"]
 	path = submodules/vcpkg
 	url = https://github.com/microsoft/vcpkg.git
