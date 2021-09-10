@@ -227,20 +227,29 @@ find_package(BZip2 REQUIRED)
 find_package(SQLiteCpp CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(cpprestsdk CONFIG REQUIRED)
+find_package(mh-imgui CONFIG REQUIRED)
+find_package(sdl2 CONFIG REQUIRED)
+find_package(mh-stuff CONFIG REQUIRED)
+find_package(imgui-desktop CONFIG REQUIRED)
+find_package(source-rcon CONFIG REQUIRED)
+find_package(glad2-gl CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	tf2_bot_detector::common
-	imgui_desktop
+	mh::imgui-desktop
 	ValveFileVDF
 	libzip::zip
 	libzippp::libzippp
-	SourceRCON
+	mh::source-rcon
 	nlohmann_json::nlohmann_json
 	fmt::fmt
 	BZip2::BZip2
 	SQLiteCpp
 	ZLIB::ZLIB
 	cpprestsdk::cpprest
+	mh::mh-stuff
+	SDL2::SDL2
+	mh::mh-imgui
 )
 
 if (TF2BD_ENABLE_TESTS)

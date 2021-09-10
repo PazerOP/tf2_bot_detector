@@ -18,6 +18,10 @@
 			"name": "cpprestsdk",
 			"features": [ "compression" ]
 		},
-		"zlib"
+		"zlib",
+		"mh-stuff",
+		"glad2-gl",
+		"imgui-desktop",
+		"source-rcon"
 	]
 }

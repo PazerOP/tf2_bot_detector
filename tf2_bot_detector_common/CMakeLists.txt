@@ -21,9 +21,9 @@ endif()
 target_include_directories(tf2_bot_detector_common PUBLIC "include")
 
 find_package(fmt CONFIG REQUIRED)
-
+find_package(mh-stuff CONFIG REQUIRED)
 target_link_libraries(tf2_bot_detector_common
 	PUBLIC
-		mh::stuff
+		mh::mh-stuff
 		fmt::fmt
 )

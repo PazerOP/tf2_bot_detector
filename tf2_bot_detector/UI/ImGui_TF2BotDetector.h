@@ -8,7 +8,7 @@
 #include <mh/raii/scope_exit.hpp>
 #include <mh/text/fmtstr.hpp>
 #include <mh/types/disable_copy_move.hpp>
-#include <misc/cpp/imgui_stdlib.h>
+#include <imgui_stdlib.h>
 
 #include <filesystem>
 #include <optional>

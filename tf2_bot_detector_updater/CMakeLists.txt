@@ -46,10 +46,11 @@ add_subdirectory(../submodules/mh_stuff "${PROJECT_BINARY_DIR}/submodules/mh_stu
 add_subdirectory(../tf2_bot_detector_common "${PROJECT_BINARY_DIR}/tf2_bot_detector_common")
 
 find_package(OpenSSL REQUIRED)
+find_package(mh-stuff CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector_updater PUBLIC
 	tf2_bot_detector::common
-	mh::stuff
+	mh::mh-stuff
 	fmt::fmt
 	OpenSSL::SSL # cpp-httplib requires openssl
 )

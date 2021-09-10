@@ -41,10 +41,10 @@ target_include_directories(tf2_bot_detector_winrt SYSTEM BEFORE PUBLIC ${WINRT_I
 target_include_directories(tf2_bot_detector_winrt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(fmt CONFIG REQUIRED)
-
+find_package(mh-stuff CONFIG REQUIRED)
 target_link_libraries(tf2_bot_detector_winrt PUBLIC
 	tf2_bot_detector::common
-	mh::stuff
+	mh::mh-stuff
 	fmt::fmt
 )
 
