@@ -390,6 +390,7 @@ void Settings::AddDefaultGotoProfileSites()
 	m_GotoProfileSites.push_back({ "RGL", "https://rgl.gg/Public/PlayerProfile.aspx?p=%SteamID64%" });
 	m_GotoProfileSites.push_back({ "SteamRep", "https://steamrep.com/profiles/%SteamID64%" });
 	m_GotoProfileSites.push_back({ "UGC League", "https://www.ugcleague.com/players_page.cfm?player_id=%SteamID64%" });
+	m_GotoProfileSites.push_back({ "Oz Fortress", "https://ozfortress.com/users/steam_id/%SteamID64%" });
 }
 
 void Settings::Deserialize(const nlohmann::json& json)
