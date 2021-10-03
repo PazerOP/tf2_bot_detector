@@ -215,17 +215,16 @@ Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-s
 * [Crazy Gunman](https://github.com/CrazyGunman2C4U)
 * [camp3r101](https://github.com/camp3r101)
 * [bgausden](https://github.com/bgausden)
-* [YoukaiCat](https://github.com/YoukaiCat) <!-- Until 12/1/21 -->
-* [TheWisehobgoblin](https://github.com/TheWisehobgoblin) <!-- Until 7/2/21 -->
+* [TheWisehobgoblin](https://github.com/TheWisehobgoblin)
 
 <!--$5-->
 * [ClusterConsultant](https://github.com/ClusterConsultant)
-* [Admiral Bread Crumbs](https://github.com/AdmiralBreadCrumbs)
 * [Czechball](https://github.com/Czechball)
 * [RedNightmare](https://github.com/RedNightmare)
 * [Public Toilet](https://github.com/PoliteYeti)
 * [philosothink66](https://github.com/philosothink66)
-* [Koi](https://github.com/Koi-Code-TF2)
+* [Koi](https://github.com/Koi-Code-TF2) <!-- 10/20/2021 -->
+* [PoliteYeti](https://github.com/PoliteYeti)
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
