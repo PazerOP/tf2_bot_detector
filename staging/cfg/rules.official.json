@@ -442,7 +442,19 @@
 					"mode": "word",
 					"patterns": [
 						"nigger",
-						"niggers"
+						"niggers",
+						"nigga",
+						"niggas"
+					]
+				}
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"nigga",
+						"nigger",
+						"niggers",
+						"niggas",
 					]
 				}
 			}
@@ -504,6 +516,55 @@
 					"mode": "contains",
 					"patterns": [
 						"discord.gg/6TsYkfQbKk"
+					]
+				},
+				{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "ofash-o-matic",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"ofash-o-matic",
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "I love you",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": false,
+					"mode": "contains",
+					"patterns": [
+						"I love You \u2665 \u2665 \u2665"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Blank Name bot",
+			"triggers": {
+				"username_text_match": {
+					"case_sensitive": true,
+					"mode": "contains",
+					"patterns": [
+						"\u0e47\u0e47\u0e47\u0e47"
 					]
 				}
 			}
