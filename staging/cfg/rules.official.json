@@ -446,7 +446,7 @@
 						"nigga",
 						"niggas"
 					]
-				}
+				},
 				"username_text_match": {
 					"case_sensitive": false,
 					"mode": "contains",
@@ -454,7 +454,7 @@
 						"nigga",
 						"nigger",
 						"niggers",
-						"niggas",
+						"niggas"
 					]
 				}
 			}
@@ -517,8 +517,10 @@
 					"patterns": [
 						"discord.gg/6TsYkfQbKk"
 					]
-				},
-				{
+				}
+			}
+		},
+		{
 			"actions": {
 				"mark": [
 					"cheater"
@@ -530,7 +532,7 @@
 					"case_sensitive": false,
 					"mode": "contains",
 					"patterns": [
-						"ofash-o-matic",
+						"ofash-o-matic"
 					]
 				}
 			}
