@@ -20,8 +20,8 @@
 		},
 		"zlib",
 		"mh-stuff",
-		"glad2-gl",
-		"imgui-desktop",
-		"source-rcon"
+		"mh-glad2-gl",
+		"mh-imgui-desktop",
+		"mh-source-rcon"
 	]
 }

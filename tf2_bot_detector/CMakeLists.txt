@@ -230,17 +230,17 @@ find_package(cpprestsdk CONFIG REQUIRED)
 find_package(mh-imgui CONFIG REQUIRED)
 find_package(sdl2 CONFIG REQUIRED)
 find_package(mh-stuff CONFIG REQUIRED)
-find_package(imgui-desktop CONFIG REQUIRED)
-find_package(source-rcon CONFIG REQUIRED)
-find_package(glad2-gl CONFIG REQUIRED)
+find_package(mh-imgui-desktop CONFIG REQUIRED)
+find_package(mh-source-rcon CONFIG REQUIRED)
+find_package(mh-glad2-gl CONFIG REQUIRED)
 
 target_link_libraries(tf2_bot_detector PRIVATE
 	tf2_bot_detector::common
-	mh::imgui-desktop
+	mh::mh-imgui-desktop
 	ValveFileVDF
 	libzip::zip
 	libzippp::libzippp
-	mh::source-rcon
+	mh::mh-source-rcon
 	nlohmann_json::nlohmann_json
 	fmt::fmt
 	BZip2::BZip2

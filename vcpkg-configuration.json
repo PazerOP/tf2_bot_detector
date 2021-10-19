@@ -3,14 +3,14 @@
 		{
 			"kind": "git",
 			"repository": "https://github.com/PazerOP/vcpkg-registry",
-			"baseline": "b77ea7e83ad059134d9c22ab887d805b3180124c",
+			"baseline": "2787cadfca00a8ece68b7faa2c556e9f2a20ac5a",
 			"packages": [
 				"mh-cmake-common",
 				"mh-stuff",
 				"mh-imgui",
-				"glad2-gl",
-				"imgui-desktop",
-				"source-rcon"
+				"mh-glad2-gl",
+				"mh-imgui-desktop",
+				"mh-source-rcon"
 			]
 		}
 	]
