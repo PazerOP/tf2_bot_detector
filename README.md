@@ -30,7 +30,7 @@
     <br />
     -->
     <br />
-    <a href="https://tf2bd-util.pazer.us/Redirect/AppInstaller?source=https://tf2bd-util.pazer.us/AppInstaller/Public.msixbundle">Install</a>
+    <a href="#installation">Install</a>
     ·
     <a href="https://github.com/PazerOP/tf2_bot_detector/issues/new?assignees=&labels=Priority%3A+Medium%2C+Type%3A+Bug&template=bug_report.md&title=%5BBUG%5D">Report a Bug</a>
     ·
@@ -45,8 +45,7 @@
 
 - [Table of Contents](#table-of-contents)
 - [Installation](#installation)
-  - ["One-Click" Installation (recommended)](#one-click-installation-recommended)
-  - [Manual/Portable Install](#manualportable-install)
+  - [Typical Install (works for nearly everyone)](#typical-install-works-for-nearly-everyone)
   - [Advanced Installation](#advanced-installation)
 - [General Usage](#general-usage)
   - [How to launch TF2BD](#how-to-launch-tf2bd)
@@ -66,6 +65,7 @@
   - [This doesn't detect anything!](#this-doesnt-detect-anything)
   - [Help! The tool wont open!](#help-the-tool-wont-open)
   - [What do you think of using aimbot/cathook/esp/bots/cheats against the bots?](#what-do-you-think-of-using-aimbotcathookespbotscheats-against-the-bots)
+  - [How can I support this project financially?](#how-can-i-support-this-project-financially)
   - [I have a question that is not listed here!](#i-have-a-question-that-is-not-listed-here)
 - [License](#license)
 - [Contact](#contact)
@@ -73,18 +73,14 @@
   - [Sponsors](#sponsors)
 
 
-<!-- GETTING STARTED -->
+
 ## Installation
 
-### "One-Click" Installation (recommended)
-
-If you are on Windows 10 1809 or newer, just click this link: [Install][msix-install-link]
-
-### Manual/Portable Install
+### Typical Install (works for nearly everyone)
 
 1. Download and install the [Microsoft Visual C++ Redistributable for Visual Studio 2015, 2017 and 2019][mscr-link]
 2. Download the [latest release][latest-64]
-3. Extract the zip in any location inside of your user folder (e.g. Downloads, Documents, Desktop, etc)
+3. Extract the zip in any location inside your user folder (e.g. Downloads, Documents, Desktop, etc)
 
 ### Advanced Installation
 
@@ -93,9 +89,7 @@ If you would like more information about installation or the above options are n
 ## General Usage
 
 ### How to launch TF2BD
-If you are using the installed version simply launch the app from the shortcut found in your start menu.
-
-If you are using the portable version double click `tf2_bot_detector.exe` in the folder you downloaded from the installation section.
+Double click `tf2_bot_detector.exe` in the folder you downloaded from the installation section.
 
 ### First run
 When you first run the tool it will ask if you would like to allow internet connectivity and which update channel you would like. These can be changed later in the settings menu. The recommended options are automatically selected and you may just click next.
@@ -139,7 +133,7 @@ TF2BD allows for a fair amount of customization (with even more planned). Curren
 
 If you are an advanced user you are more than welcome to create your own lists. You should be familiar with json in general before getting started but there are many people in the [discord][discord-link] who would be happy to help.
 
-<!-- FAQ -->
+
 ## FAQ
 
 ### What is TF2 Bot Detector?
@@ -188,43 +182,66 @@ For further assistance either open an [issue][issues-url] on github or join our 
 
 This project does not advocate for the use of cheating in any fashion. Putting aside the obvious moral issues with using cheats, that would introduce the possibility of a VAC ban. This project is committed to maintaining the safety of its users.
 
+### How can I support this project financially?
+You can't. This may change in the future.
+
 ### I have a question that is not listed here!
 
 Take a look at the [wiki][wiki-link]. There is not a ton there right now but that will be the location of all future documentation. If you can't find your answer there, stop by the [discord][discord-link].
 
-<!-- LICENSE -->
+
 ## License
 
 Distributed under the MIT License. See [`LICENSE`][license-url] for more information.
 
-<!-- CONTACT -->
+
 ## Contact
 Project Discord: [https://discord.gg/W8ZSh3Z][discord-link]
 
 [Issues page][issues-link]
 
-<!-- ACKNOWLEDGEMENTS -->
+
 ## Acknowledgements
 * Code/concept by [Matt "pazer" Haynie](https://github.com/PazerOP/) - [@PazerFromSilver](https://twitter.com/PazerFromSilver)
 * Artwork/icon by S-Purple - [@spurpleheart](https://twitter.com/spurpleheart) (NSFW)
 * Documentation by [Nicholas "ClusterConsultant" Flamel](https://github.com/ClusterConsultant)
 
 ### Sponsors
-Huge thanks to the people sponsoring this project via [GitHub Sponsors][github-sponsors-pazerop]:
-<!--$10-->
-* [Crazy Gunman](https://github.com/CrazyGunman2C4U)
-* [camp3r101](https://github.com/camp3r101)
-* [bgausden](https://github.com/bgausden)
-* [TheWisehobgoblin](https://github.com/TheWisehobgoblin)
+Huge thanks to anyone who threw money at this project via GitHub Sponsors. Since the sponsor program has been stopped below is a list of everyone who has given money to this project. In descending order based on total amount donated:
 
-<!--$5-->
-* [ClusterConsultant](https://github.com/ClusterConsultant)
-* [Czechball](https://github.com/Czechball)
-* [RedNightmare](https://github.com/RedNightmare)
-* [Public Toilet](https://github.com/PoliteYeti)
-* [philosothink66](https://github.com/philosothink66)
-* [Koi](https://github.com/Koi-Code-TF2) <!-- 10/20/2021 -->
-* [PoliteYeti](https://github.com/PoliteYeti)
+- [CrazyGunman2C4U](https://github.com/CrazyGunman2C4U)
+- [camp3r101](https://github.com/camp3r101)
+- [bgausden](https://github.com/bgausden)
+- [ClusterConsultant](https://github.com/ClusterConsultant)
+- [moebkun](https://github.com/moebkun)
+- [Czechball](https://github.com/Czechball)
+- [RedNightmare](https://github.com/RedNightmare)
+- [PoliteYeti](https://github.com/PoliteYeti)
+- [TheWisehobgoblin](https://github.com/TheWisehobgoblin)
+- [AdmiralBreadCrumbs](https://github.com/AdmiralBreadCrumbs)
+- [philosothink66](https://github.com/philosothink66)
+- [Zatharax](https://github.com/Zatharax)
+- [YoukaiCat](https://github.com/YoukaiCat)
+- [Symthos](https://github.com/Symthos)
+- [Koi-Code-TF2](https://github.com/Koi-Code-TF2)
+- [CriticalFlaw](https://github.com/CriticalFlaw)
+- [BitmapDummy](https://github.com/BitmapDummy)
+- [berry-jordan](https://github.com/berry-jordan)
+- [KTachibanaM](https://github.com/KTachibanaM)
+- [spacebuterfly](https://github.com/spacebuterfly)
+- [flohdieter](https://github.com/flohdieter)
+- [Claxtian](https://github.com/Claxtian)
+- [ElRogero](https://github.com/ElRogero)
+- [FishdaddyYoutube](https://github.com/FishdaddyYoutube)
+- [lnx00](https://github.com/lnx00)
+- [betawolfy](https://github.com/betawolfy)
+- [minein4](https://github.com/minein4)
+- [karlovchap](https://github.com/karlovchap)
+- [ziggythehamster](https://github.com/ziggythehamster)
+- [Flavio11113](https://github.com/Flavio11113)
+- [ClaudiaLutz](https://github.com/ClaudiaLutz)
+
+> If you'd like you displayed name changed please contact `The Immortal Nicholas Flamel#0001` on discord or submit a PR from the associated GitHub account
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
