@@ -98,7 +98,7 @@ When you first run the tool it will ask if you would like to allow internet conn
 
 It is **strongly** recommended to set up your Steam Web API key. More information can be found [here][api-wiki].
 
-> Note: If TF2BD is unable to find your Steam folder, your TF2's tf folder, or your Steam ID, it will ask you for the missing information before anything else
+> Note: If TF2BD is unable to find your Steam folder, your TF2's tf folder, or your Steam ID3, it will ask you for the missing information before anything else
 
 ### Using TF2BD
 

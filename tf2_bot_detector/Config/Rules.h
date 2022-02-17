@@ -77,7 +77,7 @@ namespace tf2_bot_detector
 		struct Actions
 		{
 			std::vector<PlayerAttribute> m_Mark;
-			std::vector<PlayerAttribute> m_TransientMark; // Doesn't "stick" to their Steam ID
+			std::vector<PlayerAttribute> m_TransientMark; // Doesn't "stick" to their Steam ID3
 			std::vector<PlayerAttribute> m_Unmark;
 		} m_Actions;
 	};

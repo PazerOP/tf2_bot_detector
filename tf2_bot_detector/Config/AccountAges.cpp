@@ -44,7 +44,7 @@ bool AccountAges::CheckSteamIDValid(const SteamID& id, const mh::source_location
 {
 	if (id.Type != SteamAccountType::Individual)
 	{
-		LogError(location, "Steam ID ({}) must be for an individual account", id);
+		LogError(location, "Steam ID3 ({}) must be for an individual account", id);
 		return false;
 	}
 
@@ -79,7 +79,7 @@ std::optional<time_point_t> AccountAges::EstimateAccountCreationTime(const Steam
 	if (lower->m_CreationTime == upper->m_CreationTime)
 		return lower->m_CreationTime;  // they're the same picture
 
-	// Interpolate the time between the nearest lower and upper steam ID
+	// Interpolate the time between the nearest lower and upper steam ID3
 	const auto interpValue = mh::remap(id.GetAccountID(),
 		lower->m_SteamID.GetAccountID(), upper->m_SteamID.GetAccountID(),
 		lower->m_CreationTime.time_since_epoch().count(), upper->m_CreationTime.time_since_epoch().count());
