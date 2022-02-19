@@ -223,7 +223,7 @@ Huge thanks to anyone who threw money at this project via GitHub Sponsors. Since
 - [Zatharax](https://github.com/Zatharax)
 - [YoukaiCat](https://github.com/YoukaiCat)
 - [Symthos](https://github.com/Symthos)
-- [Koi-Code-TF2](https://github.com/Koi-Code-TF2)
+- [Koi](https://steamcommunity.com/profiles/76561198064411172)
 - [CriticalFlaw](https://github.com/CriticalFlaw)
 - [BitmapDummy](https://github.com/BitmapDummy)
 - [berry-jordan](https://github.com/berry-jordan)
