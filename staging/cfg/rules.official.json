@@ -507,6 +507,21 @@
 					]
 				}
 			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "YINHANGTRADEPARTNERS.CN aimbot/adbot - [U:1:1148518459] [U:1:1148885007] [U:1:1149009542] [U:1:1253621531] [U:1:1253668387] [U:1:1253997431]",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "a24b92f2c1db47748c7b054e4a1f91306b464cfc"
+					}
+				]
+			}
 		}
 	]
 }
