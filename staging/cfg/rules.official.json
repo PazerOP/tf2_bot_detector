@@ -507,6 +507,21 @@
 					]
 				}
 			}
+		},
+		{
+			"actions": {
+				"transient_mark": [
+					"cheater"
+				]
+			},
+			"description": "Default sniper",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "18f3afa466a12eb74fa28979d93fdf5e039bc2cb"
+					}
+				]
+			}
 		}
 	]
 }
