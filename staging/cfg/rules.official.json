@@ -517,9 +517,43 @@
 			},
 			"description": "Default sniper",
 			"triggers": {
+				"personaname_text_match": {
+					"case_sensitive": false,
+					"mode":"equal",
+					"patterns": [
+						"default_sniper.jpg"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"transient_mark": [
+					"cheater"
+				]
+			},
+			"description": "OG Fuck Nemo",
+			"triggers": {
+				"personaname_text_match": {
+					"case_sensitive": false,
+					"mode":"equal",
+					"patterns": [
+						"OG Fuck Nemo"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "Fuck Nemo",
+			"triggers": {
 				"avatar_match": [
 					{
-						"avatar_hash": "18f3afa466a12eb74fa28979d93fdf5e039bc2cb"
+						"avatar_hash": "619e9476fe120c56afb7dfaac6a0bdc1b306360d"
 					}
 				]
 			}
