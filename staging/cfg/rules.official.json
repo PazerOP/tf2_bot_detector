@@ -532,6 +532,23 @@
 					"cheater"
 				]
 			},
+			"description": "Default namestealer",
+			"triggers": {
+				"personaname_text_match": {
+					"case_sensitive": true,
+					"mode":"contains",
+					"patterns": [
+						"default namesteal"
+					]
+				}
+			}
+		},
+		{
+			"actions": {
+				"transient_mark": [
+					"cheater"
+				]
+			},
 			"description": "OG Fuck Nemo",
 			"triggers": {
 				"personaname_text_match": {
