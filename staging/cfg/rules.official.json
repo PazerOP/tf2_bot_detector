@@ -574,6 +574,29 @@
 					}
 				]
 			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "rapha. bot",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "25f543efdffaa2553c16da12d87d68ff93a923cf"
+					}
+				],
+				"mode": "match_all",
+				"username_text_match": {
+					"case_sensitive": true,
+					"mode": "contains",
+					"patterns": [
+						"rapha."
+					]
+				}
+			}
 		}
 	]
 }
