@@ -214,7 +214,6 @@ static void OpenTF2(const Settings& settings, const std::string_view& rconPasswo
 		" -game tf"
 		" -steam -secure"  // One or both of these is needed when launching the game directly
 		" -usercon"
-		" -high" // TODO: make this an option
 		" +developer 1 +alias developer"
 		" +contimes 0 +alias contimes"   // the text in the top left when developer >= 1
 		" +ip 0.0.0.0 +alias ip"
