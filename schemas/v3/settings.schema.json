@@ -118,7 +118,7 @@
 							"description": "Disable auto-update completely. You can still check for updates manually through the Help menu."
 						}
 					],
-					"default": "releases"
+					"default": "disabled"
 				}
 			}
 		},
