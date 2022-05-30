@@ -597,6 +597,21 @@
 					]
 				}
 			}
+		},
+		{
+			"actions": {
+				"mark": [
+					"cheater"
+				]
+			},
+			"description": "OMEGATRONIC",
+			"triggers": {
+				"avatar_match": [
+					{
+						"avatar_hash": "cd0f89d52d4febcdd980255e498a994b0e3a56a4"
+					}
+				]
+			}
 		}
 	]
 }
